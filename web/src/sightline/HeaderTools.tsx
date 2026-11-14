@@ -2,13 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   onBrief: () => void
+  /** A guide is talking about the list: it is held open while its step is on show. */
+  held?: boolean
+  /** Start the short guide to sharing; left out, or null while a guide is already on, where there is none to offer. */
+  onShowHow?: (() => void) | null
 }
 
 /**
  * Share, a small icon button beside the name, with a name for readers that cannot see it. It opens a
  * short list: copy the link for what is on screen, or read the written brief for the scenario on show.
  */
-export function HeaderTools({ onBrief }: Props) {
+export function HeaderTools({ onBrief, held = false, onShowHow = null }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const box = useRef<HTMLSpanElement>(null)
@@ -54,7 +58,7 @@ export function HeaderTools({ onBrief }: Props) {
           {copied ? 'Link copied' : ''}
         </span>
       </button>
-      {open && (
+      {(open || held) && (
         <span className="sl-share-menu" role="group" aria-label="Share">
           <button type="button" title="Copy the link to this view" onClick={copy}>
             Copy link
@@ -69,6 +73,18 @@ export function HeaderTools({ onBrief }: Props) {
           >
             Brief
           </button>
+          {onShowHow && (
+            <button
+              type="button"
+              className="sl-show-how"
+              onClick={() => {
+                setOpen(false)
+                onShowHow()
+              }}
+            >
+              Show me how
+            </button>
+          )}
         </span>
       )}
     </span>

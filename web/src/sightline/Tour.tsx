@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RiverState } from '../lib/river'
-import { type Box, type Disc, placeBubble, type TourFile, voiceFile } from '../lib/tour'
+import { type Box, type Disc, placeBubble, type TourFile, type TourStep, voiceFile } from '../lib/tour'
 import { Mascot } from '../scout/Mascot'
 
 interface Props {
-  tour: TourFile
+  /** What the bubble is called for a screen reader: "Scout's tour", or a feature guide's name. */
+  name: string
+  /** The steps on show: the main tour's, or a feature guide's. */
+  steps: TourStep[]
+  /** The tour whose voice files say these steps; null for steps that have none (the feature guides), which then offer no "Listen". */
+  voice: TourFile | null
   /** Which step is on show, counted from 0. */
   at: number
   onStep: (index: number) => void
@@ -40,7 +45,11 @@ function moonDisc(): Disc | null {
   const size = Number(globe?.dataset.discPx)
   if (!globe || !(size > 0)) return null
   const box = globe.getBoundingClientRect()
-  return { x: (box.left + box.right) / 2, y: (box.top + box.bottom) / 2, r: size / 2 }
+  const x = (box.left + box.right) / 2
+  const y = (box.top + box.bottom) / 2
+  // On a phone a panel fills the screen: the Moon is behind it, out of sight, and nothing can be drawn over it.
+  if (document.elementFromPoint(x, y)?.closest('.sl-drawer')) return null
+  return { x, y, r: size / 2 }
 }
 
 /**
@@ -50,15 +59,15 @@ function moonDisc(): Disc | null {
  * Moon and nothing is dimmed. Arrow keys step, Escape closes. "Listen" plays each line in Scout's
  * voice from a file rendered ahead of time: off until pressed, so there is never sound without a click.
  */
-export function Tour({ tour, at, onStep, onClose, onVideo, tryIt, state }: Props) {
-  const step = tour.steps[at]
-  const last = at === tour.steps.length - 1
+export function Tour({ name, steps, voice, at, onStep, onClose, onVideo, tryIt, state }: Props) {
+  const step = steps[at]
+  const last = at === steps.length - 1
   const bubble = useRef<HTMLElement>(null)
   const next = useRef<HTMLButtonElement>(null)
   const [rings, setRings] = useState<Box[]>([])
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
   const [listen, setListen] = useState(false)
-  const voice = useRef<HTMLAudioElement | null>(null)
+  const speaking = useRef<HTMLAudioElement | null>(null)
 
   // The rings and the bubble are placed from where things are on screen, again and again, so they
   // follow the screen while a step's state settles, a sheet scrolls or the window is resized.
@@ -116,28 +125,28 @@ export function Tour({ tour, at, onStep, onClose, onVideo, tryIt, state }: Props
 
   // "Listen": the step's line, in Scout's voice, from its file. A new step stops the line before it.
   useEffect(() => {
-    if (!listen) return
-    const audio = new Audio(voiceFile(tour, step))
-    voice.current = audio
+    if (!listen || !voice) return
+    const audio = new Audio(voiceFile(voice, step))
+    speaking.current = audio
     // A browser that refuses to play, or a file that is missing, leaves the words on screen: nothing else to do.
     void audio.play().catch(() => {})
     return () => {
       audio.pause()
-      voice.current = null
+      speaking.current = null
     }
-  }, [listen, step, tour])
+  }, [listen, step, voice])
 
   return (
     <>
       {rings.map((ring, i) => (
         <div key={i} className="sl-tour-ring" style={ring} aria-hidden="true" />
       ))}
-      <section ref={bubble} className="sl-tour" role="dialog" aria-label="Scout's tour" data-step={step.id} style={place ? { left: place.left, top: place.top } : { visibility: 'hidden' }}>
+      <section ref={bubble} className="sl-tour" role="dialog" aria-label={name} data-step={step.id} style={place ? { left: place.left, top: place.top } : { visibility: 'hidden' }}>
         <header className="sl-tour-head">
           <Mascot state={state} size={28} />
           <h2 className="sl-tour-title">{step.title}</h2>
           <span className="sl-tour-count">
-            {at + 1} of {tour.steps.length}
+            {at + 1} of {steps.length}
           </span>
         </header>
         <p className="sl-tour-say" aria-live="polite">
@@ -149,12 +158,14 @@ export function Tour({ tour, at, onStep, onClose, onVideo, tryIt, state }: Props
           </button>
         )}
         <footer className="sl-tour-foot">
-          <span className="sl-tour-voice">
-            <button type="button" className="sl-small sl-tour-listen" aria-pressed={listen} title="Hear Scout say each step. The voice is AI-generated; the words stay on screen." onClick={() => setListen(!listen)}>
-              Listen
-            </button>
-            <small>{tour.voice.disclosure}</small>
-          </span>
+          {voice && (
+            <span className="sl-tour-voice">
+              <button type="button" className="sl-small sl-tour-listen" aria-pressed={listen} title="Hear Scout say each step. The voice is AI-generated; the words stay on screen." onClick={() => setListen(!listen)}>
+                Listen
+              </button>
+              <small>{voice.voice.disclosure}</small>
+            </span>
+          )}
           <span className="sl-tour-nav">
             {last && onVideo && (
               <button type="button" className="sl-link sl-tour-video" onClick={onVideo}>

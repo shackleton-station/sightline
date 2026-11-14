@@ -22,6 +22,8 @@ interface Props {
   odds: { on: boolean; here: boolean }
   onOdds: (on: boolean) => void
   onClose: () => void
+  /** Start the short guide to the views and layers; null while a guide is already on. */
+  onShowHow: (() => void) | null
 }
 
 /**
@@ -29,12 +31,17 @@ interface Props {
  * on the stage one at a time. Each says how to read it, and the one that is on carries Trek's own
  * title and credit.
  */
-export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds, onOdds, onClose }: Props) {
+export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds, onOdds, onClose, onShowHow }: Props) {
   const on = trekLayer(layer)
   return (
     <aside className="sl-drawer sl-layers" aria-label="Layers">
       <header className="sl-drawer-head">
         <h2>Layers</h2>
+        {onShowHow && (
+          <button type="button" className="sl-link sl-show-how" onClick={onShowHow}>
+            Show me how
+          </button>
+        )}
         <button type="button" className="sl-small" onClick={onClose}>
           Close
         </button>

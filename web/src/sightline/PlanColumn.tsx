@@ -12,6 +12,10 @@ import { LandingPick } from './LandingPick'
 import { siteValue, targetAt, targetValue } from './site'
 
 interface FieldsProps {
+  /** A guide is talking about the form for a custom point: it is held open while its step is on show. */
+  held?: boolean
+  /** Start the short guide to a custom point; null while a guide is already on. */
+  onShowHow: (() => void) | null
   sites: SiteInfo[]
   site: SiteInfo | null
   /** Choose a site by what a scenario calls it: a listed id, or "lat,lon". */
@@ -123,7 +127,7 @@ const CUSTOM = '__custom'
  * date and hour, and the mission (its preset's name). The mission's control opens its limits in place,
  * under itself: while they are open the control says "Select", which closes them.
  */
-export function Fields({ sites, site, onSite, landing, landingField, firstField, lastField, onPickDate, missionName, mission, missionOpen, onMission, missionPanel }: FieldsProps) {
+export function Fields({ held = false, onShowHow, sites, site, onSite, landing, landingField, firstField, lastField, onPickDate, missionName, mission, missionOpen, onMission, missionPanel }: FieldsProps) {
   const groups = [...new Set(sites.map((listed) => listed.group))]
   // Places NASA names for landings still to come: in the list, but worked out like any custom point.
   const targets = useFutureTargets()
@@ -179,7 +183,7 @@ export function Fields({ sites, site, onSite, landing, landingField, firstField,
       </div>
       {/* The place in NASA's own tools: always under the site, one small line. */}
       {site && <OpenIn site={site} landingField={landingField} />}
-      {custom && (
+      {(custom || held) && (
         <div className="sl-plan-more">
           <Coordinates
             onSite={(value) => {
@@ -190,6 +194,11 @@ export function Fields({ sites, site, onSite, landing, landingField, firstField,
           <button type="button" className="sl-small" aria-label="Close" onClick={() => setCustom(false)}>
             ×
           </button>
+          {onShowHow && (
+            <button type="button" className="sl-link sl-show-how" onClick={onShowHow}>
+              Show me how
+            </button>
+          )}
         </div>
       )}
       <div className="sl-plan-row">

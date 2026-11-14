@@ -59,7 +59,8 @@ import { HeaderTools } from './HeaderTools'
 import { HypeDrawer } from './HypeDrawer'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
-import type { TourFile } from '../lib/tour'
+import type { GuidesFile, TourFile } from '../lib/tour'
+import guidesFile from './guides.json'
 import tourFile from './tour.json'
 import { AccuracyDrawer } from './AccuracyDrawer'
 import { FitLegend } from './FitLegend'
@@ -139,6 +140,8 @@ function hypeRemembered(): boolean {
 
 /** Scout's tour: its steps, words and what each rings, from the one file the video's recorder reads too. */
 const TOUR = tourFile as TourFile
+/** The feature guides: short tours of one feature each, in the main tour's format, run by the same engine. */
+const GUIDES = (guidesFile as GuidesFile).guides
 
 /** The phone's bottom sheet has three heights: the answer; half the screen; nearly all of it. */
 const SHEET_HEIGHTS = 3
@@ -270,6 +273,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // Scout's tour: which step is on show (null when it is not running), and the screen as the
   // visitor had it, to put back when the tour is closed at any step. It never starts by itself.
   const [tourAt, setTourAt] = useState<number | null>(null)
+  /** Which steps are on show: a feature guide's, by its id, or the main tour's (null). */
+  const [tourGuide, setTourGuide] = useState<string | null>(null)
   const beforeTour = useRef<{ plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
   /** Whether the tour has put its own landing in Plan yet: once, so what the visitor tries on the way is kept. */
   const tourPlanned = useRef(false)
@@ -651,11 +656,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     return () => window.removeEventListener('keydown', onEscape)
   }, [drawer, how, full, brief, tourAt])
 
-  const startTour = () => {
+  /** Start the main tour, or a feature guide by its id. Either way the screen as it is now is kept, to put back at the end. */
+  const startTour = (guide: string | null = null) => {
     beforeTour.current = { plan, scenarios, chosen, drawer, full, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
     tourPlanned.current = false
-    setTourTaken(true)
+    if (guide === null) setTourTaken(true)
     setHow(false)
+    setTourGuide(guide)
     setTourAt(0)
   }
   /** Leave the tour at any step: the screen goes back to how the visitor had it. */
@@ -682,12 +689,15 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   }, [setBare, setPillMin, setRiverMin, setSkyMin, setHour, setPlaying])
   // Each step puts the real screen in its state before Scout speaks: Watch or Plan, with nothing
   // else open and time held, so what the step rings is there and stays put.
-  const tourStep = tourAt === null ? null : TOUR.steps[tourAt]
+  // A step about a control only a wide window has is left out on a phone.
+  const tourSteps = useMemo(() => (tourGuide === null ? TOUR.steps : (GUIDES.find((guide) => guide.id === tourGuide)?.steps ?? TOUR.steps)).filter((step) => !step.wide || room !== 'phone'), [tourGuide, room])
+  const tourStep = tourAt === null ? null : (tourSteps[tourAt] ?? null)
   useEffect(() => {
     if (!tourStep) return
-    const { view, show } = tourStep.state
+    const { view, show, open, pair } = tourStep.state
     setBare(false)
-    setDrawer(null)
+    // A step may open the panel it is about; every other panel is shut.
+    setDrawer(open === 'compare' || open === 'layers' ? open : null)
     setFull(false)
     setBrief(false)
     setHow(false)
@@ -701,14 +711,26 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       if (!tourPlanned.current && nowHour >= 0 && nowHour < hours) setHour(nowHour)
       return
     }
-    // The tour's own landing, once: one that does not fit the default mission, so the verdict has a reason and a next landing to show.
+    // The main tour's own landing, once: one that does not fit the default mission, so the verdict has a reason and a next landing to show.
+    // A feature guide keeps the visitor's own plan, except for a step about several scenarios, which
+    // gets the app's two nearby sites on one date, once.
     const landing = hourOf(start, TOUR.scenario.landing)
-    if (!tourPlanned.current && sites.some((listed) => listed.id === TOUR.scenario.site) && Number.isInteger(landing) && landing >= 0 && landing < hours) {
-      setScenarios([{ site: TOUR.scenario.site, landing }])
+    if (tourGuide === null) {
+      if (!tourPlanned.current && sites.some((listed) => listed.id === TOUR.scenario.site) && Number.isInteger(landing) && landing >= 0 && landing < hours) {
+        setScenarios([{ site: TOUR.scenario.site, landing }])
+        setActive(0)
+        setHour(landing)
+      }
+      tourPlanned.current = true
+    } else if (pair && !tourPlanned.current && pairWords) {
+      setScenarios([
+        { site: NEARBY_PAIR.a, landing: pairLanding },
+        { site: NEARBY_PAIR.b, landing: pairLanding },
+      ])
       setActive(0)
-      setHour(landing)
+      setHour(pairLanding)
+      tourPlanned.current = true
     }
-    tourPlanned.current = true
     setPlan(true)
     // The step about the skyline opens it; every other step leaves it as the visitor had it.
     setSkyMin(show === 'skyline' ? false : (beforeTour.current?.skyMin ?? true))
@@ -830,12 +852,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       <Tips />
       {tourAt !== null && (
         <Tour
-          tour={TOUR}
+          name={tourGuide === null ? "Scout's tour" : (GUIDES.find((guide) => guide.id === tourGuide)?.name ?? "Scout's tour")}
+          steps={tourSteps}
+          voice={tourGuide === null ? TOUR : null}
           at={tourAt}
           onStep={setTourAt}
           onClose={endTour}
           onVideo={
-            guideVideos.walkthrough
+            guideVideos.walkthrough && tourGuide === null
               ? () => {
                   endTour()
                   setHowAtVideo(true)
@@ -856,7 +880,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             <div className="sl-col-head">
               {/* The undo notice takes the title's place for a few seconds: nothing moves, and nothing is over the Moon. */}
               <h1 className="sl-title">Sightline</h1>
-              <HeaderTools onBrief={() => setBrief(true)} />
+              <HeaderTools onBrief={() => setBrief(true)} held={tourStep?.state.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} />
             </div>
             {/* The scenarios, on a row of their own; the undo notice sits at the row's end for a few seconds, so nothing moves and nothing is over the Moon. */}
             <div className="sl-tabs-row">
@@ -874,6 +898,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               earthShare={shares[active]?.earth ?? null}
               plan={
                 <Fields
+                  held={tourStep?.state.open === 'custom'}
+                  onShowHow={tourAt === null ? () => startTour('custom') : null}
                   sites={sites}
                   site={site}
                   onSite={(value) => setScenario((current) => ({ ...current, site: value }))}
@@ -1094,7 +1120,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         )}
         {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
         {!bare && !plan && tourAt === null && !(scoutOpen && room === 'phone') && (
-          <button type="button" className={tourTaken ? 'sl-tour-chip sl-fade' : 'sl-tour-chip sl-fade is-new'} title="Scout walks you through the screen, in about a minute" onClick={startTour}>
+          <button type="button" className={tourTaken ? 'sl-tour-chip sl-fade' : 'sl-tour-chip sl-fade is-new'} title="Scout walks you through the screen, in about a minute" onClick={() => startTour()}>
             <span aria-hidden="true">▶</span> One-minute tour
           </button>
         )}
@@ -1181,8 +1207,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               setHow(false)
               setHowAtVideo(false)
             }}
-            onTour={startTour}
+            onTour={() => startTour()}
             tourTaken={tourTaken}
+            guides={GUIDES}
+            onGuide={startTour}
             videos={guideVideos}
             openAtVideo={howAtVideo}
           />
@@ -1205,7 +1233,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           }}
           onOpen={openAsScenario}
           onClose={toggleScoutPanel}
-          onTour={startTour}
+          onTour={() => startTour()}
           tourTaken={tourTaken}
         />
       )}
@@ -1234,14 +1262,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer odds={{ on: fitShade, here: fitHere }} onOdds={showFitShade} layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'layers' && <LayersDrawer onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere }} onOdds={showFitShade} layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
       {shown && !planner && (
         <Rail
           mode={mode}
           onMode={setMode}
           onHow={() => setHow(true)}
           hype={hypeFound ? { open: drawer === 'hype', onOpen: () => setDrawer(drawer === 'hype' ? null : 'hype') } : null}
-          onTour={startTour}
+          onTour={() => startTour()}
           onPlanner={() => {
             // In the Planner the only panel is Scout's.
             if (drawer !== 'scout') setDrawer(null)

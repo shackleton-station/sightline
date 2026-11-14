@@ -383,6 +383,34 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---------- Feature guides: one short tour for each feature ---------- */
+.how-guides {
+  padding: 1.25rem 0 0.25rem;
+}
+
+.how-guides h2 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.how-guides .how-start-note {
+  margin-top: 0.3rem;
+}
+
+.how-guide-list {
+  display: grid;
+  gap: 0.45rem;
+  max-width: 46rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how-guide-list span {
+  color: var(--muted);
+}
+
 /* ---------- How to use Sightline: the same steps Scout's tour walks through, written out ---------- */
 .how-use {
   padding: 1.25rem 0 0.5rem;

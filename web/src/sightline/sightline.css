@@ -3955,6 +3955,19 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-weight: 600;
 }
 
+/* "Show me how" in a panel's header: words, not an icon, between the panel's name and its Close. */
+.sl-drawer-head .sl-show-how {
+  margin: 0 0.6rem 0 auto;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.sl-plan-more .sl-show-how {
+  align-self: center;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
 /* Something ready to try, under the step's words. */
 .sl-tour .sl-tour-try {
   display: block;
