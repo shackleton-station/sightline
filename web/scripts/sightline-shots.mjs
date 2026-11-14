@@ -38,7 +38,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
 ]
 
 /**
@@ -169,7 +169,8 @@ const STAGE_HOLDS = `(() => {
 const HEADS_ONE_ROW = `(() => {
   if (window.innerWidth < 761) return true
   const heads = [...document.querySelectorAll('.sl-sky .sl-strip-head, .sl-river .sl-strip-head')]
-  if (heads.length !== 2) throw new Error(heads.length + ' header rows, not 2')
+  const strips = document.querySelectorAll('.sl-sky, .sl-river').length
+  if (heads.length === 0 || heads.length !== strips) throw new Error(heads.length + ' header rows for ' + strips + ' strip(s)')
   for (const head of heads) {
     const box = head.getBoundingClientRect()
     const parts = [...head.children].filter((el) => el.getBoundingClientRect().width > 0)
@@ -454,6 +455,13 @@ function tourScenes() {
   ]
 }
 
+/**
+ * Opens the skyline strip ("What the lander sees") by its door, as a visitor would: the time bar's
+ * readout of the Sun's and Earth's heights, or, where the row has no room for it, "Show the skyline"
+ * under the time bar's "More". The strip is folded until asked for; a scene marked `sky: true` is
+ * about the strip, or about the screen with it open, and starts with this.
+ */
+const OPEN_SKY = `(async () => { for (let i = 0; i < 15; i += 1) { if (document.querySelector('.sl-sky')) return true; const door = document.querySelector('.sl-river .sl-sky-door'); if (door) { door.click(); return true } document.querySelector('.sl-river .sl-more')?.click(); await new Promise((done) => setTimeout(done, 100)) } throw new Error('no door to the skyline') })()`
 const SCENES = [
   {
     // A landing that does not fit here, on a date that does fit at another site of the same group.
@@ -668,6 +676,7 @@ const SCENES = [
   },
   {
     name: 'plan-link',
+    sky: true,
     hash: '#a=shackleton-rim@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
     checks: [
       ['a link opens Plan on its site, paused at its landing', `document.querySelector('#sl-site')?.value === 'shackleton-rim' && ${LANDING} === '6 May 2027 · 13:00 UTC' && ${text('.sl-now')} === '6 May 2027 · 13:00 UTC' && document.querySelector('.sl-off-landing') === null && document.querySelector('.sl-river .sl-link') === null`, 1500],
@@ -690,7 +699,7 @@ const SCENES = [
       ['with the skyline and the river open, the whole disc is inside the stage with a margin on every side', DISC_INSIDE],
       // On a laptop folding the strips makes the stage taller; on a phone they are in the sheet and the stage keeps its size.
       ['with both strips folded, the disc is re-fitted to the stage at once: bigger where the stage grew, and still inside', `(() => { const disc = () => Number(document.querySelector('.scout-globe').dataset.discPx); const tall = () => document.querySelector('.sl-stage').getBoundingClientRect().height; const before = [disc(), tall()]; document.querySelector('.sl-sky .sl-fold').click(); document.querySelector('.sl-river .sl-fold').click(); return new Promise((done) => setTimeout(() => done((tall() > before[1] + 1 ? disc() > before[0] : disc() === before[0]) && ${DISC_INSIDE} && ${MOON_FILLS}), 120)) })()`],
-      ['and opened again, it is fitted back at once', `(() => { document.querySelector('.sl-sky .sl-fold').click(); document.querySelector('.sl-river .sl-fold').click(); return new Promise((done) => setTimeout(() => done(${DISC_INSIDE}), 400)) })()`],
+      ['and opened again (the time bar by its button, the skyline by its door), it is fitted back at once', `(() => { document.querySelector('.sl-river .sl-fold').click(); ${OPEN_SKY}; return new Promise((done) => setTimeout(() => done(${DISC_INSIDE}), 400)) })()`],
       ['the skyline\'s land fills at least a third of the strip\'s height', RIDGE_FILLS],
       ['the scenario\'s site is outlined: its own dot, or the group it is in', "document.querySelectorAll('.sl-dot.is-selected, .sl-group-dot.is-selected').length === 1"],
       ['in Plan at Orbit no marker or name prints over another', DOTS_CLEAR],
@@ -720,6 +729,7 @@ const SCENES = [
     // Scout's own panel, on the right. Two scenarios, B on show. The model is not called: a stand-in
     // answers, and what the page sent is looked at.
     name: 'scout-panel',
+    sky: true,
     hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13&sc=1',
     checks: [
       ['Scout is not in the left column, and nothing in the column scrolls', `${STAND_IN_SCOUT} && document.querySelector('.sl-col .sl-ask, .sl-col #sl-question, .sl-col .sl-ask-name') === null && ${NOTHING_SCROLLS}`, 1200],
@@ -947,6 +957,7 @@ const SCENES = [
   {
     // Two sites: the date still shows in full, and the site comes after it.
     name: 'rows-two-sites',
+    sky: true,
     hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=peak-near-shackleton@2027-09-17T12',
     checks: [
       ['with two sites on two dates a row shows a short date and then its site, both whole, and the full label is the tooltip', "(() => { const rows = [...document.querySelectorAll('.sl-river .sl-row-name')]; const dates = rows.map((row) => row.querySelector('.sl-row-date')); const whole = dates.every((date) => date.scrollWidth <= date.clientWidth + 1 && date.getBoundingClientRect().right <= date.closest('.sl-row-name').getBoundingClientRect().right); if (dates.map((date) => date.textContent.trim()).join('|') !== 'A · 6 May|B · 17 Sep' || !whole) throw new Error(rows.map((row) => row.textContent.trim()).join(' | ')); return rows.map((row) => row.title).join('|') === 'A · Connecting Ridge · 6 May 2027 · 13:00 UTC|B · Peak near Shackleton · 17 September 2027 · 12:00 UTC' && (window.innerWidth < 761 || rows.map((row) => row.querySelector('.sl-row-site').textContent.trim()).join('|') === '· Connecting Ridge|· Peak near Shackleton') })()", 1500],
@@ -982,6 +993,7 @@ const SCENES = [
     // Every layout a laptop produces: no panel, Mission open, Compare open (four scenarios, its widest),
     // each strip folded. In each the whole Moon and every name fit the stage and each strip's header is one row.
     name: 'layouts',
+    sky: true,
     hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00~peak-near-shackleton@2027-07-10T12',
     checks: [
       ['with no panel open the whole Moon and every name are inside the stage', STAGE_HOLDS, 1200],
@@ -991,9 +1003,9 @@ const SCENES = [
       ['with Mission open the Moon and names fit, and each header is one row', onLaptop(click('Mission'), 900, `document.querySelector('.sl-drawer') !== null && ${STAGE_HOLDS} && ${HEADS_ONE_ROW}`)],
       ['with Compare open the Moon and names fit, and each header is one row', onLaptop(click('Compare'), 900, `/Compare/.test(document.querySelector('.sl-drawer h2').textContent) && ${STAGE_HOLDS} && ${HEADS_ONE_ROW}`)],
       ['with Compare open the river\'s legend is still on the page once, now in "More"', `(window.innerWidth < 761 || ${LEGEND_ONCE})`],
-      ['with Compare open and the skyline folded, the same', onLaptop("document.querySelector('.sl-sky .sl-fold').click()", 900, `document.querySelector('.sl-sky.is-folded') !== null && ${STAGE_HOLDS} && ${HEADS_ONE_ROW}`)],
+      ['with Compare open and the skyline folded (it takes no room then), the same', onLaptop("document.querySelector('.sl-sky .sl-fold').click()", 900, `document.querySelector('.sl-sky') === null && ${STAGE_HOLDS} && ${HEADS_ONE_ROW}`)],
       ['with Compare open and both strips folded, the same', onLaptop("document.querySelector('.sl-river .sl-fold').click()", 900, `document.querySelector('.sl-rows') === null && ${STAGE_HOLDS} && ${HEADS_ONE_ROW}`)],
-      ['with both strips open again and the panel closed, the same', onLaptop(`(document.querySelector('.sl-sky .sl-fold').click(), document.querySelector('.sl-river .sl-fold').click(), ${click('Compare')})`, 900, `document.querySelector('.sl-drawer') === null && ${STAGE_HOLDS} && ${HEADS_ONE_ROW}`)],
+      ['with both strips open again and the panel closed, the same', onLaptop(`(document.querySelector('.sl-river .sl-fold').click(), ${OPEN_SKY}, ${click('Compare')})`, 900, `document.querySelector('.sl-drawer') === null && ${STAGE_HOLDS} && ${HEADS_ONE_ROW}`)],
     ],
   },
   {
@@ -1001,6 +1013,7 @@ const SCENES = [
     // column is about the landing, so not a word or a box in it changes; the readout by the time bar
     // is what follows the time.
     name: 'steady',
+    sky: true,
     hash: '#a=connecting-ridge@2027-05&t=144&limits=14_24_99999_1_1&mode=plan',
     steps: ["document.querySelector('.sl-river .sl-round[aria-label=\"Play\"]').click()"],
     checks: [
@@ -1035,7 +1048,7 @@ const SCENES = [
         if (!(inColumn.length > 60 && moved === 0 && !reworded && readoutMoved === 0 && chips.size >= 2 && [...chips].every((chip) => ['Sun and Earth', 'Sun, part of Earth', 'Sun only', 'Earth only', 'Part of Earth', 'Neither'].includes(chip)) && (window.innerWidth < 1440 || heights.size > 5) && dates.size > 20)) throw new Error(JSON.stringify(result))
         return true
       })()`],
-      ['the column says which landing it describes, and its figures are the landing\'s, not the time bar\'s', `(() => { const bar = document.querySelector('.sl-moment-heights')?.textContent.trim() ?? null; return ${LANDING} === '7 May 2027 · 00:00 UTC' && ${LANDING} === '7 May 2027 · 00:00 UTC' && ${text('.sl-now')} !== ${LANDING} && (window.innerWidth >= 1440 ? bar !== null : true) && (bar === null || (/^Sun −?\\d+\\.\\d° · Earth −?\\d+\\.\\d° above the skyline$/.test(bar) && bar !== 'Sun ' + ${rowAbove('sun')} + ' · Earth ' + ${rowAbove('earth')} + ' above the skyline')) })()`],
+      ['the column says which landing it describes, and its figures are the landing\'s, not the time bar\'s', `(() => { const bar = document.querySelector('.sl-moment-heights')?.textContent.trim() ?? null; return ${LANDING} === '7 May 2027 · 00:00 UTC' && ${LANDING} === '7 May 2027 · 00:00 UTC' && ${text('.sl-now')} !== ${LANDING} && (window.innerWidth >= 1440 ? bar !== null : true) && (bar === null || (/^Sun −?\\d+\\.\\d° · Earth −?\\d+\\.\\d° above the skyline [▸▾]$/.test(bar) && bar.slice(0, -2) !== 'Sun ' + ${rowAbove('sun')} + ' · Earth ' + ${rowAbove('earth')} + ' above the skyline')) })()`],
       ['at this landing the Sun\'s elevation is negative and the Sun is in view: its main figure is above the skyline and its hover text gives the negative elevation', `(() => { const row = document.querySelector('.sl-fact.is-sun'); return /^Sunlit/.test(${SENTENCE}) && parseFloat(row.querySelector('.sl-fact-main').firstChild.textContent) > 0 && row.querySelector('.sl-fact-main small').textContent.trim() === 'above the skyline' && /^Elevation −\\d+\\.\\d° from level\\. /.test(row.getAttribute('title') ?? row.dataset.tip ?? '') })()`],
       ['the readout by the time bar is one row: the date, a state chip with its colour and words, and the heights above the skyline when the row has room', `(() => {
         const row = document.querySelector('.sl-river-head')
@@ -1086,6 +1099,7 @@ const SCENES = [
     // The view belongs to the visitor: after a drag it stays where it was left, through time playing
     // and the stage changing size, until the compass is pressed.
     name: 'free-view',
+    sky: true,
     hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
     steps: ["document.querySelector('.sl-river .sl-round[aria-label=\"Play\"]').click()"],
     checks: [
@@ -1147,7 +1161,41 @@ const SCENES = [
     ],
   },
   {
+    // Rodrigo: the 2D skyline with the Sun's and Earth's paths is back where it was, above the time bar, folded until asked for. Its door is the time bar's readout.
+    name: 'skyline-fold',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
+    still: true,
+    noChat: true,
+    checks: [
+      ['Plan opens with the strip folded: it is not on the screen at all, and the link says nothing of it', "(() => { window.__stage = document.querySelector('.sl-stage').getBoundingClientRect().height; return document.querySelector('.sl-sky') === null && !/sky=/.test(location.hash) })()", 1200],
+      ['its door is the time bar\'s readout of the Sun\'s and Earth\'s heights, a button with a small chevron that says it is closed; where the row has no room for the heights it is a short "Skyline" in the row, and on a phone it is under "More"', `(async () => { let door = document.querySelector('.sl-river .sl-sky-door'); if (!door) { document.querySelector('.sl-river .sl-more').click(); await new Promise((done) => setTimeout(done, 200)); door = document.querySelector('.sl-river .sl-sky-door') } if (!door) return 'no door'; const words = door.textContent.replace(/\\s+/g, ' ').trim(); const inRow = door.classList.contains('sl-moment-heights'); door.focus(); return (door.tagName === 'BUTTON' && !door.disabled && document.activeElement === door && door.getAttribute('aria-expanded') === 'false' && door.getAttribute('aria-controls') === 'sl-sky' && getComputedStyle(door).cursor !== 'help' && (inRow ? /^Sun −?\\d+\\.\\d° · Earth −?\\d+\\.\\d° above the skyline ▸$/.test(words) : (words === 'Skyline ▸' || words === 'Show the skyline')) && (window.innerWidth < 761 || door.closest('.sl-river-head') !== null || 'on a laptop the door is not in the row')) || words })()`],
+      ['a press opens the strip above the time bar: the skyline all the way round, the Sun and Earth named on it with their paths; the stage gives it the room; the link carries it and the visit keeps it', `${OPEN_SKY} && ${after(900, "(() => { const sky = document.querySelector('.sl-sky'); if (!sky) return 'no strip'; const river = document.querySelector('.sl-river').getBoundingClientRect(); const box = sky.getBoundingClientRect(); const stage = document.querySelector('.sl-stage').getBoundingClientRect(); const door = document.querySelector('.sl-river .sl-sky-door'); return (document.querySelector('.sl-sky-land')?.getAttribute('d')?.length > 2000 && document.querySelectorAll('.sl-sky-path.is-sun').length > 0 && document.querySelectorAll('.sl-sky-path.is-earth').length > 0 && /Sun/.test(sky.querySelector('svg').textContent) && /Earth/.test(sky.querySelector('svg').textContent) && (window.innerWidth < 761 || (box.bottom <= river.top + 1 && box.top >= stage.bottom - 1 && stage.height < window.__stage)) && /[&#]sky=1/.test(location.hash) && sessionStorage.getItem('sightline.skyFolded') === '0' && (door === null || door.getAttribute('aria-expanded') === 'true')) || 'strip ' + Math.round(box.top) + ' to ' + Math.round(box.bottom) + ', stage ' + Math.round(stage.height) + ' was ' + Math.round(window.__stage) + ', ' + location.hash })()")}`],
+      ['the same press folds it again, and the stage takes the room back', `(async () => { let door = document.querySelector('.sl-river .sl-sky-door'); if (!door) { document.querySelector('.sl-river .sl-more').click(); await new Promise((done) => setTimeout(done, 200)); door = document.querySelector('.sl-river .sl-sky-door') } door.click(); return true })() && ${after(900, "(document.querySelector('.sl-sky') === null && !/sky=/.test(location.hash) && Math.abs(document.querySelector('.sl-stage').getBoundingClientRect().height - window.__stage) < 2) || 'still open, or the stage is ' + Math.round(document.querySelector('.sl-stage').getBoundingClientRect().height) + ' not ' + Math.round(window.__stage)")}`],
+      ['open again, its own "Fold" folds it too', `${OPEN_SKY} && ${after(700, "(document.querySelector('.sl-sky .sl-fold').click(), true)")} && ${after(1400, "document.querySelector('.sl-sky') === null && sessionStorage.getItem('sightline.skyFolded') === '1'")}`],
+      ['in the Surface view the screen is as it was: the strip is not drawn there, and is back in Orbit', `${OPEN_SKY} && ${after(700, `(${click('Surface')}, true)`)} && ${after(3000, `(document.querySelector('.sl-sky') === null || 'the strip is drawn in Surface') && (${click('Orbit')}, true)`)} && ${after(5000, "document.querySelector('.sl-sky') !== null || 'the strip did not come back in Orbit'")}`],
+      ['the tour\'s step about it opens it for a visitor who had it folded, and the next step folds it again', `(async () => { const wait = (ms) => new Promise((done) => setTimeout(done, ms)); document.querySelector('.sl-sky .sl-fold').click(); await wait(400); if (window.innerWidth < 761) { [...document.querySelectorAll('button')].find((button) => button.textContent.trim() === 'More')?.click(); await wait(300) } [...document.querySelectorAll('.sl-rail button, .sl-rail-menu button')].find((button) => /^(Guide|How it works)$/.test(button.textContent.trim())).click(); await wait(900); document.querySelector('.how-tour-button').click(); await wait(1200); for (let i = 0; i < 4; i += 1) { document.querySelector('.sl-tour .sl-tour-next').click(); await wait(700) } const during = document.querySelector('.sl-sky') !== null && document.querySelector('.sl-tour').dataset.step === 'skyline'; document.querySelector('.sl-tour .sl-tour-next').click(); await wait(900); const after = document.querySelector('.sl-sky') === null; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await wait(900); return (during && after && document.querySelector('.sl-tour') === null && document.querySelector('.sl-sky') === null) || 'during ' + during + ', after ' + after })()`],
+    ],
+  },
+  {
+    // A shared link opens as its sender saw it.
+    name: 'skyline-link',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&sky=1',
+    still: true,
+    noChat: true,
+    checks: [['a link that says the strip is open opens with it open, on the link\'s own site and landing', `document.querySelector('.sl-sky') !== null && document.querySelector('#sl-site').value === 'connecting-ridge' && ${LANDING} === '6 May 2027 · 13:00 UTC' && /[&#]sky=1/.test(location.hash)`, 1500]],
+  },
+  {
+    // The fullest screen: four scenarios and the strip open.
+    name: 'skyline-four',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00~peak-near-shackleton@2027-07-10T12',
+    sky: true,
+    still: true,
+    noChat: true,
+    checks: [['with the strip open and four scenarios the column still fits with nothing to scroll, and the Moon\'s disc is whole', `document.querySelector('.sl-sky') !== null && document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length === 4 && ${COLUMN_FITS} && ${NOTHING_SCROLLS} && ${DISC_INSIDE}`, 1500]],
+  },
+  {
     name: 'skyline-close',
+    sky: true,
     // The hour in May 2027 when the Sun passes Earth's bearing at Connecting Ridge, both behind the land.
     hash: '#a=connecting-ridge@2027-05&t=467&limits=14_24_99999_1_1&mode=plan',
     checks: [
@@ -1158,6 +1206,7 @@ const SCENES = [
   },
   {
     name: 'skyline',
+    sky: true,
     hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
     checks: [
       ['the skyline draws the land, the Sun\'s track and Earth\'s loop', "document.querySelector('.sl-sky-land')?.getAttribute('d')?.length > 2000 && document.querySelectorAll('.sl-sky-path.is-sun').length > 0 && document.querySelectorAll('.sl-sky-path.is-earth').length > 0", 1500],
@@ -2002,7 +2051,7 @@ try {
       }
       // The Moon's maps arrive a moment after the first frame.
       if (!scene.noSettle) await sleep(1500)
-      for (const step of scene.steps ?? []) {
+      for (const step of [...(scene.sky ? [OPEN_SKY] : []), ...(scene.steps ?? [])]) {
         // A step is JavaScript for the page, or { cdp: [method, params] } for the browser itself.
         if (typeof step === 'string') await evaluate(step)
         else await page(step.cdp[0], step.cdp[1])

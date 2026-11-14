@@ -252,7 +252,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [bare, setBare] = useStored('clear', false)
   const [pillMin, setPillMin] = useStored('pillMin', false)
   const [riverMin, setRiverMin] = useStored('riverMin', false)
-  const [skyMin, setSkyMin] = useStored('skyMin', false)
+  // The skyline strip ("What the lander sees") is folded until asked for, so the screen opens clean;
+  // whether it is open is kept for the visit, and a link that says so (`sky=1`) opens it.
+  const [skyMin, setSkyMin] = useStored('skyFolded', true, 'visit')
+  useEffect(() => {
+    if (new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sky') === '1') setSkyMin(false)
+    // Read once, as the page opens: after that the fold is the visitor's.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const idle = useIdle(clock.playing && !bare && !plan, FADE_AFTER_MS)
   const [pointed, setPointed] = useState<SiteInfo | null>(null)
 
@@ -437,8 +444,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const scoutView = active > 0 ? view : `${view}&sc=0`
   useEffect(() => {
     // With the Planner open the address also says which of its tabs is on show.
-    setAddressBar(plan ? (full ? withPlannerTab(view, plannerTab) : view) : window.location.pathname)
-  }, [plan, view, full, plannerTab])
+    // The link says when the skyline strip is open, so a shared link opens as its sender saw it.
+    const withSky = (link: string) => (skyMin ? link : `${link}&sky=1`)
+    setAddressBar(plan ? withSky(full ? withPlannerTab(view, plannerTab) : view) : window.location.pathname)
+  }, [plan, view, full, plannerTab, skyMin])
 
   // A date the data covers but in a year not on hand: ask for the years, and go there once they
   // are here. A date far from the years on hand starts the screen again around it, on this link.
@@ -690,7 +699,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     }
     tourPlanned.current = true
     setPlan(true)
-    if (show === 'skyline') setSkyMin(false)
+    // The step about the skyline opens it; every other step leaves it as the visitor had it.
+    setSkyMin(show === 'skyline' ? false : (beforeTour.current?.skyMin ?? true))
     if (show === 'time') setRiverMin(false)
     // On a phone the strips are down the sheet: it opens to its full height for them, to half for the rest.
     setSheet(show ? SHEET_HEIGHTS : 2)
@@ -924,9 +934,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               }
             />
           </PlanColumn>
-          {/* The 3D Surface view shows the horizon better, so the strip is only up for the tour's step about it. */}
-          {tourStep?.state.show === 'skyline' && (
-            <Skyline horizon={hereOnBar?.horizon ?? null} track={hereOnBar?.track ?? null} index={index} obsHeightM={hereOnBar ? siteHeights.panelM : 0} folded={skyMin} onFold={setSkyMin} />
+          {/* The skyline in 2D, with the Sun's and Earth's paths: above the time bar in Orbit and Site, folded until it is
+              asked for (the time bar's readout is its door), so folded it takes no room at all. The Surface view shows the
+              same horizon in 3D and brings its own screen, so the strip is not drawn there. */}
+          {mode !== 'surface' && !skyMin && (
+            <Skyline horizon={hereOnBar?.horizon ?? null} track={hereOnBar?.track ?? null} index={index} obsHeightM={hereOnBar ? siteHeights.panelM : 0} folded={false} onFold={() => setSkyMin(true)} />
           )}
           {/* The Surface view brings its own time bar, so this one steps aside there. */}
           {mode !== 'surface' && (
@@ -951,6 +963,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               active: i === active,
             }))}
             missionHours={mission.requirements.missionDays * 24}
+            sky={{ open: !skyMin, onToggle: () => setSkyMin(!skyMin) }}
             folded={riverMin}
             onFold={setRiverMin}
             onSelect={(key) => setActive(Number(key))}
