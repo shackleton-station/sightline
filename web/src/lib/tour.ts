@@ -13,6 +13,29 @@ export interface TourState {
   ring?: string
   /** A strip that must be open for the step: the skyline, or the time bar. */
   show?: 'skyline' | 'time'
+  /** Something the step opens to talk about it: the Compare or Layers panel, the form for a custom point, or the Share list. */
+  open?: GuidePanel
+  /** The step is about more than one scenario: the app's two nearby sites on one date are put in, once, for it. */
+  pair?: boolean
+}
+
+/** What a feature guide can open, and so which panel offers that guide ("Show me how"). */
+export type GuidePanel = 'compare' | 'layers' | 'custom' | 'share'
+
+/** A feature guide: a short tour of one feature, in the main tour's own format. */
+export interface FeatureGuide {
+  id: string
+  /** Its name in the Guide. */
+  name: string
+  /** One line under its name in the Guide. */
+  about: string
+  /** The panel whose header offers it. */
+  panel?: GuidePanel
+  steps: TourStep[]
+}
+
+export interface GuidesFile {
+  guides: FeatureGuide[]
 }
 
 export interface TourStep {
@@ -25,6 +48,8 @@ export interface TourStep {
   targets: string[]
   /** Something ready to try from the step's bubble: two nearby sites on one date, set side by side in Compare. */
   offers?: 'nearby-pair'
+  /** The step is about a control only a wide window has (the zoom buttons): it is left out on a phone. */
+  wide?: boolean
 }
 
 export interface TourFile {

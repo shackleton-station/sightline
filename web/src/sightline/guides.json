@@ -1,0 +1,107 @@
+{
+  "about": "The feature guides: short tours of one feature each, run by the same engine as Scout's main tour (src/sightline/Tour.tsx) and written in the same format as its steps (src/sightline/tour.json). Each is reached from the Guide and from the panel it is about (\"Show me how\"). They have no voice files: their words are on screen only.",
+  "guides": [
+    {
+      "id": "compare",
+      "name": "Compare scenarios",
+      "about": "Keep two plans side by side.",
+      "steps": [
+        {
+          "id": "compare-add",
+          "title": "Add a scenario",
+          "say": "Press the plus to keep this plan and start another beside it: another site, or another date.",
+          "state": { "view": "plan" },
+          "targets": [".sl-tabs"]
+        },
+        {
+          "id": "compare-table",
+          "title": "Side by side",
+          "say": "Compare sets the scenarios in one table. A star marks the best value in each row.",
+          "state": { "view": "plan", "open": "compare", "pair": true },
+          "targets": [".sl-compare table"]
+        },
+        {
+          "id": "compare-rows",
+          "title": "On the time bar",
+          "say": "Each scenario has its own row on the time bar. Press a row's name to put that scenario on show.",
+          "state": { "view": "plan", "show": "time", "pair": true },
+          "targets": [".sl-river .sl-rows"]
+        }
+      ]
+    },
+    {
+      "id": "views",
+      "name": "Views and layers",
+      "about": "Come in close, and lay NASA's maps over the ground.",
+      "panel": "layers",
+      "steps": [
+        {
+          "id": "views-three",
+          "title": "Three views",
+          "say": "Orbit shows the whole Moon. Site comes in close, and Surface stands you at the landing site.",
+          "state": { "view": "plan" },
+          "targets": [".sl-heights"]
+        },
+        {
+          "id": "views-layers",
+          "title": "Layers",
+          "say": "Layers lays NASA's maps over the ground near the south pole, one at a time. They read best close in, with Site.",
+          "state": { "view": "plan", "open": "layers" },
+          "targets": [".sl-layers .sl-layer-list"]
+        },
+        {
+          "id": "views-zoom",
+          "title": "Turn and zoom",
+          "say": "Drag the Moon to turn it, and press plus or minus to zoom.",
+          "state": { "view": "plan" },
+          "targets": [".sl-view-tools"],
+          "wide": true
+        }
+      ]
+    },
+    {
+      "id": "custom",
+      "name": "A custom point",
+      "about": "Plan a landing anywhere on the Moon.",
+      "panel": "custom",
+      "steps": [
+        {
+          "id": "custom-list",
+          "title": "Any point on the Moon",
+          "say": "The site list ends with \"Custom point\". Choose it to plan a landing anywhere.",
+          "state": { "view": "plan" },
+          "targets": ["#sl-site"]
+        },
+        {
+          "id": "custom-form",
+          "title": "Type where",
+          "say": "Type a latitude and a longitude, then press Go. Sightline works out that point's skyline in your browser.",
+          "state": { "view": "plan", "open": "custom" },
+          "targets": [".sl-plan-more"]
+        }
+      ]
+    },
+    {
+      "id": "share",
+      "name": "Share a plan",
+      "about": "Send a plan as a link, or read its written brief.",
+      "panel": "share",
+      "steps": [
+        {
+          "id": "share-link",
+          "title": "A plan is a link",
+          "say": "The address always holds the plan on screen: every scenario, and the mission. Share copies it.",
+          "state": { "view": "plan" },
+          "targets": [".sl-head-tools"]
+        },
+        {
+          "id": "share-brief",
+          "title": "The written brief",
+          "say": "Share also opens the brief: the scenario on show, written out in full.",
+          "state": { "view": "plan", "open": "share" },
+          "targets": [".sl-share-menu"]
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import tourFile from '../sightline/tour.json'
-import { overDisc, placeBubble, type TourFile, voiceFile } from './tour'
+import guidesFile from '../sightline/guides.json'
+import { type GuidesFile, overDisc, placeBubble, type TourFile, voiceFile } from './tour'
 
 const tour = tourFile as TourFile
 const BUBBLE = { width: 340, height: 170 }
@@ -50,6 +51,44 @@ describe("Scout's tour: the steps", () => {
     const section = readme.slice(readme.indexOf('## Using the site'))
     expect(readme).toContain('## Using the site')
     for (const step of tour.steps) expect(section, step.id).toContain(`**${step.title}.** ${step.say}`)
+  })
+})
+
+describe('the feature guides', () => {
+  const guides = (guidesFile as GuidesFile).guides
+
+  it('are the four short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
+    expect(guides.map((guide) => guide.name)).toEqual(['Compare scenarios', 'Views and layers', 'A custom point', 'Share a plan'])
+    for (const guide of guides) {
+      expect(guide.steps.length, guide.id).toBeGreaterThanOrEqual(2)
+      expect(guide.steps.length, guide.id).toBeLessThanOrEqual(4)
+      expect(guide.about.length, guide.id).toBeLessThanOrEqual(60)
+      // A guide may be offered in the panel it is about ("Show me how"); where it is, the panel is one a step can open.
+      if (guide.panel !== undefined) expect(['compare', 'layers', 'custom', 'share'], guide.id).toContain(guide.panel)
+      for (const step of guide.steps) {
+        expect(step.say.split(/(?<=[.!?])\s+/).length, step.id).toBeLessThanOrEqual(2)
+        expect(step.say.length, step.id).toBeLessThanOrEqual(140)
+        expect(step.title.length, step.id).toBeLessThanOrEqual(24)
+        expect(step.targets.length, step.id).toBeGreaterThan(0)
+        expect(step.state.view, step.id).toBe('plan')
+      }
+    }
+  })
+
+  it('give every step its own name, apart from the main tour\'s, and keep the words kept off the screen out', () => {
+    const ids = [...tour.steps, ...guides.flatMap((guide) => guide.steps)].map((step) => step.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    const words = guides.flatMap((guide) => [guide.name, guide.about, ...guide.steps.map((step) => `${step.title} ${step.say}`)]).join(' ')
+    expect(words).not.toMatch(/\bridge\b|playhead|scrub|lunar night|lunar day|practice demo/i)
+  })
+
+  it('open only what a step can open, and ask for the two nearby sites only where a step is about several scenarios', () => {
+    const steps = guides.flatMap((guide) => guide.steps)
+    for (const step of steps) if (step.state.open) expect(['compare', 'layers', 'custom', 'share'], step.id).toContain(step.state.open)
+    expect(steps.filter((step) => step.state.pair).map((step) => step.id)).toEqual(['compare-table', 'compare-rows'])
+    // One step is about the zoom buttons, which a phone does not have: it is marked, and its guide still has two steps without it.
+    expect(steps.filter((step) => step.wide).map((step) => step.id)).toEqual(['views-zoom'])
+    for (const guide of guides) expect(guide.steps.filter((step) => !step.wide).length, guide.id).toBeGreaterThanOrEqual(2)
   })
 })
 
