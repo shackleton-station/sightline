@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { Plan } from '../lib/plans'
 import './planNote.css'
 
@@ -12,17 +13,45 @@ interface NoteProps {
 }
 
 /**
- * One quiet line beside the screen's name, for a plan opened from a short link: its name, with its
- * note in the hover text, and a button that puts the line away. It takes no room of its own, so
- * nothing on the screen moves. The same line says so, in plain words, when a link could not be opened.
+ * One quiet line beside the screen's name, for a plan opened from a short link: "Plan: <name>", and
+ * a button that puts the line away. The plan's note is never in the line, so a long one cannot push
+ * the column: it is in the hover text, and a press on the name (a tap, on a phone) shows it in a
+ * small card under the line, over the column, until a press elsewhere or Escape. The line takes no
+ * room of its own. It also says so, in plain words, when a link could not be opened.
  */
 export function PlanNote({ plan, problem, onDismiss }: NoteProps) {
+  const [shown, setShown] = useState(false)
+  const line = useRef<HTMLParagraphElement>(null)
+  useEffect(() => {
+    if (!shown) return
+    const close = (event: Event) => {
+      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !(event.target instanceof Node && line.current?.contains(event.target))) setShown(false)
+    }
+    window.addEventListener('pointerdown', close)
+    window.addEventListener('keydown', close)
+    return () => {
+      window.removeEventListener('pointerdown', close)
+      window.removeEventListener('keydown', close)
+    }
+  }, [shown])
   if (!plan && !problem) return null
+  const note = plan?.note ?? ''
   return (
-    <p className={problem ? 'sl-plan-note is-problem' : 'sl-plan-note'} role="status">
-      <span className="sl-plan-note-words" title={plan ? [plan.title, plan.note].filter(Boolean).join(': ') : (problem ?? undefined)}>
-        {plan ? `Plan: ${plan.title}` : problem}
-      </span>
+    <p ref={line} className={problem ? 'sl-plan-note is-problem' : 'sl-plan-note'} role="status">
+      {plan && note !== '' ? (
+        <button type="button" className="sl-plan-note-words" aria-expanded={shown} aria-controls="sl-plan-note-card" title={`${plan.title}: ${note}`} onClick={() => setShown(!shown)}>
+          Plan: {plan.title}
+        </button>
+      ) : (
+        <span className="sl-plan-note-words" title={plan ? plan.title : (problem ?? undefined)}>
+          {plan ? `Plan: ${plan.title}` : problem}
+        </span>
+      )}
+      {shown && plan && note !== '' && (
+        <span id="sl-plan-note-card" className="sl-plan-note-card">
+          {note}
+        </span>
+      )}
       <button type="button" className="sl-plan-note-close" aria-label={plan ? 'Put away the plan’s name' : 'Put this message away'} title="Dismiss" onClick={onDismiss}>
         ×
       </button>
