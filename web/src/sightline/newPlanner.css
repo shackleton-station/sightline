@@ -1421,18 +1421,18 @@
 }
 
 .sl-np .np-side h3 {
-  margin: 0.7rem 0 0.15rem;
+  margin: 0.85rem 0 0.2rem;
   font-size: 0.9375rem;
 }
 
 .sl-np .np-side .pl-where {
-  --pl-control-h: 1.9rem;
+  --pl-control-h: 2rem;
 
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .sl-np .np-side .pl-where-field {
-  gap: 0.15rem;
+  gap: 0.2rem;
 }
 
 .sl-np .np-side .pl-where select,
@@ -1440,47 +1440,32 @@
   font-size: 0.8125rem;
 }
 
-/* Dials: the label and the number on one line, the slider under them. */
-.sl-np .np-side .pl-dial {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  column-gap: 0.5rem;
-}
-
-.sl-np .np-side .pl-dial .pl-label {
-  display: block;
-  grid-column: 1;
-}
-
+/* Dials: label on top, then the number, then the slider: the Planner's layout, a size smaller. */
 .sl-np .np-side .pl-dial-value {
-  grid-column: 2;
-  gap: 0.25rem;
-  margin: 0;
+  gap: 0.35rem;
+  margin-top: 0.05rem;
 }
 
 .sl-np .np-side .pl-dial-value input {
-  font-size: 1.05rem;
-  line-height: 1.2;
-  text-align: right;
+  font-size: 1.2rem;
+  line-height: 1.15;
 }
 
 .sl-np .np-side .pl-dial-unit {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
 .sl-np .np-side .pl-slider {
-  grid-column: 1 / -1;
-  height: 16px;
-  margin: 0;
+  height: 18px;
+  margin: 0.1rem 0 0;
 }
 
 .sl-np .np-side .pl-mission {
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .sl-np .np-side .pl-check {
-  min-height: 1.35rem;
+  min-height: 1.5rem;
   margin-top: 0;
   font-size: 0.8125rem;
 }
@@ -1508,7 +1493,7 @@
 }
 
 .sl-np .np-side .pl-more-body {
-  gap: 0.4rem;
+  gap: 0.5rem;
   padding: 0;
 }
 
@@ -1525,9 +1510,9 @@
 }
 
 .sl-np .np-side .pl-segments button {
-  min-height: 1.7rem;
-  padding: 0 0.6rem;
-  font-size: 0.75rem;
+  min-height: 1.85rem;
+  padding: 0 0.7rem;
+  font-size: 0.8125rem;
 }
 
 .sl-np .np-side .pl-segments button + button {
@@ -1545,4 +1530,9 @@
 
 .sl-np .np-side .pl-segments button + button {
   border-left-color: rgb(255 255 255 / 22%);
+}
+
+/* In the column the "example values" line goes; its "Back to the example mission" link stays when it has one. */
+.sl-np .np-side .pl-mission-note:not(:has(button)) {
+  display: none;
 }
