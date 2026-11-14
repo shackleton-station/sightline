@@ -50,6 +50,28 @@
     width: auto;
   }
 
+  /* Open, his card is all of him: his mark is not drawn beside it, and "Close" in the card shuts it. */
+  .sl-scout.is-open .scout-face {
+    display: none;
+  }
+
+  /* Closed, his mark waits at the right, where his card opens, with his line to its left. */
+  .sl-scout:not(.is-open) {
+    right: var(--sl-edge-right);
+    left: auto;
+    flex-direction: row-reverse;
+  }
+
+  .sl-scout:not(.is-open) .sl-scout-tag {
+    right: 1.9rem;
+    left: auto;
+  }
+
+  .sl-scout:not(.is-open) .sl-scout-line {
+    border-bottom-right-radius: 4px;
+    border-bottom-left-radius: 16px;
+  }
+
   .sl-scout.is-open .sl-card {
     position: fixed;
     top: 0;
