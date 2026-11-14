@@ -8,8 +8,9 @@ import { decodeView, encodeView } from '../lib/urlState'
  * What the Surface tab keeps in the address. The first part is the app's own view link, so the
  * other tabs open on the same site, month, hour and limits, and a link made there opens here. Two
  * more values say which way the visitor faces: `look` (heading, elevation and field of view in
- * degrees) and `tall` (how many times taller heights are drawn, only when they are). The other tabs
- * ignore both, and the links to them leave both out.
+ * degrees) and `tall` (how many times taller heights are drawn, only when they are). Without a
+ * `look`, `face` says which views are open: one following the Sun, one following Earth, or both
+ * side by side. The other tabs ignore all three, and the links to them leave them out.
  */
 export interface SurfaceAddress {
   /** A listed site's id, or "lat,lon" from a link made on another tab. */
@@ -49,6 +50,15 @@ export function readLook(hash: string): Look | null {
   return boundedLook({ headingDeg: parts[0], pitchDeg: parts[1], fovDeg: parts[2], stretch })
 }
 
+/** Which views are open: one that follows the Sun, one that follows Earth, or both side by side. */
+export type Facing = 'both' | 'sun' | 'earth'
+
+/** Which views a link opens, or null if it doesn't say. */
+export function readFacing(hash: string): Facing | null {
+  const face = new URLSearchParams(hash.replace(/^#/, '')).get('face')
+  return face === 'both' || face === 'sun' || face === 'earth' ? face : null
+}
+
 /** The app's own link for this view: what the other tabs are given. */
 export function viewLink(address: SurfaceAddress): string {
   return encodeView({ a: { site: address.site, month: address.month }, b: null, index: address.index, ...address.kept })
@@ -56,12 +66,12 @@ export function viewLink(address: SurfaceAddress): string {
 
 const hundredths = (value: number) => String(Math.round(value * 100) / 100)
 
-/** The link that reopens this view facing the same way. */
-export function writeAddress(address: SurfaceAddress, look: Look | null): string {
+/** The link that reopens this view facing the same way: a free look, or else the views that follow the Sun and Earth. */
+export function writeAddress(address: SurfaceAddress, look: Look | null, facing: Facing | null = null): string {
   const base = viewLink(address)
-  if (!look) return base
-  const facing = `&look=${hundredths(look.headingDeg)}_${hundredths(look.pitchDeg)}_${hundredths(look.fovDeg)}`
-  return `${base}${facing}${look.stretch > 1 ? `&tall=${look.stretch}` : ''}`
+  if (!look) return facing ? `${base}&face=${facing}` : base
+  const direction = `&look=${hundredths(look.headingDeg)}_${hundredths(look.pitchDeg)}_${hundredths(look.fovDeg)}`
+  return `${base}${direction}${look.stretch > 1 ? `&tall=${look.stretch}` : ''}`
 }
 
 const HOUR_MS = 3_600_000

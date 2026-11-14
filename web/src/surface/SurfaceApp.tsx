@@ -7,16 +7,16 @@ import { useSiteFlagsState } from '../data/useSiteFlags'
 import { setAddressBar } from '../lib/address'
 import { monthLabel } from '../lib/months'
 import { DEFAULT_VIEW } from '../lib/siteTabs'
-import type { BodyRadii, Look } from '../lib/surfaceView'
+import type { BodyRadii } from '../lib/surfaceView'
 import { parseCustomSite } from '../lib/urlState'
 import { TimeRiver } from '../shell/TimeRiver'
 import { AnswerLine } from './AnswerLine'
 import { useRange } from '../data/useRange'
 import { nowIso } from '../sightline/hooks'
-import { atNearestHour, readAddress, readLook, type SurfaceAddress, viewLink, writeAddress } from './address'
+import { atNearestHour, readAddress, readFacing, readLook, type SurfaceAddress, viewLink, writeAddress } from './address'
 import { Pickers } from './Pickers'
 import { Notice, Waiting } from './SurfaceStates'
-import { SurfaceStage } from './SurfaceStage'
+import { type Faced, SurfaceStage } from './SurfaceStage'
 import { useBodySizes } from './useBodySizes'
 import { readTintLink, useGroundTint } from './useGroundTint'
 import type { Aim } from './useLook'
@@ -40,8 +40,8 @@ const EMBEDDED = isEmbedded()
 /**
  * The Surface tab: the visitor stands at the site, 2 m up, and looks around at the horizon the
  * pipeline computed, with the Sun and Earth where its track puts them for the hour on the time
- * river. The site, month and hour live here, and in the address; the way the visitor faces lives in
- * SurfaceStage and is written to the address once it settles.
+ * river. The site, month and hour live here, and in the address; the views (one following the Sun,
+ * one following Earth, or a free look) live in SurfaceStage and are written to the address once they settle.
  */
 export function SurfaceApp() {
   const [sites, setSites] = useState<SiteInfo[]>([])
@@ -59,8 +59,8 @@ export function SurfaceApp() {
   }, [range])
   /** The link the visitor arrived with, when it names a place this tab can't show. */
   const [arrivedAt, setArrivedAt] = useState(() => window.location.hash)
-  const [aim, setAim] = useState<Aim>(() => ({ id: 0, look: readLook(window.location.hash), site: address.site }))
-  const [look, setLook] = useState<Look | null>(null)
+  const [aim, setAim] = useState<Aim>(() => ({ id: 0, look: readLook(window.location.hash), site: address.site, face: readFacing(window.location.hash) }))
+  const [faced, setFaced] = useState<Faced | null>(null)
   // The "Mission success probability" layer, when the link asks for it: Sightline's Surface view does.
   const [tintLink, setTintLink] = useState(() => readTintLink(window.location.hash))
 
@@ -76,7 +76,7 @@ export function SurfaceApp() {
       setTintLink(readTintLink(window.location.hash))
       setAddress(to)
       setArrivedAt(window.location.hash)
-      setAim((last) => ({ id: last.id + 1, look: readLook(window.location.hash), site: to.site }))
+      setAim((last) => ({ id: last.id + 1, look: readLook(window.location.hash), site: to.site, face: readFacing(window.location.hash) }))
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
@@ -102,7 +102,7 @@ export function SurfaceApp() {
 
   // The address reopens what is on screen; the tabs open the other designs on the same view.
   const shown = useMemo<SurfaceAddress>(() => ({ ...address, site: site?.id ?? address.site, index }), [address, site, index])
-  const link = site ? writeAddress(shown, look) : ''
+  const link = site ? writeAddress(shown, faced?.look ?? null, faced?.face ?? null) : ''
   /** When the view first moved away from what the address says; null while the address is up to date. */
   const movedAt = useRef<number | null>(null)
   useEffect(() => {
@@ -123,7 +123,7 @@ export function SurfaceApp() {
     setAddress((current) => ({ ...current, site: siteId }))
     setArrivedAt('')
     // A new site opens facing what is up there, not where an old link pointed.
-    setAim((last) => ({ ...last, look: null, site: null }))
+    setAim((last) => ({ ...last, look: null, site: null, face: null }))
   }, [])
   const setMonth = useCallback((month: string) => setAddress((current) => ({ ...current, month, index: 0 })), [])
 
@@ -164,7 +164,7 @@ export function SurfaceApp() {
             radii={scene.radii}
             obsHeightM={data.summary.obs_height_m}
             aim={aim}
-            onLook={setLook}
+            onFaced={setFaced}
             pickers={pickers}
             answer={
               <AnswerLine

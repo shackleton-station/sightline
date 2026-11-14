@@ -8,6 +8,8 @@ interface Options {
   setLens: (change: (look: Look) => Look) => void
   /** False when there is no picture to steer (no graphics): the keys and wheel are left alone. */
   enabled: boolean
+  /** False for a view the keys don't steer: with two views side by side, they steer one. */
+  keys?: boolean
 }
 
 /** Each press of an arrow key turns this share of the picture's height. */
@@ -21,7 +23,7 @@ const typing = (target: EventTarget | null) => target instanceof HTMLElement && 
  * Looking around by hand: drag with a mouse or a finger, pinch or turn the wheel to zoom, and the
  * arrow keys (with + and - to zoom) from anywhere on the page that isn't a slider or a menu.
  */
-export function useLookInput({ stage, steer, setLens, enabled }: Options) {
+export function useLookInput({ stage, steer, setLens, enabled, keys = true }: Options) {
   const pointers = useRef(new Map<number, { x: number; y: number }>())
   const height = () => stage.current?.clientHeight ?? 1
 
@@ -67,7 +69,7 @@ export function useLookInput({ stage, steer, setLens, enabled }: Options) {
   }, [stage, setLens, enabled])
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || !keys) return
     const onKey = (event: KeyboardEvent) => {
       if (typing(event.target) || event.metaKey || event.ctrlKey || event.altKey) return
       const px = KEY_STEP * (stage.current?.clientHeight ?? 1)
@@ -84,7 +86,7 @@ export function useLookInput({ stage, steer, setLens, enabled }: Options) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [stage, steer, setLens, enabled])
+  }, [stage, steer, setLens, enabled, keys])
 
   return { onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd }
 }

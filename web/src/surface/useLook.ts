@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { boundedLook, faceToward, framingPitch, type Look, turnBetween } from '../lib/surfaceView'
+import type { Facing } from './address'
 import type { SkyPair } from './useGlide'
 
 export type Body = 'sun' | 'earth'
@@ -12,6 +13,8 @@ export interface Aim {
   id: number
   look: Look | null
   site: string | null
+  /** Which views the link opens, when it says. */
+  face?: Facing | null
 }
 
 interface Options {
@@ -28,6 +31,10 @@ interface Options {
   offCenter: number
   /** The field of view a fresh visit opens with. */
   openingFovDeg: number
+  /** How many times taller heights are drawn as it opens (1 unless another view is already stretched). */
+  openingStretch?: number
+  /** The body this view is for: it turns to that one on arrival, whichever is up. */
+  prefer?: Body | null
   /** Reduced motion: turns happen at once. */
   still: boolean
 }
@@ -52,8 +59,8 @@ const where = (sky: SkyPair, body: Body) => (body === 'sun' ? { az: sky.sunAz, e
  * Which way the visitor looks. Facing the Sun or Earth latches on: the view keeps that body in the
  * middle while time plays, until the visitor steers by hand.
  */
-export function useLook({ sky, up, aim, skylineAt, siteId, offCenter, openingFovDeg, still }: Options): LookControls {
-  const [look, setLook] = useState<Look>({ headingDeg: sky.sunAz, pitchDeg: sky.sunEl, fovDeg: openingFovDeg, stretch: 1 })
+export function useLook({ sky, up, aim, skylineAt, siteId, offCenter, openingFovDeg, openingStretch = 1, prefer = null, still }: Options): LookControls {
+  const [look, setLook] = useState<Look>({ headingDeg: sky.sunAz, pitchDeg: sky.sunEl, fovDeg: openingFovDeg, stretch: openingStretch })
   const [following, setFollowing] = useState<Body | null>(null)
   const turning = useRef(0)
 
@@ -64,9 +71,9 @@ export function useLook({ sky, up, aim, skylineAt, siteId, offCenter, openingFov
   }
   // While following, the view points at the body wherever it has got to.
   const shown = following ? boundedLook({ ...look, ...toward(following, sky, look) }) : look
-  const latest = useRef({ shown, sky, up, still, following, toward })
+  const latest = useRef({ shown, sky, up, still, following, toward, prefer })
   useEffect(() => {
-    latest.current = { shown, sky, up, still, following, toward }
+    latest.current = { shown, sky, up, still, following, toward, prefer }
   })
 
   const stopTurning = useCallback(() => {
@@ -146,7 +153,7 @@ export function useLook({ sky, up, aim, skylineAt, siteId, offCenter, openingFov
     } else if (newSite) {
       stopTurning()
       const now = latest.current
-      const body: Body = now.up.sun || !now.up.earth ? 'sun' : 'earth'
+      const body: Body = now.prefer ?? (now.up.sun || !now.up.earth ? 'sun' : 'earth')
       setLook((current) => {
         const to = now.toward(body, now.sky, current)
         return faceToward(current, to.headingDeg, to.pitchDeg)
