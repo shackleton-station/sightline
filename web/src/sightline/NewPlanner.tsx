@@ -13,16 +13,15 @@ import { briefWhy } from '../planner/why'
 import { NothingWorks } from '../planner/NothingWorks'
 import { SlipCheck } from '../planner/SlipCheck'
 import { type Plan, usePlannerView } from '../planner/usePlannerView'
-import { MissionBar } from '../planner/MissionBar'
 import { WindowGrid } from '../planner/WindowGrid'
 import type { PlannerSite } from '../planner/plannerModel'
-import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { type KeptPick, PlannerAlternatives } from './PlannerAlternatives'
 import { PlannerLocation } from './PlannerLocation'
+import { MissionBar } from '../planner/MissionBar'
+import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { PlannerMore } from './PlannerMore'
+import { NewPlannerCompare } from './NewPlannerCompare'
 import { PlannerNearby } from './PlannerNearby'
-import { PlannerPower } from './PlannerPower'
-import { PlannerSunChart } from './PlannerSunChart'
 import { useMissionTracks } from './useMissionTracks'
 import { isBaseHeights } from '../lib/heights'
 import { siteValue } from './site'
@@ -90,6 +89,8 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   )
 
   const room = scenarios.length < MAX_SCENARIOS
+  // Find (every site by month, the brief) or Compare (your picks side by side).
+  const [tab, setTab] = useState<'find' | 'compare'>('find')
   // Each pick's mission, hour by hour, for the Sun's height and the power budget under the cards.
   const tracks = useMissionTracks(
     start,
@@ -240,7 +241,48 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           Back to the Moon
         </button>
       </header>
+      <div className="sl-full-body np-body">
+        {/* Down the left, as in the rest of the app: a new pick's place and time, then the mission. */}
+        <aside className="sl-full-mission np-side" aria-label="Where, when and the mission">
+          <h3>Where and when</h3>
+            {sites && view && (
+              <PlannerLocation
+                sites={sites.map((one) => one.site)}
+                siteId={view.row.site.id}
+                landing={view.landing.t}
+                first={view.row.flags.start}
+                last={new Date(Date.parse(view.row.flags.start) + (view.row.flags.sun.length - 1) * 3_600_000).toISOString().replace('.000Z', 'Z')}
+                nextLetter={room ? SCENARIO_LETTERS[scenarios.length] : null}
+                onAdd={(value, iso) => onAdd({ site: value, landing: hourOf(start, iso) })}
+              />
+            )}
+          <h3>Mission</h3>
+          <MissionBar value={mission.requirements} example={EXAMPLE_REQUIREMENTS} onChange={(requirements) => onMission({ ...mission, requirements })} />
+          <PlannerMore
+            mission={mission}
+            onMission={onMission}
+            site={site}
+            month={month}
+            year={year}
+            summary={summary}
+            heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null}
+          />
+        </aside>
       <div className="planner sl-fp">
+        <div className="np-tabs" role="tablist" aria-label="New Planner">
+          <button type="button" role="tab" aria-selected={tab === 'find'} onClick={() => setTab('find')}>
+            Find
+            <small>where and when could I land?</small>
+          </button>
+          <button type="button" role="tab" aria-selected={tab === 'compare'} onClick={() => setTab('compare')}>
+            Compare
+            <small>{scenarios.length > 1 ? `your ${scenarios.length} picks side by side` : 'your picks side by side'}</small>
+          </button>
+        </div>
+        {tab === 'compare' ? (
+          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
+        ) : (
+        <>
         <header className="pl-head">
           {view && (
             <p className="pl-tally" aria-live="polite">
@@ -253,30 +295,8 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           )}
         </header>
 
-        {sites && view && (
-          <PlannerLocation
-            sites={sites.map((one) => one.site)}
-            siteId={view.row.site.id}
-            landing={view.landing.t}
-            first={view.row.flags.start}
-            last={new Date(Date.parse(view.row.flags.start) + (view.row.flags.sun.length - 1) * 3_600_000).toISOString().replace('.000Z', 'Z')}
-            onSite={(siteId) => choose({ site: siteId, month: view.month, index: null })}
-            onPoint={(value) => shown && onScenario({ site: value, landing: shown.landing })}
-            onLanding={(iso) => landAt(view.row.site.id, iso)}
-          />
-        )}
         {shown && facts[active] && isCustomSite(facts[active].site) && !facts[active].flags && <p className="pl-notice" role="status">Working out {facts[active].site.name}…</p>}
 
-        <MissionBar value={mission.requirements} example={EXAMPLE_REQUIREMENTS} onChange={(requirements) => onMission({ ...mission, requirements })} />
-        <PlannerMore
-          mission={mission}
-          onMission={onMission}
-          site={site}
-          month={month}
-          year={year}
-          summary={summary}
-          heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null}
-        />
 
 
         {view && view.grid.tally.withLanding === 0 && sites && <NothingWorks sites={sites} requirements={mission.requirements} onChange={(requirements) => onMission({ ...mission, requirements })} />}
@@ -302,11 +322,6 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                 }}
               />
             )}
-            <details className="np-detail">
-              <summary>Sun height and power for your picks</summary>
-              <PlannerSunChart rows={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i] }))} missionDays={mission.requirements.missionDays} />
-              <PlannerPower columns={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i], sunGapH: measures[i]?.sunGapH ?? null }))} heightsNote={heightsNote} />
-            </details>
             {view ? <WindowGrid grid={view.grid} siteId={view.row.site.id} month={view.month} listed={listed} onPick={pick} keptWords="kept to compare" /> : <p className="pl-grid sl-quiet">Reading every site and month…</p>}
             {view && (
               <PlannerNearby
@@ -352,6 +367,9 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           </div>
 
         </div>
+        </>
+        )}
+      </div>
       </div>
     </section>
   )
