@@ -11,7 +11,7 @@ import { HeaderTools } from './HeaderTools'
 import { saveHourlyCsv, saveText } from './hourlyExport'
 import { AdvancedControls, MissionControls } from './MissionDrawer'
 import { PlannerCompare } from './PlannerCompare'
-import { PlannerFind } from './PlannerFind'
+import { type FindSite, PlannerFind } from './PlannerFind'
 import type { PlannerTab } from './plannerFit'
 import { compareGroups, plannerCsv } from './plannerTable'
 import { useSiteValidations } from '../data/useSiteValidations'
@@ -76,6 +76,12 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
   })
+  // Find's rows: the listed sites, then each point of the visitor's own that a scenario is at, once its hours are worked out.
+  const findSites: FindSite[] = useMemo(() => {
+    const seen = new Set(flagged.map((one) => one.site.id))
+    const own = facts.flatMap((fact) => (isCustomSite(fact.site) && fact.flags !== null && !seen.has(fact.site.id) && seen.add(fact.site.id) ? [{ site: fact.site, flags: fact.flags, slopeDeg: fact.slopeDeg }] : []))
+    return [...flagged, ...own]
+  }, [flagged, facts])
   // The distances to permanent shadow are Compare's alone: fetched when it first opens, never for Find.
   const shadow = useShadow(tab === 'compare')
   const siteIds = facts.map((fact) => (isCustomSite(fact.site) ? null : fact.site.id))
@@ -153,7 +159,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
 
         <div className="sl-full-main">
           {tab === 'find' ? (
-            <PlannerFind start={start} flagged={flagged} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} />
+            <PlannerFind start={start} hours={hours} flagged={findSites} scenarios={scenarios} shown={{ siteId: facts[active].site.id, landing: scenarios[active].landing }} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} />
           ) : (
             <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} />
           )}

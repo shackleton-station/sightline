@@ -442,3 +442,83 @@
   border-color: var(--gold);
   color: var(--gold);
 }
+
+/* ---------- Find: the tally, each site's count of months, and a point of the visitor's own ---------- */
+.pl-tally-line {
+  margin: 0.1rem 0 0.35rem;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.pl-tally-line b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The count at the end of a site's row: how many of the year's months have a landing that fits. */
+.pl-months .pl-months-count-head,
+.pl-months .pl-months-count {
+  width: 3.4rem;
+  padding-left: 0.5rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* The box for a point of the visitor's own, opened from the bar: one row of a latitude, a longitude, the landing and "Add". */
+.pl-own-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.4rem 0.8rem;
+  margin: 0.2rem 0 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.pl-own-form label,
+.pl-own-when {
+  display: grid;
+  gap: 0.15rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.pl-own-form input[type='text'] {
+  width: 7rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-own-when .sl-pick {
+  min-height: 0;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  color: var(--ink);
+  font-size: 0.8125rem;
+}
+
+.pl-own-form > .sl-quiet,
+.pl-own-problem {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.pl-own-problem {
+  color: #e8915a;
+}
+
+.pl-nothing-host {
+  margin: 0.2rem 0 0.6rem;
+}
