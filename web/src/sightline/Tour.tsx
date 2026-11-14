@@ -27,6 +27,8 @@ interface Props {
 const PHONE_UNDER_PX = 761
 /** How far a ring stands off what it rings. */
 const RING_AIR_PX = 4
+/** The closest a ring comes to the window's edge. */
+const RING_EDGE_PX = 2
 /** How often the rings and the bubble are placed again, so they follow the screen as it settles or is resized. */
 const PLACE_EVERY_MS = 120
 
@@ -74,9 +76,15 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onVideo, tryIt, 
   useEffect(() => {
     const lay = () => {
       const found = step.targets.flatMap((selector) => [...document.querySelectorAll(selector)]).filter(onScreen)
+      // A ring stays inside the window: round something wider or taller than the screen (a table on a
+      // phone) it rings the part that shows, and one at the screen's edge is not drawn half off it.
       const boxes = found.map((el) => {
         const box = el.getBoundingClientRect()
-        return { left: Math.round(box.left - RING_AIR_PX), top: Math.round(box.top - RING_AIR_PX), width: Math.round(box.width + 2 * RING_AIR_PX), height: Math.round(box.height + 2 * RING_AIR_PX) }
+        const left = Math.max(Math.round(box.left - RING_AIR_PX), RING_EDGE_PX)
+        const top = Math.max(Math.round(box.top - RING_AIR_PX), RING_EDGE_PX)
+        const right = Math.min(Math.round(box.right + RING_AIR_PX), window.innerWidth - RING_EDGE_PX)
+        const bottom = Math.min(Math.round(box.bottom + RING_AIR_PX), window.innerHeight - RING_EDGE_PX)
+        return { left, top, width: right - left, height: bottom - top }
       })
       setRings((before) => (JSON.stringify(before) === JSON.stringify(boxes) ? before : boxes))
       const el = bubble.current
