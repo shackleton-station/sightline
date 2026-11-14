@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 import type { HorizonPoint } from '../data/contract'
 import { loadPart } from '../data/staleBuild'
-import type { SurfaceFrame, SurfaceViewer } from '../three/SurfaceViewer'
+import type { GroundTint, SurfaceFrame, SurfaceViewer } from '../three/SurfaceViewer'
 
 interface Props {
   horizon: HorizonPoint[]
+  /** A tint for the land from what is known about the ground, or none. */
+  groundTint?: GroundTint | null
   /** The site's latitude, for which way up Earth is drawn. */
   latDeg: number
   frame: SurfaceFrame
@@ -23,12 +25,12 @@ declare global {
  * The picture itself: the Three.js view, built once. After that a new horizon replaces one small
  * mesh, and a new look or hour only changes numbers.
  */
-export function SurfaceCanvas({ horizon, latDeg, frame, onLost }: Props) {
+export function SurfaceCanvas({ horizon, groundTint = null, latDeg, frame, onLost }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const viewerRef = useRef<SurfaceViewer | null>(null)
-  const latest = useRef({ horizon, latDeg, frame, onLost })
+  const latest = useRef({ horizon, groundTint, latDeg, frame, onLost })
   useEffect(() => {
-    latest.current = { horizon, latDeg, frame, onLost }
+    latest.current = { horizon, groundTint, latDeg, frame, onLost }
   })
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export function SurfaceCanvas({ horizon, latDeg, frame, onLost }: Props) {
         const viewer = new SurfaceViewer({ canvas, onLostChange: lost })
         viewerRef.current = viewer
         window.__surfaceDrawMs = () => viewer.lastDrawMs
-        viewer.setHorizon(latest.current.horizon)
+        viewer.setHorizon(latest.current.horizon, latest.current.groundTint)
         viewer.setLatitude(latest.current.latDeg)
         viewer.draw(latest.current.frame)
       })
@@ -63,8 +65,8 @@ export function SurfaceCanvas({ horizon, latDeg, frame, onLost }: Props) {
   }, [])
 
   useEffect(() => {
-    viewerRef.current?.setHorizon(horizon)
-  }, [horizon])
+    viewerRef.current?.setHorizon(horizon, groundTint)
+  }, [horizon, groundTint])
   useEffect(() => {
     viewerRef.current?.setLatitude(latDeg)
   }, [latDeg])

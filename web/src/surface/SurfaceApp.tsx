@@ -16,6 +16,7 @@ import { Pickers } from './Pickers'
 import { Notice, Waiting } from './SurfaceStates'
 import { SurfaceStage } from './SurfaceStage'
 import { useBodySizes } from './useBodySizes'
+import { readTintLink, useGroundTint } from './useGroundTint'
 import type { Aim } from './useLook'
 
 const FALLBACK = readAddress(DEFAULT_VIEW) as SurfaceAddress
@@ -48,6 +49,8 @@ export function SurfaceApp() {
   const [arrivedAt, setArrivedAt] = useState(() => window.location.hash)
   const [aim, setAim] = useState<Aim>(() => ({ id: 0, look: readLook(window.location.hash), site: address.site }))
   const [look, setLook] = useState<Look | null>(null)
+  // The "Mission success probability" layer, when the link asks for it: Sightline's Surface view does.
+  const [tintLink, setTintLink] = useState(() => readTintLink(window.location.hash))
 
   useEffect(() => {
     loadSites().then(setSites).catch(() => setSitesFailed(true))
@@ -58,6 +61,7 @@ export function SurfaceApp() {
     const onHashChange = () => {
       const to = readAddress(window.location.hash)
       if (!to) return
+      setTintLink(readTintLink(window.location.hash))
       setAddress(to)
       setArrivedAt(window.location.hash)
       setAim((last) => ({ id: last.id + 1, look: readLook(window.location.hash), site: to.site }))
@@ -80,6 +84,7 @@ export function SurfaceApp() {
   const data = scene?.data ?? null
   const { error } = loaded
   const { flags, failed: flagsFailed } = useSiteFlagsState(data?.site ?? null)
+  const groundTint = useGroundTint(tintLink, data?.site ?? null, data?.horizon ?? null)
   const index = data ? Math.min(address.index, data.track.length - 1) : 0
   const pending = site !== null && data !== null && (data.site.id !== site.id || data.month !== address.month)
 
@@ -141,6 +146,7 @@ export function SurfaceApp() {
             site={data.site}
             month={data.month}
             horizon={data.horizon}
+            groundTint={groundTint}
             track={data.track}
             index={index}
             radii={scene.radii}

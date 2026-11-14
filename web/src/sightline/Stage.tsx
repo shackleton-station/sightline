@@ -1,7 +1,7 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { GlobeCanvas } from '../components/GlobeCanvas'
-import type { GlobeOverlay, GlobeOverlayDetail, GroundDetail } from '../three/GlobeViewer'
+import type { GlobeOverlay, GlobeOverlayDetail, GlobeShade, GroundDetail } from '../three/GlobeViewer'
 import { loadTrekWindow } from '../data/trekPicture'
 import { detailClosestMPerPx, detailWindow, detailWindowKey, regionalAt, UNTIED_FROM_M_PER_PX, UNTIED_GAP_M } from '../lib/moonDetail'
 import { type FinePhoto, inFinePhoto, TREK_RADIUS_M, type TrekLayer, trekClosestMPerPx, trekGround, trekHalfWidthM, trekLayer, trekWindow, trekWindowKey } from '../lib/trekLayers'
@@ -46,6 +46,8 @@ interface Props {
   onRecentre: () => void
   /** A Moon Trek layer laid over the ground around the south pole, or none. */
   overlay?: GlobeOverlay | null
+  /** A transparent shade over the whole Moon, or none. */
+  shade?: GlobeShade | null
   /** The layer that picture is of: close up, the ground in view is fetched from Moon Trek at the detail the zoom needs. */
   layer?: TrekLayer | null
   /** Where the photo layer has our own finer tiles (a disc round each ridge site), once the photo is on; else null. */
@@ -104,7 +106,7 @@ function lonLatOf(direction: readonly [number, number, number]): { lon: number; 
 /** How close to a zoom limit counts as being at it, as a share of the limit. */
 const ZOOM_SLACK = 1e-6
 
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, layer = null, fine = null, grid }: Props) {
+export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
@@ -384,7 +386,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
         ) : (
           // Built once it is known whether there is a light grid: the grid decides how the globe is built.
           side > 0 && placed && grid.meta !== undefined && (
-            <GlobeCanvas view={view} up={up} zoom={zoom} sun={sun} earth={earth} color terrain overlay={overlay} overlayDetail={shownDetail?.picture ?? null} ground={shownGround?.picture ?? null} lightMeta={grid.meta} lightMonth={grid.month} lightWide={grid.wide} lightShow={gridShow} onLost={onLost} onDrawn={onDrawn} />
+            <GlobeCanvas view={view} up={up} zoom={zoom} sun={sun} earth={earth} color terrain overlay={overlay} shade={shade} overlayDetail={shownDetail?.picture ?? null} ground={shownGround?.picture ?? null} lightMeta={grid.meta} lightMonth={grid.month} lightWide={grid.wide} lightShow={gridShow} onLost={onLost} onDrawn={onDrawn} />
           )
         )}
         {!bare && placed && <Dots markers={markers} side={side} states={states} onChoose={onChoose} onPoint={onPoint} within={within} />}

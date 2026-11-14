@@ -2,7 +2,7 @@ import { lazy, type ReactNode, Suspense, useCallback, useEffect, useMemo, useRef
 import type { HorizonPoint, SiteInfo, TrackPoint } from '../data/contract'
 import { horizonAt } from '../lib/customModel'
 import { acrossDeg, type BodyRadii, type Lens, type Look } from '../lib/surfaceView'
-import type { SurfaceFrame } from '../three/SurfaceViewer'
+import type { GroundTint, SurfaceFrame } from '../three/SurfaceViewer'
 import { CompassStrip } from './CompassStrip'
 import { LensControls } from './LensControls'
 import { SkyOverlay } from './SkyOverlay'
@@ -17,6 +17,8 @@ interface Props {
   site: SiteInfo
   month: string
   horizon: HorizonPoint[]
+  /** A tint for the land from what is known about the ground, or none. */
+  groundTint?: GroundTint | null
   track: TrackPoint[]
   index: number
   /** The Sun's and Earth's angular radii for each hour of the track. */
@@ -51,7 +53,7 @@ const SETTLED_MS = 300
  * The view from the site: the picture, the lines and names over it, the compass, the lens and the
  * buttons that turn it. Which way the visitor looks lives here; the site, month and hour come from above.
  */
-export function SurfaceStage({ site, month, horizon, track, index, radii, obsHeightM, aim, onLook, pickers, answer }: Props) {
+export function SurfaceStage({ site, month, horizon, groundTint = null, track, index, radii, obsHeightM, aim, onLook, pickers, answer }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const [flat, setFlat] = useState(false)
@@ -135,7 +137,7 @@ export function SurfaceStage({ site, month, horizon, track, index, radii, obsHei
         <div className="sf-stage" ref={stage} role="img" aria-label={sees} {...input}>
           {size.width > 0 && (
             <>
-              <SurfaceCanvas horizon={horizon} latDeg={site.lat} frame={frame} onLost={onLost} />
+              <SurfaceCanvas horizon={horizon} groundTint={groundTint} latDeg={site.lat} frame={frame} onLost={onLost} />
               <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} hours={hours} clearTopPx={clearTopPx} />
             </>
           )}

@@ -1,4 +1,4 @@
-import { cellAtM, type FitMap, FITS, missCode } from './landingOdds'
+import { cellAtM, erf, type FitMap, FITS, missCode, sigmaM, type Spread } from './landingOdds'
 import { cellAt, type LightMeta, type LightMonth, planeXY } from './lightGrid'
 import { locateHour, type Requirements } from './mission'
 
@@ -43,9 +43,14 @@ function monthAfter(month: string): string {
  */
 export function missionMonths(meta: LightMeta, startIso: string, landing: number, missionDays: number): MonthPart[] | null {
   const first = locateHour(startIso, landing)
+  return missionMonthsAt(meta, first.month, first.index, missionDays)
+}
+
+/** The same, for a landing given as a month and the hour within it. */
+export function missionMonthsAt(meta: LightMeta, firstMonth: string, index: number, missionDays: number): MonthPart[] | null {
   const parts: MonthPart[] = []
-  let month = first.month
-  let from = first.index
+  let month = firstMonth
+  let from = index
   let left = missionDays * 24
   while (left > 0) {
     const hours = meta.hours[month]
@@ -212,39 +217,188 @@ export function slopeDegFrom(x: Uint8Array | Uint8ClampedArray, y: Uint8Array | 
   return out
 }
 
-/** The whole grid as a picture: its pixels (RGBA), and which verdicts are in it. */
-export interface FitPicture {
-  pixels: Uint8ClampedArray
-  /** For each code (0 fits, then each reason): whether any pixel has it. */
-  seen: boolean[]
+/**
+ * Where a landing fits, across the whole grid: from 1 (it fits) to 0 for each pixel, `sub` pixels
+ * along each light cell. `slopeDeg` holds the slope for each pixel, or is null when it could not
+ * be read. With `soft`, the Sun and Earth verdict is read between the light cells' middles rather
+ * than cell by cell, so a picture of it has no squares: a way of drawing a grid that is known only
+ * at those middles, not finer knowledge of the ground.
+ */
+export function fitField(gaps: GridGaps, req: Requirements, maxSlopeDeg: number, sub: number, slopeDeg: Float32Array | null, soft = false): Float32Array {
+  const { size } = gaps
+  const light = new Float32Array(size * size)
+  for (let cell = 0; cell < light.length; cell += 1) light[cell] = lightVerdict(gaps, cell, req) === FITS ? 1 : 0
+  const side = size * sub
+  const field = new Float32Array(side * side)
+  const last = size - 1
+  for (let row = 0; row < side; row += 1) {
+    // Where this pixel's middle falls among the light cells' middles.
+    const y = soft ? Math.min(last, Math.max(0, (row + 0.5) / sub - 0.5)) : Math.floor(row / sub)
+    const y0 = Math.floor(y)
+    const y1 = Math.min(last, y0 + 1)
+    const fy = y - y0
+    for (let col = 0; col < side; col += 1) {
+      const pixel = row * side + col
+      if (slopeDeg && slopeDeg[pixel] > maxSlopeDeg) continue
+      const x = soft ? Math.min(last, Math.max(0, (col + 0.5) / sub - 0.5)) : Math.floor(col / sub)
+      const x0 = Math.floor(x)
+      const x1 = Math.min(last, x0 + 1)
+      const fx = x - x0
+      field[pixel] = (light[y0 * size + x0] * (1 - fx) + light[y0 * size + x1] * fx) * (1 - fy) + (light[y1 * size + x0] * (1 - fx) + light[y1 * size + x1] * fx) * fy
+    }
+  }
+  return field
 }
 
 /**
- * The whole grid as a picture's pixels, `sub` pixels along each light cell, each in the color of
- * its verdict (`colors[code]`), for laying over the Moon. `slopeDeg` holds the slope for each
- * pixel, or is null when it could not be read.
+ * A bell curve of spread `sigmaPx` as weights for whole pixels either side of the middle: each is
+ * the curve's share over that pixel's width, so they add up to one. With `exact` false the curve
+ * is read at each pixel's middle instead, for a line that crosses pixels at a slant.
  */
-export function fitPixels(gaps: GridGaps, req: Requirements, maxSlopeDeg: number, sub: number, slopeDeg: Float32Array | null, colors: readonly (readonly [number, number, number])[]): FitPicture {
-  const side = gaps.size * sub
-  const pixels = new Uint8ClampedArray(4 * side * side)
-  const seen = colors.map(() => false)
-  const steep = missCode('slope')
-  for (let row = 0; row < gaps.size; row += 1) {
-    for (let col = 0; col < gaps.size; col += 1) {
-      const light = lightVerdict(gaps, row * gaps.size + col, req)
-      for (let dRow = 0; dRow < sub; dRow += 1) {
-        for (let dCol = 0; dCol < sub; dCol += 1) {
-          const pixel = (row * sub + dRow) * side + col * sub + dCol
-          const code = slopeDeg && slopeDeg[pixel] > maxSlopeDeg ? steep : light
-          const color = colors[code]
-          seen[code] = true
-          pixels[4 * pixel] = color[0]
-          pixels[4 * pixel + 1] = color[1]
-          pixels[4 * pixel + 2] = color[2]
-          pixels[4 * pixel + 3] = 255
-        }
+function bellWeights(sigmaPx: number, exact: boolean): Float32Array {
+  const reach = Math.max(1, Math.ceil(3.5 * sigmaPx))
+  const weights = new Float32Array(2 * reach + 1)
+  const below = (x: number) => 0.5 * (1 + erf(x / (sigmaPx * Math.SQRT2)))
+  let sum = 0
+  for (let k = -reach; k <= reach; k += 1) {
+    weights[k + reach] = exact ? below(k + 0.5) - below(k - 0.5) : Math.exp((-0.5 * k * k) / (sigmaPx * sigmaPx))
+    sum += weights[k + reach]
+  }
+  for (let i = 0; i < weights.length; i += 1) weights[i] /= sum
+  return weights
+}
+
+/** One pass of a blur: each pixel becomes the weighted mean of those `stepX`, `stepY` apart along a line through it. Past the picture's edge, the edge is repeated. */
+function blurAlong(from: Float32Array, side: number, weights: Float32Array, stepX: number, stepY: number): Float32Array {
+  const reach = (weights.length - 1) / 2
+  // How far each weight's pixel is from the middle one, in whole pixels: the same for every pixel.
+  const dx = Int32Array.from(weights, (_, i) => Math.round((i - reach) * stepX))
+  const dy = Int32Array.from(weights, (_, i) => Math.round((i - reach) * stepY))
+  const to = new Float32Array(from.length)
+  const last = side - 1
+  for (let row = 0; row < side; row += 1) {
+    for (let col = 0; col < side; col += 1) {
+      let sum = 0
+      for (let i = 0; i < weights.length; i += 1) {
+        const x = Math.min(last, Math.max(0, col + dx[i]))
+        const y = Math.min(last, Math.max(0, row + dy[i]))
+        sum += weights[i] * from[y * side + x]
       }
+      to[row * side + col] = sum
     }
   }
-  return { pixels, seen }
+  return to
+}
+
+/** A picture at half the size: each pixel the mean of four. */
+export function halved(from: Float32Array, side: number): Float32Array {
+  const half = side / 2
+  const to = new Float32Array(half * half)
+  for (let row = 0; row < half; row += 1) {
+    for (let col = 0; col < half; col += 1) {
+      const at = 2 * row * side + 2 * col
+      to[row * half + col] = (from[at] + from[at + 1] + from[at + side] + from[at + side + 1]) / 4
+    }
+  }
+  return to
+}
+
+/**
+ * How many pixels the blur reads for each pixel it writes: the cost of `oddsField`, to choose
+ * between a picture and its half-size copy.
+ */
+export function blurReads(pixelM: number, spread: Spread): number {
+  const across = sigmaM(spread.accuracyM) / pixelM
+  const taps = (sigmaPx: number) => 2 * Math.max(1, Math.ceil(3.5 * sigmaPx)) + 1
+  return 2 * taps(across) + (spread.stretch > 1 ? taps(across * Math.sqrt(spread.stretch * spread.stretch - 1)) : 0)
+}
+
+/**
+ * The odds of a landing fitting for a lander aimed at each pixel: the field of where a landing
+ * fits, blurred by the lander's spread. A round spread is two passes, across and down. A spread
+ * longer along the approach is those two and a third along the approach's line, which together make
+ * the same stretched bell curve. Pixels are `pixelM` meters; the picture's top is the map's up.
+ */
+export function oddsField(field: Float32Array, side: number, pixelM: number, spread: Spread, atLeastPx = 0): Float32Array {
+  // `atLeastPx` softens a picture by at least that many pixels, so a tight spread does not show the grid.
+  const across = Math.max(sigmaM(spread.accuracyM) / pixelM, atLeastPx)
+  const round = bellWeights(across, true)
+  let odds = blurAlong(blurAlong(field, side, round, 1, 0), side, round, 0, 1)
+  if (spread.stretch > 1) {
+    // What the round blur lacks along the approach: sigma² along = sigma² across + this².
+    const more = across * Math.sqrt(spread.stretch * spread.stretch - 1)
+    const turn = (spread.bearingDeg * Math.PI) / 180
+    // The approach runs clockwise from up; up on the picture is toward smaller rows.
+    odds = blurAlong(odds, side, bellWeights(more, false), Math.sin(turn), -Math.cos(turn))
+  }
+  return odds
+}
+
+/** The colors odds are drawn in: none of the landings fit, half of them, all of them. */
+export const ODDS_RAMP: readonly (readonly [number, number, number])[] = [
+  [194, 69, 45],
+  [224, 178, 58],
+  [87, 192, 138],
+]
+
+/** The ramp's color for odds from 0 to 1. */
+export function oddsColor(odds: number): [number, number, number] {
+  const at = Math.min(1, Math.max(0, odds)) * (ODDS_RAMP.length - 1)
+  const low = Math.min(ODDS_RAMP.length - 2, Math.floor(at))
+  const part = at - low
+  const mix = (i: number) => Math.round(ODDS_RAMP[low][i] + (ODDS_RAMP[low + 1][i] - ODDS_RAMP[low][i]) * part)
+  return [mix(0), mix(1), mix(2)]
+}
+
+/** Odds as a picture's pixels (RGBA), each in the ramp's color. */
+export function oddsPixels(odds: Float32Array): Uint8ClampedArray {
+  // The ramp is looked up, not worked out, for each of a few million pixels.
+  const table = Array.from({ length: 256 }, (_, i) => oddsColor(i / 255))
+  const pixels = new Uint8ClampedArray(4 * odds.length)
+  for (let i = 0; i < odds.length; i += 1) {
+    const color = table[Math.min(255, Math.max(0, Math.round(255 * odds[i])))]
+    pixels[4 * i] = color[0]
+    pixels[4 * i + 1] = color[1]
+    pixels[4 * i + 2] = color[2]
+    pixels[4 * i + 3] = 255
+  }
+  return pixels
+}
+/** A fit map as a field: 1 where a landing fits and 0 where it does not, for `oddsField`. */
+export function fieldOf(map: FitMap): Float32Array {
+  return Float32Array.from(map.verdict, (code) => (code === FITS ? 1 : 0))
+}
+
+/** The odds at a point given from the map's target (m), from odds worked out over the map; null off the map. */
+export function oddsAt(map: FitMap, odds: Float32Array, x: number, y: number): number | null {
+  const cell = cellAtM(map, x, y)
+  return cell === null ? null : odds[cell]
+}
+
+/**
+ * Looking around from a site near the south pole: for each compass bearing (degrees clockwise from
+ * north), the mean odds over the ground from `fromM` to `toM` out that way. On the polar map, north
+ * at a site is straight away from the pole and east is a quarter turn clockwise from it, seen from
+ * above the south pole. Null for a bearing whose ground is off the map.
+ */
+export function oddsAlongBearings(map: FitMap, odds: Float32Array, lonDeg: number, bearingsDeg: number[], fromM: number, toM: number): (number | null)[] {
+  const lon = (lonDeg * Math.PI) / 180
+  const north = [Math.sin(lon), Math.cos(lon)]
+  const east = [Math.cos(lon), -Math.sin(lon)]
+  const steps = Math.max(1, Math.round((toM - fromM) / map.cellM))
+  return bearingsDeg.map((bearing) => {
+    const turn = (bearing * Math.PI) / 180
+    const dx = north[0] * Math.cos(turn) + east[0] * Math.sin(turn)
+    const dy = north[1] * Math.cos(turn) + east[1] * Math.sin(turn)
+    let sum = 0
+    let count = 0
+    for (let i = 0; i <= steps; i += 1) {
+      const out = fromM + ((toM - fromM) * i) / steps
+      const here = oddsAt(map, odds, out * dx, out * dy)
+      if (here === null) continue
+      sum += here
+      count += 1
+    }
+    return count > 0 ? sum / count : null
+  })
 }

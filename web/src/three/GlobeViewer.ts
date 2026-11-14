@@ -69,6 +69,60 @@ export interface GlobeOverlay {
 }
 
 /**
+ * A shade over the whole Moon (`setShade`): a transparent picture drawn over it, apart from the
+ * Moon's own shader, which has no texture to spare. Any layer shows through it.
+ */
+export interface GlobeShade {
+  /** The whole Moon, laid out like a map of the world: longitude across from 180° W, latitude down from the north pole. */
+  wash: HTMLCanvasElement
+  /**
+   * A finer picture of the ground round the south pole, shown in the wash's place as far as it
+   * reaches: laid out as a `GlobeOverlay` is. Null for none.
+   */
+  polar: { image: HTMLCanvasElement; halfWidthM: number; radiusM: number } | null
+  /** How much of the Moon the shade hides, 0 to 1. */
+  opacity: number
+}
+
+const SHADE_VERTEX = /* glsl */ `
+varying vec2 vShadeUv;
+varying vec3 vShadeView;
+void main() {
+  // SphereGeometry puts 0° E at u = 0.25; the wash has it in the middle (u = 0.5).
+  vShadeUv = uv + vec2(0.25, 0.0);
+  vec4 seen = modelViewMatrix * vec4(position, 1.0);
+  vShadeView = seen.xyz;
+  gl_Position = projectionMatrix * seen;
+}
+`
+
+const SHADE_FRAGMENT = /* glsl */ `
+uniform sampler2D washMap;
+uniform sampler2D polarMap;
+uniform float polarOn;
+uniform float polarSize; // Moon radius / the polar picture's full width on the ground
+uniform float shadeMix;
+varying vec2 vShadeUv;
+varying vec3 vShadeView;
+void main() {
+  vec4 shade = texture2D(washMap, vShadeUv);
+  // The polar picture's place, as the Moon's own shader finds a layer's: from where the pixel is on
+  // screen, polar stereographic from the south pole, with 90° E to the right and 0° E up.
+  vec2 disk = vShadeView.xy;
+  vec3 up = normalize((vec4(disk, sqrt(max(1.0 - dot(disk, disk), 0.0)), 0.0) * viewMatrix).xyz).zxy;
+  vec2 ground = 2.0 * up.xy / max(1.0 - up.z, 1.0);
+  vec2 at = 0.5 + (ground * polarSize).yx;
+  // The polar picture is shown as a disc that gives way to the wash over its outer third, so its
+  // square never shows.
+  float fade = smoothstep(1.0, 0.66, 2.0 * length(at - 0.5));
+  vec4 polar = texture2D(polarMap, clamp(at, 0.0, 1.0));
+  shade = mix(shade, polar, polarOn * fade * step(up.z, 0.0) * polar.a);
+  gl_FragColor = vec4(shade.rgb, shade.a * shadeMix);
+  #include <colorspace_fragment>
+}
+`
+
+/**
  * A photo of the ground in view, for the Moon's own picture to get sharper from (`setGroundDetail`):
  * laid on the Moon as a square round the south pole (as a `GlobeOverlayDetail` is) or as a rectangle
  * of longitude and latitude, north up.
@@ -348,6 +402,8 @@ export class GlobeViewer {
   private readonly sunLight = new THREE.DirectionalLight(0xffffff, SUN_INTENSITY)
   private readonly ambient = new THREE.AmbientLight(0xffffff, NIGHT_INTENSITY)
   private readonly geometry = new THREE.SphereGeometry(1, 192, 96)
+  /** The shade over the Moon, made the first time one is given. */
+  private shade: { mesh: THREE.Mesh; material: THREE.ShaderMaterial } | null = null
   private readonly material: THREE.MeshStandardMaterial
   private readonly uniforms = {
     reliefMap: { value: placeholderTexture() as THREE.Texture },
@@ -665,6 +721,59 @@ export class GlobeViewer {
       this.lightSlopeUrls = null
       urls.forEach((url, i) => this.loadTexture(url, THREE.NoColorSpace, (texture) => this.light?.setSlope(i === 0 ? 0 : 1, texture)))
     }
+    this.schedule()
+  }
+
+  /**
+   * Shade the whole Moon with a picture, or take the shade away (null). It is drawn over the Moon
+   * as it is, not lit by the hour's Sun, and any layer shows through it.
+   */
+  setShade(shade: GlobeShade | null): void {
+    if (this.disposed) return
+    if (!shade) {
+      if (this.shade) this.shade.mesh.visible = false
+      this.schedule()
+      return
+    }
+    if (!this.shade) {
+      const material = new THREE.ShaderMaterial({
+        uniforms: { washMap: { value: null }, polarMap: { value: null }, polarOn: { value: 0 }, polarSize: { value: 1 }, shadeMix: { value: 0 } },
+        vertexShader: SHADE_VERTEX,
+        fragmentShader: SHADE_FRAGMENT,
+        transparent: true,
+        // The same sphere as the Moon, drawn after it: the far side is culled, so depth has nothing to add.
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+      })
+      const mesh = new THREE.Mesh(this.geometry, material)
+      mesh.renderOrder = 1
+      this.scene.add(mesh)
+      this.shade = { mesh, material }
+    }
+    const { mesh, material } = this.shade
+    const picture = (image: HTMLCanvasElement, wraps: boolean) => {
+      const texture = new THREE.CanvasTexture(image)
+      texture.colorSpace = THREE.SRGBColorSpace
+      // Round the back of the Moon the wash's two ends meet. No smaller copies of it: they would show that seam as a line.
+      texture.wrapS = wraps ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping
+      texture.wrapT = THREE.ClampToEdgeWrapping
+      if (wraps) {
+        texture.generateMipmaps = false
+        texture.minFilter = THREE.LinearFilter
+      } else texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy()
+      return texture
+    }
+    const swap = (uniform: { value: THREE.Texture | null }, next: THREE.Texture | null) => {
+      uniform.value?.dispose()
+      uniform.value = next
+    }
+    swap(material.uniforms.washMap, picture(shade.wash, true))
+    swap(material.uniforms.polarMap, shade.polar ? picture(shade.polar.image, false) : null)
+    material.uniforms.polarOn.value = shade.polar ? 1 : 0
+    if (shade.polar) material.uniforms.polarSize.value = shade.polar.radiusM / (2 * shade.polar.halfWidthM)
+    material.uniforms.shadeMix.value = shade.opacity
+    mesh.visible = true
     this.schedule()
   }
 
@@ -1029,6 +1138,11 @@ export class GlobeViewer {
     this.canvas.removeEventListener('webglcontextlost', this.handleLost)
     this.geometry.dispose()
     this.material.dispose()
+    if (this.shade) {
+      this.shade.material.uniforms.washMap.value?.dispose()
+      this.shade.material.uniforms.polarMap.value?.dispose()
+      this.shade.material.dispose()
+    }
     this.uniforms.reliefMap.value.dispose()
     this.uniforms.colorMap.value.dispose()
     for (const map of [this.uniforms.slopeE, this.uniforms.slopeN, this.uniforms.poleX, this.uniforms.poleY]) map.value.dispose()
