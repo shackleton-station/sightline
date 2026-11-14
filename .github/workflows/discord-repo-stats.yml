@@ -1,0 +1,45 @@
+name: Discord repo stats
+
+# Posts sightline's commit count, branch count and latest-commit CI result to Discord, hourly.
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: read
+
+jobs:
+  discord-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gather stats and post to Discord
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          branches=$(gh api "repos/$REPO/branches?per_page=100" --paginate -q '.[].name' | wc -l)
+          # With per_page=1 the "last" page number equals the commit count on the default branch.
+          link=$(gh api -i "repos/$REPO/commits?per_page=1" | grep -i '^link:' || true)
+          commits=$(echo "$link" | sed -E 's/.*[?&]page=([0-9]+)>; rel="last".*/\1/'); commits=${commits:-1}
+
+          sha=$(gh api "repos/$REPO/commits/HEAD" -q '.sha')
+          title=$(gh api "repos/$REPO/commits/$sha" -q '.commit.message | split("\n")[0]')
+          # Ignore this bot's own check run, which is always in progress while it runs.
+          runs=$(gh api "repos/$REPO/commits/$sha/check-runs?per_page=100" \
+            -q '[.check_runs[] | select(.name != "discord-stats")]')
+          failed=$(echo "$runs" | jq '[.[] | select(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out" or .conclusion == "action_required")] | length')
+          pending=$(echo "$runs" | jq '[.[] | select(.status != "completed")] | length')
+          total=$(echo "$runs" | jq 'length')
+          if [ "$failed" -gt 0 ]; then ci="❌ Failed ($failed of $total checks)"
+          elif [ "$pending" -gt 0 ]; then ci="⏳ Running ($pending of $total checks)"
+          elif [ "$total" -eq 0 ]; then ci="⚪ No checks"
+          else ci="✅ Passed ($total checks)"; fi
+
+          msg=$(printf '📊 **sightline: hourly update** (%s)\n**Commits:** %s\n**Branches:** %s\n**Last commit** `%s` %s\n%s' \
+            "$(date -u '+%Y-%m-%d %H:%M UTC')" "$commits" "$branches" "${sha:0:7}" "$title" "$ci")
+          jq -n --arg c "$msg" '{username: "Shackleton Stats", content: $c}' \
+            | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_WEBHOOK_URL"
