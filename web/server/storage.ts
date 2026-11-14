@@ -21,6 +21,13 @@ const MEDIA_TYPES: Record<string, string> = {
   // The easter egg page's video (/hype/).
   'hype.mp4': 'video/mp4',
   'hype-poster.jpg': 'image/jpeg',
+  // The tutorial video with its poster, captions and list of steps, and the 30-second demo.
+  'sightline-tutorial.mp4': 'video/mp4',
+  'sightline-tutorial-poster.jpg': 'image/jpeg',
+  'sightline-tutorial.vtt': 'text/vtt; charset=utf-8',
+  'sightline-tutorial.json': 'application/json',
+  'sightline-demo-30s.mp4': 'video/mp4',
+  'sightline-demo-30s-poster.jpg': 'image/jpeg',
 }
 
 function readOnly(request: Request): boolean {
