@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}</style>
+</head>
+<body>
+<title>CLPS Demo Container Diagram</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+  /* Layout: one C4 Level 2 container diagram on a white canvas, left-to-right data flow, legend at the bottom.
+     Deliberately single-theme (standard C4 colors on white), every color set explicitly. */
+  :root {
+    --page: #eef1f4;
+    --canvas: #ffffff;
+    --ink: #1c2530;
+    --muted: #5f6b78;
+    --line: #cfd5dc;
+  }
+  body { background: var(--page); color: var(--ink); font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; }
+  .wrap {
+    max-width: 1640px; margin: 0 auto; padding-block: 24px 32px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 12px;
+  }
+  .scroll { overflow-x: auto; }
+  .canvas {
+    min-width: 1100px; background: var(--canvas);
+    border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(28,37,48,.06), 0 8px 24px rgba(28,37,48,.06);
+  }
+  svg { display: block; width: 100%; height: auto; }
+  .hint { display: none; color: var(--muted); font-size: 14px; margin: 0; }
+  @media (max-width: 1140px) { .hint { display: block; } }
+  .src { color: var(--muted); font-size: 13px; margin: 0; }
+</style>
+
+<div class="wrap">
+  <p class="hint">Scroll sideways to see the whole diagram.</p>
+  <div class="scroll">
+    <div class="canvas">
+<svg viewBox="0 0 1780 920" role="img" aria-labelledby="t d" font-family="IBM Plex Sans, Segoe UI, system-ui, sans-serif">
+  <title id="t">Sightline container diagram (C4 level 2)</title>
+  <desc id="d">A Python data pipeline downloads SPICE kernels from NAIF, LOLA terrain from NASA PGDA and PDS Geosciences, and LROC images from the PDS Imaging Node, and validates against JPL Horizons. It caches downloads locally and writes static JSON site data and fine terrain tiles, which a Node server on Google Cloud Run serves with the web app. The tiles stay out of Git and live in a Cloud Storage bucket. A site viewer uses the React web app, which loads the app, data and tiles over HTTPS.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b6b6b"/>
+    </marker>
+    <style>
+      .h1 { font-size: 26px; font-weight: 600; fill: #1c2530; }
+      .sub { font-size: 14px; fill: #5f6b78; }
+      .nm { font-size: 17px; font-weight: 600; fill: #ffffff; }
+      .ty { font-size: 12px; fill: #dce8f5; }
+      .tyx { font-size: 12px; fill: #eceef1; }
+      .ds { font-size: 13px; fill: #ffffff; }
+      .rel { fill: none; stroke: #6b6b6b; stroke-width: 1.5; stroke-dasharray: 7 5; }
+      .rl { font-size: 13px; fill: #333a42; }
+      .rt { font-size: 12px; fill: #6b7480; }
+      .lbg { fill: #ffffff; }
+      .leg { font-size: 13px; fill: #333a42; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="40" y="52" class="h1">Sightline · Container diagram</text>
+  <text x="40" y="78" class="sub">C4 model, level 2 · Lunar Landing Site Navigator · data flows left to right</text>
+  <text x="1740" y="52" class="sub" text-anchor="end">11 Nov 2026</text>
+
+  <!-- ===== External systems ===== -->
+  <g text-anchor="middle">
+    <rect x="40" y="150" width="240" height="112" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="160" y="182" class="nm">NAIF SPICE archive</text>
+    <text x="160" y="200" class="tyx">[Software System]</text>
+    <text x="160" y="226" class="ds">Generic kernels: planetary</text>
+    <text x="160" y="244" class="ds">ephemeris, lunar orientation</text>
+
+    <rect x="40" y="278" width="240" height="112" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="160" y="310" class="nm">NASA PGDA</text>
+    <text x="160" y="328" class="tyx">[Software System]</text>
+    <text x="160" y="354" class="ds">LOLA 20 m and 5 m polar</text>
+    <text x="160" y="372" class="ds">DEMs, illumination maps</text>
+
+    <rect x="40" y="406" width="240" height="112" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="160" y="438" class="nm">PDS Geosciences</text>
+    <text x="160" y="456" class="tyx">[Software System]</text>
+    <text x="160" y="482" class="ds">LOLA global DEM</text>
+    <text x="160" y="500" class="ds">(237 m/px)</text>
+
+    <rect x="40" y="534" width="240" height="112" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="160" y="566" class="nm">PDS Imaging Node</text>
+    <text x="160" y="584" class="tyx">[Software System]</text>
+    <text x="160" y="610" class="ds">LROC WAC sunlit map</text>
+    <text x="160" y="628" class="ds">and dated photos</text>
+
+    <rect x="40" y="662" width="240" height="112" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="160" y="694" class="nm">JPL Horizons</text>
+    <text x="160" y="712" class="tyx">[Software System]</text>
+    <text x="160" y="738" class="ds">Reference Sun and Earth</text>
+    <text x="160" y="756" class="ds">positions</text>
+  </g>
+
+  <!-- ===== Person ===== -->
+  <g text-anchor="middle">
+    <circle cx="1605" cy="128" r="30" fill="#08427b" stroke="#073763"/>
+    <rect x="1495" y="150" width="220" height="118" rx="26" fill="#08427b" stroke="#073763"/>
+    <text x="1605" y="190" class="nm">Site viewer</text>
+    <text x="1605" y="209" class="ty">[Person]</text>
+    <text x="1605" y="235" class="ds">Educator, student or mission</text>
+    <text x="1605" y="253" class="ds">planner comparing sites</text>
+  </g>
+
+  <!-- ===== System boundary ===== -->
+  <rect x="452" y="300" width="1308" height="530" rx="6" fill="none" stroke="#444a52" stroke-width="1.5" stroke-dasharray="10 6"/>
+  <text x="472" y="814" font-size="16" font-weight="600" fill="#1c2530">CLPS Demo</text>
+  <text x="562" y="814" font-size="13" fill="#5f6b78">[Software System]</text>
+
+  <!-- ===== Containers ===== -->
+  <g text-anchor="middle">
+    <!-- Data pipeline -->
+    <rect x="480" y="420" width="240" height="170" rx="8" fill="#1168bd" stroke="#0b4884"/>
+    <text x="600" y="456" class="nm">Data pipeline</text>
+    <text x="600" y="476" class="ty">[Container: Python 3.12,</text>
+    <text x="600" y="491" class="ty">SpiceyPy, NumPy, rasterio]</text>
+    <text x="600" y="518" class="ds">Batch job (run_all.py). Builds</text>
+    <text x="600" y="536" class="ds">horizon masks and hourly</text>
+    <text x="600" y="554" class="ds">Sun/Earth visibility, validates,</text>
+    <text x="600" y="572" class="ds">exports JSON</text>
+
+    <!-- Download cache (data store) -->
+    <path d="M480,668 v100 a120,14 0 0 0 240,0 v-100" fill="#1168bd" stroke="#0b4884"/>
+    <ellipse cx="600" cy="668" rx="120" ry="14" fill="#2f7fcc" stroke="#0b4884"/>
+    <text x="600" y="708" class="nm">Download cache</text>
+    <text x="600" y="727" class="ty">[Container: File store, cache/]</text>
+    <text x="600" y="752" class="ds">~21 GB kernels, DEMs, maps.</text>
+    <text x="600" y="770" class="ds">Git-ignored</text>
+
+    <!-- Site data (data store) -->
+    <path d="M830,434 v142 a110,14 0 0 0 220,0 v-142" fill="#1168bd" stroke="#0b4884"/>
+    <ellipse cx="940" cy="434" rx="110" ry="14" fill="#2f7fcc" stroke="#0b4884"/>
+    <text x="940" y="474" class="nm">Site data</text>
+    <text x="940" y="494" class="ty">[Container: static JSON]</text>
+    <text x="940" y="521" class="ds">web/public/data/: horizon,</text>
+    <text x="940" y="539" class="ds">tracks, summaries, nearby</text>
+    <text x="940" y="557" class="ds">maps per site, 2027–2030</text>
+
+    <!-- Terrain tiles (data store) -->
+    <path d="M830,650 v116 a110,14 0 0 0 220,0 v-116" fill="#1168bd" stroke="#0b4884"/>
+    <ellipse cx="940" cy="650" rx="110" ry="14" fill="#2f7fcc" stroke="#0b4884"/>
+    <text x="940" y="690" class="nm">Terrain tiles</text>
+    <text x="940" y="710" class="ty">[Container: gzip binary files]</text>
+    <text x="940" y="736" class="ds">web/public/tiles/, 1.5 GB.</text>
+    <text x="940" y="754" class="ds">Not in Git; kept in Cloud Storage</text>
+
+    <!-- Static host -->
+    <rect x="1160" y="420" width="220" height="170" rx="8" fill="#1168bd" stroke="#0b4884"/>
+    <text x="1270" y="456" class="nm">Web server</text>
+    <text x="1270" y="476" class="ty">[Container: Google Cloud</text>
+    <text x="1270" y="491" class="ty">Run, Node + Hono]</text>
+    <text x="1270" y="518" class="ds">Serves the built app, JSON,</text>
+    <text x="1270" y="536" class="ds">tiles from Cloud Storage</text>
+    <text x="1270" y="554" class="ds">and the question API</text>
+
+    <!-- Web app -->
+    <rect x="1495" y="420" width="220" height="170" rx="8" fill="#1168bd" stroke="#0b4884"/>
+    <text x="1605" y="456" class="nm">Web app</text>
+    <text x="1605" y="476" class="ty">[Container: React, TypeScript,</text>
+    <text x="1605" y="491" class="ty">Vite, D3, WebGL2; in browser]</text>
+    <text x="1605" y="518" class="ds">Panorama, timeline, 3D view,</text>
+    <text x="1605" y="536" class="ds">map, mission check, compare;</text>
+    <text x="1605" y="554" class="ds">computes custom points</text>
+    <text x="1605" y="572" class="ds">from the tiles</text>
+  </g>
+
+  <!-- ===== Relationships ===== -->
+  <!-- Pipeline -> external systems -->
+  <path class="rel" d="M480,435 L280,206" marker-end="url(#a)"/>
+  <path class="rel" d="M480,470 L280,334" marker-end="url(#a)"/>
+  <path class="rel" d="M480,505 L280,462" marker-end="url(#a)"/>
+  <path class="rel" d="M480,540 L280,590" marker-end="url(#a)"/>
+  <path class="rel" d="M480,575 L280,718" marker-end="url(#a)"/>
+  <g text-anchor="middle">
+    <rect x="298" y="301" width="132" height="38" class="lbg"/>
+    <text x="364" y="317" class="rl">Downloads kernels</text>
+    <text x="364" y="333" class="rt">[HTTPS]</text>
+
+    <rect x="286" y="383" width="156" height="38" class="lbg"/>
+    <text x="364" y="399" class="rl">Downloads DEMs, maps</text>
+    <text x="364" y="415" class="rt">[HTTPS]</text>
+
+    <rect x="284" y="464" width="160" height="38" class="lbg"/>
+    <text x="364" y="480" class="rl">Downloads global DEM</text>
+    <text x="364" y="496" class="rt">[HTTPS]</text>
+
+    <rect x="280" y="546" width="168" height="38" class="lbg"/>
+    <text x="364" y="562" class="rl">Downloads LROC images</text>
+    <text x="364" y="578" class="rt">[HTTPS, ranged reads]</text>
+
+    <rect x="292" y="627" width="144" height="38" class="lbg"/>
+    <text x="364" y="643" class="rl">Validates positions</text>
+    <text x="364" y="659" class="rt">[HTTPS, JSON API]</text>
+  </g>
+
+  <!-- Pipeline -> cache -->
+  <path class="rel" d="M600,590 L600,652" marker-end="url(#a)"/>
+  <text x="612" y="618" class="rl">Reads and writes</text>
+  <text x="612" y="634" class="rt">[File I/O]</text>
+
+  <!-- Pipeline -> site data -->
+  <path class="rel" d="M720,505 L830,505" marker-end="url(#a)"/>
+  <g text-anchor="middle">
+    <text x="775" y="482" class="rl">Writes</text>
+    <text x="775" y="498" class="rt">[JSON]</text>
+  </g>
+
+  <!-- Pipeline -> terrain tiles -->
+  <path class="rel" d="M720,578 L830,700" marker-end="url(#a)"/>
+  <rect x="740" y="616" width="88" height="38" class="lbg"/>
+  <g text-anchor="middle">
+    <text x="784" y="632" class="rl">Writes</text>
+    <text x="784" y="648" class="rt">[gzip tiles]</text>
+  </g>
+
+  <!-- Terrain tiles -> static host -->
+  <path class="rel" d="M1050,700 L1160,578" marker-end="url(#a)"/>
+  <rect x="1050" y="616" width="116" height="38" class="lbg"/>
+  <g text-anchor="middle">
+    <text x="1108" y="632" class="rl">Uploaded after a run</text>
+    <text x="1108" y="648" class="rt">[gcloud storage]</text>
+  </g>
+
+  <!-- Site data -> static host -->
+  <path class="rel" d="M1050,505 L1160,505" marker-end="url(#a)"/>
+  <g text-anchor="middle">
+    <text x="1105" y="466" class="rl">Deployed to</text>
+    <text x="1105" y="482" class="rt">[Vite build,</text>
+    <text x="1105" y="497" class="rt">GitHub Actions]</text>
+  </g>
+
+  <!-- Web app -> static host -->
+  <path class="rel" d="M1495,505 L1380,505" marker-end="url(#a)"/>
+  <g text-anchor="middle">
+    <text x="1437" y="466" class="rl">Loads app,</text>
+    <text x="1437" y="482" class="rl">data, tiles</text>
+    <text x="1437" y="498" class="rt">[HTTPS]</text>
+  </g>
+
+  <!-- Person -> web app -->
+  <path class="rel" d="M1605,268 L1605,420" marker-end="url(#a)"/>
+  <text x="1593" y="340" class="rl" text-anchor="end">Picks sites and months,</text>
+  <text x="1593" y="356" class="rl" text-anchor="end">reads results</text>
+  <text x="1593" y="372" class="rt" text-anchor="end">[Web browser]</text>
+
+  <!-- ===== Legend ===== -->
+  <line x1="40" y1="858" x2="1740" y2="858" stroke="#e1e5ea"/>
+  <text x="40" y="892" font-size="13" font-weight="600" fill="#1c2530">Legend</text>
+  <rect x="110" y="876" width="22" height="22" rx="11" fill="#08427b"/>
+  <text x="140" y="892" class="leg">Person</text>
+  <rect x="210" y="876" width="30" height="22" rx="4" fill="#1168bd"/>
+  <text x="248" y="892" class="leg">Container</text>
+  <path d="M340,880 v14 a14,4 0 0 0 28,0 v-14" fill="#1168bd"/>
+  <ellipse cx="354" cy="880" rx="14" ry="4" fill="#2f7fcc"/>
+  <text x="376" y="892" class="leg">Container: data store</text>
+  <rect x="530" y="876" width="30" height="22" rx="4" fill="#7a7f87"/>
+  <text x="568" y="892" class="leg">External system</text>
+  <path d="M700,887 H750" class="rel" marker-end="url(#a)"/>
+  <text x="760" y="892" class="leg">Relationship [technology]</text>
+  <rect x="950" y="878" width="34" height="18" fill="none" stroke="#444a52" stroke-dasharray="6 4"/>
+  <text x="992" y="892" class="leg">System boundary</text>
+</svg>
+    </div>
+  </div>
+  <p class="src">Built from docs/DETAILS.md, CLAUDE.md, pipeline/scripts/run_all.py and web/src/. CI (GitHub Actions) and the pipeline's internal steps are left out; they belong in a deployment view and a component view.</p>
+</div>
+
+</body>
+</html>
