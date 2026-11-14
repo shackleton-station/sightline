@@ -5,7 +5,7 @@ import { fitNames, markerBoxes, nameBox, nameCandidates } from './placeNames'
 const features: MoonFeatures = {
   source: 'test',
   names: [
-    { name: 'Small Crater', kind: 'crater', lat: -60, lon: 10, diameter_km: 100, source_url: '' },
+    { name: 'Small Crater', kind: 'crater', lat: -60, lon: 10, diameter_km: 300, source_url: '' },
     { name: 'Wide Sea', kind: 'mare', lat: -50, lon: 20, diameter_km: 900, source_url: '' },
     { name: 'Far Side', kind: 'crater', lat: 40, lon: 180, diameter_km: 500, source_url: '' },
   ],
@@ -25,6 +25,32 @@ describe('nameCandidates', () => {
     expect(lander).toMatchObject({ kind: 'landing', x: 200, y: 180 })
     // Zoomed in, a place moves away from the middle by the zoom.
     expect(nameCandidates(features, place, 2, 400)[0]).toMatchObject({ x: 200, y: 160 })
+  })
+})
+
+describe('the smaller features round the south pole', () => {
+  const polar: MoonFeatures = {
+    source: 'test',
+    names: [
+      { name: 'Shackleton', kind: 'crater', lat: -89.67, lon: 129.78, diameter_km: 21, source_url: '' },
+      { name: 'Mons Mouton', kind: 'mountains', lat: -84.6, lon: 31, diameter_km: 130, source_url: '' },
+      { name: 'Mare Anguis', kind: 'mare', lat: -22.6, lon: 67.7, diameter_km: 146, source_url: '' },
+      { name: 'Wide Sea', kind: 'mare', lat: -50, lon: 20, diameter_km: 900, source_url: '' },
+    ],
+    landings: [],
+  }
+  const names = (zoom: number) => nameCandidates(polar, place, zoom, 600).map((name) => name.text)
+
+  it('are not named with the whole Moon in view: only its landmarks and its seas are', () => {
+    // 600 px across the whole Moon: 21 km is under 4 px, 130 km about 22.
+    expect(names(1)).toEqual(['Wide Sea', 'Mare Anguis'])
+  })
+
+  it('are named once the view is close enough for each to have room, the wider ones first', () => {
+    // At 1.5 times, 130 km spans about 34 px; 21 km still only 5.
+    expect(names(1.5)).toEqual(['Wide Sea', 'Mare Anguis', 'Mons Mouton'])
+    // Close on a site (about 420 m a pixel): 21 km spans 50 px.
+    expect(names(14)).toEqual(['Wide Sea', 'Mare Anguis', 'Mons Mouton', 'Shackleton'])
   })
 })
 
