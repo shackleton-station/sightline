@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TrackPoint } from '../data/contract'
-import { lightDays, lightHours, lightMeans, seriesPaths } from './missionLight'
+import { lightHours, seriesPaths, spanStats } from './missionLight'
 
 /** A level skyline all the way round. */
 const LEVEL = Array.from({ length: 720 }, (_, i) => ({ az: i / 2, el: 0 }))
@@ -25,19 +25,20 @@ describe('lightHours', () => {
   })
 })
 
-describe('lightMeans and lightDays', () => {
-  const hours = Array.from({ length: 36 }, (_, i) => ({ sunPct: i < 24 ? 100 : 0, earthPct: 50 }))
+describe('spanStats', () => {
+  // Up for 3 hours, down for 2, up for 1, down for 4, up for 2.
+  const up = [true, true, true, false, false, true, false, false, false, false, true, true]
 
-  it('averages each share over the hours', () => {
-    expect(lightMeans(hours)).toEqual({ sunPct: (100 * 24) / 36, earthPct: 50 })
-    expect(lightMeans([])).toEqual({ sunPct: 0, earthPct: 0 })
+  it('counts the hours up and finds the longest time down, from the landing', () => {
+    expect(spanStats(up, 0, 12)).toEqual({ upHours: 6, totalHours: 12, gap: { start: 6, hours: 4 } })
   })
 
-  it('averages by day from the landing, the last day being whatever hours are left', () => {
-    expect(lightDays(hours)).toEqual([
-      { sunPct: 100, earthPct: 50 },
-      { sunPct: 0, earthPct: 50 },
-    ])
+  it('counts from the landing, not from the start of the data', () => {
+    expect(spanStats(up, 4, 9)).toEqual({ upHours: 1, totalHours: 5, gap: { start: 2, hours: 3 } })
+  })
+
+  it('has no gap when the body is never down', () => {
+    expect(spanStats([true, true], 0, 2)).toEqual({ upHours: 2, totalHours: 2, gap: null })
   })
 })
 

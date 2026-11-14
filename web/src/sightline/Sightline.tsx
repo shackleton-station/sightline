@@ -12,7 +12,8 @@ import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, marginalReasons, shortWhen } from '../lib/sightlineSky'
 import { bodyRadiiDeg } from '../lib/surfaceView'
 import { HowItWorks } from '../shell/HowItWorks'
-import { hourOf, locateHour } from '../lib/mission'
+import { hourOf, locateHour, missionEarth } from '../lib/mission'
+import { spanStats } from '../lib/missionLight'
 import { type RiverState, riverState } from '../lib/river'
 import { spanOfHours, yearsInHash } from '../lib/span'
 import {
@@ -38,6 +39,7 @@ import {
   nearestFittingSite,
   MAX_SCENARIOS,
   missionWords,
+  NO_LIMIT_H,
   presetOf,
   readScenarioLink,
   rowLabels,
@@ -74,7 +76,6 @@ import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
 import { LayersDrawer } from './LayersDrawer'
 import { RoverDrawer } from './RoverDrawer'
-import { LightChart } from './LightChart'
 import { MissionDrawer, MissionInline } from './MissionDrawer'
 import { useMissionLight } from './useMissionLight'
 import { useTrekOverlay } from './useTrekOverlay'
@@ -796,6 +797,25 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const toggleMission = () => setMissionHere((open) => !open)
   // The Sun and Earth over the mission, charted at the column's foot: read while Plan is on show and the mission's limits are shut (open, they take its room).
   const missionLight = useMissionLight(site, scenario.landing, start, held, lit.applied, mission.requirements.missionDays, plan && !full && !missionHere)
+  // The Sun and Earth over the whole mission, for their rows in the column: the hours up and the longest time down are
+  // from the hourly flags the verdict is worked out from; the charts' lines arrive with the mission's hours.
+  const over = useMemo(() => {
+    const { missionDays, maxSunGapH, maxEarthGapH } = mission.requirements
+    const end = scenario.landing + missionDays * 24
+    if (!flags || missionHere || end > flags.sun.length) return null
+    return {
+      start,
+      landing: scenario.landing,
+      missionDays,
+      sun: {
+        ...spanStats(flags.sun, scenario.landing, end),
+        limitH: maxSunGapH,
+        values: missionLight?.hours.map((one) => one.sunPct) ?? null,
+        also: missionLight ? `avg ${Math.round(missionLight.sunlightWm2)} W/m²` : undefined,
+      },
+      earth: { ...spanStats(missionEarth(flags, mission.requirements), scenario.landing, end), limitH: maxEarthGapH >= NO_LIMIT_H ? null : maxEarthGapH, values: missionLight?.hours.map((one) => one.earthPct) ?? null },
+    }
+  }, [flags, missionHere, mission.requirements, scenario.landing, start, missionLight])
   const pointedState = pointed ? states.get(pointed.id) : undefined
   const line = pointed && pointedState ? `${pointed.name}: ${STATE_WORDS[pointedState]}.` : 'Pick a site, or just watch.'
   const shown = plan && !bare
@@ -903,6 +923,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               heights={siteHeights}
               heightsLine={heightsLine}
               earthShare={shares[active]?.earth ?? null}
+              over={over}
               plan={
                 <Fields
                   held={tourStep?.state.open === 'custom'}
@@ -988,7 +1009,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                 </>
               }
             />
-            {!missionHere && <LightChart light={missionLight} start={start} landing={scenario.landing} missionDays={mission.requirements.missionDays} />}
           </PlanColumn>
           {/* The skyline in 2D, with the Sun's and Earth's paths: above the time bar in Orbit and Site, folded until it is
               asked for (the time bar's readout is its door), so folded it takes no room at all. The Surface view shows the
