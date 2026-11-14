@@ -5,16 +5,14 @@ import { loadYearPositions } from '../data/loadSite'
 import type { MissionHeights } from '../lib/heights'
 import { locateHour } from '../lib/mission'
 import { type LightHour, lightHours } from '../lib/missionLight'
-import { panelSunlight } from '../lib/power'
 import type { YearSpan } from '../lib/span'
 import { bodyRadiiDeg } from '../lib/surfaceView'
 
 const HOUR_MS = 3_600_000
 
-/** A mission's light, hour by hour from its landing, and the average sunlight on a Sun-facing panel over it (W/m²). */
+/** A mission's light, hour by hour from its landing. */
 export interface MissionLight {
   hours: LightHour[]
-  sunlightWm2: number
 }
 
 /**
@@ -43,7 +41,7 @@ async function loadMissionLight(site: SiteInfo, start: string, landing: number, 
     const hourOfYear = Math.round((Date.parse(point.t) - Date.UTC(year, 0, 1)) / HOUR_MS)
     return bodyRadiiDeg(ofYear, hourOfYear, site.lat, site.lon).earth
   })
-  return { hours, sunlightWm2: panelSunlight(rows).vertical }
+  return { hours }
 }
 
 /**

@@ -3378,16 +3378,12 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-size: 0.75rem;
 }
 
-/* ---------- The Sun's and Earth's rows over the whole mission: the share of the mission, then a chart ---------- */
-.sl-fact[hidden] {
-  display: none;
-}
-
-.sl-over {
+/* ---------- The Sun and Earth over the whole mission: a chart under each one's row ---------- */
+.sl-fact.is-sun {
   --series: var(--sl-sun);
 }
 
-.sl-over.is-earth {
+.sl-fact.is-earth {
   --series: var(--sl-earth);
 }
 
@@ -3488,10 +3484,15 @@ button.sl-moment-heights[aria-expanded='true'] {
   transform: translateX(-100%);
 }
 
-/* The body at the landing's hour: what the row used to lead with, in one small line across it. */
-.sl-fact-small.sl-over-landing {
-  grid-column: 1 / -1;
-  padding-left: 0;
+/* The hour under the pointer, where the days are: one line, so nothing moves. */
+.sl-over-axis.is-at {
+  overflow: hidden;
+  padding-top: 0.1rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* The plan's controls sit under the verdict, above the Sun, Earth and ground. */
