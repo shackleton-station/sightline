@@ -1,0 +1,46 @@
+{
+  "voice": "en-US-Chirp3-HD-Leda",
+  "disclosure": "AI-generated voice",
+  "lines": {
+    "watch": {
+      "hash": "dd4743c689ba253e",
+      "bytes": 36672,
+      "say": "A lander needs the Sun for power and Earth for radio. This is the Moon from above its south pole, lit as it is now: press play."
+    },
+    "markers": {
+      "hash": "df9da48749873479",
+      "bytes": 33024,
+      "say": "Each marker is a landing site. Its shape and colour say what it can see at this moment: the Sun, Earth, both or neither."
+    },
+    "plan": {
+      "hash": "f49cc2e91380f5c6",
+      "bytes": 22272,
+      "say": "Choose where to land, when, and which mission. Everything below answers for that plan."
+    },
+    "verdict": {
+      "hash": "ccd804c2249390cb",
+      "bytes": 30432,
+      "say": "Sightline says whether the landing fits the mission, and why. If it does not, it offers the next landing that does."
+    },
+    "skyline": {
+      "hash": "7ad0ad9abf412c17",
+      "bytes": 29856,
+      "say": "This is the real skyline around the site, with the Sun and Earth where they stand at that hour. A body below the skyline is out of view."
+    },
+    "time": {
+      "hash": "c536755e1fd171ff",
+      "bytes": 37152,
+      "say": "The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press \"land here\" to try that hour."
+    },
+    "compare": {
+      "hash": "09951bc37173365d",
+      "bytes": 41664,
+      "say": "Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window."
+    },
+    "scout": {
+      "hash": "9a38e2df9bfd0b2b",
+      "bytes": 28416,
+      "say": "Ask Scout in plain words: he looks the answer up in the same data. Hide leaves only the Moon."
+    }
+  }
+}

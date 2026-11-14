@@ -23,6 +23,8 @@ interface Props {
   onPlanner: () => void
   /** Open How it works, as a sheet over the scene. */
   onHow: () => void
+  /** Start Scout's tour of the screen. On a phone it is in "More"; on a laptop it is the first thing in How it works. */
+  onTour: () => void
   onWatch: () => void
   onHide: () => void
 }
@@ -31,7 +33,7 @@ interface Props {
  * The rail down the right of the Plan frame: how close the Moon is seen (one grouped control), the
  * tools, and the two ways out (back to Watch, or hide everything). Nothing here leaves the screen.
  */
-export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, layersOpen, layerOn, onLayers, onPlanner, onHow, onWatch, onHide }: Props) {
+export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, layersOpen, layerOn, onLayers, onPlanner, onHow, onTour, onWatch, onHide }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -63,7 +65,7 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
     </div>
   )
   const scout = (
-    <button type="button" className="sl-rail-scout" aria-pressed={scoutOpen} title="Ask Scout about the scenario on show" onClick={onScout}>
+    <button type="button" className="sl-rail-scout" data-tour="scout" aria-pressed={scoutOpen} title="Ask Scout about the scenario on show" onClick={onScout}>
       <Mascot state={scoutState} size={16} /> Scout
     </button>
   )
@@ -79,10 +81,10 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
       <button type="button" aria-pressed={missionOpen} title="What the lander can tolerate" onClick={onMission}>
         Mission
       </button>
-      <button type="button" aria-pressed={compareOpen} title="The scenarios side by side" onClick={onCompare}>
+      <button type="button" data-tour="compare" aria-pressed={compareOpen} title="The scenarios side by side" onClick={onCompare}>
         Compare
       </button>
-      <button type="button" title="Every scenario, every site and month, with the whole window to work in" onClick={onPlanner}>
+      <button type="button" data-tour="planner" title="Every scenario, every site and month, with the whole window to work in" onClick={onPlanner}>
         Planner
       </button>
     </>
@@ -95,7 +97,7 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
       <button type="button" title="Close the planner (P)" onClick={onWatch}>
         Watch
       </button>
-      <button type="button" title="Hide everything but the Moon (H)" onClick={onHide}>
+      <button type="button" data-tour="hide" title="Hide everything but the Moon (H)" onClick={onHide}>
         Hide
       </button>
     </>
@@ -106,7 +108,7 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
       <nav ref={box} className="sl-rail is-compact" aria-label="Views and tools">
         {heights}
         {scout}
-        <button type="button" className="sl-rail-more" aria-haspopup="true" aria-expanded={more} onClick={() => setMore(!more)}>
+        <button type="button" className="sl-rail-more" data-tour="more" aria-haspopup="true" aria-expanded={more} onClick={() => setMore(!more)}>
           More
         </button>
         {/* The rest, as a short menu: choosing from it closes it. */}
@@ -114,6 +116,9 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
           {layers}
           {tools}
           {ways}
+          <button type="button" title="Scout walks you through the screen, in about a minute" onClick={onTour}>
+            Tour
+          </button>
         </div>
       </nav>
     )

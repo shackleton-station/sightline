@@ -31,6 +31,27 @@ Built on our team's own pre-event practice code; reuse approved by the Bethesda 
 
 13 sites, every hour from 2026 to 2049.
 
+## Using the site
+
+Scout gives a one-minute tour of the screen: on a first visit his line in Watch offers it, and it is
+always the first thing in **How it works** (on a phone, also under **More**). It drives the real
+screen: each step puts the app in a state, rings the control it is about, and says one or two
+sentences. Back, Next and Close, or the arrow keys and Escape; closing at any step puts the screen back
+as it was. **Listen** plays each line in Scout's voice (AI-generated; off until pressed). The steps:
+
+1. **The Moon, now.** A lander needs the Sun for power and Earth for radio. This is the Moon from above its south pole, lit as it is now: press play.
+2. **The markers.** Each marker is a landing site. Its shape and colour say what it can see at this moment: the Sun, Earth, both or neither.
+3. **Plan a landing.** Choose where to land, when, and which mission. Everything below answers for that plan.
+4. **The verdict.** Sightline says whether the landing fits the mission, and why. If it does not, it offers the next landing that does.
+5. **What the lander sees.** This is the real skyline around the site, with the Sun and Earth where they stand at that hour. A body below the skyline is out of view.
+6. **The month ahead.** The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press "land here" to try that hour.
+7. **More than one plan.** Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window.
+8. **Ask Scout.** Ask Scout in plain words: he looks the answer up in the same data. Hide leaves only the Moon.
+
+The steps, their words and what each one rings are in one file, `web/src/sightline/tour.json`, which
+the tour, How it works, the voice files (`web/public/tour/voice/`, made by `web/scripts/tour-voice.mjs`)
+and the tutorial video's recorder all read, so they say the same thing.
+
 ## Where the numbers come from
 
 Every number on screen is computed by this repository's pipeline from NASA data: the LOLA laser altimeter's

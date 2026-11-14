@@ -2,14 +2,14 @@
 # server in the path (docs/ARCHITECTURE_PHASE_6.md, docs/decisions/0008-closing-the-side-doors.md).
 #
 #   visitor -> load balancer -> Cloud CDN -+-> /tiles/global/*, /tiles/polar/*, /tiles/light/*, /tiles/manifest.json -> backend bucket clps-web-tiles -+
-#                                          +-> /media/<the five files the web server serves>                        -> backend bucket clps-web-media -+-> gs://<project>-web-assets
+#                                          +-> /media/<the files the web server serves>                            -> backend bucket clps-web-media -+-> gs://<project>-web-assets
 #
 # Until assets_route is "bucket" the web server answers these paths as before (web/server/storage.ts).
 # What the server did, and what does it here instead:
 #
 #   Allow-list         The server served a name only if it matched its pattern (TILE_KEY, MEDIA_TYPES).
 #                      Here two things do it. The route rules (domain.tf) send only the server's
-#                      prefixes and the five media names to the bucket; everything else under /tiles and
+#                      prefixes and the media names to the bucket; everything else under /tiles and
 #                      /media still goes to the web server, which refuses it. And the load balancer's
 #                      grant below is limited by a condition to the same names, so even a wrong route
 #                      cannot read anything else in the bucket. The difference: inside tiles/global/,
@@ -37,7 +37,23 @@ locals {
   # The names the web server serves (web/server/storage.ts), as object names in the bucket.
   tile_prefixes = ["tiles/global/", "tiles/polar/", "tiles/light/"]
   tile_files    = ["tiles/manifest.json"]
-  media_files   = ["media/demo.mp4", "media/demo.vtt", "media/demo-poster.jpg", "media/hype.mp4", "media/hype-poster.jpg"]
+  media_files = [
+    "media/demo.mp4", "media/demo.vtt", "media/demo-poster.jpg", "media/hype.mp4", "media/hype-poster.jpg",
+    # The tutorial video with its poster, captions and list of steps, and the 30-second demo with its poster.
+    "media/sightline-tutorial.mp4", "media/sightline-tutorial-poster.jpg", "media/sightline-tutorial.vtt", "media/sightline-tutorial.json",
+    "media/sightline-demo-30s.mp4", "media/sightline-demo-30s-poster.jpg",
+  ]
+
+  # What the grant's condition names. Google allows a condition 12 "or"s at most and refuses a longer
+  # one when it is applied, not when it is planned (LintValidationUnits/ConditionComplexityCheck,
+  # met on 2026-11-14). So the videos recorded from the site share one prefix in the condition, and
+  # the route rules above still send only the exact names to the bucket.
+  media_granted_prefixes = ["media/sightline-"]
+  media_granted_files    = [for name in local.media_files : name if !anytrue([for prefix in local.media_granted_prefixes : startswith(name, prefix)])]
+  grant_terms = concat(
+    [for prefix in concat(local.tile_prefixes, local.media_granted_prefixes) : "resource.name.startsWith(\"${local.assets_object}${prefix}\")"],
+    [for name in concat(local.tile_files, local.media_granted_files) : "resource.name == \"${local.assets_object}${name}\""],
+  )
 
   # Google's own account for load balancers in this project. Google makes it when the project's
   # first backend bucket is made (docs: "Set up a backend bucket", private bucket access).
@@ -93,12 +109,21 @@ resource "google_storage_bucket_iam_member" "load_balancer_reads_assets" {
 
   condition {
     title       = "only-tiles-and-video"
-    description = "The load balancer reads the terrain tiles, the light grid and the five media files the site serves, nothing else."
-    expression = join(" || ", concat(
-      [for prefix in local.tile_prefixes : "resource.name.startsWith(\"${local.assets_object}${prefix}\")"],
-      [for name in concat(local.tile_files, local.media_files) : "resource.name == \"${local.assets_object}${name}\""],
-    ))
+    description = "The load balancer reads the terrain tiles, the light grid and the media files the site serves, nothing else."
+    expression  = join(" || ", local.grant_terms)
   }
 
   depends_on = [google_compute_backend_bucket.tiles, google_compute_backend_bucket.media]
+
+  # A change to the list of names changes the condition, and a grant with a new condition is a new
+  # grant. Make the new one before taking the old one away, so the load balancer can read the bucket
+  # throughout.
+  lifecycle {
+    create_before_destroy = true
+
+    precondition {
+      condition     = length(local.grant_terms) <= 13
+      error_message = "The grant's condition would hold more than 12 \"or\"s, which Google refuses when it is applied. Put the new names under a prefix in media_granted_prefixes instead of naming each."
+    }
+  }
 }

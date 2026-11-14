@@ -549,10 +549,14 @@ drop `--no-clobber` for that run.
 gcloud storage cp demo.mp4 demo.vtt demo-poster.jpg gs://clps-compute-6z1nc-web-assets/media/
 ```
 
-Only five names are served: `demo.mp4`, `demo.vtt`, `demo-poster.jpg`, `hype.mp4`, `hype-poster.jpg`. A file with
-a new name needs it added in three places: `media_files` in `infra/assets.tf` (the route rule and the load
-balancer's grant), and `MEDIA_TYPES` in `web/server/storage.ts` (the way back). Replacing one of the five
-keeps its name; the CDN keeps the old copy for up to an hour, or invalidate `/media/*` as for tiles above.
+Only the names on the list are served: `demo.mp4`, `demo.vtt`, `demo-poster.jpg`, `hype.mp4`, `hype-poster.jpg`, the
+tutorial video's `sightline-tutorial.mp4`, `sightline-tutorial-poster.jpg`, `sightline-tutorial.vtt` and
+`sightline-tutorial.json`, and the 30-second demo's `sightline-demo-30s.mp4` and `sightline-demo-30s-poster.jpg`
+(`web/scripts/video/README.md` says how those are recorded). A file with a new name needs it added in three places:
+`media_files` in `infra/assets.tf` (the route rule and the load balancer's grant), and `MEDIA_TYPES` in
+`web/server/storage.ts` (the way back). The grant's condition may hold 12 "or"s at most (Google refuses a longer one at
+apply, not at plan), so the videos recorded from the site are granted by their shared prefix, `media/sightline-`; a
+new file with that prefix needs only its route. Replacing a file on the list keeps its name; the CDN keeps the old copy for up to an hour, or invalidate `/media/*` as for tiles above.
 
 ## Checking a running site
 
