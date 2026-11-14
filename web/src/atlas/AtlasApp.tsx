@@ -9,7 +9,7 @@ import { answerAt, headlineOf } from '../lib/answer'
 import { askCopilot, type ChatMessage, MAX_QUESTION_CHARS, starterQuestions, stillWaitingText } from '../lib/chatClient'
 import { useCooldown } from '../lib/cooldown'
 import { type Cell, cellAt, cellCenter, distanceKm, spotAt } from '../lib/lightGrid'
-import type { Requirements } from '../lib/mission'
+import { DEFAULT_REQUIREMENTS, type Requirements } from '../lib/mission'
 import { monthLabel } from '../lib/months'
 import { DEFAULT_VIEW } from '../lib/siteTabs'
 import { decodeView, encodeView } from '../lib/urlState'
@@ -30,7 +30,7 @@ import { distanceWords, placeWords, spotWords } from './spotWords'
 import { useLightGrid } from './useLightGrid'
 
 /** Links carry mission limits; the Atlas doesn't change them, so it writes the app's example ones. */
-const LIMITS: Requirements = { missionDays: 14, maxSunGapH: 72, maxEarthGapH: 72, sunAtLanding: true, earthAtLanding: true, minEarthClearanceDeg: 0 }
+const LIMITS: Requirements = DEFAULT_REQUIREMENTS
 
 interface Place {
   siteId: string

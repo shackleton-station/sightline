@@ -1,6 +1,6 @@
 import type { SiteInfo } from '../data/contract'
 import { customSiteInfo, isCustomSite } from '../data/customSite'
-import type { Requirements } from '../lib/mission'
+import { DEFAULT_REQUIREMENTS, type Requirements } from '../lib/mission'
 import type { Mode } from '../lib/mode'
 import type { Scenario } from '../lib/scenario'
 import type { ShortlistEntry } from '../lib/shortlist'
@@ -11,15 +11,8 @@ import { DEMO_HASH, HOW_HASH } from '../lib/siteTabs'
 
 export const DEFAULT_MONTH = '2027-05'
 
-/** Starting values for the mission limits: examples only, shown as such in the UI. */
-export const EXAMPLE_REQUIREMENTS: Requirements = {
-  missionDays: 14,
-  maxSunGapH: 72,
-  maxEarthGapH: 72,
-  sunAtLanding: true,
-  earthAtLanding: true,
-  minEarthClearanceDeg: 0,
-}
+/** Starting values for the mission limits: examples only, shown as such in the UI. The app's one default mission. */
+export const EXAMPLE_REQUIREMENTS: Requirements = DEFAULT_REQUIREMENTS
 
 export interface Tour {
   /** What to go back to on leaving the tour. */

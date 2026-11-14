@@ -10,7 +10,7 @@ import { setAddressBar } from '../lib/address'
 import { answerAt, headlineOf } from '../lib/answer'
 import { askCopilot, type ChatMessage, MAX_QUESTION_CHARS, starterQuestions, stillWaitingText } from '../lib/chatClient'
 import { useCooldown } from '../lib/cooldown'
-import type { Requirements } from '../lib/mission'
+import { DEFAULT_REQUIREMENTS, type Requirements } from '../lib/mission'
 import { monthLabel } from '../lib/months'
 import { riverState } from '../lib/river'
 import { decodeView, encodeView } from '../lib/urlState'
@@ -23,19 +23,21 @@ import { useVoice } from './useVoice'
 
 const DEFAULT_MONTH = '2027-05'
 const FEATURED = 'connecting-ridge'
-/** Links carry mission limits; Scout doesn't change them, so it writes the app's example ones. */
-const LIMITS: Requirements = { missionDays: 14, maxSunGapH: 72, maxEarthGapH: 72, sunAtLanding: true, earthAtLanding: true, minEarthClearanceDeg: 0 }
+/** Links carry mission limits; Scout doesn't change them. A link with none gets the app's default mission. */
+const LIMITS: Requirements = DEFAULT_REQUIREMENTS
 
 interface Place {
   siteId: string
   month: string
   index: number
+  /** The limits the link came with, kept so Scout's answers are judged as the page it was opened from judged them. */
+  requirements: Requirements
 }
 
 /** The place a link points at, if it names a listed site. Compare links open their first site. */
 function placeFrom(hash: string): Place | null {
   const link = decodeView(hash, LIMITS)
-  return link ? { siteId: link.a.site, month: link.a.month, index: link.index } : null
+  return link ? { siteId: link.a.site, month: link.a.month, index: link.index, requirements: link.requirements } : null
 }
 
 /**
@@ -76,7 +78,7 @@ export function ScoutApp() {
   // The address always reopens what is on screen, and the tabs open the other designs on the same view.
   const address =
     site && place
-      ? encodeView({ a: { site: site.id, month: place.month }, b: null, index: place.index, requirements: LIMITS, view3d: true, mode: 'learn', shortlist: [] })
+      ? encodeView({ a: { site: site.id, month: place.month }, b: null, index: place.index, requirements: place.requirements, view3d: true, mode: 'learn', shortlist: [] })
       : ''
   useEffect(() => {
     if (sites.length > 0) setAddressBar(address || window.location.pathname)
@@ -100,7 +102,7 @@ export function ScoutApp() {
   }, [])
   const land = useCallback((chosen: SiteInfo) => {
     setShowAnswer(false)
-    setPlace((current) => ({ siteId: chosen.id, month: current?.month ?? DEFAULT_MONTH, index: 0 }))
+    setPlace((current) => ({ siteId: chosen.id, month: current?.month ?? DEFAULT_MONTH, index: 0, requirements: current?.requirements ?? LIMITS }))
   }, [])
 
   const ask = async (question: string) => {

@@ -7,7 +7,7 @@ import type { SiteInfo } from '../data/contract'
 import { useScenario } from '../data/useScenario'
 import { setAddressBar } from '../lib/address'
 import { cellAt, cellCenter } from '../lib/lightGrid'
-import type { Requirements } from '../lib/mission'
+import { DEFAULT_REQUIREMENTS, type Requirements } from '../lib/mission'
 import { riverTime } from '../lib/river'
 import { DEFAULT_VIEW } from '../lib/siteTabs'
 import { decodeView, encodeView, type ViewState } from '../lib/urlState'
@@ -19,7 +19,7 @@ import { buildBriefing, type Chapter, monthWords, type Recommendation, whenWords
 import { usePlayer } from './usePlayer'
 
 /** The mission a link with no limits is briefed for: the app's example one. */
-const LIMITS: Requirements = { missionDays: 14, maxSunGapH: 72, maxEarthGapH: 72, sunAtLanding: true, earthAtLanding: true, minEarthClearanceDeg: 0 }
+const LIMITS: Requirements = DEFAULT_REQUIREMENTS
 const VALIDATION_URL = `${import.meta.env.BASE_URL}data/light/validation.json`
 
 /** The part of the light grid's validation file a caption quotes. */

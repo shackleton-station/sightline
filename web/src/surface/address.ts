@@ -1,4 +1,4 @@
-import type { Requirements } from '../lib/mission'
+import { DEFAULT_REQUIREMENTS, type Requirements } from '../lib/mission'
 import type { Mode } from '../lib/mode'
 import type { ShortlistEntry } from '../lib/shortlist'
 import { decodeView, encodeView } from '../lib/urlState'
@@ -18,8 +18,8 @@ export interface SurfaceAddress {
   kept: { requirements: Requirements; mode: Mode; view3d: boolean; shortlist: ShortlistEntry[] }
 }
 
-/** Links carry mission limits; this tab doesn't change them, so a link with none gets the app's example ones. */
-export const EXAMPLE_LIMITS: Requirements = { missionDays: 14, maxSunGapH: 72, maxEarthGapH: 72, sunAtLanding: true, earthAtLanding: true, minEarthClearanceDeg: 0 }
+/** Links carry mission limits; this tab doesn't change them, so a link with none gets the app's default mission. */
+export const EXAMPLE_LIMITS: Requirements = DEFAULT_REQUIREMENTS
 
 /** The site, month, hour and limits a link names; null if it isn't a view link. Never throws on a bad link. */
 export function readAddress(hash: string): SurfaceAddress | null {

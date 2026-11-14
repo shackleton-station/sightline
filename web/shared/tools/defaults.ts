@@ -1,11 +1,7 @@
-import type { Requirements } from '../../src/lib/mission'
+import { DEFAULT_REQUIREMENTS, type Requirements } from '../../src/lib/mission'
 
-/** The limits a fresh visit starts with (the same as the app's own example). */
-export const DEFAULT_LIMITS: Requirements = {
-  missionDays: 14,
-  maxSunGapH: 72,
-  maxEarthGapH: 72,
-  sunAtLanding: true,
-  earthAtLanding: true,
-  minEarthClearanceDeg: 0,
-}
+/**
+ * The limits Scout and saved plans use when a request carries none: the app's one default mission,
+ * the same the front page opens with.
+ */
+export const DEFAULT_LIMITS: Requirements = DEFAULT_REQUIREMENTS

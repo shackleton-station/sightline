@@ -353,3 +353,9 @@ Local Lead.
       and, on request, the map of the ground around it (`PlannerNearby.tsx`, the existing `NearbyMap`); a spot
       chosen on the map is added as the next scenario at the month's first landing that fits
 - [ ] Not checked: a real phone, and the old map's styles inside the Planner on a narrow window
+
+## One default mission (2026-11-14, Misha)
+
+- [x] The default mission is written once, `DEFAULT_REQUIREMENTS` in `web/src/lib/mission.ts` (14 days, 24 h of dark, no limit on radio silence, the Sun and Earth up at landing), and read by the front page, the co-pilot's tools (`web/shared/tools/defaults.ts`), saved plans, Scout's page, Atlas, Briefing, Surface, Classic and the Planner page; the tabs' default view carries the same limits and a test holds the two together. Before, everything but the front page fell back to 72 h / 72 h
+- [x] Scout's page keeps the limits its link came with, where it used to write the 72 h ones over them
+- [ ] Not done: Classic and the Planner page have no "no limit" control, so the default radio silence shows there as a number of hours (99999 on Classic, 8760 on the Planner page; the verdicts are the same). Atlas still writes the default limits over a link's. Links that carry `limits=14_72_72_1_1` (the pitch's, the check scripts') still mean 72 h, as written

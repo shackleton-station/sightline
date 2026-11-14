@@ -91,7 +91,7 @@ export function PlannerApp() {
         <SiteTabs current="planner" view={window.location.hash} />
         <main className="pl-page">
           <PlannerHead tally={null} />
-          <MissionBar value={plan.requirements} example={EXAMPLE_REQUIREMENTS} onChange={setLimits} />
+          <MissionBar value={plan.requirements} example={FALLBACK.requirements} onChange={setLimits} />
           {data.status === 'error' ? <PlannerProblem onRetry={data.retry} /> : <PlannerLoading />}
         </main>
       </div>

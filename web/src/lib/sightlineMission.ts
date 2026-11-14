@@ -2,7 +2,7 @@ import { ANTENNA_HEIGHTS_M, BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightFrom, heightsW
 import { diskShareWords } from './answer'
 import type { SiteInfo } from '../data/contract'
 import type { SiteFlags } from './flags'
-import { EARTH_CLEARANCES_DEG, hourOf, landingProblems, locateHour, missionEarth, NO_GAP_LIMIT_H, type Requirements } from './mission'
+import { DEFAULT_REQUIREMENTS, EARTH_CLEARANCES_DEG, hourOf, landingProblems, locateHour, missionEarth, NO_GAP_LIMIT_H, type Requirements } from './mission'
 import { entryAt, GAP_TIE_H, measureEntry, toIso } from './shortlist'
 import { distanceKm, nextViable } from './slip'
 import { decodeView, encodeView } from './urlState'
@@ -27,19 +27,8 @@ export interface SightlineScenario {
  */
 export const NO_LIMIT_H = NO_GAP_LIMIT_H
 
-/**
- * The limits a first visit is judged against (the build brief's defaults): 14 days, 24 h of dark
- * survived, the Sun and Earth up at landing, no limit on radio silence, any part of Earth counting.
- * With these the answer is plain visibility, which is what the challenge asks.
- */
-export const DEFAULT_REQUIREMENTS: Requirements = {
-  missionDays: 14,
-  maxSunGapH: 24,
-  maxEarthGapH: NO_LIMIT_H,
-  sunAtLanding: true,
-  earthAtLanding: true,
-  minEarthClearanceDeg: 0,
-}
+/** The limits a first visit is judged against: the app's one default mission (lib/mission.ts). */
+export { DEFAULT_REQUIREMENTS }
 
 /** The steepest ground the default mission lands on, in degrees. */
 export const DEFAULT_MAX_SLOPE_DEG = 10

@@ -25,6 +25,22 @@ export function isNoGapLimit(hours: number): boolean {
   return hours >= NO_GAP_LIMIT_H
 }
 
+/**
+ * The mission every page and Scout start from, and the one a link with no limits is read with: 14
+ * days, 24 h of dark survived, the Sun and Earth up at landing, no limit on radio silence, any part
+ * of Earth counting. With these the answer is plain visibility, which is what the challenge asks.
+ * This is the only place the numbers are written, so the same question gets the same answer wherever
+ * it is asked.
+ */
+export const DEFAULT_REQUIREMENTS: Requirements = {
+  missionDays: 14,
+  maxSunGapH: 24,
+  maxEarthGapH: NO_GAP_LIMIT_H,
+  sunAtLanding: true,
+  earthAtLanding: true,
+  minEarthClearanceDeg: 0,
+}
+
 /** The clearances the data has hourly flags for, besides any part of the disk. */
 export const EARTH_CLEARANCES_DEG = [2, 5]
 
