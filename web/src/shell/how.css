@@ -336,7 +336,54 @@
   }
 }
 
-/* ---------- How to use Sightline: the first thing on the page, the same steps Scout's tour walks through ---------- */
+/* ---------- Start here: the tour and the videos, the first thing in the Guide ---------- */
+.how-start {
+  padding: 1.25rem 0 0.25rem;
+}
+
+.how-start h2 {
+  margin: 0 0 0.7rem;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  line-height: 1.15;
+}
+
+.how-start-ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.how .how-watch[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+
+.how-start-note {
+  max-width: 46rem;
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+}
+
+/* The walkthrough's chapters: a short list of moments to jump to, under the player. */
+.how-chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.4rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how .how-chapters button {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.875rem;
+}
+
+.how-chapters button span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- How to use Sightline: the same steps Scout's tour walks through, written out ---------- */
 .how-use {
   padding: 1.25rem 0 0.5rem;
 }
@@ -357,20 +404,13 @@
   margin: 0.3rem 0;
 }
 
-.how-use-tour {
-  max-width: 46rem;
-  margin: 1rem 0 0;
-  color: var(--muted);
-}
-
 .how .how-tour-button {
-  margin-right: 0.5rem;
   border-color: var(--accent);
 }
 
 .how-video {
   max-width: 46rem;
-  margin-top: 1.25rem;
+  margin-top: 1rem;
 }
 
 .how-video video {

@@ -1,7 +1,7 @@
 import type { TourFile } from '../lib/tour'
 import tourFile from '../sightline/tour.json'
-import type { TutorialVideo } from '../sightline/useTutorialVideo'
-import { Fragment, type ReactNode, useEffect, useRef } from 'react'
+import type { GuideVideos } from '../sightline/useGuideVideos'
+import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
 import { useLightChecks } from '../data/lightChecks'
 import { useQuestionCounts } from '../data/questionCounts'
 import type { ScenarioData } from '../data/scenarioData'
@@ -10,6 +10,7 @@ import { useRange } from '../data/useRange'
 import { QuestionCounts } from '../components/QuestionCounts'
 import { ServiceStatus } from '../components/ServiceStatus'
 import { TrustNotes } from '../components/TrustNotes'
+import { chapterTime } from '../lib/guideVideo'
 import { monthLabel } from '../lib/months'
 import { pct } from '../lib/verdict'
 import { DataSources } from './DataSources'
@@ -25,9 +26,9 @@ interface Props {
   onTour?: () => void
   /** The visitor has taken the tour before: the button offers it again. */
   tourTaken?: boolean
-  /** The tutorial video's files, once they exist; the player shows only then. */
-  video?: TutorialVideo | null
-  /** Open with the video in view: the tour's last step leads here. */
+  /** The Guide's videos that exist (the walkthrough, its chapters, the 30-second demo); a player shows only for one that does. */
+  videos?: GuideVideos | null
+  /** Open with the walkthrough on screen: the tour's last step leads here. */
   openAtVideo?: boolean
 }
 
@@ -111,17 +112,47 @@ const STACK: { layer: string; items: string[] }[] = [
   { layer: 'Data pipeline', items: ['Python 3.12', 'SpiceyPy (NAIF SPICE)', 'NumPy', 'Numba', 'Rasterio', 'PyProj', 'uv'] },
 ]
 
-/** How the numbers are made, why to trust them, what the site runs on, and how the co-pilot stays honest. */
-export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, video = null, openAtVideo = false }: Props) {
+/**
+ * The Guide: where to start (the tour and the videos), how to use the screen, then how it works: how
+ * the numbers are made, why to trust them, what the site runs on, and how the co-pilot stays honest.
+ */
+export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, videos = null, openAtVideo = false }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
-  // From the tour's last step it opens at the video.
+  // One player at a time, and none until a video is asked for. A press on a video's button shows its
+  // player and starts it; the same press again puts it away. Nothing plays without a press.
+  const [playing, setPlaying] = useState<'walkthrough' | 'demo' | null>(null)
   const player = useRef<HTMLDivElement>(null)
+  const film = useRef<HTMLVideoElement>(null)
+  /** Start the player that has just been put on screen, once it is there. */
+  const start = useRef(false)
+  const onScreen = playing === 'walkthrough' ? (videos?.walkthrough ?? null) : playing === 'demo' ? (videos?.demo ?? null) : null
+  const watch = (which: 'walkthrough' | 'demo') => {
+    start.current = playing !== which
+    setPlaying(playing === which ? null : which)
+  }
   useEffect(() => {
-    if (openAtVideo && video) player.current?.scrollIntoView({ block: 'center' })
-  }, [openAtVideo, video])
+    if (!onScreen || !start.current) return
+    start.current = false
+    player.current?.scrollIntoView({ block: 'nearest' })
+    // A browser that refuses to start it leaves the player there, with its own play control.
+    void film.current?.play().catch(() => {})
+  }, [onScreen])
+  // From the tour's last step the sheet opens with the walkthrough on screen, in view.
+  const hasWalkthrough = Boolean(videos?.walkthrough)
+  useEffect(() => {
+    if (!openAtVideo || !hasWalkthrough) return
+    start.current = true
+    setPlaying('walkthrough')
+  }, [openAtVideo, hasWalkthrough])
+  /** A chapter was pressed: the video goes there and plays on. */
+  const jump = (at: number) => {
+    if (!film.current) return
+    film.current.currentTime = at
+    void film.current.play().catch(() => {})
+  }
 
   // The years come from the data's own description of what it covers, not from this page.
   const range = useRange()
@@ -166,9 +197,56 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         </button>
       </header>
 
-      {/* First, how to use the screen: the same steps Scout's tour walks through, from the same file. */}
+      {/* Start here: everything about learning the app in one place. The tour, and the two videos once
+          their files exist. One player at a time, started only by a press, captions on. */}
+      {(onTour || videos?.walkthrough || videos?.demo) && (
+        <section className="how-start" aria-labelledby="how-start-title">
+          <p className="how-kicker">Guide</p>
+          <h2 id="how-start-title">Start here</h2>
+          <div className="how-start-ways">
+            {onTour && (
+              <button type="button" className="how-tour-button" onClick={onTour}>
+                {tourTaken ? 'Take the tour again' : 'Take the tour'}
+              </button>
+            )}
+            {videos?.walkthrough && (
+              <button type="button" className="how-watch" aria-pressed={playing === 'walkthrough'} onClick={() => watch('walkthrough')}>
+                Watch the walkthrough
+              </button>
+            )}
+            {videos?.demo && (
+              <button type="button" className="how-watch" aria-pressed={playing === 'demo'} onClick={() => watch('demo')}>
+                30-second demo
+              </button>
+            )}
+          </div>
+          {onTour && <p className="how-start-note">The tour is interactive: Scout walks you through the real screen in about a minute.</p>}
+          {onScreen && (
+            <div ref={player} className="how-video">
+              {/* Recorded from the site itself. The narration is an AI-generated voice, and the captions say every line. */}
+              <video key={onScreen.file} ref={film} controls playsInline preload="none" poster={onScreen.poster} aria-label={playing === 'demo' ? 'Sightline in 30 seconds' : 'Sightline walkthrough'}>
+                <source src={onScreen.file} type="video/mp4" />
+                <track kind="captions" src={onScreen.captions} srcLang="en" label="English" default />
+              </video>
+              {playing === 'walkthrough' && videos && videos.chapters.length > 0 && (
+                <ol className="how-chapters" aria-label="Chapters">
+                  {videos.chapters.map((chapter) => (
+                    <li key={chapter.at}>
+                      <button type="button" onClick={() => jump(chapter.at)}>
+                        <span>{chapterTime(chapter.at)}</span> {chapter.title}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <p className="how-caption">Recorded from this site. The narration is an AI-generated voice; the captions say every line.</p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Then the written version: the same steps Scout's tour walks through, from the same file. */}
       <section className="how-use" aria-labelledby="how-use-title">
-        <p className="how-kicker">Start here</p>
         <h2 id="how-use-title">How to use Sightline</h2>
         <ol className="how-use-steps">
           {TOUR.steps.map((step) => (
@@ -177,24 +255,6 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
             </li>
           ))}
         </ol>
-        {onTour && (
-          <p className="how-use-tour">
-            <button type="button" className="how-tour-button" onClick={onTour}>
-              {tourTaken ? 'Take the tour again' : 'Take the tour'}
-            </button>{' '}
-            Scout walks you through these on the real screen, in about a minute.
-          </p>
-        )}
-        {video && (
-          <div ref={player} className="how-video">
-            {/* Recorded from the tour itself, with the same words: its voice is AI-generated, and its captions say every line. */}
-            <video controls preload="none" poster={video.poster} aria-label="Sightline tutorial video">
-              <source src={video.file} type="video/mp4" />
-              <track kind="captions" src={video.captions} srcLang="en" label="English" default />
-            </video>
-            <p className="how-caption">The same tour as a video. Its voice is AI-generated; the captions say every line.</p>
-          </div>
-        )}
       </section>
 
       <div className="how-intro">
