@@ -12,7 +12,10 @@ interface Props {
   month: string
   /** Cells with an option on the short list, as "site@month". */
   listed: Set<string>
-  onPick: (siteId: string, month: string) => void
+  /** `byPointer` is true for a click or tap, false for Enter or Space. */
+  onPick: (siteId: string, month: string, byPointer: boolean) => void
+  /** What the violet line on a month means here, for the key. */
+  keptWords?: string
 }
 
 interface RowProps {
@@ -26,7 +29,7 @@ interface RowProps {
   column: string
   /** This site's months on the short list, joined, so the row only redraws when they change. */
   listedMonths: string
-  onPick: (siteId: string, month: string) => void
+  onPick: (siteId: string, month: string, byPointer: boolean) => void
 }
 
 /**
@@ -64,7 +67,7 @@ const GridRow = memo(function GridRow({ row, r, largestShare, chosen, column, li
               data-say={say}
               aria-label={say}
               aria-pressed={isChosen}
-              onClick={() => onPick(row.site.id, cell.month)}
+              onClick={(event) => onPick(row.site.id, cell.month, event.detail > 0)}
             >
               <span className="pl-bar" aria-hidden="true" />
             </button>
@@ -79,7 +82,7 @@ const GridRow = memo(function GridRow({ row, r, largestShare, chosen, column, li
  * Every site against every month, as one table: the page's main control. Arrow keys move between
  * cells, Home and End go to a row's ends, Page Up and Page Down move a year; Enter chooses a cell.
  */
-export function WindowGrid({ grid, siteId, month, listed, onPick }: Props) {
+export function WindowGrid({ grid, siteId, month, listed, onPick, keptWords }: Props) {
   const scroller = useRef<HTMLDivElement>(null)
   const [pointed, setPointed] = useState<string | null>(null)
   const years = useMemo(() => [...new Set(grid.months.map((m) => m.slice(0, 4)))], [grid.months])
@@ -134,6 +137,8 @@ export function WindowGrid({ grid, siteId, month, listed, onPick }: Props) {
 
   return (
     <section className="pl-grid" aria-labelledby="pl-grid-title">
+      {/* How to read the bars, before the bars: the title sits in the table's corner on wider screens. */}
+      <GridKey mostDays={grid.mostDays} keptWords={keptWords} />
       <div className="pl-grid-head">
         <h2 id="pl-grid-title">Every site, every month</h2>
         <div className="pl-years" role="group" aria-label="Jump to a year">
@@ -197,7 +202,7 @@ export function WindowGrid({ grid, siteId, month, listed, onPick }: Props) {
       <p className="pl-readout" aria-hidden="true">
         {pointed ?? (chosenRow && chosenCell ? cellWords(chosenRow.site.name, chosenCell.month, chosenCell.days) : '')}
       </p>
-      <GridKey mostDays={grid.mostDays} />
+      <p className="pl-key-keys">Keyboard: arrow keys move between squares, Page Up and Page Down move a year, Enter chooses.</p>
     </section>
   )
 }
