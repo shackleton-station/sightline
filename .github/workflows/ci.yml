@@ -48,3 +48,9 @@ jobs:
       - run: npx vitest run
       # No Cesium token in CI: the 3D view must fall back to its placeholder.
       - run: npm run build
+      # The events worker is a second program built from this folder (events-worker/ and shared/).
+      - run: npm run build:worker
+      # The plans service is a third (plans/ and shared/, with the page's calculations from src/lib/).
+      - run: npm run build:plans
+      # The co-pilot service is a fourth (copilot/ and shared/, with the page's calculations from src/lib/).
+      - run: npm run build:copilot
