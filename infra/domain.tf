@@ -57,9 +57,11 @@ resource "google_dns_managed_zone" "site" {
 
   # A zone made again gets other name servers and new signing keys, and the domain stops resolving
   # until the registration is pointed at them by hand (infra/README.md, "What cannot be deleted by
-  # accident").
+  # accident"). The description is the console's for a zone it made (lunarsightline.com's), and is
+  # left as it is.
   lifecycle {
     prevent_destroy = true
+    ignore_changes  = [description]
   }
 
   depends_on = [time_sleep.apis_ready]
