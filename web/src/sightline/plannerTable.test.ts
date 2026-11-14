@@ -42,6 +42,16 @@ describe('plannerRows', () => {
     expect(rows[4].cells).toEqual(['25', '25'])
   })
 
+  it('says the hours behind each share of the mission, and nothing beside the other rows', () => {
+    const rows = plannerRows(scenarios, [measure({}), null], [flags, null], mission)
+    // A four-day mission is 96 hours: half of it sunlit, half with Earth, a quarter with both.
+    expect(rows[0].notes).toEqual(['48 of 96 h', null])
+    expect(rows[2].notes).toEqual(['48 of 96 h', null])
+    expect(rows[4].notes).toEqual(['24 of 96 h', null])
+    expect(rows[1].notes).toEqual([null, null])
+    expect(rows[5].notes).toEqual([null, null])
+  })
+
   it('leaves a cell empty while its site is being worked out', () => {
     const rows = plannerRows(scenarios, [measures[0], null], [flags, null], mission)
     expect(rows[0].cells).toEqual(['61', null])
