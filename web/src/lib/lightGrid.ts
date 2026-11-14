@@ -124,8 +124,11 @@ export function cellAt(meta: LightMeta, latDeg: number, lonDeg: number): Cell | 
 
 /** Latitude and longitude (degrees) of a cell's center. */
 export function cellCenter(meta: LightMeta, cell: Cell): { lat: number; lon: number } {
-  const x = -meta.half_width_m + (cell.col + 0.5) * meta.pixel_m
-  const y = meta.half_width_m - (cell.row + 0.5) * meta.pixel_m
+  return planeLatLon(meta, -meta.half_width_m + (cell.col + 0.5) * meta.pixel_m, meta.half_width_m - (cell.row + 0.5) * meta.pixel_m)
+}
+
+/** Latitude and longitude (degrees) of a point given by its map x and y (meters) in the grid's plane: `planeXY` the other way. */
+export function planeLatLon(meta: LightMeta, x: number, y: number): { lat: number; lon: number } {
   const colat = 2 * Math.atan(Math.hypot(x, y) / (2 * meta.radius_m))
   const ax = meta.x_axis_lon_deg * RAD
   const ay = meta.y_axis_lon_deg * RAD
