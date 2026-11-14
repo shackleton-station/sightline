@@ -62,13 +62,13 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
 
   const heights = (
     <div className="sl-heights" role="group" aria-label="How close the Moon is seen">
-      <button type="button" aria-pressed={mode === 'orbit'} title="The whole Moon, from over the south pole" onClick={() => onMode('orbit')}>
+      <button type="button" aria-pressed={mode === 'orbit'} title="The whole Moon, from above" onClick={() => onMode('orbit')}>
         Orbit
       </button>
       <button type="button" aria-pressed={mode === 'site'} title="Close on the site" onClick={() => onMode('site')}>
         Site
       </button>
-      <button type="button" aria-pressed={mode === 'surface'} title="Stand at the site and look around" onClick={() => onMode('surface')}>
+      <button type="button" aria-pressed={mode === 'surface'} title="Stand there and look around" onClick={() => onMode('surface')}>
         Surface
       </button>
     </div>

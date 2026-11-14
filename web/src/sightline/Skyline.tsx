@@ -30,6 +30,10 @@ const COMPASS = [
   { az: 270, label: 'W' },
 ]
 
+/** What the two thin lines on the skyline are, in plain words, for their hover text. */
+const EARTH_PATH_MEANS = "Earth's path over the month. The Moon rocks slightly as it orbits, so Earth traces a small loop instead of staying still."
+const SUN_PATH_MEANS = "The Sun's path over the month."
+
 /**
  * What the lander sees: all 360° of the real horizon at the site as one strip, centred on the
  * compass point nearest Earth, with the Sun and Earth where they are at the hour on the playhead, the Sun's track and Earth's
@@ -125,6 +129,13 @@ export function Skyline({ horizon, track, index, obsHeightM, folded, onFold }: P
                 ))}
                 {drawn.earth.map((segment, i) => (
                   <path key={`earth-${i}`} className="sl-sky-path is-earth" d={toLine(segment) ?? undefined} />
+                ))}
+                {/* The thin lines say what they are on hover: a wide unseen stroke over each, easy to point at. */}
+                {drawn.sun.map((segment, i) => (
+                  <path key={`sun-hit-${i}`} className="sl-sky-hit" d={toLine(segment) ?? undefined} data-tip={SUN_PATH_MEANS} />
+                ))}
+                {drawn.earth.map((segment, i) => (
+                  <path key={`earth-hit-${i}`} className="sl-sky-hit" d={toLine(segment) ?? undefined} data-tip={EARTH_PATH_MEANS} />
                 ))}
               </g>
               {/* A body in view goes behind the land, so the ridge cuts a disc it partly hides. */}

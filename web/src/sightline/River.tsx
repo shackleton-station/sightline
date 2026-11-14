@@ -3,8 +3,8 @@ import { loadEarthSun } from '../data/loadSite'
 import { earthPath, EVERYDAY_LAT_DEG } from '../lib/earthSun'
 import type { SiteFlags } from '../lib/flags'
 import { locateHour } from '../lib/mission'
-import type { RiverState } from '../lib/river'
-import { ABOVE_SKYLINE_MEANS, clockTime, DEFAULT_SPEED, degWords, type RiverZoom, riverTicks, riverWindow, SPEEDS, stateRuns } from '../lib/sightline'
+import type { RiverSegment, RiverState } from '../lib/river'
+import { ABOVE_SKYLINE_MEANS, bandWords, clockTime, DEFAULT_SPEED, degWords, type RiverZoom, riverTicks, riverWindow, runAt, SPEEDS, stateRuns, TIME_KEYS_MEAN } from '../lib/sightline'
 import type { RowLabel } from '../lib/sightlineMission'
 import { type Clock, useFitLevel } from './hooks'
 import { BAND, STATE_CHIP } from './states'
@@ -159,6 +159,23 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
   )
 
   const dragging = useRef(false)
+  // The band under the pointer, or, with the keyboard on the time bar, the band the bar is in on the
+  // scenario on show: which row, and the whole stretch it belongs to. Its line shows over its own row.
+  const [pointed, setPointed] = useState<({ row: number } & RiverSegment) | null>(null)
+  const [focused, setFocused] = useState(false)
+  const point = (event: PointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect()
+    const tracks = [...(event.currentTarget.parentElement?.querySelectorAll('.sl-row .sl-track') ?? [])].slice(0, rows.length)
+    const row = tracks.findIndex((track) => event.clientY >= track.getBoundingClientRect().top - 3 && event.clientY <= track.getBoundingClientRect().bottom + 3)
+    const flags = row >= 0 ? rows[row].flags : null
+    if (!flags) return setPointed(null)
+    const fraction = Math.min(Math.max((event.clientX - box.left) / box.width, 0), 1)
+    const run = runAt(flags, Math.min(from + Math.floor(fraction * count), to - 1))
+    // Moving along the same band changes nothing: the line is drawn again only for another band.
+    setPointed((before) => (before && before.row === row && before.from === run.from ? before : { row, ...run }))
+  }
+  const onShow = rows.findIndex((row) => row.active)
+  const band = pointed ?? (focused && onShow >= 0 && rows[onShow].flags ? { row: onShow, ...runAt(rows[onShow].flags, Math.floor(hour)) } : null)
   const seek = (event: PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect()
     const fraction = Math.min(Math.max((event.clientX - box.left) / box.width, 0), 1)
@@ -173,7 +190,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
           fit the row's width is left out or goes into "More"; "Fold" stays at the right end. */}
       <div className="sl-river-top">
         <div ref={head.ref} className="sl-strip-head sl-river-head">
-          <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} onClick={() => clock.setPlaying(!clock.playing)}>
+          <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} title={TIME_KEYS_MEAN} onClick={() => clock.setPlaying(!clock.playing)}>
             {clock.playing ? '❚❚' : '▶'}
           </button>
           {/* At the narrowest the date drops "UTC" and the chip is only as wide as its words. */}
@@ -234,7 +251,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
       </div>
       {!folded && (
         <div className="sl-rows">
-          {rows.map((row) => (
+          {rows.map((row, i) => (
             <div key={row.key} className="sl-row">
               {/* The letter and the date always show in full. The site comes after them, only when the
                   scenarios are at different sites, and is what is shortened if the label does not fit. */}
@@ -257,6 +274,12 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                   )}
                 </svg>
                 {row.landing >= from && row.landing < to && <span className="sl-landing" style={{ left: at(row.landing - from) }} />}
+                {/* What the band under the pointer is, and for how long: over the middle of what shows of it. */}
+                {band && band.row === i && (
+                  <span className="sl-band-tip" role="tooltip" style={{ '--at': at((Math.max(band.from, from) + Math.min(band.to, to)) / 2 - from) } as CSSProperties}>
+                    {bandWords(start, band, STATE_CHIP[band.state])}
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -286,11 +309,14 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             onPointerDown={(event) => {
               event.currentTarget.setPointerCapture(event.pointerId)
               dragging.current = true
+              setPointed(null)
               seek(event)
             }}
             onPointerMove={(event) => {
               if (dragging.current) seek(event)
+              else if (event.pointerType !== 'touch') point(event)
             }}
+            onPointerLeave={() => setPointed(null)}
             onPointerUp={() => {
               dragging.current = false
             }}
@@ -299,7 +325,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             }}
           >
             <span className="sl-playhead" style={{ left: at(hour - from + 0.5) }} />
-            <input type="range" aria-label="Time" aria-valuetext={clockTime(start, hour)} min={from} max={to - 1} step={1} value={hour} onChange={(event) => clock.setHour(Number(event.target.value))} />
+            <input type="range" aria-label="Time" aria-valuetext={clockTime(start, hour)} min={from} max={to - 1} step={1} value={hour} onChange={(event) => clock.setHour(Number(event.target.value))} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
           </div>
         </div>
       )}
