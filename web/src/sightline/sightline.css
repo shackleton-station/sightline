@@ -3210,6 +3210,79 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-size: 0.75rem;
 }
 
+/* The plan's controls sit under the verdict, above the Sun, Earth and ground. */
+.sl-answer > .sl-plan {
+  margin-top: 0.6rem;
+}
+
+/* The mission's control while its limits are open under it: "Select" closes them. */
+.sl-mission-open .sl-select {
+  padding: 0.05rem 0.6rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1a1405;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* The mission's limits, opened in the column under the mission's own control: the presets on one
+   row and the six limits two abreast, so the Sun, Earth and ground under them stay on a laptop's screen. */
+.sl-mission-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem 0.8rem;
+  align-items: end;
+  padding: 0.5rem 0.6rem 0.55rem;
+  border: 1px solid var(--gold-deep);
+  border-radius: 8px;
+}
+
+.sl-mission-inline > .sl-quiet {
+  display: none;
+}
+
+.sl-mission-inline > .sl-presets {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  margin-top: 0;
+}
+
+.sl-mission-inline .sl-presets button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sl-mission-inline .sl-presets small {
+  display: none;
+}
+
+.sl-mission-inline .sl-param {
+  margin-top: 0;
+  font-size: 0.8125rem;
+}
+
+.sl-mission-inline .sl-param output {
+  white-space: nowrap;
+}
+
+.sl-mission-inline .sl-check.sl-param {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: center;
+  color: inherit;
+  white-space: normal;
+}
+
+.sl-mission-inline > .sl-advanced-link {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 0;
+}
+
 /* The verdict: the column's headline. Green with a tick when it fits, the Sun's gold when it fits
    only marginally, the warning colour with a cross when it does not. */
 .sl-answer > .sl-verdict {

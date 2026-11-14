@@ -30,6 +30,8 @@ interface Props {
   earthShare: number | null
   /** The verdict on the landing, with its reasons and the next landing that fits: the column's headline. */
   verdict: ReactNode
+  /** The plan's three controls (site, landing, mission): under the verdict, above the Sun, Earth and ground. */
+  plan: ReactNode
 }
 
 /** What the Sun's small line means, for its tooltip. */
@@ -42,18 +44,19 @@ function elevationLead(elevationDeg: number): string {
 }
 
 /**
- * The answer for the landing. The verdict leads. Under it, one line: what is in view at landing
+ * The answer for the landing. The verdict leads, with the plan's three controls under it. Then one line: what is in view at landing
  * (the date is in the control above, and beside the Moon when the time bar is elsewhere); then three rows, the Sun, Earth and the ground, each with one main figure and the rest small
  * under its name; last, how closely the numbers match JPL Horizons. Everything is read at the
  * landing's hour (the countdowns run from the landing) from the pipeline's track, horizon and flags,
  * through the functions the rest of the app uses. It does not follow the time bar.
  */
-export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsLine, earthShare, verdict }: Props) {
+export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsLine, earthShare, verdict, plan }: Props) {
   // The hour-for-hour comparison with JPL Horizons for a listed site; a custom point has none.
   const horizons = useHorizonsCheck(data?.site.id ?? null)
   if (error) {
     return (
       <div className="sl-answer">
+        {plan}
         <p className="sl-sentence">This point can't be worked out.</p>
         <p className="sl-note is-warn">{error}</p>
       </div>
@@ -76,6 +79,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
   return (
     <div className="sl-answer">
       {verdict}
+      {plan}
       <p className="sl-sentence" role="status">
         {now ? landingSentence(now.sun_frac, earthShare, now.earth_up) : 'Working out the light here…'}
       </p>

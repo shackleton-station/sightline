@@ -15,9 +15,6 @@ interface Props {
   year: number
   /** The month's summary at the site; null while it loads. */
   summary: Summary | null
-  /** Whether the Advanced fold is open; it starts closed. */
-  advanced: boolean
-  onAdvanced: (open: boolean) => void
   /** Why the two heights cannot be chosen here (a custom point is worked out at 2 m only); null when they can. */
   heightsOff: string | null
   onClose: () => void
@@ -147,30 +144,39 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
 }
 
 /**
- * The Mission panel: what the lander can tolerate. Presets and the six basic limits, and, behind a
- * fold that starts closed, the same Advanced controls as the Planner, on the same mission: how far
- * Earth must clear the skyline, and how high the solar panel and the antenna stand. With the fold
- * open the presets go to one row and the spacing tightens, so the panel still never scrolls on a
- * laptop. With nothing touched the answer is plain visibility.
+ * The mission's limits in the column, under the mission's own control: the presets and the six basic
+ * limits, set two abreast so the Sun, Earth and ground under them stay on a laptop's screen. The
+ * Advanced controls stay in the Mission panel, which the link here opens.
  */
-export function MissionDrawer({ mission, onMission, advanced, onAdvanced, heightsOff, site, month, year, summary, onClose }: Props) {
+export function MissionInline({ mission, onMission, onAdvanced }: Pick<Props, 'mission' | 'onMission'> & { onAdvanced: () => void }) {
   return (
-    <aside className={advanced ? 'sl-drawer sl-mission is-advanced' : 'sl-drawer sl-mission'} aria-label="Mission">
+    <div className="sl-mission-inline" role="group" aria-label="Mission limits">
+      <MissionControls mission={mission} onMission={onMission} />
+      <button type="button" className="sl-link sl-advanced-link" onClick={onAdvanced}>
+        Advanced <span aria-hidden="true">›</span>
+      </button>
+    </div>
+  )
+}
+
+/**
+ * The mission's Advanced controls, as a panel: the same ones as the Planner, on the same mission. How
+ * far Earth must clear the skyline, and how high the solar panel and the antenna stand. The presets
+ * and the six basic limits are in the column, under the mission's own control (`MissionInline`),
+ * whose "Advanced" link opens this.
+ */
+export function MissionDrawer({ mission, onMission, heightsOff, site, month, year, summary, onClose }: Props) {
+  return (
+    <aside className="sl-drawer sl-mission is-advanced" aria-label="Advanced mission settings">
       <header className="sl-drawer-head">
-        <h2>Mission</h2>
+        <h2>Advanced</h2>
         <button type="button" className="sl-small" onClick={onClose}>
           Close
         </button>
       </header>
-      <MissionControls mission={mission} onMission={onMission} />
-      <button type="button" className="sl-link sl-advanced-link" aria-expanded={advanced} aria-controls="sl-advanced" onClick={() => onAdvanced(!advanced)}>
-        Advanced <span aria-hidden="true">{advanced ? '▾' : '▸'}</span>
-      </button>
-      {advanced && (
-        <div id="sl-advanced" className="sl-advanced">
-          <AdvancedControls mission={mission} onMission={onMission} site={site} month={month} year={year} summary={summary} heightChoice={{ off: heightsOff }} />
-        </div>
-      )}
+      <div id="sl-advanced" className="sl-advanced">
+        <AdvancedControls mission={mission} onMission={onMission} site={site} month={month} year={year} summary={summary} heightChoice={{ off: heightsOff }} />
+      </div>
     </aside>
   )
 }
