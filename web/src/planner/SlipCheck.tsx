@@ -60,7 +60,7 @@ export function SlipCheck({ check, landing, onDays, late, onPlan }: Props) {
         <>
           <div className="pl-slip-days" aria-hidden="true">
             {check.byDay.map((works, i) => (
-              <span key={i} className={works === null ? 'past' : works ? 'works' : 'none'} title={`${plural(i + 1, 'day')} late`} />
+              <span key={i} className={works === null ? 'past' : works ? 'works' : 'none'} title={`Landing ${plural(i + 1, 'day')} late, at the same hour.`} />
             ))}
           </div>
           <p className="pl-fine">

@@ -42,7 +42,7 @@ const GridRow = memo(function GridRow({ row, r, largestShare, chosen, column, li
     <tr className={chosen ? 'is-row' : undefined}>
       <th scope="row">
         <span className="pl-site">{row.site.name}</span>
-        <span className="pl-count" title={`${row.monthsWithLanding} of ${row.cells.length} months have a landing`}>
+        <span className="pl-count" title={`A landing fits in ${row.monthsWithLanding} of these ${row.cells.length} months.`}>
           <span aria-hidden="true">
             {row.monthsWithLanding}/{row.cells.length}
           </span>

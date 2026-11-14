@@ -53,7 +53,7 @@ export function LensControls({ look, acrossDeg, stretchBy, setLens }: Props) {
         type="button"
         className="sf-stretch"
         aria-pressed={look.stretch > 1}
-        title="Draws every height above or below eye level taller, so low hills can be read. Not true to scale."
+        title={`Draws every height ${stretchBy} times taller, so low hills are easier to see. Not true to scale.`}
         onClick={() => setLens((current) => ({ ...current, stretch: current.stretch > 1 ? 1 : stretchBy }))}
       >
         Stretch heights ×{stretchBy}

@@ -251,19 +251,19 @@ export function LandingSky({ site, flags, t, requirements }: Props) {
       {/* Power and radio over the whole mission: the figures a planner checks a landing against. */}
       <h4 className="pl-sky-sub">Power and radio over the mission{cut ? ' (to the end of our data)' : ''}</h4>
       <dl className="pl-sky-figures">
-        <div title="Share of the mission's hours with the Sun in view: solar power.">
+        <div title="The share of the mission's hours with the Sun in view. More means more solar power.">
           <dt>Sunlit</dt>
           <dd>{pct(figures.sunlit)}</dd>
         </div>
-        <div title={`Longest stretch with no Sun, which batteries must carry. Your limit is ${requirements.maxSunGapH} h.`} className={figures.dark > requirements.maxSunGapH ? 'is-over' : undefined}>
+        <div title={`The longest stretch of the mission with no Sun, which batteries must cover. Your limit is ${requirements.maxSunGapH} h.`} className={figures.dark > requirements.maxSunGapH ? 'is-over' : undefined}>
           <dt>Longest dark</dt>
           <dd>{formatDuration(figures.dark)}</dd>
         </div>
-        <div title="Share of the mission's hours with Earth in view, by your rule for Earth: a direct radio link.">
+        <div title="The share of the mission's hours with Earth in view. More means more time with a direct radio link.">
           <dt>Earth in view</dt>
           <dd>{pct(figures.earthIn)}</dd>
         </div>
-        <div title={`Longest stretch with no Earth: no direct radio link. Your limit is ${requirements.maxEarthGapH} h.`} className={figures.silence > requirements.maxEarthGapH ? 'is-over' : undefined}>
+        <div title={`The longest stretch of the mission with Earth out of view, so no direct radio link. Your limit is ${requirements.maxEarthGapH} h.`} className={figures.silence > requirements.maxEarthGapH ? 'is-over' : undefined}>
           <dt>Longest silence</dt>
           <dd>{formatDuration(figures.silence)}</dd>
         </div>
@@ -273,7 +273,7 @@ export function LandingSky({ site, flags, t, requirements }: Props) {
       <MissionTimeline sun={flags.sun} earth={earth} from={hour} hours={end - hour} days={requirements.missionDays} />
 
       <h4 className="pl-sky-sub">The Sun's height, for power</h4>
-      <div className="pl-sky-height" title="How high the Sun stands decides how much a solar panel can collect. Eye level is the flat horizon; the skyline is the real terrain around the site.">
+      <div className="pl-sky-height" title="The higher the Sun, the more a solar panel collects. “Eye level” is a flat horizon; the skyline is the real terrain round the site.">
         <p className="pl-sky-main">{sky === undefined ? '…' : at ? `${Math.abs(at.elDeg).toFixed(1)}° at landing` : '–'}</p>
         <p className="pl-sky-small">
           {sky === undefined

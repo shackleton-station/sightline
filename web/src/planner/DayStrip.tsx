@@ -1,7 +1,6 @@
 import type { CSSProperties, KeyboardEvent } from 'react'
 import { monthLabel } from '../lib/months'
 import type { MonthAnswer } from './monthAnswer'
-import { plural } from './words'
 
 interface Props {
   month: string
@@ -31,7 +30,7 @@ export function DayStrip({ month, answer, plannedDay, bestDay, onDay }: Props) {
     <div className="pl-days" role="group" aria-label={`Days of ${monthLabel(month)}. Choose one to plan the landing then.`} onKeyDown={onKeyDown}>
       {answer.dayHours.map((hours, day) => {
         const date = `${day + 1} ${monthLabel(month)}`
-        const works = hours === 0 ? 'no landing hour works' : `${plural(hours, 'landing hour')} of 24 work`
+        const works = hours === 0 ? 'no hour fits a landing' : `a landing fits in ${hours} of its 24 hours`
         const classes = ['pl-day', hours > 0 ? 'works' : 'none', day === bestDay ? 'best' : ''].join(' ')
         return (
           <button
