@@ -1108,3 +1108,64 @@ them, and a few show the linear artifacts NASA's README warns of. How "permanent
 (2011), which the maps' labels point to; that paper's body was not open to us, so the file repeats NASA's flag and
 does not restate the method. The maps are dated 2016. Distances are to a pixel's centre, so ±30 m on the 60 m map and
 ±120 m on the 240 m one.
+
+## 17. Mission success probability: the layer against the sites' own tracks (2026-11-14)
+
+The layer and the Accuracy panel read the light grid (§12) through code of their own, and lay a bell
+curve of landings on it. Three checks, each repeatable.
+
+**The odds, by throwing landings.** `web/src/lib/landingOdds.test.ts` draws 200,000 landings from the
+bell curve one at a time and counts those that come down on ground that fits, for 18 cases: three
+patchy grounds, each with a round spread at 100 m and 400 m, and stretched ones lined up with the map
+and turned on it. Nothing is shared with the code under test but the map. The worked-out odds are
+within 0.6 of a point of the thrown ones in every case.
+
+**The grid as the layer reads it, against each ridge site's track.** `npx tsx
+scripts/success-layer-check.ts <month>` (from `web/`) reads the month from the live site and, for a
+landing at every hour of it, compares the grid's cell at the site with the site's own track, which is
+worked out at its exact point. Short stay mission (14 days, at most 24 h of dark, Sun and Earth up at
+landing). Share of hours that agree:
+
+| Month | Site | Sun up | Earth up | Verdict |
+| --- | --- | --- | --- | --- |
+| 2026-11 | Connecting Ridge | 100.0% | 100.0% | 100.0% |
+| | Shackleton Rim | 100.0% | 98.6% | 98.6% |
+| | Peak near Shackleton | 100.0% | 99.7% | 99.7% |
+| | de Gerlache Rim | 100.0% | 100.0% | 100.0% |
+| 2027-03 | Connecting Ridge | 98.9% | 100.0% | 99.3% |
+| | Shackleton Rim | 95.0% | 99.7% | 98.5% |
+| | Peak near Shackleton | 96.2% | 99.5% | 99.7% |
+| | de Gerlache Rim | 90.3% | 100.0% | 98.3% |
+| 2027-06 | Connecting Ridge | 82.4% | 100.0% | 71.4% |
+| | Shackleton Rim | 95.1% | 99.4% | 97.4% |
+| | Peak near Shackleton | 95.4% | 99.7% | 100.0% |
+| | de Gerlache Rim | 82.8% | 100.0% | 91.9% |
+| 2027-09 | Connecting Ridge | 100.0% | 100.0% | 100.0% |
+| | Shackleton Rim | 96.4% | 99.7% | 92.4% |
+| | Peak near Shackleton | 100.0% | 99.7% | 99.7% |
+| | de Gerlache Rim | 100.0% | 100.0% | 100.0% |
+
+The 100% rows show the cell is looked up in the right place and the hours line up. Where it falls
+short, the cause is the one §12 measured: the cell's middle is up to 54 m from the site (Connecting
+Ridge), and with the Sun grazing the skyline that is enough to change the answer. June 2027 at
+Connecting Ridge is the worst seen: the grid's verdict differs from the site's for 29% of landing
+hours. So near a ridge in a month of low Sun, the layer and the panel are a guide to the ground
+around a site, not the site's verdict. A finer grid round the ridge sites is what would close this.
+
+**The smooth Moon, against every listed site's track.** The same script, for the picture that colors
+the Moon away from the grid (`moonWash.ts`), tried every six hours. Away from the pole it agrees with
+the track for 96.7% to 100% of landings (November 2026 and June 2027: the Apollo sites, Blue Ghost,
+Chandrayaan-3, SLIM, Chang'e 4). Nearer the pole it is poorer and varies with the month: IM-1
+Odysseus 87.5% and 95.8%, IM-2 Athena 92.5% and 99.2%, and at the four ridge sites 71.7% to 97.5%,
+where the grid is used and not the smooth Moon.
+
+**The slope.** The 30 m slope images the layer reads (JPEG) against each ridge site's recorded slope
+(5 m baseline, with its error): 1.9° against 1.2° ± 2.5°, 4.2° against 5.1° ± 1.8°, 1.0° against
+1.6° ± 1.7°, 0.6° against 1.1° ± 1.7°. Each is inside the recorded error. The two measure slope over
+different lengths of ground, so they are not expected to match exactly.
+
+**What is live.** On 2026-11-14 the live site's `data/light/meta.json` was the same as this
+repository's, and its `tiles/light/2026-11.bin.gz` was last changed at 02:34 UTC that day.
+
+Not checked: the odds between sites (there is no track to check against); a mission other than Short
+stay; heights other than 2 m and any Earth clearance, which the grid does not hold.

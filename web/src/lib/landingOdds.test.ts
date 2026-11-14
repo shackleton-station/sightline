@@ -279,3 +279,67 @@ describe('odds and spreads in words and links', () => {
     expect(readSpreadLink('#acc=200&accd=90')).toEqual(round(200))
   })
 })
+
+describe('the odds, checked by throwing landings', () => {
+  /**
+   * A repeatable stream of numbers from 0 to 1 (mulberry32). A simpler generator will not do here:
+   * landings are drawn two numbers at a time, and one whose neighbouring numbers are related puts
+   * them in a pattern, not a bell curve.
+   */
+  function random(seed: number): () => number {
+    let state = seed >>> 0
+    return () => {
+      state = (state + 0x6d2b79f5) >>> 0
+      let mixed = Math.imul(state ^ (state >>> 15), state | 1)
+      mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61)
+      return (((mixed ^ (mixed >>> 14)) >>> 0) + 0.5) / 4294967296
+    }
+  }
+
+  /**
+   * The share of landings that come down on a cell that fits, by drawing them one at a time from
+   * the bell curve itself (Box and Muller's way) and looking up where each falls: nothing shared
+   * with `cellChances` but the map.
+   */
+  function thrown(map: FitMap, spread: Spread, count: number, seed: number): number {
+    const next = random(seed)
+    const across = sigmaM(spread.accuracyM)
+    const along = across * spread.stretch
+    const turn = (spread.bearingDeg * Math.PI) / 180
+    let fits = 0
+    let landed = 0
+    for (let i = 0; i < count; i += 1) {
+      const far = Math.sqrt(-2 * Math.log(next()))
+      const round = 2 * Math.PI * next()
+      const u = along * far * Math.cos(round)
+      const v = across * far * Math.sin(round)
+      // Along the approach is `turn` clockwise from up; across it is a quarter turn on.
+      const cell = cellAtM(map, u * Math.sin(turn) + v * Math.cos(turn), u * Math.cos(turn) - v * Math.sin(turn))
+      if (cell === null) continue
+      landed += 1
+      if (map.verdict[cell] === FITS) fits += 1
+    }
+    return fits / landed
+  }
+
+  /** Ground in patches: each cell fits or not by a fixed pattern of blobs, with the target off the cells' middles. */
+  function patchy(seed: number): FitMap {
+    const next = random(seed)
+    const blobs = Array.from({ length: 14 }, () => ({ x: 2400 * next() - 1200, y: 2400 * next() - 1200, r: 80 + 420 * next() }))
+    const map: FitMap = { size: 90, cellM: 30, leftM: -1350 + 30 * next(), topM: 1350 - 30 * next(), verdict: new Uint8Array(8100) }
+    return only(map, (x, y) => blobs.some((blob) => Math.hypot(x - blob.x, y - blob.y) < blob.r))
+  }
+
+  it('agrees for round and stretched spreads, lined up with the map and turned on it', () => {
+    const spreads: Spread[] = [round(100), round(400), { accuracyM: 150, stretch: 3, bearingDeg: 0 }, { accuracyM: 150, stretch: 3, bearingDeg: 90 }, { accuracyM: 200, stretch: 2.5, bearingDeg: 35 }, { accuracyM: 100, stretch: 4, bearingDeg: 140 }]
+    for (const seed of [11, 29, 47]) {
+      const map = patchy(seed)
+      for (const spread of spreads) {
+        const worked = oddsFor(map, spread).fit
+        const drawn = thrown(map, spread, 200_000, seed + 1)
+        // 200,000 landings pin the share to about a quarter of a point; the odds are shown in whole points.
+        expect(Math.abs(worked - drawn), `${JSON.stringify(spread)} on ground ${seed}: worked ${worked.toFixed(4)}, thrown ${drawn.toFixed(4)}`).toBeLessThan(0.006)
+      }
+    }
+  })
+})
