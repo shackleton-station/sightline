@@ -1,0 +1,39 @@
+[project]
+name = "clps"
+version = "0.1.0"
+description = "Sightline pipeline: the terrain horizon at lunar landing sites, and when the Sun and Earth are above it"
+readme = "README.md"
+authors = [
+    { name = "Shackleton Station" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "numba>=0.68.1",
+    "numpy>=2.5.4",
+    "pandas>=3.0.6",
+    "pyproj>=3.8.0",
+    "rasterio>=1.5.2",
+    "spiceypy>=8.3.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.24,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
