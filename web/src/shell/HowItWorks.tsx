@@ -1,4 +1,4 @@
-import type { TourFile } from '../lib/tour'
+import type { FeatureGuide, TourFile } from '../lib/tour'
 import tourFile from '../sightline/tour.json'
 import type { GuideVideos } from '../sightline/useGuideVideos'
 import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
@@ -26,6 +26,9 @@ interface Props {
   onTour?: () => void
   /** The visitor has taken the tour before: the button offers it again. */
   tourTaken?: boolean
+  /** The feature guides (short tours of one feature each), and how to start one by its id. Sightline only. */
+  guides?: FeatureGuide[]
+  onGuide?: (id: string) => void
   /** The Guide's videos that exist (the walkthrough, its chapters, the 30-second demo); a player shows only for one that does. */
   videos?: GuideVideos | null
   /** Open with the walkthrough on screen: the tour's last step leads here. */
@@ -116,7 +119,7 @@ const STACK: { layer: string; items: string[] }[] = [
  * The Guide: where to start (the tour and the videos), how to use the screen, then how it works: how
  * the numbers are made, why to trust them, what the site runs on, and how the co-pilot stays honest.
  */
-export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, videos = null, openAtVideo = false }: Props) {
+export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, guides = [], onGuide, videos = null, openAtVideo = false }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -242,6 +245,26 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
               <p className="how-caption">Recorded from this site. The narration is an AI-generated voice; the captions say every line.</p>
             </div>
           )}
+        </section>
+      )}
+
+      {/* Then one feature at a time: short tours on the real screen, run by the tour's own engine. */}
+      {onGuide && guides.length > 0 && (
+        <section className="how-guides" aria-labelledby="how-guides-title">
+          <h2 id="how-guides-title">Feature guides</h2>
+          <p className="how-start-note">Each is a few steps on the real screen, like the tour.</p>
+          <ul className="how-guide-list">
+            {guides.map((guide) => (
+              <li key={guide.id}>
+                <button type="button" data-guide={guide.id} onClick={() => onGuide(guide.id)}>
+                  {guide.name}
+                </button>{' '}
+                <span>
+                  {guide.about} {guide.steps.length} steps.
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
