@@ -6,6 +6,7 @@
 // when a step's "say" changes; the files are committed.
 //
 //   node scripts/tour-voice.mjs            render every step
+//   node scripts/tour-voice.mjs --step=scout   render that step alone (the others' files are left as they are)
 //   node scripts/tour-voice.mjs --check    render nothing; fail if a file is missing or older than its words
 //
 // It calls Google Cloud Text-to-Speech as the person signed in to gcloud, billed to the project
@@ -41,8 +42,14 @@ if (!project) {
 const token = gcloud('auth', 'print-access-token')
 mkdirSync(outDir, { recursive: true })
 
-const lines = {}
-for (const step of tour.steps) {
+// One step alone, when asked: the other steps keep their files and their lines in the index.
+const only = process.argv.find((arg) => arg.startsWith('--step='))?.slice('--step='.length)
+if (only && !tour.steps.some((step) => step.id === only)) {
+  console.error(`No step called "${only}" in the tour.`)
+  process.exit(1)
+}
+const lines = only && existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')).lines : {}
+for (const step of tour.steps.filter((one) => !only || one.id === only)) {
   const response = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${token}`, 'x-goog-user-project': project },
@@ -60,4 +67,4 @@ for (const step of tour.steps) {
   console.log(`ok   ${step.id}.mp3  ${(bytes.length / 1024).toFixed(0)} kB`)
 }
 writeFileSync(indexFile, `${JSON.stringify({ voice: VOICE, disclosure: tour.voice.disclosure, lines }, null, 2)}\n`)
-console.log(`Wrote ${tour.steps.length} files and index.json to ${outDir}`)
+console.log(`Wrote ${only ? 1 : tour.steps.length} file(s) and index.json to ${outDir}`)
