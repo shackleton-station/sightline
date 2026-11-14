@@ -14,6 +14,8 @@ interface Props {
   summary: Summary | null
   /** Why the heights can't be chosen here (a custom point is worked out at 2 m only), or null. */
   heightsOff: string | null
+  /** Always open, with no toggle and no note at the foot: the New Planner's column. */
+  bare?: boolean
 }
 
 const { min: SLOPE_MIN, max: SLOPE_MAX, step: SLOPE_STEP } = MISSION_RANGES.maxSlopeDeg
@@ -40,12 +42,14 @@ function Heights({ label, offered, value, disabled, onPick }: { label: string; o
  * to start from, the steepest ground the lander can stand on, and how high its solar panel and
  * antenna stand. What the bar above already holds is not repeated here.
  */
-export function PlannerMore({ mission, onMission, site, month, year, summary, heightsOff }: Props) {
-  const [open, setOpen] = useState(false)
+export function PlannerMore({ mission, onMission, site, month, year, summary, heightsOff, bare = false }: Props) {
+  const [toggled, setOpen] = useState(false)
+  const open = bare || toggled
   const preset = presetOf(mission)
   const setHeights = (change: Partial<MissionHeights>) => onMission({ ...mission, heights: { ...mission.heights, ...change } })
   return (
     <section className="pl-more" aria-label="More mission settings">
+      {!bare && (
       <button type="button" className="pl-more-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="pl-label">More settings</span>
         <span className="pl-more-summary">
@@ -55,10 +59,11 @@ export function PlannerMore({ mission, onMission, site, month, year, summary, he
           {open ? '▴' : '▾'}
         </span>
       </button>
+      )}
       {open && (
         <div className="pl-more-body">
           <div className="pl-more-field" role="group" aria-label="Example missions">
-            <span className="pl-label">Start from an example</span>
+            <span className="pl-label">{bare ? 'Example' : 'Start from an example'}</span>
             <span className="pl-segments">
               {PRESETS.map((option) => (
                 <button key={option.id} type="button" aria-pressed={preset?.id === option.id} title="Sets every limit to this example; change any of them after" onClick={() => onMission({ ...option.mission, heights: mission.heights })}>
@@ -70,10 +75,14 @@ export function PlannerMore({ mission, onMission, site, month, year, summary, he
           <Dial id="pl-slope" label="Steepest ground" unit="°" value={mission.maxSlopeDeg} bounds={[SLOPE_MIN, SLOPE_MAX]} stops={SLOPE_STOPS} onChange={(maxSlopeDeg) => onMission({ ...mission, maxSlopeDeg })} />
           <Heights label="Solar panel height" offered={PANEL_HEIGHTS_M} value={mission.heights.panelM} disabled={heightsOff !== null} onPick={(panelM) => setHeights({ panelM })} />
           <Heights label="Antenna height" offered={ANTENNA_HEIGHTS_M} value={mission.heights.antennaM} disabled={heightsOff !== null} onPick={(antennaM) => setHeights({ antennaM })} />
-          <div className="pl-more-notes">
-            {heightsOff && <p>{heightsOff}</p>}
-            <Assumptions site={site} month={month} year={year} summary={summary} heights={mission.heights} choice />
-          </div>
+          {bare ? (
+            heightsOff && <p className="pl-more-notes">{heightsOff}</p>
+          ) : (
+            <div className="pl-more-notes">
+              {heightsOff && <p>{heightsOff}</p>}
+              <Assumptions site={site} month={month} year={year} summary={summary} heights={mission.heights} choice />
+            </div>
+          )}
         </div>
       )}
     </section>
