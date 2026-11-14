@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteFlags } from '../lib/flags'
-import { monthSpans } from '../lib/grid'
 import { DEFAULT_MISSION, type ScenarioMeasure } from '../lib/sightlineMission'
-import { bothPct, plannerCsv, plannerRows, sunMonths, yearSpans } from './plannerTable'
+import { bothPct, plannerCsv, plannerRows } from './plannerTable'
 
 const START = '2027-01-01T00:00:00Z'
 /** Two years of hours. The Sun is up on even days, Earth in the first half of each day. */
@@ -64,17 +63,5 @@ describe('plannerCsv', () => {
     expect(lines[1]).toBe('"Sunlit, %",50,50')
     expect(lines.at(-2)).toBe('Fits the mission,yes,no: The Sun is gone for 95 h during the mission; your limit is 24 h.')
     expect(lines.at(-1)).toBe('Mission,a 4-day mission')
-  })
-})
-
-describe('the month grid', () => {
-  it('gives twelve months of one year, each with the share of its hours with the Sun in view', () => {
-    const spans = yearSpans(monthSpans(START, HOURS), 2028)
-    expect(spans.map((span) => span.month)).toEqual(['2028-01', '2028-02', '2028-03', '2028-04', '2028-05', '2028-06', '2028-07', '2028-08', '2028-09', '2028-10', '2028-11', '2028-12'])
-    const cells = sunMonths(flags, spans)
-    expect(cells).toHaveLength(12)
-    expect(cells.every((cell) => cell.share > 0.45 && cell.share < 0.55)).toBe(true)
-    // A cell opens on the first sunlit hour of its month.
-    expect(flags.sun[cells[3].firstHour]).toBe(true)
   })
 })

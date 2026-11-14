@@ -299,6 +299,11 @@ Local Lead.
 - [x] `web/public/data/shadow.json`: for each of the 13 sites, the distance to the nearest permanently shadowed pixel and to the nearest shadowed region of at least 10 km², from NASA's LOLA maps (`pipeline/scripts/make_shadow_distance.py`; `docs/VALIDATION.md` §16). Seven sites have numbers; the six outside NASA's maps say so
 - [ ] Show it: a row in Compare and in the Planner (types `ShadowDistances`, `ShadowAnswer` in `web/src/data/contract.ts`)
 
+## The Planner as two tabs, Find and Compare (2026-11-14)
+
+- [x] Find: the header (back, tabs, scenario tray, Brief, Share, Export, Scout), the tab in the link (`&planner=find`), and every site by month with the days a landing fits (`web/src/sightline/plannerFit.ts`, `PlannerFind.tsx`; checks in `sightline-shots.mjs`, scene `planner-find`)
+- [ ] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science row from `shadow.json`, and "Add scenario" as the last column
+
 ## Landing accuracy (2026-11-14)
 
 - [x] The odds of landing where the mission fits: `web/src/lib/landingOdds.ts` (the miss as a circular bell curve; the accuracy typed is the radius holding 99% of landings) and `web/src/lib/missionGrid.ts` (one pass over the light grid's months for a landing: Sun and Earth at landing and the longest gaps, at every cell). The cell verdict is tested to agree with `landingProblems` hour by hour
