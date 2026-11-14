@@ -1,5 +1,6 @@
 import { isNoGapLimit, type Requirements } from '../../src/lib/mission'
 import { formatDuration } from '../../src/lib/nextChange'
+import type { Tie } from './ties'
 
 /**
  * One thing a tool found, already worded for a person: "59.5%", "4 d 22 h", "3 May 2027, 12:00 UTC".
@@ -12,8 +13,11 @@ export interface Fact {
   value: string
 }
 
-/** What a tool hands back: facts to cite, or a reason it couldn't answer. */
-export type ToolResult = { ok: true; title: string; facts: Fact[] } | { ok: false; error: string }
+/**
+ * What a tool hands back: facts to cite, or a reason it couldn't answer. `ties` is set when the best
+ * it found is shared by several months or sites, for the buttons under the answer (tools/ties.ts).
+ */
+export type ToolResult = { ok: true; title: string; facts: Fact[]; ties?: Tie[] } | { ok: false; error: string }
 
 export const fact = (key: string, label: string, value: string): Fact => ({ key, label, value })
 

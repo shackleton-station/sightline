@@ -58,7 +58,7 @@ const TOOLS: Record<string, Tool> = {
     run: yearSummary,
   },
   best_months: {
-    description: 'The best months (and the worst) at one site by a chosen measure, over all the data or one year.',
+    description: 'The best months (and the worst) at one site by a chosen measure, over all the data or one year. Months equal at the precision shown come back together as a tie (best_months, best_tie).',
     parameters: (ids) => ({
       properties: {
         site: site(ids),
@@ -72,7 +72,7 @@ const TOOLS: Record<string, Tool> = {
     run: bestMonths,
   },
   best_sites: {
-    description: 'Ranks every listed site for one month by a chosen measure.',
+    description: 'Ranks every listed site for one month by a chosen measure. Sites equal at the precision shown come back together as a tie (best_sites, best_tie).',
     parameters: () => ({
       properties: { month: MONTH, measure: MEASURE, count: { type: 'integer', description: 'How many sites to return (default 5).' }, ...LIMITS },
       required: ['month', 'measure'],
