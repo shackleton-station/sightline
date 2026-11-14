@@ -200,7 +200,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
           {inHead.earthDay && earthDayBox}
           {/* "More" is there only when something did not fit the row. */}
           {menuHolds && (
-            <button type="button" className="sl-small sl-more" aria-label="More" aria-haspopup="true" aria-expanded={more} title="More" onClick={() => setMore(!more)}>
+            <button type="button" className="sl-small sl-more" aria-label="More for the time bar" aria-haspopup="true" aria-expanded={more} title="More for the time bar" onClick={() => setMore(!more)}>
               ⋯
             </button>
           )}
