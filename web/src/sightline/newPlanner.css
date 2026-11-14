@@ -794,13 +794,14 @@
   font-size: 0.875rem;
 }
 
-/* The brief in the page's own dark style on screen (print keeps the paper sheet). */
+/* The brief on screen: still a sheet (thick top edge in its verdict's color, near-square corners, no
+   outline), but warm charcoal a step lighter than the page instead of cream. Print keeps the paper. */
 @media screen {
   .sl-np .pl-brief {
-    --pl-paper: rgb(255 255 255 / 3%);
-    --pl-paper-ink: var(--pl-ink);
-    --pl-paper-muted: var(--muted);
-    --pl-paper-rule: var(--pl-rule);
+    --pl-paper: #24212a;
+    --pl-paper-ink: #f1ede3;
+    --pl-paper-muted: #b0abb8;
+    --pl-paper-rule: rgb(241 237 227 / 16%);
     --pl-paper-works: var(--both);
     --pl-paper-tight: var(--warning);
     --pl-paper-sun: var(--sun);
@@ -808,9 +809,18 @@
     --pl-paper-both: var(--both);
     --pl-paper-ground: #6f6b7a;
 
-    border: 1px solid var(--pl-rule);
-    border-top-width: 4px;
-    border-radius: 10px;
+    border: 0;
+    border-top: 6px solid var(--pl-paper-works);
+    border-radius: 3px;
+    box-shadow: 0 10px 28px rgb(0 0 0 / 35%);
+  }
+
+  .sl-np .pl-brief.tight {
+    border-top-color: var(--pl-paper-tight);
+  }
+
+  .sl-np .pl-brief.none {
+    border-top-color: var(--pl-paper-muted);
   }
 
   .sl-np .pl-brief .pl-days span,
