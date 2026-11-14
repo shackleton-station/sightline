@@ -1,9 +1,9 @@
 // Which region answers, second by second, through the site's public address (Phase 8, the failover
 // drill: docs/ARCHITECTURE_PHASE_8.md).
 //
-//   node scripts/region-watch.mjs https://shackletonstation.dev                 until Ctrl-C, then a summary
-//   node scripts/region-watch.mjs https://shackletonstation.dev --seconds 600   ten minutes
-//   node scripts/region-watch.mjs https://shackletonstation.dev --seconds 30 --fail-on-error   (a deploy's check)
+//   node scripts/region-watch.mjs https://lunarsightline.com                 until Ctrl-C, then a summary
+//   node scripts/region-watch.mjs https://lunarsightline.com --seconds 600   ten minutes
+//   node scripts/region-watch.mjs https://lunarsightline.com --seconds 30 --fail-on-error   (a deploy's check)
 //
 // Every second (--every) it asks the three status addresses at once, as a visitor would, with no header:
 //

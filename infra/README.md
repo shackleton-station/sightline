@@ -157,7 +157,8 @@ Cloud Run --Google API-------> Firestore, database "plans"            shared mis
 
 ## The site's own domain
 
-`shackletonstation.dev` is the team's address.
+`lunarsightline.com` is the team's address since 2026-11-14. `shackletonstation.dev`, the address before it, forwards every
+request there with a 301 (`other_domains`, below).
 
 ```
 visitor -> 34.128.184.151 (global IP) -> load balancer: HTTPS + CDN -> Cloud Run (us-east4)

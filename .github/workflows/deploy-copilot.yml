@@ -63,7 +63,7 @@ env:
   REGISTRY: us-east4-docker.pkg.dev
   IMAGE_REPO: us-east4-docker.pkg.dev/clps-compute-6z1nc/web
   IMAGE_NAME: copilot
-  SITE: https://shackletonstation.dev
+  SITE: https://lunarsightline.com
   # Everything the service's image is built from: its own folder, the shared folder, the page's
   # calculations that the tools and prompts reuse (web/src/lib, web/src/data), the site data, and the
   # two scripts that hash the data and the code. A commit that touches none of these does not deploy

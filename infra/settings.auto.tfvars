@@ -12,15 +12,14 @@
 # last). A -var on the command line wins over both.
 
 # The site's own address, without www. Empty would serve on run.app only.
-domain = "shackletonstation.dev"
+domain = "lunarsightline.com"
 
-# Moving to lunarsightline.com (bought 2026-11-14), in two pull requests (infra/README.md, "Moving to
-# another domain"). This one: the new domain gets its zone, records and certificate, and serves the site
-# as it is. The next, once its certificate is ACTIVE: domain = "lunarsightline.com",
-# other_domains = ["shackletonstation.dev"] and other_domains_redirect = true, so the old address
-# forwards every link, path and query kept, to the new one.
-other_domains          = ["lunarsightline.com"]
-other_domains_redirect = false
+# The site moved to lunarsightline.com on 2026-11-14 (infra/README.md, "Moving to another domain"). The old
+# address keeps its zone, records and certificate, and forwards every link, path and query kept, to the new
+# one with a 301. To go back: swap the two names and set other_domains_redirect = true again, or false to
+# serve the site on both.
+other_domains          = ["shackletonstation.dev"]
+other_domains_redirect = true
 
 # The GitHub repositories whose workflows may sign in to this project with no key: the deploys, the
 # Terraform plan and the Terraform apply (github.tf, pipeline.tf). Each by name and by GitHub's own

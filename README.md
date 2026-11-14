@@ -9,8 +9,8 @@ Misha, Jessica, Ravi, Sebastian.
 
 Built on our team's own pre-event practice code; reuse approved by the Bethesda Local Lead.
 
-**Live:** https://shackletonstation.dev (the site as it was before this one-screen design is kept at
-[`/classic/`](https://shackletonstation.dev/classic/))
+**Live:** https://lunarsightline.com (shackletonstation.dev forwards there; the site as it was before this one-screen design is kept at
+[`/classic/`](https://lunarsightline.com/classic/))
 
 ## What it does
 
@@ -60,7 +60,7 @@ without the pipeline.
 Google Cloud, all of it declared in Terraform ([`infra/`](infra/README.md)). Four Cloud Run services, each
 with its own image, identity and deploy: the web server (`web/server/`), saved plans (`web/plans/`), the
 co-pilot (`web/copilot/`) and a private worker that counts questions (`web/events-worker/`). A global load
-balancer with a CDN and an edge firewall sends each path to its service on `shackletonstation.dev`. Terrain
+balancer with a CDN and an edge firewall sends each path to its service on `lunarsightline.com`. Terrain
 tiles and video come straight from a Cloud Storage bucket through the CDN.
 
 There are no stored keys. GitHub Actions signs in to Google Cloud by proving which repository, branch and

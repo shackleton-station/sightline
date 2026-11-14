@@ -143,7 +143,7 @@ cd pipeline && uv run ruff check . && uv run ruff format --check . && uv run pyt
 
 ## 8. Deploying
 
-Merging a PR to `main` deploys to <https://shackletonstation.dev>: after CI passes, GitHub Actions builds the
+Merging a PR to `main` deploys to <https://lunarsightline.com>: after CI passes, GitHub Actions builds the
 image, updates Cloud Run and runs a smoke test (`.github/workflows/deploy.yml`). Nobody needs cloud access or
 keys for that. If the deploy job fails, the site stays on the previous version.
 

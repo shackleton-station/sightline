@@ -102,14 +102,6 @@ moved {
   to   = google_compute_managed_ssl_certificate.site["shackletonstation.dev"]
 }
 
-# lunarsightline.com was bought in the console (2026-11-14), which made its zone there at the same time.
-# Terraform takes that zone over instead of making a second one. Once applied this block does nothing,
-# and it can go in any later pull request.
-import {
-  to = google_dns_managed_zone.site["lunarsightline.com"]
-  id = "projects/${var.project_id}/managedZones/lunarsightline-com"
-}
-
 # ---------- Load balancer ----------
 
 # One address, announced from Google's edge worldwide.
