@@ -304,3 +304,16 @@ Local Lead.
 
 - [x] Find: the header (back, tabs, scenario tray, Brief, Share, Export, Scout), the tab in the link (`&planner=find`), and every site by month with the days a landing fits (`web/src/sightline/plannerFit.ts`, `PlannerFind.tsx`; checks in `sightline-shots.mjs`, scene `planner-find`)
 - [ ] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science row from `shadow.json`, and "Add scenario" as the last column
+
+## The landing brief: what the sky does from the landing on (2026-11-14, Sebastian)
+
+- [x] Brief section "From the landing on" (`web/src/planner/LandingSky.tsx`), on the Planner page and in the
+      front page's brief sheet: sunset and Earthset (or the next rise) and whether inside the mission; power
+      and radio over the mission; the mission hour by hour; the Sun's height; the skyline with the Sun's and
+      Earth's paths. A custom point's track and skyline come from the app's own model (`loadScenario`)
+- [x] "Why" under a tight or empty month's verdict (`web/src/planner/why.ts`, `why.test.ts`)
+- [x] Planner page: instruction line, the key above the grid, striped tight months, the click brings the brief up
+- [ ] Not checked: a real phone, print, and the skyline's look with Scout's panel open
+- [ ] Offered to Rodrigo, not in this change: the same additions for the front page's Planner (a site, coordinates
+      and time bar at the top; suggestions near the date as cards beside the brief). Kept on branch
+      `feat/planner-intuitive` until he decides how they fit Find and Compare

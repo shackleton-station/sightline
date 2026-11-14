@@ -1,19 +1,20 @@
 import type { Tally } from './plannerModel'
 
 /** The page's title and, once the data is in, how much of the grid has a landing for this mission. */
-export function PlannerHead({ tally }: { tally: Tally | null }) {
+export function PlannerHead({ tally, sites }: { tally: Tally | null; sites?: number }) {
   return (
     <header className="pl-head">
       <div>
         <p className="pl-label">Planner</p>
         <h1>Where and when can this mission land?</h1>
+        <p className="pl-intro">Set your mission below. Every site is checked against every month; pick a square to read the answer.</p>
       </div>
       {tally && (
         <p className="pl-tally" aria-live="polite">
           <strong className={tally.withLanding === 0 ? 'none' : undefined}>{tally.withLanding}</strong>
           <span>
-            of {tally.total} site-and-month squares have a landing that survives the mission
-            {tally.tight > 0 ? `; ${tally.tight} of those are tight` : ''}.
+            of {tally.total} {sites ? `months across ${sites} sites` : 'site-and-month squares'} have at least one day this mission can land and get through
+            {tally.tight > 0 ? `. ${tally.tight} of those have only one or two` : ''}.
           </span>
         </p>
       )}

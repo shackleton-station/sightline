@@ -1,5 +1,5 @@
 import { OLD_HOME } from '../lib/siteTabs'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SharePlan } from '../components/SharePlan'
 import { SiteTabs } from '../components/SiteTabs'
 import { setAddressBar } from '../lib/address'
@@ -9,6 +9,7 @@ import { SLIPS } from '../lib/slip'
 import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { defaultAddress, readAddress } from './address'
 import { Brief } from './Brief'
+import { LandingSky } from './LandingSky'
 import { MissionBar } from './MissionBar'
 import { NothingWorks } from './NothingWorks'
 import { PlannerHead, PlannerLoading, PlannerProblem } from './PlannerStates'
@@ -16,6 +17,7 @@ import { ShortList } from './ShortList'
 import { SlipCheck } from './SlipCheck'
 import { usePlannerData } from './usePlannerData'
 import { type Plan, usePlannerView } from './usePlannerView'
+import { briefWhy } from './why'
 import { whenUtc } from './words'
 import { WindowGrid } from './WindowGrid'
 
@@ -57,8 +59,30 @@ export function PlannerApp() {
   // With nothing chosen, the page opens on the first month that has a landing. Changing a limit
   // makes the month on screen the choice, so the selection doesn't jump as the grid redraws.
   const shownMonth = view?.month ?? null
+  const why = useMemo(() => (view ? briefWhy(view.row.flags, view.answer.span, view.viable, view.answer.days, plan.requirements) : null), [view, plan.requirements])
   const setLimits = (requirements: Requirements) => setPlan((now) => ({ ...now, month: now.month ?? shownMonth, requirements }))
   const pick = useCallback((site: string, month: string) => setPlan((now) => ({ ...now, site, month, index: null })), [])
+  /**
+   * A square chosen with the pointer: if the brief isn't in sight (under the grid on narrower
+   * windows), bring it up so the click visibly answers. Keyboard choices stay put, on the grid.
+   */
+  const answerRef = useRef<HTMLDivElement>(null)
+  const [reveal, setReveal] = useState(0)
+  const pickAndShow = useCallback(
+    (site: string, month: string, byPointer: boolean) => {
+      pick(site, month)
+      if (byPointer) setReveal((count) => count + 1)
+    },
+    [pick],
+  )
+  useEffect(() => {
+    const box = answerRef.current
+    if (!reveal || !box) return
+    const top = box.getBoundingClientRect().top
+    if (top > 0 && top < window.innerHeight * 0.6) return
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    box.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
+  }, [reveal])
   const listed = useMemo(() => new Set(plan.shortlist.map((entry) => `${entry.site}@${entry.at.slice(0, 7)}`)), [plan.shortlist])
 
   if (data.status !== 'ready' || !view || !sites) {
@@ -94,7 +118,7 @@ export function PlannerApp() {
     <div className="planner">
       <SiteTabs current="planner" view={hash} />
       <main className="pl-page">
-        <PlannerHead tally={view.grid.tally} />
+        <PlannerHead tally={view.grid.tally} sites={view.grid.rows.length} />
         <MissionBar value={plan.requirements} example={EXAMPLE_REQUIREMENTS} onChange={setLimits} />
         {view.substituted && (
           <p className="pl-notice" role="status">
@@ -103,8 +127,8 @@ export function PlannerApp() {
         )}
         {view.grid.tally.withLanding === 0 && <NothingWorks sites={sites} requirements={plan.requirements} onChange={setLimits} />}
         <div className="pl-body">
-          <WindowGrid grid={view.grid} siteId={row.site.id} month={month} listed={listed} onPick={pick} />
-          <div className="pl-answer">
+          <WindowGrid grid={view.grid} siteId={row.site.id} month={month} listed={listed} onPick={pickAndShow} />
+          <div className="pl-answer" ref={answerRef}>
             <Brief
               site={row.site}
               month={month}
@@ -120,6 +144,8 @@ export function PlannerApp() {
               onDay={planDay}
               onUseBest={() => setPlan((now) => ({ ...now, site: row.site.id, month, index: null }))}
               onPick={pick}
+              sky={<LandingSky site={row.site} flags={row.flags} t={landing.t} requirements={plan.requirements} />}
+              why={why}
             >
               <SlipCheck check={view.check} landing={landing} onDays={setSlipDays} late={view.late} onPlan={planAt} />
             </Brief>

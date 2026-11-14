@@ -24,9 +24,15 @@ interface Props {
   /** Whether this landing is already on the short list. */
   kept: boolean
   onKeep: () => void
+  /** The keep button's words, before and after; the Planner page's short list by default. */
+  keepWords?: { keep: string; kept: string }
   onDay: (day: number) => void
   onUseBest: () => void
   onPick: (siteId: string, month: string) => void
+  /** What the sky does from the landing on: sunset, Earthset and the Sun's height. */
+  sky: ReactNode
+  /** Why the month's other days have no landing, in a sentence; null when every day works. */
+  why?: string | null
   /** The slip check, which needs every site's data and so is put together by the page. */
   children: ReactNode
 }
@@ -37,7 +43,7 @@ const STAMP = { works: 'Works', tight: 'Tight', none: 'No landing' }
  * The answer for the chosen site and month, written as a one-page brief: sentences first, numbers
  * second. It is the same sheet on screen and on paper.
  */
-export function Brief({ site, month, requirements, start, answer, landing, others, obsHeightM, link, kept, onKeep, onDay, onUseBest, onPick, children }: Props) {
+export function Brief({ site, month, requirements, start, answer, landing, others, obsHeightM, link, kept, onKeep, onDay, onUseBest, onPick, sky, why = null, keepWords = { keep: 'Keep this option', kept: 'On the short list' }, children }: Props) {
   const verdict = verdictWords(site.name, month, requirements, answer)
   const works = landing.problems.length === 0
   const isBest = landing.hour === answer.best.hour
@@ -60,6 +66,11 @@ export function Brief({ site, month, requirements, start, answer, landing, other
       <section className="pl-verdict" role="status">
         <p className="pl-verdict-headline">{verdict.headline}</p>
         <p>{verdict.sentence}</p>
+        {why && verdict.status !== 'works' && (
+          <p className="pl-why">
+            <strong>Why:</strong> {why}
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="pl-days-title">
@@ -84,7 +95,7 @@ export function Brief({ site, month, requirements, start, answer, landing, other
         <div className="pl-landing-row">
           <p className="pl-when">{whenUtc(landing.t)}</p>
           <button type="button" className="pl-paper-button" disabled={kept} onClick={onKeep}>
-            {kept ? 'On the short list' : 'Keep this option'}
+            {kept ? keepWords.kept : keepWords.keep}
           </button>
         </div>
         {works ? (
@@ -105,6 +116,8 @@ export function Brief({ site, month, requirements, start, answer, landing, other
           </button>
         )}
       </section>
+
+      {sky}
 
       {children}
 

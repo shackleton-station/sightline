@@ -409,3 +409,265 @@
     display: block;
   }
 }
+
+/* From the landing on: sunset and Earthset side by side, the Sun's height on its own row under them.
+   Two columns, not three: the brief is a narrow column beside the grid on wide screens. */
+.pl-sky-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem 0.9rem;
+  margin: 0.45rem 0 0;
+}
+
+.pl-sky-fact {
+  min-width: 0;
+  margin: 0;
+}
+
+.pl-sky-fact.is-height {
+  grid-column: 1 / -1;
+}
+
+.pl-sky-fact dt {
+  color: var(--pl-paper-muted);
+  font-size: 0.8125rem;
+}
+
+.pl-sky-fact dd {
+  margin: 0;
+}
+
+.pl-brief .pl-sky-main {
+  margin-top: 0.1rem;
+  font-family: var(--pl-mono);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.pl-sky-small {
+  color: var(--pl-paper-muted);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+/* Why the month's other days fail, under the verdict of a tight or empty month. */
+.pl-brief .pl-why {
+  margin-top: 0.45rem;
+  color: var(--pl-paper-ink);
+  font-size: 0.9375rem;
+}
+
+/* ---------- From the landing on: figures, the mission bar, the Sun's height, the skyline ---------- */
+.pl-brief {
+  --pl-paper-sun: #c27a00;
+  --pl-paper-earth: #2d64b3;
+  --pl-paper-both: #0a6a42;
+  --pl-paper-ground: #8f8b98;
+}
+
+.pl-brief .pl-sky-sub {
+  margin: 0.85rem 0 0.25rem;
+  color: var(--pl-paper-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.pl-sky-figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem 0.7rem;
+  margin: 0;
+}
+
+.pl-sky-figures div {
+  min-width: 0;
+}
+
+.pl-sky-figures dt {
+  color: var(--pl-paper-muted);
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.pl-sky-figures dd {
+  margin: 0.1rem 0 0;
+  font-family: var(--pl-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+/* A figure past the mission's own limit. */
+.pl-sky-figures .is-over dd {
+  color: var(--pl-paper-tight);
+}
+
+@media (max-width: 420px) {
+  .pl-sky-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pl-timeline,
+.pl-skyline {
+  margin: 0;
+}
+
+.pl-timeline svg {
+  display: block;
+  width: 100%;
+  height: 14px;
+}
+
+.pl-run.is-both {
+  fill: var(--pl-paper-both);
+}
+
+.pl-run.is-sun {
+  fill: var(--pl-paper-sun);
+}
+
+.pl-run.is-earth {
+  fill: var(--pl-paper-earth);
+}
+
+.pl-run.is-none {
+  fill: var(--pl-paper-muted);
+}
+
+.pl-timeline-axis {
+  position: relative;
+  height: 1.1rem;
+  margin: 0.15rem 0 0;
+  color: var(--pl-paper-muted);
+  font-size: 0.6875rem;
+}
+
+.pl-timeline-axis span {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.pl-timeline-axis span:first-child {
+  transform: none;
+}
+
+.pl-timeline-axis span:last-child:not(:first-child) {
+  transform: translateX(-100%);
+}
+
+.pl-brief .pl-legend {
+  margin: 0.2rem 0 0;
+  color: var(--pl-paper-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.pl-run-key,
+.pl-sky-key {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.5rem;
+  margin: 0 0.15rem 0 0.4rem;
+  vertical-align: baseline;
+}
+
+.pl-run-key:first-child,
+.pl-sky-key:first-child {
+  margin-left: 0;
+}
+
+.pl-run-key.is-sun,
+.pl-sky-key.is-sun {
+  background: var(--pl-paper-sun);
+}
+
+.pl-run-key.is-earth,
+.pl-sky-key.is-earth {
+  background: var(--pl-paper-earth);
+}
+
+.pl-run-key.is-both {
+  background: var(--pl-paper-both);
+}
+
+.pl-run-key.is-none {
+  height: 2px;
+  background: var(--pl-paper-muted);
+  vertical-align: middle;
+}
+
+.pl-sky-key {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+
+.pl-brief .pl-sky-height .pl-sky-main {
+  margin: 0;
+}
+
+.pl-brief .pl-sky-height .pl-sky-small {
+  margin: 0.1rem 0 0;
+}
+
+.pl-skyline svg {
+  display: block;
+}
+
+.pl-sky-ground {
+  fill: var(--pl-paper-ground);
+  opacity: 0.55;
+}
+
+.pl-sky-path {
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.pl-sky-path.is-sun {
+  stroke: var(--pl-paper-sun);
+}
+
+.pl-sky-path.is-earth {
+  stroke: var(--pl-paper-earth);
+  stroke-dasharray: 3 2;
+}
+
+.pl-sky-mark {
+  stroke: var(--pl-paper);
+  stroke-width: 1.5;
+}
+
+.pl-sky-mark.is-sun {
+  fill: var(--pl-paper-sun);
+}
+
+.pl-sky-mark.is-earth {
+  fill: var(--pl-paper-earth);
+}
+
+/* Below the skyline at landing: an outline only. */
+.pl-sky-mark.is-hidden {
+  fill: var(--pl-paper);
+  stroke-width: 2;
+}
+
+.pl-sky-mark.is-sun.is-hidden {
+  stroke: var(--pl-paper-sun);
+}
+
+.pl-sky-mark.is-earth.is-hidden {
+  stroke: var(--pl-paper-earth);
+}
+
+.pl-sky-compass {
+  fill: var(--pl-paper-muted);
+  font-family: var(--pl-mono);
+  font-size: 10px;
+}

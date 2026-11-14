@@ -570,21 +570,10 @@
   display: none;
 }
 
+/* Tight is striped as well as orange, so it reads without telling orange from green; the stripes
+   sit on the bar itself, where a ring at the top of the cell floated away from a short bar. */
 .pl-cell.tight .pl-bar {
-  background: var(--pl-tight);
-}
-
-/* Tight is a ring above the bar as well as a color, so it reads without telling orange from green. */
-.pl-cell.tight::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  width: 7px;
-  height: 7px;
-  margin-left: -3.5px;
-  border: 1.5px solid var(--pl-tight);
-  border-radius: 50%;
+  background: repeating-linear-gradient(-45deg, var(--pl-tight) 0 2px, rgb(0 0 0 / 55%) 2px 3.5px), var(--pl-tight);
 }
 
 /* A month with an option on the short list carries a violet tick along its top. */
@@ -626,7 +615,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 1.5rem;
-  margin: 0.5rem 0 0;
+  margin: 0.6rem 0 0.7rem;
   padding: 0;
   color: var(--muted);
   font-size: 0.8125rem;
@@ -665,19 +654,19 @@
 }
 
 .pl-swatch.tight::after {
-  height: 3px;
-  background: var(--pl-tight);
+  height: 7px;
+  background: repeating-linear-gradient(-45deg, var(--pl-tight) 0 2px, rgb(0 0 0 / 55%) 2px 3.5px), var(--pl-tight);
 }
 
-.pl-swatch.tight::before {
-  content: '';
-  position: absolute;
-  bottom: 6px;
-  left: 1.5px;
-  width: 4px;
-  height: 4px;
-  border: 1.5px solid var(--pl-tight);
-  border-radius: 50%;
+/* Kept: the line along the top of a month, in the page's accent, as on the grid. */
+.pl-swatch.listed {
+  border-bottom-color: transparent;
+}
+
+.pl-swatch.listed::after {
+  top: 0;
+  height: 3px;
+  background: var(--accent);
 }
 
 /* ---------- Buttons under the brief ---------- */
@@ -1010,4 +999,19 @@
   .pl-take .share-plan-open {
     flex: 1 1 calc(50% - 0.25rem);
   }
+}
+
+/* One line under the title saying what to do here. */
+.pl-intro {
+  max-width: 38rem;
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+/* The keyboard hint, under the grid now that the key is above it. */
+.pl-grid .pl-key-keys {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
 }

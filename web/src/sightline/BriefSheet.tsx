@@ -7,6 +7,8 @@ import { SLIPS } from '../lib/slip'
 import type { SightlineMission, SightlineScenario } from '../lib/sightlineMission'
 import { defaultAddress } from '../planner/address'
 import { Brief } from '../planner/Brief'
+import { LandingSky } from '../planner/LandingSky'
+import { briefWhy } from '../planner/why'
 import { SlipCheck } from '../planner/SlipCheck'
 import { usePlannerData } from '../planner/usePlannerData'
 import { type Plan, usePlannerView } from '../planner/usePlannerView'
@@ -48,6 +50,7 @@ export default function BriefSheet({ start, scenario, site, mission, room, onLan
   const sites = data.status === 'ready' ? data.sites : null
   const view = usePlannerView(isCustomSite(site) ? null : sites, plan, fallback, slipDays)
   const link = window.location.href
+  const why = useMemo(() => (view ? briefWhy(view.row.flags, view.answer.span, view.viable, view.answer.days, mission.requirements) : null), [view, mission.requirements])
 
   return (
     <div className="sl-how sl-brief-sheet planner" role="dialog" aria-modal="true" aria-label="Landing brief">
@@ -90,6 +93,8 @@ export default function BriefSheet({ start, scenario, site, mission, room, onLan
           }}
           onUseBest={() => onLanding(view.answer.best.hour)}
           onPick={(siteId, month) => onLanding(hourOf(start, `${month}-01T00:00:00Z`), siteId)}
+          sky={<LandingSky site={view.row.site} flags={view.row.flags} t={view.landing.t} requirements={mission.requirements} />}
+          why={why}
         >
           <SlipCheck check={view.check} landing={view.landing} onDays={setSlipDays} late={view.late} onPlan={(siteId, t) => onLanding(hourOf(start, t), siteId ?? undefined)} />
         </Brief>
