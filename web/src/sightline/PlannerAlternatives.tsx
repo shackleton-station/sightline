@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import type { SiteFlags } from '../lib/flags'
 import { hourOf, missionEarth, type Requirements, viableHours } from '../lib/mission'
@@ -8,13 +8,17 @@ import { shortReason } from '../lib/sightlineSky'
 import { distanceKm } from '../lib/slip'
 import type { PlannerSite } from '../planner/plannerModel'
 import { whenUtc } from '../planner/words'
+import { useWidth } from '../lib/useWidth'
 
 /** How far either side of the chosen date the suggestions may land: about a lunar day's worth, so every site's next good window can show. */
 export const AROUND_DAYS = 14
 /** How close another site must be to count as "in the same region", when it isn't in the site's own group. */
 export const NEARBY_KM = 300
-/** At most this many cards in all: your picks first, then suggestions. */
-const MAX_CARDS = 6
+/** At most this many suggestions; one line of them shows until "Show more". */
+const MAX_SUGGESTIONS = 8
+/** A suggestion card's narrowest width and the gap between them (px), to count how many fit on a line. */
+const SUGGESTION_MIN_PX = 172
+const SUGGESTION_GAP_PX = 8
 
 /** A landing you kept: one of the screen's scenarios. */
 export interface KeptPick {
@@ -141,7 +145,7 @@ export function PlannerAlternatives({ sites, requirements, maxSlopeDeg, landing,
     const away = (row: ShortlistRow) => Math.abs(Date.parse(`${row.entry.at}:00:00Z`) - Date.parse(landing))
     const suggested: Card[] = rankOptions(picks)
       .sort((a, b) => a.rank - b.rank || away(a) - away(b))
-      .slice(0, Math.max(0, MAX_CARDS - keptCards.length))
+      .slice(0, MAX_SUGGESTIONS)
       .flatMap((row) => {
         const flags = flagsOf.get(row.site.id)
         return flags ? [{ key: `sug-${row.site.id}@${row.entry.at}`, kind: 'suggested' as const, row, flags, iso: `${row.entry.at}:00:00Z` }] : []
@@ -151,39 +155,41 @@ export function PlannerAlternatives({ sites, requirements, maxSlopeDeg, landing,
 
   const chosenMs = Date.parse(landing)
   const date = whenUtc(landing).replace(/, \d\d:\d\d UTC$/, '')
-  const anySuggested = cards.some((card) => card.kind === 'suggested')
+  const picks = cards.filter((card) => card.kind === 'kept')
+  const suggestions = cards.filter((card) => card.kind === 'suggested')
+  // One line of suggestions, as many as fit; the rest behind "Show more".
+  const [lineRef, lineWidth] = useWidth()
+  const [more, setMore] = useState(false)
+  const perLine = Math.max(1, Math.floor((lineWidth + SUGGESTION_GAP_PX) / (SUGGESTION_MIN_PX + SUGGESTION_GAP_PX)))
+  const shownSuggestions = more ? suggestions : suggestions.slice(0, perLine)
+
+  const figures = (row: ShortlistRow) => ({
+    darkOver: row.sunGapH !== null && row.sunGapH > requirements.maxSunGapH,
+    silenceOver: row.earthGapH !== null && row.earthGapH > requirements.maxEarthGapH,
+  })
 
   return (
     <section className="pl-alts" aria-labelledby="pl-alts-title">
       <h3 className="pl-label" id="pl-alts-title">
-        Compare: your picks, and if the plan has to move
+        Your picks
       </h3>
-      <p className="pl-alts-sub">Suggestions come from this site and nearby, within two weeks of {date}: best first by time without Sun, then without Earth.</p>
       <ol className="pl-alts-list">
-        {cards.map((card) => {
+        {picks.map((card) => {
           const { row } = card
           const fits = row.problems.length === 0
           const offset = Math.round((Date.parse(card.iso) - chosenMs) / 3_600_000)
-          const hour = hourOf(card.flags.start, card.iso)
-          const darkOver = row.sunGapH !== null && row.sunGapH > requirements.maxSunGapH
-          const silenceOver = row.earthGapH !== null && row.earthGapH > requirements.maxEarthGapH
+          const { darkOver, silenceOver } = figures(row)
           return (
-            <li key={card.key} className={['pl-alt', card.kind === 'kept' ? 'is-kept' : '', card.pick?.onShow ? 'is-on-show' : '', fits ? 'fits' : 'misses'].join(' ')}>
+            <li key={card.key} className={['pl-alt', 'is-kept', card.pick?.onShow ? 'is-on-show' : '', fits ? 'fits' : 'misses'].join(' ')}>
               <p className="pl-alt-tag">
-                {card.kind === 'kept' ? (
-                  <>
-                    <span className="pl-alt-letter">{card.pick?.letter}</span> {card.pick?.onShow ? 'On show' : 'Kept'}
-                  </>
-                ) : (
-                  <span>Suggested #{row.rank}</span>
-                )}
+                <span className="pl-alt-letter">{card.pick?.letter}</span> {card.pick?.onShow ? 'On show' : 'Kept'}
                 <span className={`pl-alt-fit ${fits ? 'fits' : 'misses'}`}>{fits ? '✓ Fits' : '✗ Misses'}</span>
               </p>
               <p className="pl-alt-site">{row.site.name}</p>
               <p className="pl-alt-when">
                 {whenUtc(card.iso).replace(' UTC', '')} {card.pick?.onShow ? null : <span>{offsetWords(offset)}</span>}
               </p>
-              <MiniStrip flags={card.flags} hour={hour} requirements={requirements} />
+              <MiniStrip flags={card.flags} hour={hourOf(card.flags.start, card.iso)} requirements={requirements} />
               <dl className="pl-alt-figures">
                 <div>
                   <dt>Sunlit</dt>
@@ -200,35 +206,67 @@ export function PlannerAlternatives({ sites, requirements, maxSlopeDeg, landing,
               </dl>
               {!fits && <p className="pl-alt-why">{row.problems.map(shortReason).join(' · ')}</p>}
               <p className="pl-alt-actions">
-                {card.kind === 'kept' ? (
-                  <>
-                    {!card.pick?.onShow && (
-                      <button type="button" className="pl-button primary" onClick={card.pick?.onShowIt}>
-                        Show
-                      </button>
-                    )}
-                    {card.pick?.onRemove && (
-                      <button type="button" className="pl-button" onClick={card.pick.onRemove}>
-                        Remove
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <button type="button" className="pl-button primary" title="Move the landing on show here" onClick={() => onOpen(row.site.id, card.iso)}>
-                      Open
-                    </button>
-                    <button type="button" className="pl-button" disabled={!room} title={room ? 'Keep it to compare' : 'Four kept at most: remove one first'} onClick={() => onKeep(row.site, card.iso)}>
-                      Keep
-                    </button>
-                  </>
+                {!card.pick?.onShow && (
+                  <button type="button" className="pl-button primary" onClick={card.pick?.onShowIt}>
+                    Show
+                  </button>
+                )}
+                {card.pick?.onRemove && (
+                  <button type="button" className="pl-button" onClick={card.pick.onRemove}>
+                    Remove
+                  </button>
                 )}
               </p>
             </li>
           )
         })}
       </ol>
-      {!anySuggested && <p className="pl-alts-none">Nothing here or nearby has another landing within two weeks either side that meets your limits. The grid shows when one does.</p>}
+
+      <div className="pl-sugs-head">
+        <h4 className="pl-label">If the plan has to move</h4>
+        <span className="pl-alts-sub">This site and nearby, within two weeks of {date}: best first by time without Sun, then without Earth.</span>
+      </div>
+      {suggestions.length === 0 ? (
+        <p className="pl-alts-none">Nothing here or nearby has another landing within two weeks either side that meets your limits. The grid shows when one does.</p>
+      ) : (
+        <ol className="pl-sugs" ref={lineRef} style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${SUGGESTION_MIN_PX}px, 1fr))`, gap: `${SUGGESTION_GAP_PX}px` }}>
+          {shownSuggestions.map((card) => {
+            const { row } = card
+            const offset = Math.round((Date.parse(card.iso) - chosenMs) / 3_600_000)
+            const { darkOver, silenceOver } = figures(row)
+            return (
+              <li key={card.key} className="pl-sug">
+                <p className="pl-sug-top">
+                  <span className="pl-sug-rank">#{row.rank}</span>
+                  <span className="pl-sug-site">{row.site.name}</span>
+                </p>
+                <p className="pl-sug-when">
+                  {whenUtc(card.iso).replace(/ \d{4}, /, ', ').replace(' UTC', '')} <span>{offsetWords(offset)}</span>
+                </p>
+                <MiniStrip flags={card.flags} hour={hourOf(card.flags.start, card.iso)} requirements={requirements} />
+                <p className="pl-sug-figs">
+                  <span>{row.sunPct === null ? '–' : `${Math.round(row.sunPct)}%`} sun</span>
+                  <span className={darkOver ? 'is-over' : undefined}>{row.sunGapH === null ? '–' : formatDuration(row.sunGapH)} dark</span>
+                  <span className={silenceOver ? 'is-over' : undefined}>{row.earthGapH === null ? '–' : formatDuration(row.earthGapH)} silent</span>
+                </p>
+                <p className="pl-sug-actions">
+                  <button type="button" title="Move the landing on show here" onClick={() => onOpen(row.site.id, card.iso)}>
+                    Open
+                  </button>
+                  <button type="button" disabled={!room} title={room ? 'Keep it as a pick' : 'Four picks at most: remove one first'} onClick={() => onKeep(row.site, card.iso)}>
+                    Keep
+                  </button>
+                </p>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+      {suggestions.length > perLine && (
+        <button type="button" className="pl-sugs-more" aria-expanded={more} onClick={() => setMore(!more)}>
+          {more ? 'Show fewer' : `Show ${suggestions.length - perLine} more`}
+        </button>
+      )}
       <p className="pl-alts-key">
         <i className="pl-strip-key is-sun" /> Sun <i className="pl-strip-key is-earth" /> Earth <i className="pl-strip-key is-both" /> Both <i className="pl-strip-key is-none" /> Neither, over the {requirements.missionDays}-day mission. Orange: past your limit.
       </p>

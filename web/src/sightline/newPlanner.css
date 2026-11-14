@@ -1056,41 +1056,37 @@
   margin-top: -6.5px;
 }
 
-/* ---------- Find | Compare: two big tabs at the top of the main side ---------- */
+/* ---------- Find | Compare: a slim pill at the top of the main side ---------- */
 .sl-np .np-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: inline-flex;
   margin: 0 0 0.9rem;
+  padding: 3px;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 3%);
 }
 
 .sl-np .np-tabs button {
-  display: grid;
-  gap: 0.1rem;
-  justify-items: start;
-  padding: 0.65rem 1.1rem;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.32rem 1rem;
   border: 0;
+  border-radius: 999px;
   background: none;
   color: var(--soft);
   font: inherit;
-  font-family: var(--serif);
-  font-size: 1.25rem;
-  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
-}
-
-.sl-np .np-tabs button + button {
-  border-left: 1px solid var(--line);
+  transition: background 0.15s, color 0.15s;
 }
 
 .sl-np .np-tabs button small {
-  font-family: var(--pl-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.8;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.75;
 }
 
 .sl-np .np-tabs button[aria-selected='true'] {
@@ -1099,8 +1095,13 @@
 }
 
 .sl-np .np-tabs button:hover:not([aria-selected='true']) {
-  background: rgb(255 255 255 / 4%);
   color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-np .np-tabs button {
+    transition: none;
+  }
 }
 
 /* ---------- Compare: each pick as a column, the brief's own pictures, rows lining up ---------- */
@@ -1200,4 +1201,135 @@
 .sl-np .np-compare-empty p {
   margin: 0.35rem 0 0;
   font-size: 0.875rem;
+}
+
+/* ---------- If the plan has to move: smaller cards, one line, more on request ---------- */
+.sl-np .pl-sugs-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.8rem;
+  margin-top: 1rem;
+}
+
+.sl-np .pl-sugs-head h4 {
+  margin: 0;
+}
+
+.sl-np .pl-sugs-head .pl-alts-sub {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.sl-np .pl-sugs {
+  display: grid;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sl-np .pl-sug {
+  min-width: 0;
+  padding: 0.45rem 0.55rem 0.5rem;
+  border: 1px solid var(--pl-rule);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 2%);
+}
+
+.sl-np .pl-sug p {
+  margin: 0;
+}
+
+.sl-np .pl-sug-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.sl-np .pl-sug-rank {
+  color: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 0.6875rem;
+}
+
+.sl-np .pl-sug-site {
+  overflow: hidden;
+  color: var(--pl-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-np .pl-sug-when {
+  font-family: var(--pl-mono);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
+.sl-np .pl-sug-when span {
+  color: var(--muted);
+}
+
+.sl-np .pl-sug .pl-strip {
+  height: 6px;
+  margin-top: 0.3rem;
+}
+
+.sl-np .pl-sug-figs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  margin-top: 0.3rem !important;
+  color: var(--soft);
+  font-family: var(--pl-mono);
+  font-size: 0.6875rem;
+}
+
+.sl-np .pl-sug-figs .is-over {
+  color: var(--warning);
+}
+
+.sl-np .pl-sug-actions {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.35rem !important;
+}
+
+.sl-np .pl-sug-actions button {
+  padding: 0.12rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.6875rem;
+  cursor: pointer;
+}
+
+.sl-np .pl-sug-actions button:first-child {
+  border-color: var(--pl-ink);
+  background: var(--pl-ink);
+  color: #000;
+}
+
+.sl-np .pl-sug-actions button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.sl-np .pl-sugs-more {
+  margin-top: 0.45rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gold);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.sl-np .pl-sugs-more:hover {
+  text-decoration: underline;
 }
