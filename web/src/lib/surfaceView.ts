@@ -133,6 +133,11 @@ export function acrossDeg(lens: Lens): number {
   return 2 * Math.atan(lens.aspect * Math.tan((lens.fovDeg * RAD) / 2)) * DEG
 }
 
+/** The field of view, bottom to top, that makes a picture of this shape span `wideDeg` from left to right: `acrossDeg` the other way round. */
+export function fovForAcross(wideDeg: number, aspect: number): number {
+  return 2 * Math.atan(Math.tan((wideDeg * RAD) / 2) / aspect) * DEG
+}
+
 /** The outline of a disk on the picture: its middle and half-widths, in the units of `project`. */
 export function diskOutline(lens: Lens, azDeg: number, elDeg: number, radiusDeg: number): ScreenPoint & { rx: number; ry: number } {
   const middle = project(lens, azDeg, elDeg)

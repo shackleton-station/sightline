@@ -24,6 +24,7 @@ import {
   trueEl,
   turnBetween,
   unproject,
+  fovForAcross,
 } from './surfaceView'
 
 const dataPath = (name: string) => fileURLToPath(new URL(`../../public/data/${name}`, import.meta.url))
@@ -34,6 +35,15 @@ const positionsOf = (year: number) => {
 }
 
 const lens = (over: Partial<Lens> = {}): Lens => ({ headingDeg: 226, pitchDeg: -1.5, fovDeg: 12, stretch: 1, aspect: 1.8, ...over })
+
+describe('the field of view for a width', () => {
+  it('is the one acrossDeg turns back into that width, whatever the picture\'s shape', () => {
+    for (const aspect of [0.5, 0.96, 1.6, 2.4]) {
+      const fovDeg = fovForAcross(30, aspect)
+      expect(acrossDeg({ headingDeg: 0, pitchDeg: 0, fovDeg, stretch: 1, aspect })).toBeCloseTo(30, 9)
+    }
+  })
+})
 
 describe('where a direction lands on the picture', () => {
   it('puts the direction the visitor faces in the middle', () => {

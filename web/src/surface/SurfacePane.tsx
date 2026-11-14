@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HorizonPoint, SiteInfo, TrackPoint } from '../data/contract'
 import { horizonAt } from '../lib/customModel'
-import { acrossDeg, type BodyRadii, type Lens, type Look } from '../lib/surfaceView'
+import { acrossDeg, type BodyRadii, fovForAcross, type Lens, type Look } from '../lib/surfaceView'
 import type { GroundTint, SurfaceFrame } from '../three/SurfaceViewer'
 import { CompassStrip } from './CompassStrip'
 import { LensControls } from './LensControls'
@@ -51,7 +51,9 @@ interface Props {
   onLost: () => void
 }
 
-/** The opening field of view, bottom to top: the Sun is then a disk, not a dot, at true scale. */
+/** A fresh view opens this wide, left to right, whatever its shape. */
+const OPENING_ACROSS_DEG = 30
+/** The field of view, bottom to top, until the picture has been measured. */
 const OPENING_FOV_DEG = 12
 /** Where the layout changes (surface.css): the compass drops a row, then the phone layout; and a short, wide window. */
 const MEDIUM_PX = 1100
@@ -112,6 +114,15 @@ export function SurfacePane(props: Props) {
     register(key, { steer, setLens, face })
     return () => register(key, null)
   }, [register, key, steer, setLens, face])
+
+  // A fresh view opens 30° wide, once its shape is known. One opened beside another takes that one's lens, and a link's look its own.
+  const fresh = useRef(opening === null && !(body === null && aim.look))
+  useEffect(() => {
+    if (!fresh.current || size.width === 0 || size.height === 0) return
+    fresh.current = false
+    const aspect = size.width / size.height
+    setLens((current) => ({ ...current, fovDeg: fovForAcross(OPENING_ACROSS_DEG, aspect) }))
+  }, [size, setLens])
 
   const { headingDeg, pitchDeg, fovDeg, stretch } = look
   useEffect(() => onLens(fovDeg, stretch), [onLens, fovDeg, stretch])
