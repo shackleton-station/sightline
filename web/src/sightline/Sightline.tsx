@@ -50,6 +50,7 @@ import { type TrekLayerId, trekLayer } from '../lib/trekLayers'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
+import { NewPlanner } from './NewPlanner'
 import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
 import { Tips } from './Tips'
@@ -173,6 +174,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // A link that names a Planner tab opens the Planner on it.
   const [full, setFull] = useState(() => linked !== null && plannerTabIn(window.location.hash) !== null)
   const [plannerTab, setPlannerTab] = useState<PlannerTab>(() => plannerTabIn(window.location.hash) ?? 'find')
+  // Which Planner the whole window shows: the Find and Compare one, or the New Planner (the Planner page's look on this screen's data).
+  const [newPlanner, setNewPlanner] = useState(false)
   const [how, setHow] = useState(openHow)
   // The written brief for the scenario on show, as a sheet too.
   const [brief, setBrief] = useState(false)
@@ -443,6 +446,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     [plan, hour, setScenario],
   )
   /** Add a scenario and show it, with the time bar on its landing. With four already, nothing is added. */
+  /** The New Planner moved the scenario on show: the Moon, the time bar and the column follow. */
+  const moveScenario = useCallback(
+    (moved: SightlineScenario) => {
+      setScenario(() => moved)
+      setHour(moved.landing)
+    },
+    [setScenario, setHour],
+  )
   const addScenario = useCallback(
     (added: SightlineScenario) => {
       if (scenarios.length >= MAX_SCENARIOS) return
@@ -649,7 +660,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // asked for) the same verdicts shaded on the Moon. Its months are megabytes, read only then.
   const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, shown && !planner && (drawer === 'accuracy' || fitShade))
   const fitOverlay = useFitOverlay(missionGrid, mission, shown && !planner && fitShade)
-  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', gliding && !plan ? 'is-gliding' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
+  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
     <div className={classes}>
@@ -883,7 +894,31 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {!bare && !plan && !(scoutOpen && room === 'phone') && <PlayControl clock={clock} date={clockDate(start, hour)} span={monthSpan(start, hour)} minimised={pillMin} onMinimise={setPillMin} />}
       </main>
 
-      {planner && (
+      {planner && newPlanner && (
+        <NewPlanner
+          start={start}
+          hours={hours}
+          flagged={lit.flagged}
+          scenarios={scenarios}
+          facts={facts}
+          mission={mission}
+          onMission={setMission}
+          active={active}
+          onSelect={setActive}
+          onAdd={addScenario}
+          onRemove={removeScenario}
+          onScenario={moveScenario}
+          onBack={() => setFull(false)}
+          scoutOpen={drawer === 'scout'}
+          onScout={() => setDrawer(drawer === 'scout' ? null : 'scout')}
+          site={site}
+          month={landingAt.month}
+          year={Number(landingAt.month.slice(0, 4))}
+          summary={here?.summary ?? null}
+          landings={shares}
+        />
+      )}
+      {planner && !newPlanner && (
         <FullPlanner
           start={start}
           hours={hours}
@@ -982,6 +1017,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onPlanner={() => {
             // In the Planner the only panel is Scout's.
             if (drawer !== 'scout') setDrawer(null)
+            setNewPlanner(false)
+            setFull(true)
+          }}
+          onNewPlanner={() => {
+            if (drawer !== 'scout') setDrawer(null)
+            setNewPlanner(true)
             setFull(true)
           }}
           scoutOpen={drawer === 'scout'}

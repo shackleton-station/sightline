@@ -26,6 +26,8 @@ interface Props {
   onLayers: () => void
   /** Open the Planner: the same scenarios with the whole window to work in. */
   onPlanner: () => void
+  /** Open the New Planner: the Planner page's look, on the same scenarios. */
+  onNewPlanner: () => void
   /** Open How it works, as a sheet over the scene. */
   onHow: () => void
   /** Start Scout's tour of the screen. On a phone it is in "More"; on a laptop it is the first thing in How it works. */
@@ -38,7 +40,7 @@ interface Props {
  * The rail down the right of the Plan frame: how close the Moon is seen (one grouped control), the
  * tools, and the way out (home, to the opening screen). Nothing here leaves the screen.
  */
-export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onHow, onTour, onHome }: Props) {
+export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -96,6 +98,9 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
       </button>
       <button type="button" data-tour="planner" title="Every scenario, every site and month, with the whole window to work in" onClick={onPlanner}>
         Planner
+      </button>
+      <button type="button" title="The Planner page's look on these scenarios: where and when at the top, every site by month, and the brief beside it" onClick={onNewPlanner}>
+        New Planner
       </button>
     </>
   )
