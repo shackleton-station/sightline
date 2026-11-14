@@ -563,3 +563,30 @@
   font-weight: 600;
 }
 
+/* The Sun's height at the landing on show: the height above the skyline leads. */
+.pl-detail-sun {
+  margin-top: 0.8rem;
+}
+
+.pl-detail-sun h4,
+.plh-sunchart > h4 {
+  margin: 0 0 0.2rem;
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.pl-detail-main {
+  margin: 0;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pl-detail-small {
+  margin: 0.1rem 0 0;
+  color: var(--soft);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+

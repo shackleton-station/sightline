@@ -171,3 +171,18 @@
   margin-top: 0.8rem;
 }
 
+/* Compare's in-depth section says three things in this screen's own words, so the imported parts'
+   own lines for them are left out: the Sun's height block (led there by the height from a flat
+   horizon), the Sun chart's heading and caption, and the power budget's closing note. */
+.plh-sky .pl-sky-height,
+.plh-sky .pl-sky-sub:has(+ .pl-sky-height),
+.plh-sunchart section > h3,
+.plh-sunchart section > h3 + p,
+.plh-power section > p:last-child {
+  display: none;
+}
+
+.plh-power section > h3 {
+  margin-top: 0;
+}
+
