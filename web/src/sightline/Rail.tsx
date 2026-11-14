@@ -15,6 +15,11 @@ interface Props {
   onMission: () => void
   compareOpen: boolean
   onCompare: () => void
+  /** Landing accuracy: the ground around the target, and the odds of coming down where the mission fits. */
+  accuracyOpen: boolean
+  /** Whether the Moon is shaded by where a landing fits (the button says so). */
+  accuracyOn: boolean
+  onAccuracy: () => void
   /** Whether the Layers panel is open, and whether a Moon Trek layer is on (the button says so). */
   layersOpen: boolean
   layerOn: boolean
@@ -33,7 +38,7 @@ interface Props {
  * The rail down the right of the Plan frame: how close the Moon is seen (one grouped control), the
  * tools, and the two ways out (back to Watch, or hide everything). Nothing here leaves the screen.
  */
-export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, layersOpen, layerOn, onLayers, onPlanner, onHow, onTour, onWatch, onHide }: Props) {
+export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onHow, onTour, onWatch, onHide }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -83,6 +88,11 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
       </button>
       <button type="button" data-tour="compare" aria-pressed={compareOpen} title="The scenarios side by side" onClick={onCompare}>
         Compare
+      </button>
+      <button type="button" aria-pressed={accuracyOpen} title="The ground around the target, and the odds of landing where the mission fits" onClick={onAccuracy}>
+        Accuracy
+        {/* Says why the Moon is green and red, with the panel open or shut. */}
+        {accuracyOn && <small className="sl-rail-credit">Shading on</small>}
       </button>
       <button type="button" data-tour="planner" title="Every scenario, every site and month, with the whole window to work in" onClick={onPlanner}>
         Planner

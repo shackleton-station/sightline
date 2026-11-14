@@ -3504,3 +3504,63 @@
     padding: 0.25rem 0.5rem;
   }
 }
+
+/* Landing accuracy: the odds, the map of the ground within reach, and the curve of the miss. */
+.sl-accuracy h3 {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+}
+
+.sl-accuracy-odds {
+  font-size: 0.9375rem;
+}
+
+.sl-accuracy-odds strong {
+  font-family: var(--serif);
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-accuracy-misses,
+.sl-accuracy-notes {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.sl-accuracy-notes li + li {
+  margin-top: 0.3rem;
+}
+
+.sl-accuracy-map {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  margin-top: 0.7rem;
+  border: 1px solid var(--line);
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+
+.sl-accuracy-key span {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.2rem;
+  vertical-align: -0.05rem;
+}
+
+.sl-accuracy-key span + span {
+  margin-left: 0.5rem;
+}
+
+.sl-accuracy-picked {
+  min-height: 2.3em;
+}
+
+.sl-accuracy-curve {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+}
