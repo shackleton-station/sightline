@@ -39,6 +39,12 @@ interface Props {
    * then their figures alone.
    */
   over: { start: string; landing: number; missionDays: number; sun: BodyOver; earth: BodyOver } | null
+  /**
+   * The mission's limits are open in the column. Like the charts, the one-line sentence about the
+   * landing and the line about Horizons step aside while they are, so the verdict, the limits and the
+   * Sun, Earth and ground all stay on a small laptop's screen (1366 by 768) without scrolling.
+   */
+  limitsOpen?: boolean
 }
 
 /** What the W/m² on the Sun's small line is, for that line's own tooltip. */
@@ -51,7 +57,7 @@ const SUNLIGHT_MEANS = 'Sunlight on a surface facing the Sun, in watts per squar
  * landing's hour (the countdowns run from the landing) from the pipeline's track, horizon and flags,
  * through the functions the rest of the app uses. It does not follow the time bar.
  */
-export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsLine, earthShare, verdict, plan, over }: Props) {
+export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsLine, earthShare, verdict, plan, over, limitsOpen = false }: Props) {
   // The hour under the pointer, on either row's chart: one crosshair runs through both.
   const [at, setAt] = useState<number | null>(null)
   // The hour-for-hour comparison with JPL Horizons for a listed site; a custom point has none.
@@ -83,9 +89,11 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
     <div className="sl-answer">
       {verdict}
       {plan}
-      <p className="sl-sentence" role="status">
-        {now ? landingSentence(now.sun_frac, earthShare, now.earth_up) : 'Working out the light here…'}
-      </p>
+      {!limitsOpen && (
+        <p className="sl-sentence" role="status">
+          {now ? landingSentence(now.sun_frac, earthShare, now.earth_up) : 'Working out the light here…'}
+        </p>
+      )}
       {heightsLine && <p className="sl-heights-line">{heightsLine}</p>}
       <dl className="sl-facts">
         <div className="sl-fact is-sun" tabIndex={0} title={aboveMeans && now ? aboveMeans : undefined}>
@@ -126,8 +134,8 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
           <dd className={ground?.fails ? 'sl-fact-small is-warn' : 'sl-fact-small'}>{ground ? ground.text : data ? 'not known for this point' : '…'}</dd>
         </div>
       </dl>
-      {/* Always there, so nothing moves when the comparison arrives. */}
-      {horizons && data && now ? (
+      {/* Always there, so nothing moves when the comparison arrives; out of the way while the mission's limits are open. */}
+      {limitsOpen ? null : horizons && data && now ? (
         <p className="sl-horizons" title={`Our directions to the Sun and Earth agree with NASA JPL's Horizons service at every hour for this site (${horizons.hours.toLocaleString('en-US')} hours each). The largest gap is rounding.`}>
           <span aria-hidden="true">✓</span> Matches Horizons within {withinWords(horizons.max_deg)} · Reproduce:{' '}
           <a href={horizonsQueryUrl('sun', data.site.lat, data.site.lon, horizons.alt_km, now.t)} target="_blank" rel="noreferrer" title="Opens NASA's own answer for the Sun at this site and hour. Its last two numbers are the compass bearing and the height above a flat horizon.">

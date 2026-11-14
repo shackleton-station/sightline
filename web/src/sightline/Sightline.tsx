@@ -1017,6 +1017,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               heightsLine={heightsLine}
               earthShare={shares[active]?.earth ?? null}
               over={over}
+              limitsOpen={missionHere}
               plan={
                 <Fields
                   held={tourStep?.state.open === 'custom'}

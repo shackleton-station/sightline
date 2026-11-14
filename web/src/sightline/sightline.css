@@ -3473,12 +3473,14 @@ button.sl-moment-heights[aria-expanded='true'] {
   height: 1rem;
   margin: 0;
   color: var(--soft);
-  font-size: 0.6875rem;
+  /* 12 px: the smallest type the screen sets. */
+  font-size: 0.75rem;
 }
 
 .sl-over-axis span {
   position: absolute;
-  top: 0.1rem;
+  top: 0;
+  line-height: 1rem;
   white-space: nowrap;
   transform: translateX(-50%);
 }
