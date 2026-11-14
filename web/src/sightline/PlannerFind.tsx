@@ -89,9 +89,9 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
 
   return (
     <div className="pl-find" role="tabpanel" aria-label="Find" data-fit-ms={fits.ms.toFixed(1)}>
-      <div className="pl-bar">
+      <div className="pl-find-bar">
         <h3>Where and when could I land?</h3>
-        <label className="pl-year">
+        <label className="pl-find-year">
           Year{' '}
           <select aria-label="Year" value={gridYear} onChange={(event) => setPicked(Number(event.target.value))}>
             {years.map((one) => (
@@ -131,13 +131,13 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
           </button>
         ))}
       </div>
-      <p className="pl-legend">
+      <p className="pl-find-legend">
         {info.legend}: <span>{measure === 'fit' ? 'none' : '0'}</span>
         <i style={{ background: `linear-gradient(90deg, rgb(${TINT[measure]} / 8%), rgb(${TINT[measure]} / 85%))` }} aria-hidden="true" />
         <span>{measure === 'fit' ? 'most' : '100'}</span>
       </p>
       <div className="sl-full-scroll">
-        <table className="pl-grid" data-measure={measure} data-year={gridYear}>
+        <table className="pl-months" data-measure={measure} data-year={gridYear}>
           <thead>
             <tr>
               <td />
@@ -150,7 +150,7 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
           </thead>
           {groups.map(({ group, rows: sites }) => (
             <tbody key={group}>
-              <tr className="pl-group">
+              <tr className="pl-group-row">
                 <th scope="colgroup" colSpan={shown.length + 1}>
                   {group}
                 </th>
@@ -266,7 +266,7 @@ function MonthBands({ site, span, runs }: { site: FlaggedSite; span: MonthSpan; 
           ))}
         </svg>
       </div>
-      <div className="pl-band pl-days" aria-hidden="true">
+      <div className="pl-band pl-day-marks" aria-hidden="true">
         <span />
         <div>
           {marks.map((day) => (

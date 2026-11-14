@@ -306,6 +306,7 @@ Local Lead.
 
 - [x] Find: the header (back, tabs, scenario tray, Brief, Share, Export, Scout), the tab in the link (`&planner=find`), and every site by month with the days a landing fits (`web/src/sightline/plannerFit.ts`, `PlannerFind.tsx`; checks in `sightline-shots.mjs`, scene `planner-find`)
 - [x] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science rows from `shadow.json`, and "Add scenario" as the last column (`PlannerCompare.tsx`, `plannerTable.ts`, `useShadow.ts`; scene `planner-compare`)
+- [x] The header links to the detailed planner page (`/planner/`), opened on the scenario on show (`FullPlanner.tsx`)
 
 ## Landing accuracy (2026-11-14)
 
