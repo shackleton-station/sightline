@@ -63,3 +63,15 @@ export function writeAddress(address: SurfaceAddress, look: Look | null): string
   const facing = `&look=${hundredths(look.headingDeg)}_${hundredths(look.pitchDeg)}_${hundredths(look.fovDeg)}`
   return `${base}${facing}${look.stretch > 1 ? `&tall=${look.stretch}` : ''}`
 }
+
+const HOUR_MS = 3_600_000
+
+/**
+ * `base` moved to the whole hour nearest `iso` (UTC): that hour's month, and the hour within it.
+ * Half past rounds up, so 23:30 on the last day of a month opens the next month's first hour.
+ */
+export function atNearestHour(base: SurfaceAddress, iso: string): SurfaceAddress {
+  const at = new Date(Math.round(Date.parse(iso) / HOUR_MS) * HOUR_MS)
+  const month = at.toISOString().slice(0, 7)
+  return { ...base, month, index: (at.getTime() - Date.parse(`${month}-01T00:00:00Z`)) / HOUR_MS }
+}

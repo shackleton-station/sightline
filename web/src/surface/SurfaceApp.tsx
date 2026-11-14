@@ -11,7 +11,9 @@ import type { BodyRadii, Look } from '../lib/surfaceView'
 import { parseCustomSite } from '../lib/urlState'
 import { TimeRiver } from '../shell/TimeRiver'
 import { AnswerLine } from './AnswerLine'
-import { readAddress, readLook, type SurfaceAddress, viewLink, writeAddress } from './address'
+import { useRange } from '../data/useRange'
+import { nowIso } from '../sightline/hooks'
+import { atNearestHour, readAddress, readLook, type SurfaceAddress, viewLink, writeAddress } from './address'
 import { Pickers } from './Pickers'
 import { Notice, Waiting } from './SurfaceStates'
 import { SurfaceStage } from './SurfaceStage'
@@ -44,7 +46,17 @@ const EMBEDDED = isEmbedded()
 export function SurfaceApp() {
   const [sites, setSites] = useState<SiteInfo[]>([])
   const [sitesFailed, setSitesFailed] = useState(false)
-  const [address, setAddress] = useState<SurfaceAddress>(() => readAddress(window.location.hash) ?? FALLBACK)
+  // With no link, the page opens on the whole hour nearest now (UTC), on the default site.
+  const [address, setAddress] = useState<SurfaceAddress>(() => readAddress(window.location.hash) ?? atNearestHour(FALLBACK, nowIso()))
+  const openedOnNow = useRef(readAddress(window.location.hash) === null)
+  const range = useRange()
+  // If now is outside the years the data holds, it opens on the default view instead.
+  useEffect(() => {
+    if (!range || !openedOnNow.current) return
+    openedOnNow.current = false
+    const now = Date.parse(nowIso())
+    if (now < Date.parse(range.start) || now >= Date.parse(range.end) - 1_800_000) setAddress(FALLBACK)
+  }, [range])
   /** The link the visitor arrived with, when it names a place this tab can't show. */
   const [arrivedAt, setArrivedAt] = useState(() => window.location.hash)
   const [aim, setAim] = useState<Aim>(() => ({ id: 0, look: readLook(window.location.hash), site: address.site }))
@@ -157,9 +169,7 @@ export function SurfaceApp() {
             answer={
               <AnswerLine
                 siteName={data.site.name}
-                month={data.month}
                 now={data.track[index]}
-                horizon={data.horizon}
                 summary={data.summary}
                 flags={flags}
                 flagsFailed={flagsFailed}

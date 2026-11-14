@@ -155,9 +155,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const hours = flagged[0].flags.sun.length
   const held = useMemo(() => spanOfHours(start, hours), [start, hours])
   // Where the clock starts: the data's default month, the one Scout and the Surface open on.
-  // Watch opens on the current hour, so the Moon on screen is the Moon now. If the clock is outside
-  // the hours on hand, it opens on the data's default month instead.
-  const nowHour = Math.floor(hourOf(start, nowIso()))
+  // Watch opens on the whole hour nearest now, so the Moon on screen is the Moon now. If the clock is
+  // outside the hours on hand, it opens on the data's default month instead.
+  const nowHour = Math.round(hourOf(start, nowIso()))
   const opening = nowHour >= 0 && nowHour < hours ? nowHour : Math.min(Math.max(hourOf(start, `${range.default_month}-01T00:00:00Z`), 0), hours - 1)
   const still = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
   // A link that carries a scenario opens Plan on it, paused at its landing, so it shows what was shared.
@@ -885,6 +885,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           {tourStep?.state.show === 'skyline' && (
             <Skyline horizon={hereOnBar?.horizon ?? null} track={hereOnBar?.track ?? null} index={index} obsHeightM={hereOnBar ? siteHeights.panelM : 0} folded={skyMin} onFold={setSkyMin} />
           )}
+          {/* The Surface view brings its own time bar, so this one steps aside there. */}
+          {mode !== 'surface' && (
           <River
             start={start}
             hours={hours}
@@ -910,6 +912,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             onFold={setRiverMin}
             onSelect={(key) => setActive(Number(key))}
           />
+          )}
         </div>
       )}
 

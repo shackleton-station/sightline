@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_VIEW, tabLinks } from '../lib/siteTabs'
 import { decodeView } from '../lib/urlState'
-import { EXAMPLE_LIMITS, readAddress, readLook, type SurfaceAddress, viewLink, writeAddress } from './address'
+import { atNearestHour, EXAMPLE_LIMITS, readAddress, readLook, type SurfaceAddress, viewLink, writeAddress } from './address'
 
 const LINK = '#a=shackleton-rim@2028-03&t=120&limits=10_48_24_1_0_2&view=3d&mode=plan&list=apollo-11@2028-07-04T05'
 
@@ -49,5 +49,19 @@ describe('the Surface address', () => {
     expect(readLook(`${LINK}&look=10_2`)).toBeNull()
     expect(readLook(`${LINK}&look=-30_500_0.1&tall=900`)).toEqual({ headingDeg: 330, pitchDeg: expect.closeTo(29.7, 1), fovDeg: 2, stretch: 20 })
     expect(readLook(`${LINK}&look=10_2_12&tall=nonsense`)?.stretch).toBe(1)
+  })
+})
+
+describe('opening on the nearest hour', () => {
+  const base = readAddress(DEFAULT_VIEW) as SurfaceAddress
+
+  it('rounds to the nearest whole hour of the month, in UTC', () => {
+    expect(atNearestHour(base, '2026-11-14T10:29:59Z')).toMatchObject({ site: 'connecting-ridge', month: '2026-11', index: 13 * 24 + 10 })
+    expect(atNearestHour(base, '2026-11-14T10:30:00Z')).toMatchObject({ month: '2026-11', index: 13 * 24 + 11 })
+    expect(atNearestHour(base, '2026-11-01T00:10:00Z')).toMatchObject({ month: '2026-11', index: 0 })
+  })
+
+  it('rolls into the next month when the nearest hour is there', () => {
+    expect(atNearestHour(base, '2026-11-30T23:45:00Z')).toMatchObject({ month: '2026-12', index: 0 })
   })
 })

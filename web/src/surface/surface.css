@@ -464,42 +464,6 @@
   background: var(--earth);
 }
 
-.sf-answer-detail {
-  display: grid;
-  gap: 0.2rem;
-  margin: 0.8rem 0 0;
-  padding-top: 0.7rem;
-  border-top: 1px solid var(--sf-line);
-  font-size: 0.9375rem;
-}
-
-.sf-answer-detail div {
-  display: grid;
-  grid-template-columns: 5.2rem minmax(0, 1fr);
-  gap: 0.6rem;
-  align-items: baseline;
-}
-
-.sf-answer-detail dt {
-  color: var(--muted);
-  font: 13px var(--sf-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.sf-answer-detail dt.sun {
-  color: var(--sun);
-}
-
-.sf-answer-detail dt.earth {
-  color: var(--earth);
-}
-
-.sf-answer-detail dd {
-  margin: 0;
-  color: #d3d7e6;
-}
-
 /* ---------- Turning to face, the phone, and what is drawn ---------- */
 .sf-actions {
   position: absolute;
@@ -846,8 +810,7 @@
     text-shadow: none;
   }
 
-  .sf-answer-where,
-  .sf-answer-detail {
+  .sf-answer-where {
     display: none;
   }
 
@@ -949,8 +912,7 @@
     max-width: 46vw;
   }
 
-  .sf-answer-where,
-  .sf-answer-detail {
+  .sf-answer-where {
     display: none;
   }
 
