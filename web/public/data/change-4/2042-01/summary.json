@@ -1,0 +1,1 @@
+{"range":{"start":"2042-01-01T00:00:00Z","end":"2042-02-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":48.1,"pct_earth":0.0,"pct_both":0.0,"max_sun_gap_h":321.0,"max_earth_gap_h":744.0,"sun_windows":[{"start":"2042-01-14T09:00:00Z","end":"2042-01-29T07:00:00Z"}],"earth_windows":[]}

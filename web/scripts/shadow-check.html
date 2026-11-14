@@ -1,0 +1,18 @@
+<!doctype html>
+<!-- The page behind scripts/shadow-check.mjs (docs/VALIDATION.md §8). Not part of the built site. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Shadow check</title>
+    <style>
+      body { margin: 0; background: #000; color: #ccc; font: 14px sans-serif; }
+      /* A fixed size, so the test draws the same picture in any window. */
+      canvas { display: block; width: 1600px; height: 1600px; }
+    </style>
+  </head>
+  <body>
+    <p id="status">Starting…</p>
+    <canvas id="view"></canvas>
+    <script type="module" src="/src/dev/shadowCheck.ts"></script>
+  </body>
+</html>

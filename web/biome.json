@@ -1,0 +1,88 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": ["src/**/*.ts", "src/**/*.tsx"]
+	},
+	"formatter": {
+		"enabled": false
+	},
+	"assist": {
+		"enabled": false
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "none",
+			"correctness": {
+				"noUnusedImports": "error"
+			},
+			"style": {
+				"useImportType": {
+					"level": "error",
+					"options": { "style": "auto" }
+				},
+				"useExportType": "error"
+			},
+			"suspicious": {
+				"noShadowRestrictedNames": "error"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["src/three/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"react": "src/three/ is plain TypeScript classes. React components wrap them from components/."
+								},
+								"patterns": [
+									{
+										"group": ["three/examples/**"],
+										"message": "Import Three.js add-ons from \"three/addons/...\", not \"three/examples/jsm/...\"."
+									},
+									{
+										"group": ["three/src/**"],
+										"message": "Don't deep-import Three.js internals. Use the public \"three\" entry point."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/**", "!src/three/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"paths": {
+									"three": "Three.js belongs to src/three/. Use GlobeViewer, TerrainViewer or another typed wrapper from there."
+								},
+								"patterns": [
+									{
+										"group": ["three/**"],
+										"message": "Three.js belongs to src/three/. Use GlobeViewer, TerrainViewer or another typed wrapper from there."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	]
+}

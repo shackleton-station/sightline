@@ -1,0 +1,8 @@
+# What `gcloud run deploy --source` must not upload. Same list as .dockerignore.
+node_modules
+dist
+dist-server
+# 1.5 GB of terrain tiles: they live in Cloud Storage, never in the image.
+public/tiles
+.env*
+*.log

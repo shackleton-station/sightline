@@ -1,0 +1,1 @@
+{"range":{"start":"2047-04-01T00:00:00Z","end":"2047-05-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":47.4,"pct_earth":100.0,"pct_both":47.4,"max_sun_gap_h":324.0,"max_earth_gap_h":0.0,"sun_windows":[{"start":"2047-04-03T07:00:00Z","end":"2047-04-17T12:00:00Z"}],"earth_windows":[{"start":"2047-04-01T00:00:00Z","end":"2047-05-01T00:00:00Z"}]}
