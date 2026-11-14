@@ -85,7 +85,7 @@ Each item names the phase of the redesign plan that picks it up. "Done" means it
 | Item | State | Phase |
 | --- | --- | --- |
 | An About and method page: what it is, how the numbers are made, how they were checked | Planned as the Trust tab | C4 |
-| A short disclaimer: a practice demo, informational only, not mission planning advice | To do | C4 |
+| A short disclaimer: informational only, not mission planning advice | To do | C4 |
 | A hidden "how it works" page at `/how`, not linked and not indexed: one line on the whole flow, then 4 to 6 steps, each one drawing and one precise caption (LOLA terrain, SPICE, Cloud Run, Vertex AI, Terraform, keyless deploys). No secrets on it | To do: new | after C6 |
 
 ## What we are not taking

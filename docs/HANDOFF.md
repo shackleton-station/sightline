@@ -1,5 +1,11 @@
 # Handoff: Shackleton Station — NASA Space Apps 2026 practice demo
 
+> **A document from before the event, kept as it was written (October 2026).** It is the brief the
+> team's practice build started from, and it says the submission would be built from scratch in a new
+> repository. That plan changed: the Bethesda Local Lead approved reusing the practice code, on the
+> condition that the submission's repository was created on the morning of Nov 14, 2026. This repository
+> is that submission, built on that code. Section 2 below is the plan as it stood then, not a rule now.
+
 > Context + spec for the AI coding agent (Claude Code). Operating rules and the step-by-step plan are in
 > CLAUDE.md, which takes precedence.
 > Read this whole file before acting. Ask Rodrigo before anything irreversible,

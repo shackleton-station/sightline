@@ -3,8 +3,7 @@
 How a teammate gets this repo running, from nothing to a pull request. Allow about 20 minutes for the web app
 and another hour if you build the data yourself.
 
-> Practice repo. On Nov 14 we start a new repo from scratch (see `CLAUDE.md` §1); this guide is also the
-> checklist for setting that one up.
+> Written for the team's pre-event practice code, and kept as the setup guide for this repository.
 
 ## 1. Accounts and access
 
