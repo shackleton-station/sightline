@@ -137,8 +137,6 @@ export function WindowGrid({ grid, siteId, month, listed, onPick, keptWords }: P
 
   return (
     <section className="pl-grid" aria-labelledby="pl-grid-title">
-      {/* How to read the bars, before the bars: the title sits in the table's corner on wider screens. */}
-      <GridKey mostDays={grid.mostDays} keptWords={keptWords} />
       <div className="pl-grid-head">
         <h2 id="pl-grid-title">Every site, every month</h2>
         <div className="pl-years" role="group" aria-label="Jump to a year">
@@ -202,6 +200,8 @@ export function WindowGrid({ grid, siteId, month, listed, onPick, keptWords }: P
       <p className="pl-readout" aria-hidden="true">
         {pointed ?? (chosenRow && chosenCell ? cellWords(chosenRow.site.name, chosenCell.month, chosenCell.days) : '')}
       </p>
+      {/* How to read the bars, under the table. */}
+      <GridKey mostDays={grid.mostDays} keptWords={keptWords} />
       <p className="pl-key-keys">Keyboard: arrow keys move between squares, Page Up and Page Down move a year, Enter chooses.</p>
     </section>
   )
