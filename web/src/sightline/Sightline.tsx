@@ -66,6 +66,7 @@ import { AccuracyDrawer } from './AccuracyDrawer'
 import { FitLegend } from './FitLegend'
 import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
+import { defaultScenarios } from '../lib/defaultPair'
 import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
@@ -88,10 +89,8 @@ import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useSce
 import { useGuideVideos } from './useGuideVideos'
 import { PlayControl, ScoutLine } from './WatchControls'
 
-/** The site "Plan a landing" opens on. */
 // The brief brings the old Planner page's own code and styles: loaded only when it is opened.
 const BriefSheet = lazy(() => import('./BriefSheet'))
-const FEATURED = 'connecting-ridge'
 /** While time plays in Watch, the controls fade after this long with nothing moved, touched or pressed. */
 const FADE_AFTER_MS = 3000
 /** Room kept clear under the Moon in Watch for the play control, so the control is never over the Moon's disc. */
@@ -188,7 +187,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [hypeFound, setHypeFound] = useState(() => arrivedForHype || hypeRemembered())
   const [plan, setPlan] = useState(linked !== null || arrivedForHype)
   // Up to four scenarios, A to D; the column, the skyline and the answer are about the active one.
-  const [scenarios, setScenarios] = useState<SightlineScenario[]>(() => linked?.scenarios ?? [{ site: sites.some((site) => site.id === FEATURED) ? FEATURED : sites[0].id, landing: opening }])
+  // With none in the address, Plan starts with two: the two prospective sites at the same hour, so
+  // Compare has something to compare from the first press.
+  const [scenarios, setScenarios] = useState<SightlineScenario[]>(() => linked?.scenarios ?? defaultScenarios(sites.map((site) => site.id), opening))
+  /** Whether the scenarios are the visitor's own yet: a link's, or Plan has been opened once, or one was added or removed. Until then Plan opens on the default two. */
+  const ownPlan = useRef(linked !== null)
   const [chosen, setActive] = useState(linked?.active ?? 0)
   const active = Math.min(chosen, scenarios.length - 1)
   const scenario = scenarios[active]
@@ -488,6 +491,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         reach(hash)
         return
       }
+      // A link's scenarios are the visitor's own: exactly what it carries, nothing added.
+      ownPlan.current = true
       setScenarios(link.scenarios)
       setActive(link.active)
       setMission(link.mission)
@@ -519,11 +524,17 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   /** Open Plan from Watch: at a site if one was chosen, landing at the time on the clock. */
   const openPlan = useCallback(
     (chosen: SiteInfo | null) => {
-      setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: plan ? current.landing : hour }))
+      if (!plan && !ownPlan.current) {
+        // The first time into Plan: the site picked on the Moon (or the one already first) is A, the
+        // other prospective site is B, and both land at the hour on the clock.
+        setScenarios(defaultScenarios(sites.map((site) => site.id), hour, chosen ? siteValue(chosen) : scenarios[0].site))
+        setActive(0)
+      } else setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: plan ? current.landing : hour }))
+      ownPlan.current = true
       setPlan(true)
       setPointed(null)
     },
-    [plan, hour, setScenario],
+    [plan, hour, setScenario, sites, scenarios],
   )
   /** Add a scenario and show it, with the time bar on its landing. With four already, nothing is added. */
   /** The New Planner moved the scenario on show: the Moon, the time bar and the column follow. */
@@ -584,6 +595,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const pairLanding = hourOf(start, NEARBY_PAIR.landing)
   const pairWords = pairKm !== null && Number.isInteger(pairLanding) && pairLanding >= 0 && pairLanding < hours ? `two sites ${pairKm} km apart, same date` : null
   const openPair = useCallback(() => {
+    ownPlan.current = true
     setScenarios([
       { site: NEARBY_PAIR.a, landing: pairLanding },
       { site: NEARBY_PAIR.b, landing: pairLanding },
@@ -716,7 +728,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const landing = hourOf(start, TOUR.scenario.landing)
     if (tourGuide === null) {
       if (!tourPlanned.current && sites.some((listed) => listed.id === TOUR.scenario.site) && Number.isInteger(landing) && landing >= 0 && landing < hours) {
-        setScenarios([{ site: TOUR.scenario.site, landing }])
+        // Two scenarios, as Plan opens for anyone: the tour's site at A, the other prospective site at B.
+        setScenarios(defaultScenarios(sites.map((listed) => listed.id), landing, TOUR.scenario.site))
         setActive(0)
         setHour(landing)
       }
