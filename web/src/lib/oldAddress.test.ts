@@ -51,7 +51,8 @@ describe('an old address opened at the front page', () => {
   it('goes to the old page where Sightline has no match: the demo video, the tour, a shared plan, following a presenter', () => {
     expect(at('/#demo')).toEqual({ kind: 'leave', to: '/classic/#demo' })
     expect(at('/#tour')).toEqual({ kind: 'leave', to: '/classic/#tour' })
-    expect(at('/#plan=abcd2345')).toEqual({ kind: 'leave', to: '/classic/#plan=abcd2345' })
+    // A saved plan stays: the Sightline screen opens it.
+    expect(at('/#plan=abcd2345')).toEqual({ kind: 'stay' })
     expect(at('/?follow=abc234')).toEqual({ kind: 'leave', to: '/classic/?follow=abc234' })
     expect(at('/?follow=abc234&ui=next#a=apollo-11@2028-03&t=5&limits=14_72_72_1_1')).toEqual({ kind: 'leave', to: '/classic/?follow=abc234&ui=next#a=apollo-11@2028-03&t=5&limits=14_72_72_1_1' })
   })

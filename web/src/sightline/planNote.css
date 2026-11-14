@@ -1,0 +1,84 @@
+/* A plan opened from a short link: one quiet line beside the screen's name. */
+.sl-plan-note {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  margin: 0 0 0 auto;
+  color: var(--soft);
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.sl-plan-note.is-problem {
+  color: #e8915a;
+}
+
+.sl-plan-note-words {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-plan-note-close {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sl-plan-note-close:hover,
+.sl-plan-note-close:focus-visible {
+  background: #2a2434;
+  color: var(--ink);
+}
+
+/* The saved plan's own brief, at the top of the written brief. */
+.sl-saved-brief {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.sl-saved-brief h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.sl-saved-note {
+  margin: 0.2rem 0 0;
+}
+
+.sl-saved-brief dl {
+  display: grid;
+  gap: 0.2rem 1rem;
+  margin: 0.6rem 0 0.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.sl-saved-brief dl > div {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+  padding-top: 0.2rem;
+}
+
+.sl-saved-brief dt {
+  color: var(--soft);
+}
+
+.sl-saved-brief dd {
+  margin: 0;
+  text-align: right;
+}
