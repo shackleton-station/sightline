@@ -248,6 +248,11 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                 last={new Date(Date.parse(view.row.flags.start) + (view.row.flags.sun.length - 1) * 3_600_000).toISOString().replace('.000Z', 'Z')}
                 nextLetter={room ? SCENARIO_LETTERS[scenarios.length] : null}
                 onAdd={(value, iso) => onAdd({ site: value, landing: hourOf(start, iso) })}
+            sameAs={(value, iso) => {
+              const hour = hourOf(start, iso)
+              const i = scenarios.findIndex((scenario) => scenario.site === value && scenario.landing === hour)
+              return i < 0 ? null : SCENARIO_LETTERS[i]
+            }}
               />
             )}
           <h3>Mission</h3>
