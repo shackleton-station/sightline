@@ -15,8 +15,11 @@ interface Props {
   year: number
   /** The month's summary at the site; null while it loads. */
   summary: Summary | null
-  /** Open the Advanced panel in this one's place (Mission only). */
-  onAdvanced: () => void
+  /** Whether the Advanced fold is open; it starts closed. */
+  advanced: boolean
+  onAdvanced: (open: boolean) => void
+  /** Why the two heights cannot be chosen here (a custom point is worked out at 2 m only); null when they can. */
+  heightsOff: string | null
   onClose: () => void
 }
 
@@ -61,7 +64,7 @@ function HeightPick({ label, offered, value, disabled, onPick }: { label: string
 
 /**
  * How high the solar panel and the antenna stand: the Sun is read at the first height and Earth at
- * the second. The Planner's only. A custom point is worked out at 2 m, so there the choice is off.
+ * the second. A custom point is worked out at 2 m, so there the choice is off.
  */
 function HeightChoice({ mission, onMission, off }: Pick<Props, 'mission' | 'onMission'> & { off: string | null }) {
   const set = (change: Partial<MissionHeights>) => onMission({ ...mission, heights: { ...mission.heights, ...change } })
@@ -76,7 +79,7 @@ function HeightChoice({ mission, onMission, off }: Pick<Props, 'mission' | 'onMi
 
 /**
  * What the hourly numbers assume: the height above the ground and how close the landing comes.
- * Where the heights can be chosen (the Planner) the first note is left to the choice itself.
+ * Where the heights can be chosen the first note is left to the choice itself.
  */
 export function Assumptions({ site, month, year, summary, heights, choice }: Pick<Props, 'site' | 'month' | 'year' | 'summary'> & { heights: MissionHeights; choice: boolean }) {
   const [loaded, setLoaded] = useState<{ siteId: string; heights: MastHeight[] | null; spread: SiteSpread | null } | null>(null)
@@ -144,13 +147,15 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
 }
 
 /**
- * The Mission panel: what the lander can tolerate. Presets and the six basic limits, and nothing
- * else, so it never scrolls on a laptop. The limits beyond the challenge's text are one link away, in
- * the Advanced panel. With nothing touched the answer is plain visibility.
+ * The Mission panel: what the lander can tolerate. Presets and the six basic limits, and, behind a
+ * fold that starts closed, the same Advanced controls as the Planner, on the same mission: how far
+ * Earth must clear the skyline, and how high the solar panel and the antenna stand. With the fold
+ * open the presets go to one row and the spacing tightens, so the panel still never scrolls on a
+ * laptop. With nothing touched the answer is plain visibility.
  */
-export function MissionDrawer({ mission, onMission, onAdvanced, onClose }: Pick<Props, 'mission' | 'onMission' | 'onAdvanced' | 'onClose'>) {
+export function MissionDrawer({ mission, onMission, advanced, onAdvanced, heightsOff, site, month, year, summary, onClose }: Props) {
   return (
-    <aside className="sl-drawer" aria-label="Mission">
+    <aside className={advanced ? 'sl-drawer sl-mission is-advanced' : 'sl-drawer sl-mission'} aria-label="Mission">
       <header className="sl-drawer-head">
         <h2>Mission</h2>
         <button type="button" className="sl-small" onClick={onClose}>
@@ -158,14 +163,19 @@ export function MissionDrawer({ mission, onMission, onAdvanced, onClose }: Pick<
         </button>
       </header>
       <MissionControls mission={mission} onMission={onMission} />
-      <button type="button" className="sl-link sl-advanced-link" onClick={onAdvanced}>
-        Advanced ›
+      <button type="button" className="sl-link sl-advanced-link" aria-expanded={advanced} aria-controls="sl-advanced" onClick={() => onAdvanced(!advanced)}>
+        Advanced <span aria-hidden="true">{advanced ? '▾' : '▸'}</span>
       </button>
+      {advanced && (
+        <div id="sl-advanced" className="sl-advanced">
+          <AdvancedControls mission={mission} onMission={onMission} site={site} month={month} year={year} summary={summary} heightChoice={{ off: heightsOff }} />
+        </div>
+      )}
     </aside>
   )
 }
 
-/** The limits beyond the challenge's text, and what the hourly numbers assume: what the Advanced panel holds, and the Planner's left side. */
+/** The limits beyond the challenge's text, and what the hourly numbers assume: what the Mission panel's Advanced fold holds, and the Planner's left side. */
 export function AdvancedControls({ mission, onMission, site, month, year, summary, heightChoice }: Pick<Props, 'mission' | 'onMission' | 'site' | 'month' | 'year' | 'summary'> & { /** In the Planner: offer the two heights; the string says why they are off, if they are. */ heightChoice?: { off: string | null } }) {
   const { requirements } = mission
   const limit = (change: Partial<Requirements>) => onMission({ ...mission, requirements: { ...requirements, ...change } })
@@ -184,26 +194,5 @@ export function AdvancedControls({ mission, onMission, site, month, year, summar
       {heightChoice && <HeightChoice mission={mission} onMission={onMission} off={heightChoice.off} />}
       <Assumptions site={site} month={month} year={year} summary={summary} heights={mission.heights} choice={heightChoice !== undefined} />
     </>
-  )
-}
-
-/**
- * The Advanced panel, opened from the Mission panel: the limits beyond the challenge's text (how far
- * Earth must clear the skyline) and what the hourly numbers assume and cannot vary.
- */
-export function AdvancedDrawer({ mission, onMission, site, month, year, summary, onBack, onClose }: Omit<Props, 'onAdvanced'> & { onBack: () => void }) {
-  return (
-    <aside className="sl-drawer" aria-label="Advanced mission settings">
-      <header className="sl-drawer-head">
-        <h2>Advanced</h2>
-        <button type="button" className="sl-small" onClick={onClose}>
-          Close
-        </button>
-      </header>
-      <button type="button" className="sl-link" onClick={onBack}>
-        ‹ Mission
-      </button>
-      <AdvancedControls mission={mission} onMission={onMission} site={site} month={month} year={year} summary={summary} />
-    </aside>
   )
 }

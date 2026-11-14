@@ -73,7 +73,7 @@ import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
 import { LayersDrawer } from './LayersDrawer'
 import { RoverDrawer } from './RoverDrawer'
-import { AdvancedDrawer, MissionDrawer } from './MissionDrawer'
+import { MissionDrawer } from './MissionDrawer'
 import { useTrekOverlay } from './useTrekOverlay'
 import { Fields, PlanColumn, Verdict } from './PlanColumn'
 import { Rail, type StageMode } from './Rail'
@@ -1185,9 +1185,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onClose={toggleScoutPanel}
         />
       )}
-      {shown && !planner && drawer === 'mission' && <MissionDrawer mission={mission} onMission={setMission} onAdvanced={() => setDrawer('advanced')} onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'advanced' && (
-        <AdvancedDrawer mission={mission} onMission={setMission} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} onBack={() => setDrawer('mission')} onClose={() => setDrawer(null)} />
+      {/* One panel for both: 'advanced' is the Mission panel with its Advanced fold open. */}
+      {shown && !planner && (drawer === 'mission' || drawer === 'advanced') && (
+        <MissionDrawer
+          mission={mission}
+          onMission={setMission}
+          advanced={drawer === 'advanced'}
+          onAdvanced={(open) => setDrawer(open ? 'advanced' : 'mission')}
+          heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null}
+          site={site}
+          month={landingAt.month}
+          year={Number(landingAt.month.slice(0, 4))}
+          summary={here?.summary ?? null}
+          onClose={() => setDrawer(null)}
+        />
       )}
       {shown && !planner && drawer === 'compare' && (
         <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} />
