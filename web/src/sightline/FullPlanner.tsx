@@ -3,9 +3,12 @@ import { useMemo } from 'react'
 import type { SiteInfo, Summary } from '../data/contract'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { monthSpans } from '../lib/grid'
-import { measureScenario, missionWords, scenarioLink, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { measureScenario, missionWords, SCENARIO_LETTERS, scenarioLink, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { spanOfHours } from '../lib/span'
 import { Mascot } from '../scout/Mascot'
+import { ExportMenu } from './ExportMenu'
 import { HeaderTools } from './HeaderTools'
+import { saveHourlyCsv, saveText } from './hourlyExport'
 import { AdvancedControls, MissionControls } from './MissionDrawer'
 import { PlannerCompare } from './PlannerCompare'
 import { PlannerFind } from './PlannerFind'
@@ -97,13 +100,11 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
       measures,
       missionWords(mission),
     )
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'sightline-scenarios.csv'
-    link.click()
-    URL.revokeObjectURL(url)
+    saveText('sightline-scenarios.csv', csv)
   }
+  // The scenario on show over its mission, hour by hour: read as the screen reads it, from the mission's heights.
+  const exportHourly = () => saveHourlyCsv({ site: facts[active].site, start, landing: scenarios[active].landing, missionDays: mission.requirements.missionDays, years: spanOfHours(start, hours), heights: mission.heights })
+  const days = mission.requirements.missionDays
 
   return (
     <section className="sl-full" aria-label="Planner">
@@ -128,9 +129,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
             Brief
           </button>
           <HeaderTools onBrief={onBrief} />
-          <button type="button" className="sl-small" title="The Compare table as a CSV file" onClick={exportTable}>
-            Export
-          </button>
+          <ExportMenu onTable={exportTable} onHourly={exportHourly} hourlyOf={`Scenario ${SCENARIO_LETTERS[active]} over its ${days} ${days === 1 ? 'day' : 'days'}`} />
           <button type="button" className="sl-small sl-rail-scout" aria-pressed={scoutOpen} title="Ask Scout about these scenarios" onClick={onScout}>
             <Mascot state={null} size={16} /> Scout
           </button>
