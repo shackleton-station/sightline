@@ -243,15 +243,25 @@ export function measureScenario(scenario: SightlineScenario, site: SiteInfo, fla
 }
 
 /** The rows of Compare that have a best value, with which way is better and how close counts as a tie. */
-export const COMPARE_ROWS: { key: 'sunPct' | 'sunGapH' | 'earthPct' | 'earthGapH' | 'slopeDeg'; label: string; digits: number; better: 'high' | 'low'; tie: number }[] = [
-  // The unit is in the row's name, so each cell is a bare number and four scenarios fit side by side.
-  { key: 'sunPct', label: 'Sunlit, %', digits: 0, better: 'high', tie: 0.5 },
+export const COMPARE_ROWS: { key: 'sunPct' | 'sunGapH' | 'earthPct' | 'earthGapH' | 'slopeDeg'; label: string; digits: number; better: 'high' | 'low'; tie: number; share?: true }[] = [
+  // The unit is in the row's name, so each cell leads with a bare number and four scenarios fit side by side.
+  // A row that is a share of the mission also says the hours behind it (`shareHours`).
+  { key: 'sunPct', label: 'Sunlit, %', digits: 0, better: 'high', tie: 0.5, share: true },
   // Hourly data can't separate gaps closer than GAP_TIE_H, so those share the mark.
-  { key: 'sunGapH', label: 'Longest dark, h', digits: 0, better: 'low', tie: GAP_TIE_H },
-  { key: 'earthPct', label: 'Earth in view, %', digits: 0, better: 'high', tie: 0.5 },
-  { key: 'earthGapH', label: 'Radio silence, h', digits: 0, better: 'low', tie: GAP_TIE_H },
+  { key: 'sunGapH', label: 'Longest dark spell, h', digits: 0, better: 'low', tie: GAP_TIE_H },
+  { key: 'earthPct', label: 'Earth in view, %', digits: 0, better: 'high', tie: 0.5, share: true },
+  { key: 'earthGapH', label: 'Longest radio silence, h', digits: 0, better: 'low', tie: GAP_TIE_H },
   { key: 'slopeDeg', label: 'Slope, °', digits: 1, better: 'low', tie: 0.05 },
 ]
+
+/**
+ * The hours behind a share of the mission, as "12 of 24 h". Each share is a count of whole hours over
+ * the mission's length, so rounding gives that count back.
+ */
+export function shareHours(pct: number, missionDays: number): string {
+  const missionH = missionDays * 24
+  return `${Math.round((pct / 100) * missionH)} of ${missionH} h`
+}
 
 /** Which values in a row are the best: those within a tie of the best one. None when there is nothing to choose between. */
 export function bestIn(values: (number | null)[], better: 'high' | 'low', tie: number): boolean[] {

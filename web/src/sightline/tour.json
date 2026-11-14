@@ -71,9 +71,9 @@
     {
       "id": "scout",
       "title": "Ask Scout",
-      "say": "Ask Scout in plain words: he looks the answer up in the same data. Hide leaves only the Moon.",
+      "say": "Ask Scout in plain words: he looks the answer up in the same data. Home takes you back to the Moon.",
       "state": { "view": "plan" },
-      "targets": ["[data-tour='scout']", "[data-tour='more']"]
+      "targets": ["[data-tour='scout']", ".sl-rail-home", "[data-tour='more']"]
     }
   ]
 }

@@ -412,6 +412,12 @@
   box-shadow: 0 10px 26px rgb(0 0 0 / 50%);
 }
 
+/* Beside the Moon the card is given the height of the empty sky (WatchControls.tsx): the
+   conversation fills it, and the input stays at its foot. */
+.sl-card.is-tall {
+  max-height: none;
+}
+
 .sl-card-head {
   display: flex;
   align-items: center;
@@ -1838,6 +1844,14 @@
   font-weight: 600;
 }
 
+/* The hours behind a share of the mission, on their own line so four scenarios still fit. */
+.sl-compare td small {
+  display: block;
+  color: var(--soft);
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
 .sl-compare-why {
   margin: 0.6rem 0 0;
   padding-left: 1.1rem;
@@ -2620,6 +2634,13 @@
 .sl-full-table td.is-best {
   color: var(--sl-both);
   font-weight: 600;
+}
+
+/* The hours behind a share of the mission, beside it. */
+.sl-full-table tbody td small {
+  margin-left: 0.4rem;
+  color: var(--soft);
+  font-weight: 400;
 }
 
 .sl-full-table td.sl-full-fit:not(.is-best) {

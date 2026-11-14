@@ -180,7 +180,17 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [brief, setBrief] = useState(false)
   // Scout's chat card in Watch: whether it is open, how tall it is, and how wide the window is. On a
   // window too narrow for the card to sit beside the Moon, the Moon moves aside (up) for it.
-  const [scoutOpen, setScoutOpen] = useState(false)
+  // On a window wide enough for the card to stand beside the Moon it is open when the page opens, so
+  // the first thing a visitor meets is somewhere to ask. Shutting it is remembered; opening it again is too.
+  const [scoutShut, setScoutShut] = useStored('scoutShut', false)
+  const [scoutOpen, setScoutOpen] = useState(() => !scoutShut && window.innerWidth >= NARROW_UNDER_PX)
+  const openScout = useCallback(
+    (open: boolean) => {
+      setScoutOpen(open)
+      setScoutShut(!open)
+    },
+    [setScoutShut],
+  )
   const [scoutHeight, setScoutHeight] = useState(0)
   // The Moon glides only while it makes room for the card or takes it back: any other change of size is at once.
   const [gliding, setGliding] = useState(false)
@@ -505,13 +515,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
 
   /**
    * Home: the opening screen as a first visit finds it. Watch, with the controls on show, the Moon
-   * at the opening hour with time playing, Scout's card shut and his line offering the tour again.
+   * at the opening hour with time playing, and Scout offering the tour again: from his open card on
+   * a wide window, as the page opens, and from his closed line on a narrower one.
    * The scenarios are kept: "Plan a landing" opens on the same site, landing at the hour on the clock
    * as it always does from Watch.
    */
   const goHome = useCallback(() => {
     showControls()
-    setScoutOpen(false)
+    setScoutOpen(window.innerWidth >= NARROW_UNDER_PX)
     setPillMin(false)
     setTourSeen(false)
     setHour(opening)
@@ -886,7 +897,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               line={line}
               state={pointedState ?? null}
               open={scoutOpen}
-              onOpen={setScoutOpen}
+              onOpen={openScout}
+              beside={room === 'wide' ? PLAY_CONTROL_ROOM_PX : null}
               chat={chat}
               view={watchView}
               onShow={(hash) => {

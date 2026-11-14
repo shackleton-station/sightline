@@ -313,3 +313,16 @@ Local Lead.
 - [x] The same verdicts shaded on the Moon (Orbit and Site), through the place a Moon Trek layer has; on from the first time the panel is opened, with a switch in the panel. A Moon Trek layer waits under it
 - [ ] Not done: the panel reads the grid at 2 m with any part of Earth counting, so a mission with other heights or an Earth clearance is told so and not judged with them; ground beyond the fine grid (about 61 km from the pole) has no map; the approach path's direction is given on the map, not as a compass bearing; a finer light grid round the ridge sites and grids at other heights or Earth clearances need pipeline runs; not looked at on a phone
 - [ ] Ask Misha: the panel adds a button to the rail and takes the overlay's place on the Moon while its shading is on
+
+## The landing brief: what the sky does from the landing on (2026-11-14, Sebastian)
+
+- [x] Brief section "From the landing on" (`web/src/planner/LandingSky.tsx`), on the Planner page and in the
+      front page's brief sheet: sunset and Earthset (or the next rise) and whether inside the mission; power
+      and radio over the mission; the mission hour by hour; the Sun's height; the skyline with the Sun's and
+      Earth's paths. A custom point's track and skyline come from the app's own model (`loadScenario`)
+- [x] "Why" under a tight or empty month's verdict (`web/src/planner/why.ts`, `why.test.ts`)
+- [x] Planner page: instruction line, the key above the grid, striped tight months, the click brings the brief up
+- [ ] Not checked: a real phone, print, and the skyline's look with Scout's panel open
+- [ ] Offered to Rodrigo, not in this change: the same additions for the front page's Planner (a site, coordinates
+      and time bar at the top; suggestions near the date as cards beside the brief). Kept on branch
+      `feat/planner-intuitive` until he decides how they fit Find and Compare
