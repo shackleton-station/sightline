@@ -1,7 +1,7 @@
 import type { CalendarYearStats, MonthStats } from '../data/contract'
 import type { ScenarioData } from '../data/scenarioData'
 import { formatDuration } from './nextChange'
-import { monthName } from './months'
+import { monthLong, monthName } from './months'
 import { panelSunlight } from './power'
 import { pct } from './verdict'
 
@@ -186,4 +186,58 @@ export function explainerTitle(data: ScenarioData): string {
 /** Facts for the selected site, in plain language. */
 export function explainerFacts(data: ScenarioData): Fact[] {
   return isPolar(data) ? poleFacts(data) : regularFacts(data)
+}
+
+/** An elevation to a tenth of a degree, with a true minus sign: "−1.4°", "0.6°". */
+function elevation(deg: number): string {
+  const tenths = Math.round(deg * 10) / 10
+  return `${tenths < 0 ? '−' : ''}${Math.abs(tenths).toFixed(1)}°`
+}
+
+/**
+ * Why the site on show is hard, in three or four plain sentences built from that site's own
+ * figures, for the Guide: how low the Sun stays, how long it is gone, how often Earth is hidden
+ * and, at a pole, how much the month matters. Nothing here is general knowledge dressed as a
+ * number: every figure is the pipeline's for this site, this month and this year.
+ *
+ * `mission`, when given, is the scenario on show: its length and the longest dark spell over it,
+ * the same figure the verdict judges, so the Guide and the column say the same hours.
+ */
+export function whyHard(data: ScenarioData, mission?: { days: number; sunGapH: number | null } | null): string[] {
+  const { site, month, track } = data
+  const sunEls = track.map((point) => point.sun_el)
+  const low = Math.min(...sunEls)
+  const high = Math.max(...sunEls)
+  const polar = isPolar(data)
+  const sentences: string[] = [
+    polar
+      ? `At ${site.name} the Sun never climbs: in ${monthLong(month)} its elevation stays between ${elevation(low)} and ${elevation(high)} from level, so the skyline decides when there is sunlight.`
+      : `At ${site.name} the Sun climbs to ${high.toFixed(0)}° in ${monthLong(month)}, so the trouble here is not a low Sun but how long it is gone.`,
+  ]
+  // The same hours the verdict judges, in the verdict's own words ("Sun down for N h").
+  const onMission = mission && mission.sunGapH !== null ? `during your ${mission.days}-day mission from this landing the Sun is down for ${mission.sunGapH} h` : null
+  const name = month.slice(0, 4)
+  const stats = data.year.years.find((row) => String(row.year) === name)
+  // Without the year's numbers (a year the data does not cover) only what the month and the mission say is said.
+  if (!stats) return onMission ? [...sentences, `${onMission[0].toUpperCase()}${onMission.slice(1)}.`] : sentences
+
+  const longest = stats.max_sun_gap_h === 0 ? `In ${name} the Sun is never wholly gone here` : `The longest stretch without the Sun here in ${name} is ${formatDuration(stats.max_sun_gap_h)}`
+  sentences.push(onMission ? `${longest}; ${onMission}.` : `${longest}.`)
+
+  sentences.push(
+    stats.pct_earth === 0
+      ? `Earth never rises here in ${name}, so every message needs a relay.`
+      : stats.pct_earth === 100
+        ? `Earth is in view all of ${name} here, so the terrain never blocks the radio.`
+        : `Earth is hidden ${pct(100 - stats.pct_earth)} of ${name} here, for up to ${formatDuration(stats.max_earth_gap_h)} at a stretch.`,
+  )
+
+  // At a pole the month matters as much as the place: said only where the year's months really differ.
+  const months = data.year.months.filter((row) => row.month.startsWith(name))
+  if (polar && months.length > 1) {
+    const least = extreme(months, (a, b) => a.pct_sun < b.pct_sun)
+    const most = extreme(months, (a, b) => a.pct_sun > b.pct_sun)
+    if (most.pct_sun - least.pct_sun >= 10) sentences.push(`The month matters too: the Sun is up ${pct(least.pct_sun)} of ${monthLong(least.month)} and ${pct(most.pct_sun)} of ${monthLong(most.month)}.`)
+  }
+  return sentences
 }

@@ -33,6 +33,13 @@ interface Props {
   videos?: GuideVideos | null
   /** Open with the walkthrough on screen: the tour's last step leads here. */
   openAtVideo?: boolean
+  /**
+   * Why the site of the scenario on show is hard: a few sentences from that site's own figures
+   * (lib/explainer.ts `whyHard`); null while they load, and on a page with no scenario.
+   */
+  why?: string[] | null
+  /** Open at "Why this site is hard": Scout's ready idea leads here. */
+  openAtWhy?: boolean
 }
 
 const TOUR = tourFile as TourFile
@@ -119,7 +126,7 @@ const STACK: { layer: string; items: string[] }[] = [
  * The Guide: where to start (the tour and the videos), how to use the screen, then how it works: how
  * the numbers are made, why to trust them, what the site runs on, and how the co-pilot stays honest.
  */
-export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, guides = [], onGuide, videos = null, openAtVideo = false }: Props) {
+export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, guides = [], onGuide, videos = null, openAtVideo = false, why = null, openAtWhy = false }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -150,6 +157,14 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
     start.current = true
     setPlaying('walkthrough')
   }, [openAtVideo, hasWalkthrough])
+  // From Scout's idea the sheet opens at "Why this site is hard": in view, and where the keyboard is.
+  const whyHere = useRef<HTMLElement>(null)
+  const hasWhy = Boolean(why && why.length > 0)
+  useEffect(() => {
+    if (!openAtWhy || !hasWhy) return
+    whyHere.current?.focus({ preventScroll: true })
+    whyHere.current?.scrollIntoView({ block: 'start' })
+  }, [openAtWhy, hasWhy])
   /** A chapter was pressed: the video goes there and plays on. */
   const jump = (at: number) => {
     if (!film.current) return
@@ -245,6 +260,19 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
               <p className="how-caption">Recorded from this site. The narration is an AI-generated voice; the captions say every line.</p>
             </div>
           )}
+        </section>
+      )}
+
+      {/* Why the site on show is hard, in a few sentences made of that site's own figures. */}
+      {why && why.length > 0 && (
+        <section ref={whyHere} className="how-why" aria-labelledby="how-why-title" tabIndex={-1}>
+          <h2 id="how-why-title">Why this site is hard</h2>
+          <ul className="how-why-lines">
+            {why.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <p className="how-start-note">This site’s own figures, for the scenario on show.</p>
         </section>
       )}
 
