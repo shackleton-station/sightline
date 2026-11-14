@@ -44,6 +44,23 @@
   inset: 0;
 }
 
+/* One view: alone it fills the picture; two sit side by side, the Sun's then Earth's. */
+.sf-pane {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sf-view.split .sf-pane {
+  right: 50%;
+}
+
+.sf-view.split .sf-pane + .sf-pane {
+  right: 0;
+  left: 50%;
+  border-left: 1px solid var(--border);
+}
+
 .sf-stage {
   position: absolute;
   inset: 0;
@@ -290,6 +307,55 @@
   color: var(--text);
 }
 
+.sf-compass-facing b.sun {
+  color: var(--sun);
+}
+
+.sf-compass-facing b.earth {
+  color: var(--earth);
+}
+
+/* Two views: each compass sits under the row of menus and zoom, and is as wide as its view allows. */
+.sf-view.split .sf-compass {
+  top: 62px;
+  width: min(420px, calc(100% - 2rem));
+}
+
+/* The second view's compass keeps clear of the zoom controls in its corner. */
+.sf-view.split .sf-pane + .sf-pane .sf-compass {
+  left: calc((100% - 244px) / 2);
+  width: min(420px, calc(100% - 276px));
+}
+
+/* Shown on a view the visitor has steered off its body: one press turns it back. */
+.sf-refollow {
+  position: absolute;
+  top: 134px;
+  left: 50%;
+  z-index: 1;
+  min-height: 36px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--sf-glass);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.sf-view:not(.split) .sf-refollow {
+  top: 84px;
+}
+
+.sf-refollow.sun {
+  border-color: var(--sun);
+}
+
+.sf-refollow.earth {
+  border-color: var(--earth);
+}
+
 /* ---------- Lens: zoom and stretch ---------- */
 .sf-lens {
   position: absolute;
@@ -400,6 +466,10 @@
   cursor: pointer;
 }
 
+.sf-view.split .sf-stretched {
+  top: 178px;
+}
+
 /* ---------- The answer ---------- */
 .sf-answer {
   position: absolute;
@@ -462,6 +532,11 @@
 .sf-answer-next .earth::before,
 .sf-face .earth::before {
   background: var(--earth);
+}
+
+/* With two views up the answer stays over the first. */
+.sf-main:has(.sf-view.split) .sf-answer {
+  max-width: calc(50% - 112px);
 }
 
 /* ---------- Turning to face, the phone, and what is drawn ---------- */
@@ -720,6 +795,29 @@
     top: 132px;
   }
 
+  .sf-view:not(.split) .sf-refollow {
+    top: 134px;
+  }
+
+  /* Two views in a narrower window: the zoom controls become one row, and the second compass sits under it like the first. */
+  .sf-view.split .sf-pane + .sf-pane .sf-compass {
+    left: 50%;
+    width: min(420px, calc(100% - 2rem));
+  }
+
+  .sf-view.split .sf-lens {
+    grid-auto-flow: column;
+    align-items: center;
+  }
+
+  .sf-view.split .sf-zoom input,
+  .sf-view.split .sf-lens-says {
+    display: none;
+  }
+
+  .sf-view:not(.split) .sf-refollow ~ .sf-stretched {
+    top: 178px;
+  }
 }
 
 /* ---------- Phones: the picture on top, the answer and buttons under it, time at the bottom ---------- */
@@ -754,6 +852,59 @@
 
   .sf-tick:not(.cardinal) b {
     display: none;
+  }
+
+  /* Two views: one above the other, the first under the menus. */
+  .sf-view.split .sf-pane {
+    right: 0;
+    bottom: 50%;
+  }
+
+  .sf-view.split .sf-pane + .sf-pane {
+    top: 50%;
+    bottom: 0;
+    left: 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .sf-view.split .sf-compass {
+    top: 54px;
+    width: calc(100% - 16px);
+  }
+
+  .sf-view.split .sf-pane + .sf-pane .sf-compass {
+    top: 6px;
+    left: 50%;
+    width: calc(100% - 16px);
+  }
+
+  /* Half a phone's picture is short: the tape stays, the words under it go (each body is named in the picture). */
+  .sf-view.split .sf-compass-facing {
+    display: none;
+  }
+
+  .sf-refollow,
+  .sf-view:not(.split) .sf-refollow {
+    top: 116px;
+  }
+
+  .sf-view.split .sf-refollow {
+    top: 102px;
+  }
+
+  .sf-view.split .sf-pane + .sf-pane .sf-refollow {
+    top: 54px;
+  }
+
+  .sf-view.split .sf-stretched,
+  .sf-view:not(.split) .sf-refollow ~ .sf-stretched {
+    top: auto;
+    bottom: 8px;
+  }
+
+  .sf-main:has(.sf-view.split) .sf-answer {
+    max-width: none;
   }
 
   .sf-stretched {
@@ -884,6 +1035,27 @@
 
   .sf-stretched {
     top: 72px;
+  }
+
+  /* Two views in so short a window leave no room for a compass each: each body's azimuth is under its name. */
+  .sf-view.split .sf-compass {
+    display: none;
+  }
+
+  .sf-refollow,
+  .sf-view:not(.split) .sf-refollow {
+    top: 72px;
+    min-height: 32px;
+  }
+
+  .sf-view.split .sf-refollow {
+    top: 52px;
+  }
+
+  .sf-view.split .sf-stretched,
+  .sf-view:not(.split) .sf-refollow ~ .sf-stretched {
+    top: auto;
+    bottom: 8px;
   }
 
   .sf-lens {

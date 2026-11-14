@@ -12,6 +12,8 @@ interface Props {
   acrossDeg: number
   sun: Mark
   earth: Mark
+  /** The body this view follows, named beside the facing: with two views up, it says which is which. */
+  follows?: 'sun' | 'earth' | null
 }
 
 const CARDINALS: Record<number, string> = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }
@@ -30,7 +32,7 @@ function turnWords(headingDeg: number, azDeg: number): string {
  * the picture. The Sun and Earth sit on it at their azimuths from the track (filled when up, hollow
  * when the land hides them), so turning toward a mark brings that body into view.
  */
-export function CompassStrip({ headingDeg, acrossDeg, sun, earth }: Props) {
+export function CompassStrip({ headingDeg, acrossDeg, sun, earth, follows = null }: Props) {
   const at = (azDeg: number) => `${50 + (turnBetween(headingDeg, azDeg) / 360) * 100}%`
   const facing = Math.round(wrap360(headingDeg)) % 360
   const description =
@@ -52,6 +54,7 @@ export function CompassStrip({ headingDeg, acrossDeg, sun, earth }: Props) {
         <span className="sf-compass-needle" />
       </div>
       <p className="sf-compass-facing" aria-hidden="true">
+        {follows && <b className={follows}>{follows === 'sun' ? 'Sun' : 'Earth'} · </b>}
         Facing <strong>{facing}°</strong> {compassPoint(headingDeg)}
       </p>
     </div>

@@ -1,3 +1,6 @@
+// The page opens as two views side by side, one following the Sun and one following Earth; a link
+// with `face=sun` or `face=earth` opens one of them, and one with `look=` a single free view.
+//
 // Looks at the Surface tab (/surface/) in headless Chrome: screenshots of its main states at a desktop
 // and a phone size, checks of how it behaves (the address, links, keys, dragging, the motion sensor's
 // ways of failing), and frame times while turning and while time plays (docs/VALIDATION.md §13).
@@ -42,9 +45,9 @@ const SCENES = [
   { name: 'first-open', hash: '' },
   { name: 'sun-up', hash: at(133) },
   { name: 'sun-half', hash: at(128), keys: ['+', '+', '+', '+', '+', '+'] },
-  { name: 'sun-behind-hill', hash: at(270), click: 'Face the Sun' },
+  { name: 'sun-behind-hill', hash: `${at(270)}&face=sun` },
   { name: 'earth-on-the-hills', hash: at(270) },
-  { name: 'face-earth', hash: at(133), click: 'Face Earth' },
+  { name: 'face-earth', hash: `${at(133)}&face=earth` },
   { name: 'stretch-on', hash: at(133), keys: ['-', '-', '-', '-', '-', '-'], click: 'Stretch heights' },
   { name: 'stretch-off', hash: at(133), keys: ['-', '-', '-', '-', '-', '-'] },
   { name: 'apollo-11', hash: `#a=apollo-11@2028-07&t=200&${LIMITS}` },
@@ -185,7 +188,9 @@ async function deskChecks(cdp, size) {
   const view = at(133)
   let page = await open(cdp, size, view)
   await sleep(600)
-  check('the address says which way the visitor faces', /&look=311(\.\d+)?_-?[\d.]+_12$/.test(await page.evaluate('location.hash')), await page.evaluate('location.hash'))
+  check('the address says both views are up', /&face=both$/.test(await page.evaluate('location.hash')), await page.evaluate('location.hash'))
+  const opened = await page.evaluate(`[...document.querySelectorAll('.sf-compass-facing strong')].map((el) => Number(el.textContent.replace('°', '')))`)
+  check('it opens as two views, one facing the Sun and one facing Earth', opened.length === 2 && Math.abs(turn(opened[0], 311.4)) <= 1 && Math.abs(turn(opened[1], 132.5)) <= 1, JSON.stringify(opened))
   const tab = await page.evaluate("document.querySelector('a.site-tab[href^=\"/planner/\"]').getAttribute('href')")
   check('the other tabs open on the same site, month, hour and limits', tab === `/planner/${view}`, tab)
 
@@ -198,31 +203,49 @@ async function deskChecks(cdp, size) {
   await sleep(200)
   const afterDrag = await page.evaluate(FACING)
   check('dragging the picture to the right turns the view to the left', turn(afterKey, afterDrag) <= -3, `${afterKey}° to ${afterDrag}°`)
+  const other = await page.evaluate(`Number(document.querySelectorAll('.sf-compass-facing strong')[1].textContent.replace('°', ''))`)
+  check("steering the Sun's view leaves Earth's facing Earth", Math.abs(turn(other, 132.5)) <= 1, `${other}°`)
+  await page.click('Follow the Sun again')
+  await sleep(1100)
+  const back = await page.evaluate(FACING)
+  check('"Follow the Sun again" turns it back to the Sun', Math.abs(turn(back, 311.4)) <= 1 && !(await page.evaluate("document.body.innerText.includes('Follow the Sun again')")), `${back}°`)
+  await page.click('Face Earth')
+  await sleep(500)
+  const one = await page.evaluate("({ panes: document.querySelectorAll('.sf-pane').length, hash: location.hash })")
+  check("\"Face Earth\" closes Earth's view, and the address says so", one.panes === 1 && /&face=sun$/.test(one.hash), JSON.stringify(one))
+  await page.click('Face Earth')
+  await sleep(500)
+  const two = await page.evaluate("({ panes: document.querySelectorAll('.sf-pane').length, hash: location.hash })")
+  check('and opens it again', two.panes === 2 && /&face=both$/.test(two.hash), JSON.stringify(two))
 
   await page.evaluate("window.__sameDocument = true; location.hash = '#a=shackleton-rim@2028-03&t=40&limits=10_48_24_1_0&mode=plan&look=90_0_30'")
   await sleep(1800)
   const moved = await page.evaluate(
-    `({ site: document.querySelector('select[aria-label="Landing site"]').value, month: document.querySelector('select[aria-label="Month"]').value, time: document.querySelector('.river-time').textContent, facing: ${FACING}, same: window.__sameDocument === true, tab: document.querySelector('a.site-tab[href^="/planner/"]').getAttribute('href') })`,
+    `({ site: document.querySelector('select[aria-label="Landing site"]').value, month: document.querySelector('select[aria-label="Month"]').value, time: document.querySelector('.river-time').textContent, facing: ${FACING}, panes: document.querySelectorAll('.sf-pane').length, same: window.__sameDocument === true, tab: document.querySelector('a.site-tab[href^="/planner/"]').getAttribute('href') })`,
   )
   check(
-    'a new address from outside moves the view, with no reload',
-    moved.site === 'shackleton-rim' && moved.month === '2028-03' && moved.time.startsWith('2 March 2028') && moved.facing === 90 && moved.same,
+    'a new address from outside moves the view, with no reload, and one that says which way to look opens one free view',
+    moved.site === 'shackleton-rim' && moved.month === '2028-03' && moved.time.startsWith('2 March 2028') && moved.facing === 90 && moved.panes === 1 && moved.same,
     JSON.stringify(moved),
   )
   check('and the limits in it are kept for the other tabs', moved.tab.includes('limits=10_48_24_1_0'), moved.tab)
   await page.close()
 
   page = await open(cdp, size, view, { still: true })
-  await page.click('Face Earth')
+  await page.click('Face the Sun')
   await sleep(120)
   const facing = await page.evaluate(FACING)
-  check('with reduced motion, facing Earth happens at once', Math.abs(turn(facing, 132.51)) <= 1, `${facing}°`)
+  check("with reduced motion, Earth's view left alone faces Earth at once", Math.abs(turn(facing, 132.51)) <= 1, `${facing}°`)
   await page.close()
 }
 
 /** The ways looking around with the phone can go, none of which may break the page. */
 async function motionChecks(cdp, size) {
-  const view = at(133)
+  // The phone steers one view: the button is offered when one is up, not two.
+  const view = `${at(133)}&face=sun`
+  const both = await open(cdp, size, at(133))
+  check('motion: not offered while two views are up', !(await both.evaluate(`document.body.innerText.includes(${JSON.stringify(MOTION_BUTTON)})`)))
+  await both.close()
   const stillWorks = async (page) => {
     const before = await page.evaluate(FACING)
     await page.key('ArrowRight')
@@ -295,7 +318,7 @@ try {
         "(() => { const gl = document.createElement('canvas').getContext('webgl2'); const info = gl.getExtension('WEBGL_debug_renderer_info'); return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER) })()",
       )
       const turning = await page.evaluate(measure(TURNING))
-      await page.click('Face the Sun')
+      await page.click('Follow the Sun again')
       await sleep(900)
       await page.evaluate("document.querySelector('.river-play').click()")
       const playing = await page.evaluate(measure(''))

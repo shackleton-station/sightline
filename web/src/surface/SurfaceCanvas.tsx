@@ -16,10 +16,13 @@ interface Props {
 
 declare global {
   interface Window {
-    /** The Surface view's last draw time, for scripts/surface-shots.mjs. */
+    /** The Surface views' last draw time, all of them together, for scripts/surface-shots.mjs. */
     __surfaceDrawMs?: () => number
   }
 }
+
+/** Every view drawing now: two when the Sun's and Earth's are side by side. */
+const drawing = new Set<SurfaceViewer>()
 
 /**
  * The picture itself: the Three.js view, built once. After that a new horizon replaces one small
@@ -46,7 +49,8 @@ export function SurfaceCanvas({ horizon, groundTint = null, latDeg, frame, onLos
         if (typeof WebGL2RenderingContext === 'undefined') throw new Error('WebGL2 is not available')
         const viewer = new SurfaceViewer({ canvas, onLostChange: lost })
         viewerRef.current = viewer
-        window.__surfaceDrawMs = () => viewer.lastDrawMs
+        drawing.add(viewer)
+        window.__surfaceDrawMs = () => [...drawing].reduce((total, each) => total + each.lastDrawMs, 0)
         viewer.setHorizon(latest.current.horizon, latest.current.groundTint)
         viewer.setLatitude(latest.current.latDeg)
         viewer.draw(latest.current.frame)
@@ -59,6 +63,7 @@ export function SurfaceCanvas({ horizon, groundTint = null, latDeg, frame, onLos
     return () => {
       cancelled = true
       resize.disconnect()
+      if (viewerRef.current) drawing.delete(viewerRef.current)
       viewerRef.current?.dispose()
       viewerRef.current = null
     }
