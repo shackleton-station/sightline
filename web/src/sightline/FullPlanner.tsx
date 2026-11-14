@@ -11,6 +11,7 @@ import { HeaderTools } from './HeaderTools'
 import { saveHourlyCsv, saveText } from './hourlyExport'
 import { AdvancedControls, MissionControls } from './MissionDrawer'
 import { PlannerCompare } from './PlannerCompare'
+import { PlannerDetail } from './PlannerDetail'
 import { type FindSite, PlannerFind } from './PlannerFind'
 import type { PlannerTab } from './plannerFit'
 import { compareGroups, plannerCsv } from './plannerTable'
@@ -161,7 +162,10 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
           {tab === 'find' ? (
             <PlannerFind start={start} hours={hours} flagged={findSites} scenarios={scenarios} shown={{ siteId: facts[active].site.id, landing: scenarios[active].landing }} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} />
           ) : (
-            <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} />
+            <>
+              <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} />
+              <PlannerDetail start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} active={active} onSelect={onSelect} />
+            </>
           )}
         </div>
       </div>

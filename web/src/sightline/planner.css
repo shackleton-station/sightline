@@ -522,3 +522,44 @@
 .pl-nothing-host {
   margin: 0.2rem 0 0.6rem;
 }
+
+/* ---------- Compare: the scenario on show, in depth, under the table ---------- */
+.pl-detail {
+  margin-top: 1.4rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.pl-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.pl-detail-head h3 {
+  margin: 0;
+}
+
+.pl-detail-head h3 small {
+  margin-left: 0.6rem;
+  color: var(--soft);
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+.pl-detail-pick {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.pl-detail-pick button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
