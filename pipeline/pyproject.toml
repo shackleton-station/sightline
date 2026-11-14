@@ -1,7 +1,7 @@
 [project]
 name = "clps"
 version = "0.1.0"
-description = "CLPS Demo #1 pipeline: lunar south-pole horizon, Sun/Earth visibility (practice repo)"
+description = "Sightline pipeline: the terrain horizon at lunar landing sites, and when the Sun and Earth are above it"
 readme = "README.md"
 authors = [
     { name = "Shackleton Station" }
