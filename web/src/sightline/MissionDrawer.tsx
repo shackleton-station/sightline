@@ -78,7 +78,7 @@ function HeightChoice({ mission, onMission, off }: Pick<Props, 'mission' | 'onMi
  * What the hourly numbers assume: the height above the ground and how close the landing comes.
  * Where the heights can be chosen (the Planner) the first note is left to the choice itself.
  */
-function Assumptions({ site, month, year, summary, heights, choice }: Pick<Props, 'site' | 'month' | 'year' | 'summary'> & { heights: MissionHeights; choice: boolean }) {
+export function Assumptions({ site, month, year, summary, heights, choice }: Pick<Props, 'site' | 'month' | 'year' | 'summary'> & { heights: MissionHeights; choice: boolean }) {
   const [loaded, setLoaded] = useState<{ siteId: string; heights: MastHeight[] | null; spread: SiteSpread | null } | null>(null)
   useEffect(() => {
     let current = true
