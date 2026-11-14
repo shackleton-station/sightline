@@ -240,9 +240,9 @@ interface VerdictProps {
   /** Why a landing that fits is only marginal, one line each; empty when it is not. */
   marginal: string[]
   /** The next landing that fits, when this one does not: how it reads ("1 June · 18:00"), and what choosing it does. */
-  next: { when: string; adds: boolean; onTake: () => void } | null
+  next: { when: string; yourTime: string; adds: boolean; onTake: () => void } | null
   /** Another site of the same group where this date fits, when this one does not: its name, how far it is, and what choosing it does. */
-  elsewhere: { name: string; km: number; adds: boolean; onTake: () => void } | null
+  elsewhere: { name: string; km: number; yourTime: string; adds: boolean; onTake: () => void } | null
   /** Ask Scout why, in his panel. */
   onWhy: () => void
   /** Open the Mission panel, where the limits behind the reasons are. */
@@ -299,7 +299,7 @@ export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission 
         </ul>
       )}
       {next && (
-        <button type="button" className="sl-next" title={next.adds ? 'Adds that landing as another scenario' : 'Four scenarios already: moves this landing there'} onClick={next.onTake}>
+        <button type="button" className="sl-next" data-tip-tap title={`${next.yourTime}. ${next.adds ? 'Adds that landing as another scenario' : 'Four scenarios already: moves this landing there'}`} onClick={next.onTake}>
           Next landing that fits: {next.when} <span aria-hidden="true">›</span>
         </button>
       )}
@@ -307,7 +307,8 @@ export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission 
         <button
           type="button"
           className="sl-next sl-elsewhere"
-          title={`${elsewhere.name} is ${kmWords(elsewhere.km)} away. ${elsewhere.adds ? 'Adds it, on this date, as another scenario' : 'Four scenarios already: moves this landing there'}`}
+          data-tip-tap
+          title={`${elsewhere.name} is ${kmWords(elsewhere.km)} away. This date: ${elsewhere.yourTime}. ${elsewhere.adds ? 'Adds it, on this date, as another scenario' : 'Four scenarios already: moves this landing there'}`}
           onClick={elsewhere.onTake}
         >
           Fits at {elsewhere.name} on this date <span aria-hidden="true">›</span>
