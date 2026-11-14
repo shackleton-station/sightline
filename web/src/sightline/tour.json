@@ -65,7 +65,8 @@
       "title": "More than one plan",
       "say": "Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window.",
       "state": { "view": "plan" },
-      "targets": [".sl-tabs", "[data-tour='compare']", "[data-tour='planner']", "[data-tour='more']"]
+      "targets": [".sl-tabs", "[data-tour='compare']", "[data-tour='planner']", "[data-tour='more']"],
+      "offers": "nearby-pair"
     },
     {
       "id": "scout",
