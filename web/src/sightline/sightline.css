@@ -26,12 +26,45 @@
 
 .scout.sightline.is-plan {
   display: grid;
-  grid-template-columns: 24rem minmax(0, 1fr) auto auto;
+  grid-template-columns: 24rem minmax(0, 1fr) auto auto auto;
   grid-template-rows: minmax(0, 1fr) auto auto;
   grid-template-areas:
-    'col stage drawer rail'
-    'col sky drawer rail'
-    'col river drawer rail';
+    'col stage drawer rail scout'
+    'col sky drawer rail scout'
+    'col river drawer rail scout';
+}
+
+/* Scout has one place on anything wider than a phone: down the far right edge of the window, right
+   of the rail. In Plan it is his panel, in a column of the frame; in Watch it is his open card, in
+   the same place and the same width, with the stage ending where it begins. */
+.scout.sightline.is-plan:not(.is-full) .sl-drawer.sl-scout-panel {
+  grid-area: scout;
+}
+
+@media (min-width: 761px) {
+  .sightline.is-watch.has-dock .sl-stage {
+    right: 21rem;
+  }
+
+  .sl-scout.is-open {
+    width: auto;
+  }
+
+  .sl-scout.is-open .sl-card {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    width: 21rem;
+    max-height: none;
+    padding: 0.9rem;
+    border: 0;
+    border-left: 1px solid var(--line);
+    border-radius: 0;
+    background: linear-gradient(var(--panel-top), var(--panel-bottom));
+    box-shadow: none;
+  }
 }
 
 .sl-wrap {
@@ -457,37 +490,6 @@
   .sl-tour-chip {
     top: 7.4rem;
   }
-}
-
-/* Scout's card in Watch and his panel in Plan are one thing to the browser, so when Plan is opened
-   from Watch (or Home pressed in Plan) the one is drawn growing into the other. Everything else
-   changes at once, as it always has. */
-.sl-card,
-.sl-drawer.sl-scout-panel {
-  view-transition-name: scout;
-}
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-}
-
-::view-transition-group(scout) {
-  animation-duration: 0.35s;
-  animation-timing-function: ease;
-}
-
-/* The two are different shapes: each is stretched to the moving frame, the old fading into the new. */
-::view-transition-old(scout),
-::view-transition-new(scout) {
-  height: 100%;
-  object-fit: fill;
-}
-
-/* Beside the Moon the card is given the height of the empty sky (WatchControls.tsx): the
-   conversation fills it, and the input stays at its foot. */
-.sl-card.is-tall {
-  max-height: none;
 }
 
 .sl-card-head {

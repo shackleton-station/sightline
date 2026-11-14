@@ -1,9 +1,8 @@
 import type { RiverState } from '../lib/river'
 import { DEFAULT_SPEED, SPEEDS } from '../lib/sightline'
 import { Mascot } from '../scout/Mascot'
-import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { MAX_QUESTION_CHARS } from '../lib/chatClient'
-import { tallestBesideMoon, wholeMoonDisc } from '../lib/moonRoom'
 import { AiTag, ModelTag, type ScoutChat } from './AskScout'
 import { NOT_A_LOGIN } from './inputs'
 import type { Clock } from './hooks'
@@ -25,24 +24,11 @@ interface ScoutProps {
   onPlan: (hash: string) => void
   /** How tall the open card is, so the Moon can move aside for it on a narrow screen; 0 when closed. */
   onHeight: (px: number) => void
-  /**
-   * On a window wide enough for the open card to stand in the sky left of the Moon: the room kept
-   * clear under the Moon, in pixels, so the card can be as tall as that sky allows. Null on a
-   * narrower window, where the Moon moves up for a card only as tall as its conversation.
-   */
-  beside: number | null
 }
 
 /** How long Scout's line stays beside his mark before it fades to the mark alone. */
 const LINE_SHOWS_MS = 8000
 
-/** Sky kept between the open card and the Moon's disc, and between the card and the page's name above it. */
-const CARD_AIR_PX = 12
-/** The open card's width (20rem in the styles), and the narrowest it is made to stand clear of the Moon for its whole height. */
-const CARD_WIDTH_PX = 320
-const CARD_NARROWEST_PX = 264
-/** The card is only stretched to the sky's height when that is at least this tall: under it, it is as tall as its conversation. */
-const TALL_FROM_PX = 360
 /** What Scout says in his open card before anything is asked. */
 const HELLO = 'I’m Scout. Ask me where a lander could set down and when: I look the answer up in the same data this Moon is drawn from.'
 
@@ -52,45 +38,17 @@ const WATCH_IDEAS = ['What am I looking at?', 'Which site has the most Sun this 
 /**
  * Scout in Watch. Closed, he is his mark with one line beside it; the line is an invitation and fades
  * to the mark alone after a few seconds, or once the visitor does anything else, and comes back when
- * the mark is hovered or focused. His mark opens a compact chat card in the empty sky at the lower
- * left, and closes it; it never leaves Watch. A reply that names a place carries "Show me" and "Plan
+ * the mark is hovered or focused. His mark opens his chat card and closes it; it never leaves Watch.
+ * The card stands down the far right edge of the window, where his panel stands in Plan (on a phone
+ * it is a sheet across the bottom). A reply that names a place carries "Show me" and "Plan
  * this", the only things in a reply that change the screen, and only when pressed.
  */
-export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, beside }: ScoutProps) {
+export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight }: ScoutProps) {
   const [draft, setDraft] = useState('')
   const [said, setSaid] = useState<string | null>(line)
   const card = useRef<HTMLDivElement>(null)
   const talk = useRef<HTMLDivElement>(null)
   const { thread, waiting, step } = chat
-
-  // Beside the Moon the open card is as tall as the empty sky: from his mark up to the page's name,
-  // or to the Moon's disc where the disc reaches over the card. Worked out from the stage's size, for
-  // the whole Moon as the page opens on it, and again when the window changes size.
-  const [tall, setTall] = useState<{ width: number; height: number } | null>(null)
-  useLayoutEffect(() => {
-    const el = card.current
-    const stage = el?.closest('.sl-stage')
-    if (!open || beside === null || !el || !stage) {
-      setTall(null)
-      return
-    }
-    const measure = () => {
-      const box = stage.getBoundingClientRect()
-      const at = el.getBoundingClientRect()
-      const name = stage.querySelector('.sl-brand')?.getBoundingClientRect()
-      const top = (name ? name.bottom - box.top : 0) + CARD_AIR_PX
-      const left = at.left - box.left
-      const disc = wholeMoonDisc(box.width, box.height, beside)
-      // The card gives up a little of its width, where it must, to stand clear of the disc for its whole height.
-      const sky = Math.floor(disc.cx - disc.r - CARD_AIR_PX - left)
-      const width = Math.max(CARD_NARROWEST_PX, Math.min(CARD_WIDTH_PX, sky))
-      const height = tallestBesideMoon(disc, left + width, at.bottom - box.top, top, CARD_AIR_PX)
-      setTall(height >= TALL_FROM_PX ? { width, height: Math.floor(height) } : null)
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [open, beside])
 
   // The line shows when it is new (or the mark is hovered or focused), then fades after a while or once the visitor does anything else.
   useEffect(() => {
@@ -143,7 +101,7 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
   }
 
   return (
-    <div className={open ? 'sl-scout is-open' : 'sl-scout sl-fade'} style={open && tall !== null ? { width: tall.width } : undefined}>
+    <div className={open ? 'sl-scout is-open' : 'sl-scout sl-fade'}>
       <button
         type="button"
         className="scout-face"
@@ -167,7 +125,7 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
         </p>
       )}
       {open && (
-        <div ref={card} className={tall === null ? 'sl-card' : 'sl-card is-tall'} style={tall === null ? undefined : { height: tall.height }} role="dialog" aria-label="Scout">
+        <div ref={card} className="sl-card" role="dialog" aria-label="Scout">
           <header className="sl-card-head">
             <span className="sl-ask-name">
               Scout <ModelTag />
