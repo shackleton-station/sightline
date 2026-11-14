@@ -78,7 +78,7 @@ import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
 import { LayersDrawer } from './LayersDrawer'
 import { RoverDrawer } from './RoverDrawer'
-import { MissionDrawer, MissionInline } from './MissionDrawer'
+import { MissionInline } from './MissionDrawer'
 import { useMissionLight } from './useMissionLight'
 import { useTrekOverlay } from './useTrekOverlay'
 import { Fields, PlanColumn, Verdict } from './PlanColumn'
@@ -990,7 +990,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                   mission={missionWords(mission)}
                   missionOpen={missionHere}
                   onMission={toggleMission}
-                  missionPanel={<MissionInline mission={mission} onMission={setMission} onAdvanced={() => setDrawer('advanced')} />}
+                  missionPanel={<MissionInline mission={mission} onMission={setMission} heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} />}
                 />
               }
               verdict={
@@ -1299,19 +1299,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onClose={toggleScoutPanel}
           onTour={() => startTour()}
           tourTaken={tourTaken}
-        />
-      )}
-      {/* The mission's Advanced controls; its presets and basic limits are in the column, under the mission's control. */}
-      {shown && !planner && (drawer === 'mission' || drawer === 'advanced') && (
-        <MissionDrawer
-          mission={mission}
-          onMission={setMission}
-          heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null}
-          site={site}
-          month={landingAt.month}
-          year={Number(landingAt.month.slice(0, 4))}
-          summary={here?.summary ?? null}
-          onClose={() => setDrawer(null)}
         />
       )}
       {shown && !planner && drawer === 'compare' && (

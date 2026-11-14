@@ -3561,6 +3561,28 @@ button.sl-moment-heights[aria-expanded='true'] {
   white-space: normal;
 }
 
+/* Behind "Advanced" the same box holds the Advanced controls, one under another, with "Limits" leading back. */
+.sl-mission-inline.is-advanced {
+  display: block;
+}
+
+.sl-mission-inline.is-advanced .sl-param {
+  margin-top: 0.4rem;
+}
+
+.sl-mission-inline.is-advanced .sl-height-choice {
+  margin-top: 0.5rem;
+}
+
+.sl-mission-inline.is-advanced .sl-assume {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+}
+
+.sl-mission-inline.is-advanced .sl-assume p {
+  margin: 0.2rem 0 0;
+}
+
 .sl-mission-inline > .sl-advanced-link {
   grid-column: 1 / -1;
   justify-self: start;
