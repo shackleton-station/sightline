@@ -1,0 +1,411 @@
+/* The brief: the answer for the chosen site and month, as a sheet of paper on the black page. It is
+   the same sheet on screen and in print. Colors here are darker versions of the site's green and
+   orange, so they hold their contrast on paper. */
+.pl-brief {
+  position: relative;
+  padding: 1.2rem 1.5rem 1.1rem;
+  border-top: 6px solid var(--pl-paper-works);
+  border-radius: 2px;
+  background: var(--pl-paper);
+  color: var(--pl-paper-ink);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.pl-brief.tight {
+  border-top-color: var(--pl-paper-tight);
+}
+
+.pl-brief.none {
+  border-top-color: var(--pl-paper-muted);
+}
+
+.pl-brief p {
+  margin: 0.3rem 0 0;
+}
+
+.pl-brief .pl-label,
+.pl-brief .pl-fine {
+  color: var(--pl-paper-muted);
+}
+
+.pl-brief :focus-visible {
+  outline-color: var(--pl-paper-ink);
+}
+
+.pl-brief-head h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* The status as a word, stamped on the sheet: readable without the color. */
+.pl-brief .pl-stamp {
+  position: absolute;
+  top: 1rem;
+  right: 1.4rem;
+  margin: 0;
+  padding: 0.15rem 0.55rem;
+  border: 2px solid currentcolor;
+  border-radius: 3px;
+  color: var(--pl-paper-works);
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+
+.pl-brief.tight .pl-stamp {
+  border-style: dashed;
+  color: var(--pl-paper-tight);
+}
+
+.pl-brief.none .pl-stamp {
+  border-style: dotted;
+  color: var(--pl-paper-ink);
+}
+
+.pl-brief section,
+.pl-brief-foot {
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--pl-paper-rule);
+}
+
+.pl-verdict-headline {
+  font-size: 2rem;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.pl-brief .pl-verdict-headline {
+  margin: 0;
+}
+
+/* The month, one square per day. */
+.pl-days {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+  margin: 1.4rem 0 1.25rem;
+}
+
+.pl-day {
+  position: relative;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 1px;
+  background: rgb(22 21 27 / 9%);
+}
+
+.pl-day-fill {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: calc(var(--fill) * 100%);
+  background: var(--pl-paper-works);
+}
+
+.pl-day:hover {
+  background: rgb(22 21 27 / 22%);
+}
+
+.pl-day[aria-pressed='true'] {
+  z-index: 1;
+  outline: 2px solid var(--pl-paper-ink);
+  outline-offset: 1px;
+}
+
+/* The date under every fifth square, and under the first. */
+.pl-day-number {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 50%;
+  display: none;
+  color: var(--pl-paper-muted);
+  font-family: var(--pl-mono);
+  font-size: 0.75rem;
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.pl-day:first-child .pl-day-number,
+.pl-day:nth-child(5n) .pl-day-number {
+  display: block;
+}
+
+.pl-day.best::before {
+  content: 'best';
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  color: var(--pl-paper-ink);
+  font-family: var(--pl-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.pl-windows,
+.pl-problems,
+.pl-others,
+.pl-slip-others ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.pl-windows {
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+}
+
+.pl-brief .pl-when {
+  margin-top: 0.15rem;
+  font-family: var(--pl-mono);
+  font-size: 1.1875rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.pl-problems {
+  color: var(--pl-paper-tight);
+  font-weight: 600;
+}
+
+/* The landing's date, with the button that keeps it, on one line. */
+.pl-landing-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+  margin: 0.15rem 0 0.1rem;
+}
+
+.pl-landing-row .pl-paper-button,
+.pl-brief .pl-landing-row .pl-when {
+  margin-top: 0;
+}
+
+.pl-landing-row .pl-paper-button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.pl-paper-button {
+  margin-top: 0.7rem;
+  padding: 0.4rem 0.8rem;
+  border: 1.5px solid var(--pl-paper-ink);
+  border-radius: 2px;
+  background: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.planner .pl-paper-button,
+.planner .pl-paper-link,
+.planner .pl-slip-ask input {
+  color: var(--pl-paper-ink);
+}
+
+.pl-paper-button:hover:not(:disabled) {
+  background: var(--pl-paper-ink);
+}
+
+.planner .pl-paper-button:hover:not(:disabled) {
+  color: var(--pl-paper);
+}
+
+.planner .pl-paper-button:disabled {
+  border-style: dashed;
+  color: var(--pl-paper-muted);
+}
+
+.pl-paper-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* The slip check. */
+.pl-slip-ask {
+  display: block;
+  margin-top: 0.2rem;
+  font-weight: 600;
+}
+
+.pl-slip-ask input {
+  width: 3.4rem;
+  margin: 0 0.4rem;
+  padding: 0.1rem 0.3rem;
+  border: 1.5px solid var(--pl-paper-ink);
+  border-radius: 2px;
+  background: #fff;
+  font-family: var(--pl-mono);
+  font-weight: 700;
+  text-align: center;
+}
+
+.pl-brief .pl-slip-answer {
+  margin-top: 0.55rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.pl-slip-answer.yes {
+  color: var(--pl-paper-works);
+}
+
+.pl-slip-answer.partly,
+.pl-slip-answer.no,
+.pl-slip-answer.misses {
+  color: var(--pl-paper-tight);
+}
+
+.pl-slip-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 0.7rem;
+}
+
+.pl-slip-days span {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--pl-paper-ink);
+  border-radius: 1px;
+}
+
+.pl-slip-days .works {
+  border-color: var(--pl-paper-works);
+  background: var(--pl-paper-works);
+}
+
+.pl-slip-days .past {
+  border-style: dotted;
+  opacity: 0.5;
+}
+
+.pl-slip-others {
+  margin-top: 0.7rem;
+}
+
+.pl-brief-foot {
+  color: var(--pl-paper-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.pl-brief-foot strong {
+  color: var(--pl-paper-ink);
+}
+
+.pl-print-only {
+  display: none;
+}
+
+.pl-brief-link {
+  overflow-wrap: anywhere;
+  font-family: var(--pl-mono);
+}
+
+@media (max-width: 720px) {
+  .pl-brief {
+    padding: 1.1rem 1rem 1rem;
+  }
+
+  .pl-verdict-headline {
+    font-size: 1.75rem;
+  }
+
+  .pl-brief .pl-stamp {
+    right: 0.9rem;
+  }
+
+  .pl-day {
+    height: 2.75rem;
+  }
+}
+
+/* On paper: the brief alone, black on white, on one page. */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  :root,
+  body,
+  .planner {
+    background: #fff;
+  }
+
+  .planner .site-tabs,
+  .pl-head,
+  .pl-mission,
+  .pl-notice,
+  .pl-nothing,
+  .pl-grid,
+  .pl-list,
+  .pl-take,
+  .pl-foot,
+  .pl-paper-button,
+  .share-plan {
+    display: none;
+  }
+
+  .pl-page {
+    max-width: none;
+    padding: 0;
+  }
+
+  .pl-body {
+    display: block;
+    margin: 0;
+  }
+
+  .pl-brief {
+    padding: 0.8rem 0 0;
+    background: #fff;
+    font-size: 10.5pt;
+    print-color-adjust: exact;
+  }
+
+  .pl-brief .pl-stamp {
+    right: 0;
+  }
+
+  .pl-brief section {
+    break-inside: avoid;
+  }
+
+  .pl-slip-ask input {
+    border: 0;
+    width: 2.2rem;
+    margin: 0;
+    background: none;
+  }
+
+  .pl-paper-link {
+    text-decoration: none;
+  }
+
+  .pl-print-only {
+    display: block;
+  }
+}

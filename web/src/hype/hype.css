@@ -1,0 +1,142 @@
+/* The hype page: one video on a dark stage. Self-contained, so it looks the same whatever
+   the rest of the site's theme does. */
+.hype {
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 50% 0%, #2a1c05 0%, #0a0806 55%, #000 100%);
+  color: #f6efe0;
+}
+
+.hype-stage {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+  text-align: center;
+}
+
+.hype-kicker {
+  margin: 0 0 0.6rem;
+  color: #f5b342;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.hype h1 {
+  margin: 0;
+  font-size: clamp(2.4rem, 7vw, 4.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  background: linear-gradient(180deg, #fff3d6 0%, #f5b342 70%, #b9862a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hype-lede {
+  max-width: 34rem;
+  margin: 0.9rem auto 1.8rem;
+  color: #d9cfbb;
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+/* A gold edge that slowly breathes: the one flourish on the page. */
+.hype-frame {
+  position: relative;
+  /* Never taller than the screen has room for, so the sound button stays in view under it. */
+  max-width: max(18rem, calc((100vh - 23rem) * 16 / 9));
+  margin: 0 auto;
+  padding: 3px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f5b342, #6b4a12 40%, #f5b342 60%, #6b4a12);
+  background-size: 300% 300%;
+  box-shadow: 0 30px 80px rgb(245 179 66 / 18%);
+  animation: hype-glow 9s ease-in-out infinite;
+}
+
+.hype-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 17px;
+  background: #000;
+}
+
+/* Shown only while the browser is holding the sound back. It does not catch the tap itself: the
+   whole page does, so the player's own controls keep working underneath. */
+.hype-tap {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  margin: 0;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 72%);
+  color: #f5b342;
+  font-weight: 700;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+@keyframes hype-glow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hype-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.hype-sound {
+  min-height: 48px;
+  padding: 0 1.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: #f5b342;
+  color: #1a1204;
+  font: inherit;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hype-sound[aria-pressed='true'] {
+  background: transparent;
+  color: #f5b342;
+  box-shadow: inset 0 0 0 2px #f5b342;
+}
+
+.hype-actions a {
+  color: #f5b342;
+  font-weight: 600;
+}
+
+.hype :focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.hype-note {
+  max-width: 40rem;
+  margin: 2rem auto 0;
+  color: #a89f8c;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hype-frame {
+    animation: none;
+  }
+}

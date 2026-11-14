@@ -1,0 +1,3371 @@
+/* Sightline: one screen. The Moon fills it; in Watch everything else floats in the empty sky around
+   the Moon, fades while time plays, and can be hidden. The look is Scout's (scout.css): warm gold on
+   near-black, serif headings. One colour language everywhere, and never colour alone: gold is the
+   Sun, blue is Earth, green is both, grey is neither, and each dot has its own shape as well. */
+.scout.sightline {
+  --sl-sun: #e9b44c;
+  --sl-earth: #5b9bea;
+  --sl-both: #57c08a;
+  --sl-none: #8b91a0;
+  --sl-panel: rgb(18 15 24 / 92%);
+  --sl-edge: max(1rem, env(safe-area-inset-left, 0px));
+  --sl-edge-right: max(1rem, env(safe-area-inset-right, 0px));
+  --sl-edge-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+
+  display: block;
+  font-size: 0.9375rem;
+}
+
+/* Watch: the stage alone. Plan: a frame round it. Column | stage | rail, and under the stage the
+   skyline and the river. Nothing in the frame lies over the Moon. */
+.scout.sightline {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'stage';
+}
+
+.scout.sightline.is-plan {
+  display: grid;
+  grid-template-columns: 24rem minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    'col stage drawer rail'
+    'col sky drawer rail'
+    'col river drawer rail';
+}
+
+.sl-wrap {
+  display: contents;
+}
+
+.sightline.is-watch .sl-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.sl-stage {
+  position: relative;
+  grid-area: stage;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sl-moon {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sl-moon .scout-globe {
+  transition: none;
+}
+
+/* The still that stands in for the Moon until the globe draws: the same disc, in the same place. */
+.sl-poster {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+/* The globe arrives over the still without a pop. */
+.sl-moon .scout-globe canvas {
+  animation: sl-arrive 0.35s ease-out;
+}
+
+@keyframes sl-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Around the Moon, and underneath it: made-up stars, and Earth in its true direction (not to scale). */
+.sl-stars,
+.sl-earth {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.sl-earth {
+  border-radius: 50%;
+  transition: opacity 0.4s ease;
+}
+
+/* A clear spot over Earth's picture, above the Moon's square, so its tooltip can be reached. Under the view's buttons. */
+.sl-earth-name {
+  position: absolute;
+  z-index: 2;
+  border-radius: 50%;
+  /* The ordinary arrow: its words are a tooltip, not a question. */
+  cursor: default;
+}
+
+/* ---------- The dots: a site's state right now, by colour and by shape ---------- */
+.sightline .sl-dot {
+  border-color: #000;
+  background: var(--sl-none);
+  box-shadow: none;
+}
+
+.sightline .sl-dot.is-sun {
+  background: var(--sl-sun);
+}
+
+/* Earth alone: a square. */
+.sightline .sl-dot.is-earth {
+  border-radius: 3px;
+  background: var(--sl-earth);
+}
+
+/* Both: a disc with a ring round it. */
+.sightline .sl-dot.is-both {
+  background: var(--sl-both);
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px var(--sl-both);
+}
+
+/* Neither: a hollow ring. */
+.sightline .sl-dot.is-none {
+  border-color: var(--sl-none);
+  background: #000;
+}
+
+.sightline .sl-dot span {
+  background: rgb(0 0 0 / 65%);
+  font-size: 11px;
+}
+
+/* Close on a site whose picture is not tied to the marker's coordinates (lib/moonDetail.ts): an
+   open ring of 50 m of ground in the site's colour, not a dot claiming a point. Its name sits under the ring. */
+.sightline .sl-dot.is-within {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sl-within {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  box-sizing: border-box;
+  width: calc(2 * var(--sl-within));
+  height: calc(2 * var(--sl-within));
+  border: 1.5px solid var(--sl-none);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 60%), inset 0 0 0 1px rgb(0 0 0 / 60%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.sl-dot.is-sun .sl-within {
+  border-color: var(--sl-sun);
+}
+
+.sl-dot.is-earth .sl-within {
+  border-color: var(--sl-earth);
+}
+
+.sl-dot.is-both .sl-within {
+  border-color: var(--sl-both);
+}
+
+.sightline .sl-dot.is-within span.at-below {
+  top: calc(50% + var(--sl-within) + 4px);
+}
+
+/* ---------- Watch: what floats in the sky ---------- */
+.sl-fade {
+  transition: opacity 0.5s ease;
+}
+
+.sightline.is-idle .sl-fade,
+.sightline.is-idle .sl-view-tools,
+.sightline.is-idle .sl-scale {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The view's tools: the recentre compass, when the view has been moved, above the zoom buttons. In
+   the stage's corner over empty sky, under "Hide all", clear of the Moon's disc at every width. */
+.sl-view-tools {
+  position: absolute;
+  top: 4rem;
+  right: var(--sl-edge-right);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  transition: opacity 0.5s ease;
+}
+
+.sightline .zoom-buttons {
+  position: static;
+}
+
+.sl-recentre {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #ffffff33;
+  border-radius: 50%;
+  background: rgb(10 12 24 / 70%);
+  color: #fff;
+}
+
+/* Close on a site: the way to Earth across the ground, and how much ground the screen holds. Both sit with the view's buttons. */
+.sl-scale {
+  /* The stage's bottom right corner, level with the note about the landing, which starts at the left. */
+  position: absolute;
+  right: var(--sl-edge-right);
+  bottom: 0.4rem;
+  z-index: 3;
+  transition: opacity 0.5s ease;
+}
+
+.sl-to-earth,
+.sl-scale {
+  margin: 0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 8px;
+  background: rgb(10 12 24 / 70%);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sl-to-earth {
+  display: grid;
+  justify-items: center;
+  cursor: default;
+}
+
+
+.sl-scale span {
+  display: inline-block;
+  height: 0.4rem;
+  margin-right: 0.4rem;
+  border: 1.5px solid #fff;
+  border-top: 0;
+  vertical-align: -0.05rem;
+}
+
+.sl-recentre:hover {
+  border-color: var(--gold-deep);
+}
+
+
+.sl-brand {
+  position: absolute;
+  top: 0.9rem;
+  left: var(--sl-edge);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.sl-brand h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+
+.sl-brand p {
+  margin: 0.15rem 0 0;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.sl-top {
+  position: absolute;
+  top: 0.9rem;
+  right: var(--sl-edge-right);
+  z-index: 3;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sl-top button,
+.sl-small,
+.sl-handle {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--sl-panel);
+}
+
+.sl-top button:hover,
+.sl-small:hover,
+.sl-handle:hover {
+  border-color: var(--gold-deep);
+}
+
+.sl-top button.is-main {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-small {
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.sl-scout {
+  position: absolute;
+  left: var(--sl-edge);
+  bottom: calc(var(--sl-edge-bottom) + 3.6rem);
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: min(24rem, calc(100% - 2rem));
+}
+
+.sl-scout .scout-face {
+  width: 44px;
+  filter: none;
+}
+
+.sl-bubble {
+  min-width: 0;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.8rem;
+  border: 1.5px solid var(--gold-deep);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  background: var(--sl-panel);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 50%);
+}
+
+/* The "AI" tag sits on the corner of his mark while he is closed. */
+.sl-scout {
+  position: absolute;
+}
+
+.sl-scout-tag {
+  position: absolute;
+  bottom: -0.35rem;
+  left: 1.9rem;
+  line-height: 1;
+}
+
+.sl-scout-tag .sl-ai {
+  background: var(--sl-panel);
+  font-size: 0.6875rem;
+}
+
+/* Scout's line in Watch, beside his mark: an invitation that fades to the mark alone. */
+.sl-scout-line {
+  margin: 0 0 0.7rem;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid var(--gold-deep);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  background: var(--sl-panel);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 50%);
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.35;
+  transition: opacity 0.4s ease;
+}
+
+.sl-scout-line.is-gone {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Open, his mark sits under a compact chat card: about 320 px wide and no taller than half the stage.
+   On a laptop it stays in the empty sky beside the Moon; narrower, the Moon moves up for it. */
+.sl-scout.is-open {
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  width: min(20rem, calc(100% - 2rem));
+}
+
+.sl-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: min(50vh, 26rem);
+  padding: 0.6rem 0.7rem 0.7rem;
+  border: 1.5px solid var(--gold-deep);
+  border-radius: 14px;
+  background: var(--sl-panel);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 50%);
+}
+
+.sl-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sl-card .sl-talk {
+  min-height: 3rem;
+}
+
+/* The Moon glides aside when the card opens on a narrow window, and back when it closes. Only then:
+   any other change of the stage's size places it at once. */
+.sightline.is-gliding .scout-globe {
+  transition: top 0.35s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sightline.is-gliding .scout-globe,
+  .sl-scout-line {
+    transition: none;
+  }
+}
+
+
+.sl-pill {
+  position: absolute;
+  bottom: var(--sl-edge-bottom);
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: calc(100% - 2rem);
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--sl-panel);
+  white-space: nowrap;
+  translate: -50% 0;
+}
+
+.sl-pill.is-min {
+  padding: 0.2rem;
+}
+
+.sl-round {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #1d1826;
+  font-size: 0.8125rem;
+  line-height: 1;
+}
+
+.sl-round:hover {
+  border-color: var(--gold-deep);
+}
+
+.sl-date {
+  min-width: 7.5rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.sl-pill select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #1d1826;
+}
+
+.sl-pill input[type='range'] {
+  width: 8rem;
+  accent-color: var(--gold);
+}
+
+/* ---------- Plan: the column (the question, then the answer) ---------- */
+.sl-sheet-handle {
+  display: none;
+}
+
+.sl-col {
+  grid-area: col;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.55rem 0.9rem 0.55rem var(--sl-edge);
+  border-right: 1px solid var(--line);
+  background: linear-gradient(var(--panel-top), var(--panel-bottom));
+}
+
+.sl-title {
+  margin: 0;
+  font-family: var(--serif);
+  /* The name is smaller than the verdict, which is the column's headline. */
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.sl-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  /* The same height whether it holds the title or the undo notice: the title's own line. */
+  min-height: 1.65rem;
+}
+
+/* One row, with four scenarios or with three and the "+". */
+.sl-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.6rem;
+}
+
+/* A tab is its letter, with the "−" that removes it as a small badge on its upper right corner. */
+.sl-tab {
+  position: relative;
+  display: inline-flex;
+}
+
+.sl-tabs .sl-tab-remove {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.4rem;
+  display: grid;
+  place-items: center;
+  width: 1rem;
+  min-width: 0;
+  height: 1rem;
+  padding: 0;
+  border-radius: 50%;
+  background: #2a2434;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* The badge is small to look at and larger to press. */
+.sl-tabs .sl-tab-remove::after {
+  content: '';
+  position: absolute;
+  inset: -0.25rem;
+}
+
+.sl-tabs .sl-tab-remove:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* "Removed scenario B · Undo", where the title is, for a few seconds. */
+.sl-removed {
+  margin: 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* The disclosure tag beside Scout's name: its answers and its mark are AI-generated. */
+.sl-ai {
+  padding: 0 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--soft);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.sl-tabs button {
+  min-width: 1.7rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+  font-size: 0.8125rem;
+}
+
+.sl-tabs button[aria-pressed='true'],
+.sl-compare th button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-suggest {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--gold-deep);
+  border-radius: 8px;
+  background: #1d1826;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.sl-suggest span {
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+.sl-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sl-field label,
+.sl-label,
+.sl-numbers dt,
+.sl-time {
+  display: block;
+  margin: 0 0 0.1rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sl-time {
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-value {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-col select,
+.sl-col input[type='text'] {
+  width: 100%;
+  min-width: 0;
+  font-size: 0.875rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+}
+
+.sl-coords {
+  margin-top: 0.3rem;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.sl-coords summary {
+  cursor: pointer;
+}
+
+.sl-coords form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.sl-field .sl-small {
+  margin-top: 0.3rem;
+}
+
+/* Inside the same disclosure: the site on show, opened in NASA's own tools. One quiet line of links. */
+.sl-open-in {
+  margin: 0.25rem 0 0;
+  line-height: 1.3;
+}
+
+/* The column has no line to spare, so while this disclosure is open the Horizons line under the numbers
+   gives way to it: the same check is here, as "Open in ... Horizons". */
+.sl-col:has(.sl-coords[open]) .sl-horizons {
+  display: none;
+}
+
+.sl-open-in a {
+  color: var(--gold);
+  text-underline-offset: 2px;
+}
+
+.sl-open-in a:hover {
+  color: var(--ink);
+}
+
+/* What is up at the landing's hour, in body size under the verdict, under the label that says which hour that is. */
+.sl-sentence {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.sl-answer > .sl-time {
+  margin: 0.5rem 0 0;
+}
+
+.sl-note {
+  margin: 0.3rem 0 0;
+  font-size: 0.875rem;
+}
+
+/* One warning colour, and only for a mission that does not fit (or an outright error). */
+.is-warn {
+  color: #e8915a;
+}
+
+/* Information, such as a close call: the muted text colour, with a small marker. */
+.sl-note.is-info {
+  color: var(--soft);
+  line-height: 1.4;
+}
+
+/* The column is about the landing and does not change while time plays, so nothing keeps room it does
+   not use and nothing in it scrolls: the verdict and its reasons are as tall as they are. */
+.sl-verdict-area {
+  margin-top: 0.5rem;
+}
+
+.sl-suggest-slot {
+  margin-top: 0.3rem;
+}
+
+.sl-suggest-slot .sl-suggest {
+  width: 100%;
+}
+
+.sl-numbers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* A tile is as tall as what it holds: the column does not change while time plays. */
+  grid-auto-rows: auto;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+}
+
+/* A number's name and its value share a line; its caption, if it has one, takes the line under, in full. */
+.sl-numbers > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  align-items: baseline;
+  column-gap: 0.4rem;
+  min-width: 0;
+  padding: 0.2rem 0.35rem 0.25rem;
+  border-radius: 8px;
+  background: #1d1826;
+}
+
+/* The Sun's and Earth's tiles take the column's whole width: the name and the big number (above the
+   skyline) on one line, the elevation under them. */
+.sl-numbers > .sl-sky-tile {
+  grid-column: 1 / -1;
+}
+
+/* A tile whose name is too long to share a line with what it says: the name takes the first line,
+   and the caption and the number share the second. */
+.sl-numbers > .sl-wide-tile dt {
+  grid-column: 1 / -1;
+}
+
+.sl-numbers > .sl-wide-tile dd.sl-sub {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.sl-numbers > .sl-wide-tile dd:not(.sl-sub) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* "Earth stays in view": words, not a number, on the tile's second line. */
+.sl-numbers > .sl-wide-tile dd.sl-stays {
+  grid-column: 1 / -1;
+  font-family: inherit;
+  font-size: 0.875rem;
+  white-space: normal;
+}
+
+.sl-numbers dt {
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.sl-numbers dd {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sl-numbers dd small {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.sl-numbers dt[title] {
+}
+
+/* A caption shows in full, on as many lines as it needs: never cut with an ellipsis. */
+.sl-numbers dd.sl-sub {
+  grid-column: 1 / -1;
+  margin-top: 0;
+  color: var(--soft);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.sl-numbers dd.sl-sub.is-warn {
+  color: #e8915a;
+}
+
+/* Under the numbers: how closely they match JPL Horizons, and NASA's own answer for this hour. Quiet, one line where it fits. */
+.sl-horizons {
+  min-height: 1.0125rem;
+  margin: 0.45rem 0 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.sl-horizons a {
+  color: var(--gold);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.sl-horizons a:hover {
+  color: var(--ink);
+}
+
+/* A short laptop screen (1366 by 768) has no line to spare in the fullest answer, so this one gives way there.
+   The same proof stays one click away, under the site field ("Open in ... Horizons") and in How it works. */
+@media (max-height: 819px) and (min-width: 761px) {
+
+  /* And the tiles sit a little closer, so the fullest answer still fits with Scout's three ideas. */
+  .sl-numbers {
+    gap: 0.25rem;
+    margin-top: 0.35rem;
+  }
+
+}
+
+.sl-verdict {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.sl-verdict p {
+  margin: 0;
+}
+
+/* The verdict is the largest line in the column. */
+.sl-verdict-line {
+  font-family: var(--serif);
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.sl-verdict ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.sl-verdict.is-fit {
+  color: var(--sl-both);
+}
+
+/* ---------- Scout's panel, on the right: the conversation down the whole height, the input at its foot ---------- */
+.sl-drawer.sl-scout-panel {
+  display: flex;
+  flex-direction: column;
+  width: 21rem;
+  overflow: hidden;
+}
+
+.sl-ask-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+}
+
+/* The conversation scrolls here, in its own panel: the oldest lines go up out of sight. */
+.sl-talk {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  margin-top: 0.6rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 0.875rem;
+}
+
+.sl-talk p {
+  margin: 0;
+}
+
+.sl-said {
+  max-width: 92%;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  line-height: 1.4;
+}
+
+.sl-said.is-scout {
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+  background: #1d1826;
+}
+
+.sl-said.is-visitor {
+  align-self: flex-end;
+  border-color: var(--gold-deep);
+  border-bottom-right-radius: 4px;
+}
+
+.sl-said .sl-small {
+  margin: 0.35rem 0.3rem 0 0;
+}
+
+/* Until something is said: questions to tap, and one thing to try. */
+.sl-ideas {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sl-idea {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #1d1826;
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.sl-idea:hover,
+.sl-idea:focus-visible {
+  border-color: var(--gold);
+}
+
+.sl-ask {
+  display: flex;
+  flex: none;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.sl-ask input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+/* Scout's button on the rail carries his mark. */
+.sl-rail-scout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.sl-quiet {
+  color: var(--soft);
+}
+
+/* ---------- Plan: the strips under the stage (the skyline, then the river) ---------- */
+.sl-river {
+  /* The label column: as wide as the longest label needs (about 0.44rem a character at this size,
+     plus the button's padding), between a floor and a limit. Past the limit a site's name is shortened. */
+  --sl-name: clamp(4rem, calc(var(--sl-label-chars, 20) * 0.46rem + 1.5rem), 19rem);
+  grid-area: river;
+  min-width: 0;
+  padding: 0.5rem 0.9rem 0.6rem;
+  border-top: 1px solid var(--line);
+  background: var(--panel-bottom);
+}
+
+.sl-sky {
+  grid-area: sky;
+  min-width: 0;
+  padding: 0.5rem 0.9rem 0.3rem;
+  border-top: 1px solid var(--line);
+  background: var(--panel-bottom);
+}
+
+.sl-strip-title {
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.sl-sky-body {
+  min-height: 1.5rem;
+  margin-top: 0.3rem;
+}
+
+.sl-sky-body svg {
+  display: block;
+}
+
+.sl-sky-body p {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.sl-sky-land {
+  fill: #4a4d57;
+}
+
+.sl-sky-path {
+  fill: none;
+  stroke-width: 1;
+  opacity: 0.65;
+}
+
+.sl-sky-path.is-sun {
+  stroke: var(--sl-sun);
+}
+
+.sl-sky-path.is-earth {
+  stroke: var(--sl-earth);
+}
+
+/* A body in view is a filled disc; a hidden one is a hollow ring behind the land. */
+.sl-sky-body-mark {
+  stroke-width: 2;
+}
+
+.sl-sky-body-mark.is-sun {
+  fill: var(--sl-sun);
+  stroke: var(--sl-sun);
+}
+
+.sl-sky-body-mark.is-earth {
+  fill: var(--sl-earth);
+  stroke: var(--sl-earth);
+}
+
+.sl-sky-body-mark.is-hidden {
+  fill: none;
+}
+
+.sl-sky-smooth {
+  stroke: var(--soft);
+  stroke-width: 1;
+  stroke-dasharray: 5 5;
+  opacity: 0.7;
+}
+
+/* The key for the dashed line, in the strip's header. */
+.sl-dash {
+  display: inline-block;
+  width: 1.4rem;
+  margin-right: 0.2rem;
+  border-top: 1px dashed var(--soft);
+  vertical-align: middle;
+}
+
+.sl-sky-tick {
+  fill: var(--soft);
+  font-size: 10px;
+}
+
+.sl-sky-name {
+  fill: var(--ink);
+  font-size: 10px;
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 3px;
+}
+
+.sl-strip-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  font-size: 0.8125rem;
+}
+
+.sl-strip-head select {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #1d1826;
+}
+
+.sl-now {
+  min-width: 11.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-zooms {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+
+.sl-zooms button,
+.sl-row-name {
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+  font-size: 0.75rem;
+}
+
+.sl-zooms button[aria-pressed='true'],
+.sl-row-name[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-legend,
+.sl-check {
+  color: var(--soft);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.sl-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* The key shows each state the way a row draws it: by colour and by where it sits. */
+.sl-key {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-left: 0.4rem;
+  vertical-align: -1px;
+  background: linear-gradient(var(--key) 0 0) no-repeat 0 var(--key-y, 0) / 100% var(--key-h, 100%);
+}
+
+.sl-key.is-sun {
+  --key: var(--sl-sun);
+  --key-h: 66%;
+}
+
+.sl-key.is-earth {
+  --key: var(--sl-earth);
+  --key-y: 100%;
+  --key-h: 66%;
+}
+
+.sl-key.is-both {
+  --key: var(--sl-both);
+}
+
+.sl-key.is-none {
+  --key: var(--sl-none);
+  --key-y: 50%;
+  --key-h: 18%;
+}
+
+.sl-fold {
+  margin-left: auto;
+}
+
+/* A strip's header is one row at any width a laptop gives it. Its parts keep their own width and do
+   not wrap; the component leaves out or moves what does not fit (useFitLevel), and "Fold" stays at
+   the right end. */
+.sl-river-head,
+.sl-sky-head {
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.sl-river-head > *,
+.sl-sky-head > * {
+  flex: none;
+}
+
+.sl-river-top {
+  position: relative;
+}
+
+.sl-river-head select {
+  padding-right: 0.2rem;
+}
+
+.sl-river-head .sl-zooms button {
+  padding: 0.15rem 0.4rem;
+}
+
+.sl-river-head .sl-legend .sl-key:first-child {
+  margin-left: 0;
+}
+
+/* The first of the parts at the right end takes the free room before it. */
+.sl-river-head > select,
+.sl-river-head > .sl-more,
+.sl-sky-head > .sl-fold {
+  margin-left: auto;
+}
+
+.sl-river-head > select + .sl-more,
+.sl-river-head > .sl-fold {
+  margin-left: 0;
+}
+
+.sl-more {
+  min-width: 1.7rem;
+  padding-inline: 0.3rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* What the row has no room for, and what is rarely needed: opens upward from "More". */
+.sl-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 5;
+  display: grid;
+  gap: 0.55rem;
+  justify-items: start;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #1d1826;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  font-size: 0.8125rem;
+}
+
+.sl-menu label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sl-menu select {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #1d1826;
+}
+
+.sl-menu .sl-legend .sl-key:first-child {
+  margin-left: 0;
+}
+
+/* The moment on the time bar: its date, a chip saying what is up at the scenario's site then, how far
+   the Sun and Earth are above the ridge, and "land here" when it is not the landing. Each part keeps
+   its width whatever it says, so nothing beside it shifts while time plays. */
+.sl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  /* Wide enough for its longest words, "Sun, part of Earth", so nothing beside it shifts as they change. */
+  min-width: 9.4rem;
+  padding: 0.1rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sl-chip .sl-key {
+  margin-left: 0;
+}
+
+.sl-chip.is-sun {
+  border-color: var(--sl-sun);
+}
+
+.sl-chip.is-earth {
+  border-color: var(--sl-earth);
+}
+
+.sl-chip.is-both {
+  border-color: var(--sl-both);
+}
+
+.sl-moment-heights {
+  /* Wide enough for "Sun −1.5° · Earth −12.3° above the skyline", so a change of sign moves nothing. */
+  min-width: 15rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sl-rows {
+  position: relative;
+  margin-top: 0.4rem;
+}
+
+.sl-row {
+  display: grid;
+  grid-template-columns: var(--sl-name) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.3rem;
+}
+
+/* A row's name: its letter and its landing's date always show in full; the site, after them, is what gives way. */
+.sl-row-name {
+  display: flex;
+  overflow: hidden;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sl-row-date {
+  flex: none;
+}
+
+.sl-row-site {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+
+.sl-row-name.is-plain {
+  border: 0;
+  background: none;
+  color: var(--soft);
+}
+
+.sl-track {
+  position: relative;
+  height: 1.15rem;
+}
+
+.sl-track svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background: #0d0b12;
+}
+
+.sl-run.is-sun {
+  fill: var(--sl-sun);
+}
+
+.sl-run.is-earth {
+  fill: var(--sl-earth);
+}
+
+.sl-run.is-both {
+  fill: var(--sl-both);
+}
+
+.sl-run.is-none {
+  fill: var(--sl-none);
+}
+
+.sl-mission {
+  fill: var(--ink);
+}
+
+/* The landing: a white tick the height of its row, at the start of the mission's bar. */
+.sl-landing {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--ink);
+  box-shadow: 0 0 0 1px #000;
+}
+
+.sl-axis .sl-track {
+  height: 1rem;
+  color: var(--soft);
+  font-size: 0.6875rem;
+}
+
+.sl-axis .sl-track span {
+  position: absolute;
+  top: 0;
+  padding-left: 3px;
+  border-left: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.sl-seek {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 1.3rem;
+  left: calc(var(--sl-name) + 0.6rem);
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.sl-seek input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sl-seek:focus-within {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.sl-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #000;
+  pointer-events: none;
+}
+
+/* "land here", beside the moment on screen: a quiet text link, not another button. */
+.sl-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gold);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sl-link:hover {
+  color: var(--ink);
+}
+
+/* The landing's date and hour, typed or picked, in UTC (the app's own date field). */
+/* The landing's date and hour are one control: the landing as the app writes it, with the browser's
+   date field lying unseen under the date and a list of whole hours under the hour. */
+.sl-pick {
+  display: flex;
+  align-items: center;
+  min-height: 2.1rem;
+  margin-bottom: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+}
+
+.sl-pick:hover,
+.sl-pick:focus-within {
+  border-color: var(--gold-deep);
+}
+
+.sl-pick .sl-value {
+  white-space: pre;
+}
+
+.sl-pick-part {
+  position: relative;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sl-pick-part:hover .sl-value {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sl-pick-part:focus-within {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.sl-pick-part input,
+.sl-pick-part select {
+  position: absolute;
+  inset: -0.35rem 0;
+  width: 100%;
+  height: calc(100% + 0.7rem);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color-scheme: dark;
+}
+
+.sl-pick-mark {
+  margin-left: auto;
+  color: var(--soft);
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+
+.sl-caption {
+  margin: 0.2rem 0 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+/* ---------- Plan: the drawer. It pushes the stage narrower; it never lies over the Moon. ---------- */
+.sl-drawer {
+  grid-area: drawer;
+  width: 19rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.9rem;
+  border-left: 1px solid var(--line);
+  background: linear-gradient(var(--panel-top), var(--panel-bottom));
+}
+
+/* Layers: one switch a line, then what the layer that is on shows and whose it is. */
+.sl-layer-list,
+.sl-layer-own {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sl-layer-list label,
+.sl-layer-own label {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.1rem;
+  cursor: pointer;
+}
+
+.sl-layer-list input,
+.sl-layer-own input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--gold);
+}
+
+.sl-layer-own {
+  margin-bottom: 0.2rem;
+}
+
+.sl-layer-own input:disabled + span {
+  color: var(--soft);
+}
+
+.sl-layer-shade {
+  margin: 0 0 0.6rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.sl-layer-on {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+
+.sl-layer-on p {
+  margin: 0;
+}
+
+.sl-layer-credit {
+  margin-top: 0.4rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.sl-layer-credit a {
+  color: var(--gold);
+}
+
+/* Scout's idea: the agency's words, then why the mission is hard. */
+.sl-rover p {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+}
+
+.sl-rover h3 {
+  margin: 0.9rem 0 0;
+  font-size: 0.875rem;
+}
+
+/* In the rail, under "Layers", for as long as a layer is on the Moon. */
+.sl-rail-credit {
+  display: block;
+  color: var(--gold);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+/* On the pressed (gold) button the credit takes the button's own dark text. */
+.sl-rail button[aria-pressed='true'] .sl-rail-credit {
+  color: inherit;
+}
+
+.sl-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sl-drawer h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+}
+
+.sl-drawer p {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.sl-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+}
+
+.sl-presets button,
+.sl-mission-open {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+  text-align: left;
+}
+
+.sl-presets button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.sl-presets small {
+  margin-left: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.sl-mission-open {
+  width: 100%;
+}
+
+.sl-mission-open:hover,
+.sl-mission-open[aria-expanded='true'] {
+  border-color: var(--gold-deep);
+}
+
+.sl-mission-open {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.6rem;
+  white-space: nowrap;
+}
+
+.sl-param {
+  margin-top: 0.8rem;
+  font-size: 0.875rem;
+}
+
+.sl-param-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sl-param output {
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-param input[type='range'] {
+  width: 100%;
+  accent-color: var(--gold);
+}
+
+.sl-param select {
+  width: 100%;
+  margin-top: 0.2rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+}
+
+.sl-drawer .sl-check {
+  color: inherit;
+  font-size: 0.875rem;
+  white-space: normal;
+}
+
+.sl-drawer .sl-check.sl-param {
+  display: flex;
+}
+
+.sl-assume {
+  margin-top: 0.8rem;
+  color: var(--soft);
+}
+
+.sl-compare {
+  width: 24rem;
+}
+
+/* Which site and landing each letter is. */
+.sl-compare-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+}
+
+.sl-compare-legend li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.sl-compare-legend small {
+  margin-left: 0.4rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-compare-legend button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+/* Bare numbers under the letters, with the unit in each row's name: four scenarios fit side by side. */
+.sl-compare table {
+  width: 100%;
+  margin-top: 0.7rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-compare caption {
+  padding-bottom: 0.2rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+.sl-compare th,
+.sl-compare td {
+  padding: 0.3rem 0.2rem;
+  border-top: 1px solid var(--line);
+  font-weight: 400;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sl-compare thead th,
+.sl-compare thead td {
+  border-top: 0;
+  font-weight: 600;
+}
+
+.sl-compare thead td,
+.sl-compare tbody th {
+  width: 7.6rem;
+  color: var(--soft);
+  text-align: left;
+}
+
+/* The best value: green, and a star. */
+.sl-compare td.is-best {
+  color: var(--sl-both);
+  font-weight: 600;
+}
+
+.sl-compare-why {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  color: #e8915a;
+  font-size: 0.8125rem;
+}
+
+/* A marginal fit is information, not a failure. */
+.sl-compare-why.is-info {
+  color: var(--soft);
+}
+
+.sl-compare-actions {
+  margin-top: 0.6rem;
+}
+
+.sl-advanced-link {
+  margin-top: 0.9rem;
+  font-size: 0.875rem;
+}
+
+/* ---------- Plan: the rail ---------- */
+.sl-rail {
+  grid-area: rail;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.7rem var(--sl-edge-right) 0.7rem 0.5rem;
+  border-left: 1px solid var(--line);
+  background: linear-gradient(var(--panel-top), var(--panel-bottom));
+}
+
+.sl-rail button,
+.sl-rail a {
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+  color: inherit;
+  font-size: 0.8125rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+.sl-rail button:hover,
+.sl-rail a:hover {
+  border-color: var(--gold-deep);
+}
+
+.sl-rail button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-rail hr {
+  width: 100%;
+  margin: 0.15rem 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+/* A name sits clear under its marker's ring or outline. Its box is the height the placing code
+   reckons with (lib/sightlineDots.ts), whatever line height the page around it has. */
+.sightline .sl-dot span {
+  top: 22px;
+  line-height: 1.2;
+}
+
+/* The other sides, for a name that would sit on a neighbour's dot if it went underneath. */
+.sightline .sl-dot span.at-above {
+  top: auto;
+  bottom: 22px;
+}
+
+.sightline .sl-dot span.at-right,
+.sightline .sl-dot span.at-left {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.sightline .sl-dot span.at-right {
+  left: 22px;
+}
+
+.sightline .sl-dot span.at-left {
+  right: 22px;
+  left: auto;
+}
+
+/* A name with no room is gone, not dimmed: hidden at once, with no fade to be caught half way
+   through, and out of the picture altogether until hover or focus brings it back. */
+.sightline .sl-dot span.off,
+.sl-group-label.off {
+  visibility: hidden;
+  opacity: 0;
+  transition: none;
+}
+
+.sightline .sl-dot:hover,
+.sightline .sl-dot:focus-visible,
+.sl-group:hover,
+.sl-group:focus-within {
+  z-index: 4;
+}
+
+.sightline .sl-dot:hover span.off,
+.sightline .sl-dot:focus-visible span.off,
+.sl-group-dot:hover .sl-group-label.off,
+.sl-group-dot:focus-visible .sl-group-label.off {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* A group: sites too close to tell apart at this zoom. The number says how many; the ring carries
+   their states' colours; the list says each one's state in words. */
+.sl-group {
+  position: absolute;
+  z-index: 2;
+  width: 0;
+  height: 0;
+}
+
+.sl-group-dot {
+  position: absolute;
+  top: -13px;
+  left: -13px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #000;
+}
+
+.sl-group-dot b {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0d0b12;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sl-group-dot.is-selected {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.sl-group-label {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  padding: 1px 3px;
+  border-radius: 2px;
+  background: rgb(0 0 0 / 65%);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transition: opacity 0.25s ease;
+}
+
+.sl-group-label.off {
+  opacity: 0;
+}
+
+.sl-group-list {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: max-content;
+  max-width: min(17rem, 80vw);
+  padding: 0.3rem;
+  border: 1px solid var(--gold-deep);
+  border-radius: 10px;
+  /* Opaque: the names of the markers behind it must not show through. */
+  background: #120f18;
+  box-shadow: 0 10px 26px rgb(0 0 0 / 50%);
+  translate: -50% 0;
+  cursor: default;
+}
+
+.sl-group-list button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.45rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.sl-group-list button:hover,
+.sl-group-list button:focus-visible {
+  background: #2a2336;
+}
+
+.sl-group-list small {
+  display: block;
+  color: var(--soft);
+  font-size: 0.6875rem;
+}
+
+/* A site's state in the list, drawn as its dot is. */
+.sl-swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: var(--sl-none);
+}
+
+.sl-swatch.is-sun {
+  background: var(--sl-sun);
+}
+
+.sl-swatch.is-earth {
+  border-radius: 3px;
+  background: var(--sl-earth);
+}
+
+.sl-swatch.is-both {
+  background: var(--sl-both);
+  box-shadow: 0 0 0 2px var(--sl-both);
+}
+
+.sl-swatch.is-none {
+  border-color: var(--sl-none);
+  background: #000;
+}
+
+/* The scenario's site: a white outline as well as its state's colour and shape. */
+.sightline .sl-dot.is-selected {
+  z-index: 1;
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* As a ring it has no point to outline: the scenario's site has the heavier ring. */
+.sightline .sl-dot.is-within.is-selected {
+  outline: none;
+}
+
+.sl-dot.is-selected .sl-within {
+  border-width: 2.5px;
+}
+
+/* Hide all: only the Moon, and a faint handle to bring the rest back. */
+.sl-handle {
+  position: absolute;
+  right: var(--sl-edge-right);
+  bottom: var(--sl-edge-bottom);
+  z-index: 3;
+  opacity: 0.35;
+}
+
+.sl-handle:hover,
+.sl-handle:focus-visible {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  /* Phone: the Moon on top, and one bottom sheet with three heights: the answer; then the skyline
+     and the river; then the fields and Scout. */
+  .scout.sightline.is-plan {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) var(--sl-sheet, 50%);
+    grid-template-areas:
+      'rail'
+      'stage'
+      'wrap';
+  }
+
+  .scout.sightline.is-plan.sheet-1 {
+    --sl-sheet: 13.5rem;
+  }
+
+  .scout.sightline.is-plan.sheet-3 {
+    --sl-sheet: 84%;
+  }
+
+  .sl-wrap {
+    grid-area: wrap;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    border-top: 1px solid var(--line);
+    border-radius: 14px 14px 0 0;
+    background: linear-gradient(var(--panel-top), var(--panel-bottom));
+  }
+
+  .sl-sheet-handle {
+    display: block;
+    flex: none;
+    align-self: center;
+    margin: 0.4rem 0 0;
+    padding: 0.1rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #1d1826;
+    font-size: 0.75rem;
+  }
+
+  /* The column's parts join the sheet one by one, so they can be put in the phone's order: the
+     answer first, then the skyline and the river, then the question and Scout. */
+  .sl-col {
+    display: contents;
+  }
+
+  .sl-col > * {
+    margin: 0.6rem var(--sl-edge-right) 0 var(--sl-edge);
+  }
+
+  .sl-col .sl-title {
+    display: none;
+  }
+
+  .sl-col .sl-col-head {
+    order: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* On a phone every part of a tab is a comfortable touch target, and the undo notice takes a line under the tabs. */
+  .sl-tabs {
+    gap: 1rem;
+  }
+
+  .sl-tabs > button,
+  .sl-tabs .sl-tab > button:first-child {
+    min-width: 2.4rem;
+    min-height: 2.4rem;
+  }
+
+  .sl-tabs .sl-tab-remove {
+    top: -0.55rem;
+    right: -0.55rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 0.8rem;
+  }
+
+  .sl-tabs .sl-tab-remove::after {
+    inset: -0.5rem;
+  }
+
+  .sl-removed {
+    flex-basis: 100%;
+    order: 2;
+    font-size: 0.875rem;
+    text-align: right;
+  }
+
+  .sl-compare {
+    width: auto;
+  }
+
+  .sl-col .sl-answer {
+    order: 1;
+  }
+
+  .sl-sky {
+    order: 3;
+    margin-top: 0.7rem;
+    padding: 0.5rem var(--sl-edge-right) 0.3rem var(--sl-edge);
+  }
+
+  .sl-river {
+    --sl-name: clamp(3.5rem, calc(var(--sl-date-chars, 16) * 0.46rem + 1.5rem), 12rem);
+    order: 4;
+    margin-top: 0.7rem;
+    padding: 0.5rem var(--sl-edge-right) 0.6rem var(--sl-edge);
+  }
+
+  .sl-col .sl-fields {
+    order: 5;
+    margin-top: 0.8rem;
+  }
+
+  /* On a phone Scout's panel is a full sheet; the input stays at its foot, above the keyboard where the browser allows. */
+  .sl-drawer.sl-scout-panel {
+    width: auto;
+    height: 100dvh;
+  }
+
+  /* On a phone a row that has a date is named by its letter and that date; one without is named by its site. */
+  .sl-row-name.has-date .sl-row-site {
+    display: none;
+  }
+
+  /* On a phone a strip's header may wrap, and the heights give their room to the chip. */
+  .sl-river-head,
+  .sl-sky-head {
+    flex-wrap: wrap;
+  }
+
+  .sl-moment-heights {
+    display: none;
+  }
+
+  .sl-legend {
+    white-space: normal;
+  }
+
+  /* A drawer opens as a full sheet. */
+  .sl-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    width: auto;
+    padding: 1rem var(--sl-edge-right) 1.2rem var(--sl-edge);
+    border: 0;
+  }
+
+  /* The rail has a row of its own above the stage, so none of it lies over the Moon. */
+  .sl-rail {
+    grid-area: rail;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding: 0.5rem var(--sl-edge-right) 0.4rem var(--sl-edge);
+    border: 0;
+    background: none;
+  }
+
+  .sl-rail hr {
+    display: none;
+  }
+
+  /* In Plan on a phone two fingers zoom, so only the compass is kept, in the stage's top corner. */
+  .sightline.is-plan .zoom-buttons {
+    display: none;
+  }
+
+  .sightline.is-plan .sl-view-tools {
+    top: 0.4rem;
+  }
+
+  .sl-brand h1 {
+    font-size: 1.35rem;
+  }
+
+  /* The tagline wraps beside the two buttons instead of running under them. */
+  .sl-brand {
+    max-width: calc(100% - 16rem);
+  }
+
+  .sl-pill .sl-wide {
+    display: none;
+  }
+
+
+  .sl-bubble p {
+    font-size: 0.9375rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-fade,
+  .sl-scale,
+  .sl-view-tools {
+    transition: none;
+  }
+}
+
+/* ---------- The rail's grouped control: how close the Moon is seen ---------- */
+.sl-heights {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sl-rail .sl-heights button {
+  border: 0;
+  border-radius: 0;
+}
+
+.sl-rail .sl-heights button + button {
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- Share and How: two small icon buttons beside the name ---------- */
+.sl-head-tools {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-right: auto;
+}
+
+.sl-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #1d1826;
+  color: var(--soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.sl-icon:hover,
+.sl-icon:focus-visible {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+/* ---------- How it works, as a sheet over the scene ---------- */
+.sl-how {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow-y: auto;
+  background: var(--panel-bottom, #0f0d14);
+}
+
+/* ---------- Surface: the app's own surface view, inside the stage ---------- */
+.sl-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+
+/* ---------- The Planner: the whole window, the Moon small in a corner ---------- */
+.scout.sightline.is-plan.is-full {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'full drawer';
+}
+
+.sightline.is-full .sl-wrap {
+  display: none;
+}
+
+.sightline.is-full .sl-stage {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 6;
+  width: 9.5rem;
+  height: 9.5rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #000;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
+}
+
+.sl-mini-back {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.sl-mini-back:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: -2px;
+}
+
+.sl-full {
+  grid-area: full;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.8rem 1.1rem 1.2rem var(--sl-edge);
+  background: linear-gradient(var(--panel-top), var(--panel-bottom));
+}
+
+.sl-full-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sl-full-head h2 {
+  margin: 0 auto 0 0;
+  font-family: var(--serif);
+  font-size: 1.375rem;
+}
+
+.sl-full h3 {
+  margin: 1.1rem 0 0.2rem;
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+.sl-full h3 select {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #1d1826;
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.sl-full p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.sl-full-body {
+  display: grid;
+  grid-template-columns: 19rem minmax(0, 1fr);
+  gap: 1.4rem;
+}
+
+/* The mission's limits, down the left: they stay in place while the tables scroll, and scroll by
+   themselves above the small Moon, which sits under them in the corner. */
+.sl-full-mission {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: calc(100vh - 16.5rem);
+  overflow-y: auto;
+  padding-right: 0.3rem;
+}
+
+/* Set tighter than the Mission panel, so the whole column, Advanced and its notes included, fits the
+   window's height: the presets side by side, each with its tag under its name. */
+.sl-full-mission .sl-presets {
+  flex-direction: row;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.sl-full-mission .sl-presets button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.3rem 0.3rem;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sl-full-mission .sl-presets small {
+  display: block;
+  margin: 0;
+  font-size: 0.625rem;
+}
+
+.sl-full-mission .sl-param {
+  margin-top: 0.55rem;
+}
+
+.sl-full-mission h3 {
+  margin-top: 0.8rem;
+}
+
+.sl-full-mission > h3:first-child {
+  margin-top: 0;
+}
+
+.sl-full-mission .sl-assume {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.sl-full-main {
+  min-width: 0;
+}
+
+.sl-full-scroll {
+  overflow-x: auto;
+}
+
+.sl-full-table,
+.sl-full-grid {
+  width: 100%;
+  margin-top: 0.4rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-full-table {
+  table-layout: fixed;
+}
+
+.sl-full-table th,
+.sl-full-table td {
+  padding: 0.35rem 0.4rem;
+  border-top: 1px solid var(--line);
+  font-weight: 400;
+  text-align: left;
+  vertical-align: top;
+}
+
+.sl-full-table thead th,
+.sl-full-table thead td {
+  border-top: 0;
+}
+
+.sl-full-table thead td,
+.sl-full-table tbody th {
+  width: 11rem;
+  color: var(--soft);
+}
+
+.sl-full-table thead th {
+  font-weight: 600;
+}
+
+.sl-full-th {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.5rem;
+  align-items: start;
+}
+
+.sl-full-th > button:first-child {
+  grid-row: 1 / span 2;
+}
+
+.sl-full-th > span,
+.sl-full-th > .sl-link {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.sl-full-table thead th small {
+  display: block;
+  color: var(--soft);
+  font-weight: 400;
+}
+
+.sl-full-table thead th .sl-small[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-full-table td.is-best {
+  color: var(--sl-both);
+  font-weight: 600;
+}
+
+.sl-full-table td.sl-full-fit:not(.is-best) {
+  color: #e8915a;
+}
+
+.sl-full-table .sl-key {
+  margin-left: 0;
+}
+
+/* One time row per scenario, each from its own landing: the axis is days since landing. */
+.sl-aligned {
+  --sl-name: 12rem;
+  margin-top: 0.4rem;
+}
+
+.sl-aligned .sl-row-name {
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+}
+
+/* The mission's last day is labelled from the right, so it stays inside the row. */
+.sl-aligned .sl-axis .sl-track span.is-end {
+  padding: 0 3px 0 0;
+  border-right: 1px solid var(--line);
+  border-left: 0;
+  transform: translateX(-100%);
+}
+
+.sl-aligned .sl-legend {
+  margin-top: 0.4rem;
+}
+
+.sl-aligned .sl-legend .sl-key:first-child {
+  margin-left: 0;
+}
+
+/* Every site by month: the share of the month with the Sun in view, as a shade of gold. */
+.sl-full-grid th,
+.sl-full-grid td {
+  padding: 1px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.sl-full-grid thead th {
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.sl-full-grid tbody th {
+  padding-right: 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sl-full-grid td button {
+  width: 100%;
+  min-width: 2.1rem;
+  padding: 0.3rem 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--ink);
+  font: inherit;
+}
+
+.sl-full-grid td button.is-dark-ink {
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-full-grid td button:not(:disabled):hover,
+.sl-full-grid td button:focus-visible {
+  border-color: var(--ink);
+}
+
+.sl-full-grid td button:disabled {
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .sl-heights {
+    flex-direction: row;
+  }
+
+  .sl-rail .sl-heights button + button {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  /* On a phone the Planner is one column that scrolls, and the small Moon is smaller. */
+  .scout.sightline.is-plan.is-full {
+    display: block;
+    height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .sl-full {
+    overflow: visible;
+    padding-bottom: 6rem;
+  }
+
+  .sl-full-head {
+    flex-wrap: wrap;
+  }
+
+  .sl-full-body {
+    display: block;
+  }
+
+  .sl-full-mission {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .sightline.is-full .sl-stage {
+    width: 5rem;
+    height: 5rem;
+  }
+
+  .sl-aligned {
+    --sl-name: 6rem;
+  }
+}
+
+/* A laptop window too short for the Mission column with the Moon under it: the Moon has a place of
+   its own at the left of the Planner's header, which stays at the top, so it never covers a control. */
+@media (max-height: 940px) and (min-width: 761px) {
+  .sightline.is-full .sl-stage {
+    top: 0.5rem;
+    bottom: auto;
+    left: var(--sl-edge);
+    width: 4rem;
+    height: 4rem;
+    border-radius: 10px;
+  }
+
+  .sl-full {
+    padding-top: 0;
+  }
+
+  .sl-full-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    min-height: 5rem;
+    padding-left: 4.9rem;
+    background: var(--panel-top);
+  }
+
+  .sl-full-mission {
+    top: 5rem;
+    max-height: calc(100vh - 5.6rem);
+  }
+}
+
+/* On a phone the Planner is one long page: the Moon sits beside its name at the top and scrolls away
+   with it, where a Moon fixed in the corner lay over the controls passing under it. */
+@media (max-width: 760px) {
+  .sightline.is-full .sl-stage {
+    position: absolute;
+    top: 0.6rem;
+    bottom: auto;
+    left: var(--sl-edge);
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 10px;
+  }
+
+  .sl-full {
+    padding-bottom: 1.2rem;
+  }
+
+  .sl-full-body {
+    margin-top: 0.7rem;
+  }
+
+  .sl-full-head h2 {
+    flex-basis: 100%;
+    min-height: 3.5rem;
+    padding-left: 4.3rem;
+    line-height: 3.5rem;
+  }
+}
+
+/* ---------- The Moon is not showing the landing: a quiet note in the strip kept clear under it ---------- */
+.sl-off-landing {
+  position: absolute;
+  bottom: 0.35rem;
+  left: 0.7rem;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.8rem;
+  max-width: calc(100% - 1.4rem);
+  margin: 0;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgb(13 11 18 / 82%);
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+/* The date changes as time plays; its room does not, so the two links stay where they are. */
+.sl-off-landing > span {
+  min-width: 21.5rem;
+}
+
+@media (max-width: 760px) {
+  .sl-off-landing {
+    border-radius: 10px;
+  }
+
+  /* On a phone the note runs the stage's width, up to three lines: the scale bar sits just above it, in the same corner. */
+  .sl-stage:has(.sl-off-landing) .sl-scale {
+    bottom: 4.4rem;
+  }
+
+  .sl-off-landing > span {
+    min-width: 0;
+  }
+}
+
+/* ---------- Share's short list, under its icon ---------- */
+.sl-head-tools {
+  position: relative;
+}
+
+.sl-share-menu {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 12;
+  display: grid;
+  min-width: 7rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #1d1826;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.sl-share-menu button {
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.sl-share-menu button:hover,
+.sl-share-menu button:focus-visible {
+  background: #2a2434;
+}
+
+/* ---------- The written brief, as a sheet: the app's paper brief on the dark page ---------- */
+.sl-brief-sheet {
+  padding: 0.8rem max(1rem, calc((100% - 46rem) / 2)) 2rem;
+}
+
+.sl-brief-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+
+.sl-brief-wait {
+  margin: 2rem 0;
+  color: var(--soft);
+}
+
+@media print {
+  .sl-brief-bar {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* On a phone Scout's card is a sheet across the bottom, with the Moon above it; his mark gives way to the card's own Close. */
+  .sl-scout.is-open {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+  }
+
+  .sl-scout.is-open .scout-face {
+    display: none;
+  }
+
+  .sl-scout.is-open .sl-card {
+    max-height: 48vh;
+    border-radius: 14px 14px 0 0;
+    padding-bottom: max(0.7rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ==========================================================================================
+   The left column, redesigned. One type scale: the verdict largest (1.375rem), the rows' main
+   figures next (1.25rem), body (0.875rem), small (0.75rem). No boxes but the plan's three
+   controls; hairlines between rows; tabular figures; every row a fixed height.
+   ========================================================================================== */
+.sl-col-head {
+  justify-content: flex-start;
+}
+
+/* The scenarios, on a row of their own, with room above for the corner badges. */
+.sl-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2rem;
+  padding-top: 0.35rem;
+}
+
+.sl-tabs-row .sl-removed {
+  margin-left: auto;
+}
+
+/* The plan: three compact controls, each with a small picture inside its left edge. */
+.sl-plan {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sl-plan-row {
+  position: relative;
+}
+
+.sl-plan-icon {
+  position: absolute;
+  top: 50%;
+  left: 0.6rem;
+  z-index: 1;
+  color: var(--soft);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.sl-plan-row > select,
+.sl-plan-row .sl-pick,
+.sl-plan-row .sl-mission-open {
+  min-height: 2.25rem;
+  margin: 0;
+  padding-left: 2.1rem;
+}
+
+/* What the site's list opens under it: the form for a custom point, or NASA's tools on this place. */
+.sl-plan-more {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.sl-plan-more > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.sl-plan-more .sl-coords p {
+  margin: 0.3rem 0 0;
+  font-size: 0.75rem;
+}
+
+/* The verdict: the column's headline. Green with a tick when it fits, the Sun's gold when it fits
+   only marginally, the warning colour with a cross when it does not. */
+.sl-answer > .sl-verdict {
+  margin-top: 0.7rem;
+}
+
+.sl-verdict-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-height: 1.65rem;
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.sl-verdict.is-fit .sl-verdict-words {
+  color: var(--sl-both);
+}
+
+.sl-verdict.is-marginal .sl-verdict-words {
+  color: var(--sl-sun);
+}
+
+.sl-verdict.is-miss .sl-verdict-words,
+.sl-verdict.is-miss .sl-reasons {
+  color: #e8915a;
+}
+
+.sl-verdict .sl-why {
+  flex: none;
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+/* Up to three reasons, one line each. */
+.sl-reasons {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.sl-reasons li {
+  height: 1.35rem;
+  overflow: hidden;
+  line-height: 1.35rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The next landing that fits: one line, no box. */
+.sl-verdict .sl-next {
+  display: block;
+  height: 1.5rem;
+  margin-top: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gold);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sl-verdict .sl-next:hover,
+.sl-verdict .sl-next:focus-visible {
+  color: var(--ink);
+}
+
+/* Which moment the column describes, small; then what is in view then, at body size. */
+.sl-answer > .sl-time {
+  margin: 0.8rem 0 0;
+}
+
+.sl-answer > .sl-sentence {
+  margin-top: 0.8rem;
+  font-size: 0.9375rem;
+}
+
+/* The Sun, Earth and the ground: three rows between hairlines. A coloured mark and a name, one main
+   figure at the right, and the rest small under the name. */
+.sl-facts {
+  margin: 0.6rem 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.sl-fact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-auto-rows: auto;
+  column-gap: 0.7rem;
+  align-content: start;
+  /* One small line under the name; a second only when the skyline cuts the disc. */
+  min-height: 3.3rem;
+  padding: 0.4rem 0 0.35rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sl-fact:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.sl-fact dt {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sl-fact-mark {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--sl-none);
+}
+
+.sl-fact.is-sun .sl-fact-mark {
+  background: var(--sl-sun);
+}
+
+.sl-fact.is-earth .sl-fact-mark {
+  background: var(--sl-earth);
+}
+
+.sl-fact-main {
+  grid-row: 1 / span 3;
+  grid-column: 2;
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sl-fact-main small {
+  display: block;
+  color: var(--soft);
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.sl-fact-small {
+  grid-column: 1;
+  margin: 0.1rem 0 0;
+  padding-left: 1.05rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+/* The heights the Sun and Earth are seen from, when not the app's own 2 m: a caption over the rows. */
+.sl-heights-line {
+  margin: 0.45rem 0 -0.25rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The Planner's two heights: a name, and three small buttons joined as one control. */
+.sl-height-pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.sl-height-pick + .sl-height-pick {
+  margin-top: 0.3rem;
+}
+
+.sl-height-choices {
+  display: inline-flex;
+  flex: none;
+}
+
+.sl-height-choices button {
+  min-width: 2.9rem;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--line);
+  background: #1d1826;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-height-choices button + button {
+  margin-left: -1px;
+}
+
+.sl-height-choices button:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.sl-height-choices button:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+.sl-height-choices button[aria-pressed='true'] {
+  position: relative;
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-height-choices button:disabled {
+  opacity: 0.55;
+}
+
+.sl-height-choice .sl-quiet {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+}
+
+/* A disc the skyline cuts: its share, on a second small line. */
+.sl-fact-small.is-showing {
+  margin-top: 0;
+}
+
+.sl-fact-small.is-warn {
+  color: #e8915a;
+}
+
+/* ---------- One tooltip for the whole screen ---------- */
+.sl-tip {
+  position: fixed;
+  z-index: 60;
+  max-width: 18rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #241e2e;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
+  color: var(--ink);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .sl-col .sl-tabs-row {
+    order: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .sl-col .sl-plan {
+    order: 5;
+    margin-top: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+}
+
+@media (max-width: 760px) {
+  /* On a phone the Share icon and the scenario tabs share one row: the header takes no height of its
+     own, and its icon sits at the left of the tabs' row. */
+  .sl-col .sl-col-head {
+    position: relative;
+    z-index: 2;
+    height: 0;
+    min-height: 0;
+    overflow: visible;
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .sl-col .sl-col-head .sl-head-tools {
+    transform: translateY(1.4rem);
+  }
+}
+
+/* The river header's narrowest form: the date and the chip are only as wide as their words. */
+.sl-now.is-tight,
+.sl-chip.is-tight {
+  min-width: 0;
+}
+
+/* ---------- Watch: what a dot's shape and colour say, at the stage's lower right ---------- */
+.sl-watch-key {
+  position: absolute;
+  right: var(--sl-edge-right);
+  bottom: calc(var(--sl-edge-bottom) + 0.4rem);
+  z-index: 3;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+  list-style: none;
+}
+
+.sl-watch-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* The same shapes the dots have. */
+.sl-watch-key i {
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1.5px solid #000;
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.sl-watch-key .is-sun {
+  background: var(--sl-sun);
+}
+
+.sl-watch-key .is-earth {
+  border-radius: 2px;
+  background: var(--sl-earth);
+}
+
+.sl-watch-key .is-both {
+  /* Room for its ring, so it does not touch the word beside it. */
+  margin: 0 3px;
+  background: var(--sl-both);
+  box-shadow: 0 0 0 1.5px #000, 0 0 0 3px var(--sl-both);
+}
+
+.sl-watch-key .is-none {
+  border-color: var(--sl-none);
+  background: #000;
+}
+
+/* ---------- The rail on a phone: one row. The heights, Scout, and "More" for the rest. ---------- */
+@media (max-width: 760px) {
+  /* A phone's row is too short for a number right beside "landing" or the last day. */
+  .sl-aligned .sl-axis .sl-track span.is-near {
+    display: none;
+  }
+
+  /* On a phone the foot of the stage is Scout's and the play control's: the key sits under the name. */
+  .sl-watch-key {
+    top: 5.3rem;
+    right: auto;
+    bottom: auto;
+    left: var(--sl-edge);
+    justify-content: flex-start;
+    gap: 0.7rem;
+  }
+
+  .sl-rail.is-compact {
+    position: relative;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .sl-rail.is-compact .sl-rail-more {
+    margin-left: auto;
+  }
+
+  .sl-rail-menu.is-open {
+    position: absolute;
+    top: calc(100% - 0.2rem);
+    right: var(--sl-edge-right);
+    z-index: 12;
+    display: grid;
+    gap: 0.3rem;
+    min-width: 9.5rem;
+    padding: 0.4rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #1d1826;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  }
+}

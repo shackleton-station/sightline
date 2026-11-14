@@ -1,0 +1,470 @@
+/* The Atlas: the Moon is the whole page. It borrows Scout's colors, guide and river (scout.css)
+   and drops the side panel, so everything else floats over the one picture. */
+.scout.atlas {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.atlas-moon {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* The globe's square is centered and never scaled (see AtlasStage). */
+.atlas-globe {
+  transition: none;
+}
+
+.atlas-globe .map-dot span {
+  transition: opacity 0.25s ease;
+}
+
+.atlas-globe .map-dot span.off {
+  opacity: 0;
+}
+
+/* The ground the visitor tapped: a ring, so the pixel under it stays visible. */
+.atlas-pin {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px #000000,
+    inset 0 0 0 2px #000000;
+  pointer-events: none;
+}
+
+.atlas-pin::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+/* ---------- Floating controls ---------- */
+.atlas-top,
+.atlas-layers {
+  position: absolute;
+  top: 0.9rem;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: min(26rem, calc(50% - 1.5rem));
+}
+
+.atlas-top {
+  left: 1rem;
+}
+
+.atlas-layers {
+  right: 1rem;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.atlas-where,
+.atlas-stops,
+.atlas-layers > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.atlas-layers > div {
+  justify-content: flex-end;
+}
+
+.atlas-where select,
+.atlas-stops button,
+.atlas-layers button {
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(18 15 24 / 88%);
+  backdrop-filter: blur(6px);
+  font-weight: 600;
+}
+
+.atlas-where select {
+  max-width: 100%;
+  padding-right: 0.5rem;
+}
+
+.atlas-stops button {
+  font-size: 0.9375rem;
+  color: var(--soft);
+}
+
+.atlas-stops button:hover {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.atlas-layers button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #20160a;
+}
+
+.atlas-key,
+.atlas-fine,
+.atlas-layers .river-key {
+  margin: 0;
+  padding: 0.3rem 0.65rem;
+  border-radius: 10px;
+  background: rgb(8 7 12 / 78%);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.atlas-fine {
+  max-width: 22rem;
+  color: var(--soft);
+}
+
+.atlas-key .key,
+.atlas-layers .river-key .key {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin: 0 0.3rem 0 0.5rem;
+  border-radius: 3px;
+  vertical-align: -0.1rem;
+}
+
+.atlas-key .key:first-child,
+.atlas-layers .river-key .key-pair:first-child .key {
+  margin-left: 0;
+}
+
+.atlas-lit {
+  background: #b9b3a8;
+}
+
+.atlas-dark {
+  border: 1px solid #5b6076;
+  background: #0d1020;
+}
+
+.atlas-ramp {
+  display: inline-block;
+  width: 6rem;
+  height: 0.7rem;
+  margin: 0 0.35rem;
+  border-radius: 3px;
+  /* The same three colors the shader blends (lightLayer.ts), as they appear on screen. */
+  background: linear-gradient(90deg, #171c3a, #bd651f 50%, #ffe9a8);
+  vertical-align: -0.05rem;
+}
+
+/* Scale and which way is up, above the river on the right. */
+.atlas-corner {
+  position: absolute;
+  right: 4.2rem;
+  bottom: 7.4rem;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+
+.atlas-scale,
+.atlas-way-up {
+  margin: 0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+  background: rgb(8 7 12 / 70%);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.atlas-scale span {
+  display: inline-block;
+  height: 0.45rem;
+  margin-right: 0.45rem;
+  border: 1.5px solid var(--ink);
+  border-top: 0;
+  vertical-align: -0.05rem;
+}
+
+.atlas-moon .zoom-buttons {
+  right: 1rem;
+  bottom: 7.4rem;
+  z-index: 3;
+}
+
+.atlas-river-of {
+  margin: 0 0 0.35rem;
+  color: var(--soft);
+  font-size: 0.875rem;
+}
+
+.atlas-river-of button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gold);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* ---------- Scout: the bubble with the question box under it ---------- */
+.atlas .scout-guide.above-river {
+  bottom: 7.6rem;
+}
+
+.atlas.with-spot .scout-guide.above-river {
+  bottom: 9.2rem;
+}
+
+/* The river is taller while it shows a tapped spot: the scale and the zoom buttons move up with it. */
+.atlas.with-spot .atlas-corner,
+.atlas.with-spot .atlas-moon .zoom-buttons {
+  bottom: 9rem;
+}
+
+.atlas-talk {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-height: 100%;
+  margin-bottom: 1.6rem;
+}
+
+.atlas-talk .scout-bubble,
+.atlas .scout-guide.above-river .scout-bubble {
+  max-width: 25rem;
+  max-height: 42vh;
+  margin-bottom: 0;
+  border-bottom-left-radius: 16px;
+}
+
+.atlas-ask {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+.atlas-ask input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(18 15 24 / 92%);
+}
+
+.atlas-ask input::placeholder {
+  color: var(--soft);
+}
+
+.atlas-ask button {
+  min-height: 40px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f1c669, var(--gold));
+  color: #20160a;
+  font-weight: 700;
+}
+
+.atlas-kept {
+  max-width: 25rem;
+  margin: 0.35rem 0 0;
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+  background: rgb(8 7 12 / 78%);
+  color: var(--soft);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 820px) {
+  /* Scout's phone layout puts a panel under the stage; the Atlas has none, so the stage keeps the page. */
+  .scout.atlas {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .atlas-top,
+  .atlas-layers {
+    top: 0.5rem;
+    gap: 0.35rem;
+    max-width: calc(100% - 1rem);
+  }
+
+  .atlas-top {
+    left: 0.5rem;
+  }
+
+  /* On a phone the layer buttons go under the place, on the left. */
+  .atlas-layers {
+    top: 5.6rem;
+    right: auto;
+    left: 0.5rem;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .atlas-where,
+  .atlas-stops,
+  .atlas-layers > div {
+    gap: 0.3rem;
+  }
+
+  .atlas-stops button,
+  .atlas-where select,
+  .atlas-layers button {
+    min-height: 36px;
+    padding: 0 0.65rem;
+    font-size: 0.875rem;
+  }
+
+  /* The key stays on one line (it scrolls sideways if it must), so what sits under it has a fixed place. */
+  .atlas-key,
+  .atlas-layers .river-key {
+    /* The shell hides the river's key on a phone; here it is the map's key, so it stays. */
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .atlas-fine {
+    display: none;
+  }
+
+  /* The scale and the way up go under the key, clear of Scout and the river. */
+  .atlas-corner,
+  .atlas.with-spot .atlas-corner {
+    top: 10.5rem;
+    right: auto;
+    bottom: auto;
+    left: 0.5rem;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .atlas-way-up span {
+    display: none;
+  }
+
+  .atlas-moon .zoom-buttons {
+    display: none;
+  }
+
+  .atlas .scout-guide.above-river {
+    bottom: 7.2rem;
+  }
+
+  /* The note about whose month the river shows makes the river taller: on a phone it is the button alone. */
+  .atlas.with-spot .scout-guide.above-river {
+    bottom: 9.3rem;
+  }
+
+  .atlas-river-of span {
+    display: none;
+  }
+
+  .atlas .scout-face {
+    width: 3.2rem;
+  }
+
+  .atlas-talk {
+    margin-bottom: 0.4rem;
+  }
+
+  .atlas-talk .scout-bubble,
+  .atlas .scout-guide.above-river .scout-bubble {
+    max-height: 30svh;
+  }
+
+  /* A tapped spot's sentence is the longest thing Scout says: smaller type, so it is read whole and the
+     ground just tapped stays in view above it. */
+  .atlas.with-spot .atlas-talk .scout-bubble {
+    max-height: 36svh;
+  }
+
+  .atlas.with-spot .scout-bubble.own .scout-says {
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+
+  /* While Scout describes a tapped spot, its "Ask Scout about this spot" button stands in for the question
+     box, so the bubble is no taller than before the tap and never covers the ground just tapped. The box
+     comes back with Scout's answer. */
+  .atlas.with-spot .atlas-talk:has(.scout-bubble.own) .atlas-ask {
+    display: none;
+  }
+
+  /* Scout's own line is short on a phone: no name tag, and the sound switch is its icon beside the words. */
+  .atlas .scout-bubble.own .scout-head {
+    float: right;
+    margin: 0 0 0.15rem 0.5rem;
+  }
+
+  .atlas .scout-bubble.own .scout-name {
+    display: none;
+  }
+
+  .atlas .scout-bubble.own .scout-sound {
+    gap: 0;
+    min-width: 36px;
+    min-height: 36px;
+    justify-content: center;
+    padding: 0;
+    /* The words stay for screen readers; only the icon is drawn. */
+    font-size: 0;
+  }
+
+  /* What to ask next is one row that scrolls sideways, so no button is cut off at the bubble's edge. */
+  .atlas .scout-bubble.own .scout-chips {
+    flex-wrap: nowrap;
+    clear: both;
+    margin-right: -0.75rem;
+    padding-right: 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .atlas .scout-bubble.own .scout-chips button {
+    flex: none;
+    min-height: 36px;
+    white-space: nowrap;
+  }
+
+  /* The note about kept questions shows once the question box or the bubble is in use, not over the map before. */
+  .atlas-kept {
+    display: none;
+  }
+
+  .atlas-talk:focus-within .atlas-kept,
+  .atlas-talk:has(.scout-bubble:not(.own)) .atlas-kept {
+    display: block;
+  }
+
+  .atlas-river-of {
+    font-size: 0.8125rem;
+  }
+}
+
+/* A short phone has no room for Scout's own line between the controls and the river: it shows the question
+   box alone until there is something to say about a tapped spot, or an answer. Tapping Scout still folds
+   everything away. */
+@media (max-width: 820px) and (max-height: 620px) {
+  .atlas:not(.with-spot) .scout-bubble.own {
+    display: none;
+  }
+}
