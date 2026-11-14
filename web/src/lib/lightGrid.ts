@@ -22,6 +22,12 @@ export interface LightMeta {
   obs_height_m: number
   sun_slots: number
   earth_slots: number
+  /**
+   * The slope images of the grid's square (`tiles/light/slope_x.jpg` and `slope_y.jpg`): their
+   * pixels along a side, and the slope (rise over run) at the ends of their 8-bit range.
+   */
+  slope_map_size?: number
+  slope_max?: number
   /** Hours in each month the grid has, keyed "2027-05". */
   hours: Record<string, number>
   /**
