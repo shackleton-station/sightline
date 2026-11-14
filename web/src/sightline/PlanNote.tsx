@@ -52,7 +52,7 @@ export function PlanNote({ plan, problem, onDismiss }: NoteProps) {
           {note}
         </span>
       )}
-      <button type="button" className="sl-plan-note-close" aria-label={plan ? 'Put away the plan’s name' : 'Put this message away'} title="Dismiss" onClick={onDismiss}>
+      <button type="button" className="sl-plan-note-close" aria-label={plan ? 'Put away the plan’s name' : 'Put this message away'} title="Hides this line." onClick={onDismiss}>
         ×
       </button>
     </p>

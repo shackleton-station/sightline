@@ -41,7 +41,7 @@ function compareWithMap(
   const difference = Math.abs(ours - map)
   const numbers =
     `${pct(ours)} here, ${pct(map)} on NASA's PGDA map ` +
-    `(neighbouring pixels ${low.toFixed(0)}–${high.toFixed(0)}%)`
+    `(neighboring pixels ${low.toFixed(0)}–${high.toFixed(0)}%)`
   if (difference <= grid.rmse) {
     return { text: `${name} agrees with NASA's map: ${numbers}.`, warning: false }
   }

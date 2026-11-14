@@ -93,13 +93,13 @@ export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioM
 
 /** What the sunlight row is, in its name's hover text: the app has no panel of its own, so it gives sunlight, not electrical power. */
 const SUNLIGHT_MEANS =
-  'Average over the mission on a vertical panel that turns to face the Sun, counting how much of the Sun is in view each hour. Before any panel losses: multiply by the panel\'s area and efficiency for electrical power.'
+  'Average sunlight over the mission on a panel that turns to face the Sun. Multiply by the panel\'s area and efficiency for electrical power.'
 /** Sunlight this close shares the best mark: about the half point the Sun's share of the mission ties at, of the Sun's full 1361 W/m². */
 const SUNLIGHT_TIE_W_M2 = 7
 
 /** How the two angles at landing are measured, for their names' hover text. */
-const FROM_LEVEL = 'At landing, measured from a level horizon.'
-const ABOVE_SKYLINE = 'At landing: how far its centre is above the skyline in its own direction. Negative when the skyline hides its centre.'
+const FROM_LEVEL = 'Its height at landing above a flat horizon. From high ground the skyline lies below 0°, so a negative figure can still be in view.'
+const ABOVE_SKYLINE = 'How far its center is above the skyline at landing. Below 0° the terrain hides its center.'
 
 /**
  * The Sun's and Earth's angles at each landing: from level, and above the skyline. Units in the
@@ -141,6 +141,12 @@ export function plannerCsv(start: string, scenarios: SightlineScenario[], siteNa
     ['Mission', missionWords],
   ]
   return `${lines.map((line) => line.map(field).join(',')).join('\n')}\n`
+}
+
+/** The two shadow rows' hover text: what the distance is to, how it is measured, and whose map it is. The fuller wording stays in `shadow.json`. */
+const SHADOW_TIP = {
+  patch: 'Distance to the nearest ground that sunlight never reaches, however small the patch, straight over the surface. From NASA’s map of permanent shadow (LOLA; Mazarico et al. 2011).',
+  region: 'Distance to the nearest shadowed region of 10 km² or more, straight over the surface. From NASA’s map of permanent shadow (LOLA; Mazarico et al. 2011).',
 }
 
 /** What a scenario's cell says of the distance to permanent shadow, from `shadow.json`. */
@@ -199,7 +205,7 @@ export function compareGroups({ scenarios, siteIds, measures, flags, mission, la
   const sunDisc: PlannerRow = {
     key: 'sunAtLanding',
     label: 'Sun in view at landing, %',
-    title: "How much of the Sun's disc is above the skyline at the landing hour.",
+    title: "The share of the Sun's disc above the skyline at landing. 100 means the whole Sun is in view.",
     cells: sunAtLanding.map((value) => (value === null ? null : value.toFixed(0))),
     notes: blank,
     best: bestIn(sunAtLanding, 'high', 0.5),
@@ -211,7 +217,7 @@ export function compareGroups({ scenarios, siteIds, measures, flags, mission, la
     return {
       key: `shadow-${kind}`,
       label,
-      title: shadow ? `${shadow.what} ${shadow[kind]} ${shadow.measure} Source: ${shadow.source.name}; ${shadow.source.cite}.` : undefined,
+      title: shadow ? SHADOW_TIP[kind] : undefined,
       // A custom point is in no file of distances: its cell says so once the file is here.
       cells: found.map((answer, i) => (!shadow ? null : siteIds[i] === null ? 'not worked out for a custom point' : shadowWords(answer))),
       notes: blank,

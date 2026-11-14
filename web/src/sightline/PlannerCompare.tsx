@@ -153,7 +153,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
                     <button
                       type="button"
                       className="sl-small pl-add-button"
-                      title={addLanding === null && next !== null ? 'This site at its next landing that fits the mission' : undefined}
+                      title={addLanding === null && next !== null ? 'Adds this site at its next landing that fits the mission.' : undefined}
                       onClick={() => {
                         onAdd({ site: site.id, landing })
                         setAddSite(null)
@@ -193,7 +193,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
                         )}
                         {cell ?? '…'}
                         {row.best[i] && (
-                          <span className="sl-best" title="Best in this row">
+                          <span className="sl-best" title="The best of the scenarios in this row.">
                             {' '}
                             ★
                           </span>
@@ -220,7 +220,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
           const end = Math.min(scenario.landing + missionH, hours)
           return (
             <div key={i} className="sl-row sl-aligned-row" data-first-hour={scenario.landing} data-hours={end - scenario.landing}>
-              <span className="sl-row-name" title={`${SCENARIO_LETTERS[i]} · ${facts[i].site.name}, from ${clockTime(start, scenario.landing)}`}>
+              <span className="sl-row-name" title={`Scenario ${SCENARIO_LETTERS[i]} at ${facts[i].site.name}: its mission, from its landing on ${clockTime(start, scenario.landing)}.`}>
                 {SCENARIO_LETTERS[i]} · {facts[i].site.name}
               </span>
               <div className="sl-track">

@@ -66,7 +66,7 @@ describe('explainerFacts', () => {
     const facts = explainerFacts(custom)
       .map((fact) => fact.text)
       .join(' ')
-    expect(facts).toContain('raising a panel a few metres')
+    expect(facts).toContain('raising a panel a few meters')
     expect(facts).not.toContain('64.8%')
   })
 })

@@ -25,7 +25,7 @@ export function HorizonsLive({ lat, lon, hour, ours }: Props) {
       <button
         type="button"
         className="sl-link"
-        title="Asks NASA JPL's Horizons service for the Sun's and Earth's elevation at this point and hour, and shows its answer beside this page's"
+        title="Asks NASA JPL's Horizons service where the Sun and Earth are at this point and hour. Its answer appears beside ours."
         onClick={() => {
           setState({ key, answer: 'asking' })
           void checkWithHorizons(lat, lon, hour).then((answer) => setState((last) => (last?.key === key ? { key, answer } : last)))
@@ -40,7 +40,7 @@ export function HorizonsLive({ lat, lon, hour, ours }: Props) {
   return (
     <span
       role="status"
-      title={`NASA JPL Horizons${mine.ephemeris ? ` (${mine.ephemeris})` : ''}, asked just now: the Sun's and Earth's elevation above a level horizon at this point and hour (azimuths ${mine.sun.azDeg.toFixed(2)}° and ${mine.earth.azDeg.toFixed(2)}°), then this page's own. Horizons was asked at the height of the Moon's reference sphere, not the ground's own.`}
+      title={`NASA JPL Horizons${mine.ephemeris ? ` (${mine.ephemeris})` : ''}, asked just now, then ours: the Sun's and Earth's heights above a flat horizon. NASA's is for the Moon's reference sphere, not this ground's own height.`}
     >
       Horizons: Sun {degreesWords(mine.sun.elDeg)}, Earth {degreesWords(mine.earth.elDeg)} · ours {degreesWords(ours.sunEl)}, {degreesWords(ours.earthEl)}
     </span>

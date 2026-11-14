@@ -147,7 +147,7 @@ export function Sky({ pose, box, disc, earth, sun, keepClear }: Props) {
   }, [map, shown, radius, lx, ly, lz])
 
   const lit = Math.round(earthLitShare([lx, ly, lz]) * 100)
-  const says = `Earth, on the side of the Moon it lies toward and lit as it is at this moment (${lit}% of its face in sunlight from here). Not to scale: it is drawn right beside the Moon.`
+  const says = `Earth, drawn on the side of the Moon it lies toward, with ${lit}% of its face sunlit as now. Not to scale: Earth is much farther away than drawn.`
   return (
     <>
       <canvas ref={starsRef} className="sl-stars" style={{ width: box.width, height: box.height }} data-stars={stars.length} aria-hidden="true" />

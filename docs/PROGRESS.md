@@ -369,3 +369,12 @@ Local Lead.
 - [x] One line for the hour on show, with a handle at its top and its date under it, written once; the note beside the Moon says only "Not the landing"
 - [x] The header: play with the speeds in its menu, the name and its key, what is in view and the skyline's door, Day, Month, Year and Fold
 - [x] Checks: scenes `time-bar` and `time-bar-sites` in `web/scripts/sightline-shots.mjs`, at three sizes
+
+## Hover text, one idea each (2026-11-14)
+
+- [x] Every `title` on the Sightline screen's own files rewritten: two sentences at most, never the label again, no "elevation" without what it is measured from; the Sun's W/m² has its own tip on its line
+- [x] One spelling, American, in the screen's tips and visible labels (the tour's sentence about a marker's color too, in `tour.json`, the voice index and the README)
+- [x] The mission in words says "in view at landing" (`missionWords`), in the column, the Planner and the CSV
+- [x] Check `TIPS_KEEP_RULES` in `web/scripts/sightline-shots.mjs`, in seven scenes
+- [ ] Teammates' files (Scout's panel, the brief, the Surface view): a separate pull request, left open for them
+- [ ] Not changed: the New Planner's own tips (it is being merged into the Planner), "A few metres make a difference" there, and "grey" on the Classic page

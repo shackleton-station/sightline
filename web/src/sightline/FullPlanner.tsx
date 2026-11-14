@@ -61,8 +61,8 @@ interface Props {
 }
 
 const TABS: { id: PlannerTab; label: string; title: string }[] = [
-  { id: 'find', label: 'Find', title: 'Where and when could I land? Every site, month by month' },
-  { id: 'compare', label: 'Compare', title: 'Which of my picks is best? The scenarios side by side' },
+  { id: 'find', label: 'Find', title: 'Shows every site by month: where and when a landing fits the mission.' },
+  { id: 'compare', label: 'Compare', title: 'Shows your scenarios side by side, row by row.' },
 ]
 
 /**
@@ -112,7 +112,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
   return (
     <section className="sl-full" aria-label="Planner">
       <header className="sl-full-head pl-header">
-        <button type="button" className="sl-small pl-back" title="Back to the Moon (Esc)" onClick={onBack}>
+        <button type="button" className="sl-small pl-back" title="Closes the Planner and shows the Moon again (Esc)." onClick={onBack}>
           ‹ Moon
         </button>
         <h2>Planner</h2>
@@ -125,12 +125,12 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
         </div>
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
         <span className="pl-tools">
-          <button type="button" className="sl-small" title="The written brief for the scenario on show" onClick={onBrief}>
+          <button type="button" className="sl-small" title="Opens a written summary of the scenario on show." onClick={onBrief}>
             Brief
           </button>
           <HeaderTools onBrief={onBrief} />
           <ExportMenu onTable={exportTable} onHourly={exportHourly} hourlyOf={`Scenario ${SCENARIO_LETTERS[active]} over its ${days} ${days === 1 ? 'day' : 'days'}`} />
-          <button type="button" className="sl-small sl-rail-scout" aria-pressed={scoutOpen} title="Ask Scout about these scenarios" onClick={onScout}>
+          <button type="button" className="sl-small sl-rail-scout" aria-pressed={scoutOpen} title="Opens Scout, an AI guide, to ask about these scenarios." onClick={onScout}>
             <Mascot state={null} size={16} /> Scout
           </button>
         </span>

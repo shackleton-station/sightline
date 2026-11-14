@@ -15,7 +15,7 @@ Built on our team's own pre-event practice code; reuse approved by the Bethesda 
 ## What it does
 
 - **Watch.** The Moon from over its south pole, lit as it is at this hour, with time playing. Each site's
-  dot shows what is in view there at that moment: the Sun, Earth, both or neither, by shape and colour.
+  dot shows what is in view there at that moment: the Sun, Earth, both or neither, by shape and color.
 - **Plan.** Pick a site, a landing date and hour, and a mission (how long it lasts, how much darkness and
   radio silence it can take, how steep the ground may be). Sightline answers in words: it fits, it fits with
   little margin, or it does not and why, with the next landing that does.
@@ -40,7 +40,7 @@ sentences. Back, Next and Close, or the arrow keys and Escape; closing at any st
 as it was. **Listen** plays each line in Scout's voice (AI-generated; off until pressed). The steps:
 
 1. **The Moon, now.** A lander needs the Sun for power and Earth for radio. This is the Moon from above its south pole, lit as it is now: press play.
-2. **The markers.** Each marker is a landing site. Its shape and colour say what it can see at this moment: the Sun, Earth, both or neither.
+2. **The markers.** Each marker is a landing site. Its shape and color say what it can see at this moment: the Sun, Earth, both or neither.
 3. **Plan a landing.** Choose where to land, when, and which mission. Everything below answers for that plan.
 4. **The verdict.** Sightline says whether the landing fits the mission, and why. If it does not, it offers the next landing that does.
 5. **What the lander sees.** This is the real skyline around the site, with the Sun and Earth where they stand at that hour. A body below the skyline is out of view.

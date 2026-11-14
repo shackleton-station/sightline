@@ -401,7 +401,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
           {/* The camera stops a rounding error short of its limit at some stage sizes: "at the limit" allows for it. */}
           <ZoomButtons zoom={zoom} onZoom={zoomTo} min={farZoom * (1 + ZOOM_SLACK)} max={closestAt(center) * (1 - ZOOM_SLACK)} />
           {earthDeg !== null && (
-            <p className="sl-to-earth" role="img" aria-label="The way to Earth across the ground, at the moment on the time bar" title="The way to Earth across the ground, at the moment on the time bar">
+            <p className="sl-to-earth" role="img" aria-label="The way to Earth across the ground, at the moment on the time bar" title="Points along the ground toward Earth, at the hour on the time bar.">
               <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                 <g transform={`rotate(${earthDeg.toFixed(1)} 12 12)`}>
                   <path d="M12 2.5 L17 11 L13.2 11 L13.2 21 L10.8 21 L10.8 11 L7 11 Z" fill="#5aa9ff" />
@@ -416,8 +416,8 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
             <button
               type="button"
               className="sl-recentre"
-              aria-label="Recentre the Moon"
-              title="Recentre the Moon: back to the view from over the south pole"
+              aria-label="Recenter the Moon"
+              title="Turns the Moon back to the view from over its south pole."
               onClick={() => {
                 void flyTo(OVER_THE_POLE, wholeZoom, 400)
                 onRecentre()

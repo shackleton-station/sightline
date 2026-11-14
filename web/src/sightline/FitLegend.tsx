@@ -22,7 +22,7 @@ interface Props {
 export function FitLegend({ on, onToggle, spread, onSpread, detailed, onDetails }: Props) {
   return (
     <div className={on ? 'sl-fit-legend is-on' : 'sl-fit-legend'}>
-      <label className="sl-fit-switch" title="Colors the Moon by how likely a landing is to fit the mission: green where it is likely, through amber, to red where it is not">
+      <label className="sl-fit-switch" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
         <input type="checkbox" role="switch" checked={on} onChange={() => onToggle(!on)} />
         <span>Mission success probability</span>
       </label>

@@ -37,7 +37,7 @@ export function LandingPick({ landing, landingField, firstField, lastField, onPi
   const [draft, setDraft] = useState<string | null>(null)
 
   return (
-    <div className="sl-pick" title="Choose the landing's date and hour (UTC)">
+    <div className="sl-pick" title="Sets the landing's date and hour, in UTC.">
       <span className="sl-pick-part">
         <span className="sl-value">{date}</span>
         <input

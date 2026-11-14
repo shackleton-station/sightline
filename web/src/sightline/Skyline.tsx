@@ -31,8 +31,8 @@ const COMPASS = [
 ]
 
 /** What the two thin lines on the skyline are, in plain words, for their hover text. */
-const EARTH_PATH_MEANS = "Earth's path over the month. The Moon rocks slightly as it orbits, so Earth traces a small loop instead of staying still."
-const SUN_PATH_MEANS = "The Sun's path over the month."
+const EARTH_PATH_MEANS = 'Where Earth goes over the month. The Moon rocks slightly, so Earth draws a small loop instead of standing still.'
+const SUN_PATH_MEANS = 'Where the Sun goes over the month, seen from the site.'
 
 /**
  * What the lander sees: all 360° of the real horizon at the site as one strip, centred on the

@@ -18,10 +18,10 @@ import type { SightlineMission } from '../lib/sightlineMission'
 export type FindMeasure = 'fit' | 'sun' | 'earth' | 'both'
 
 export const FIND_MEASURES: { id: FindMeasure; label: string; legend: string; title: string }[] = [
-  { id: 'fit', label: 'Landings that fit', legend: 'Days with a landing that fits', title: 'How many days of the month have at least one hour when a landing fits the mission on the left' },
-  { id: 'sun', label: 'Sun', legend: 'Sun in view, % of the month', title: 'Share of the month with the Sun in view' },
-  { id: 'earth', label: 'Earth', legend: 'Earth in view, % of the month', title: 'Share of the month with Earth in view' },
-  { id: 'both', label: 'Sun and Earth', legend: 'Sun and Earth together, % of the month', title: 'Share of the month with the Sun and Earth in view at the same hour' },
+  { id: 'fit', label: 'Landings that fit', legend: 'Days with a landing that fits', title: 'Counts the days in each month with at least one hour when a landing fits the mission.' },
+  { id: 'sun', label: 'Sun', legend: 'Sun in view, % of the month', title: 'Shows the share of each month’s hours with the Sun in view.' },
+  { id: 'earth', label: 'Earth', legend: 'Earth in view, % of the month', title: 'Shows the share of each month’s hours with Earth in view.' },
+  { id: 'both', label: 'Sun and Earth', legend: 'Sun and Earth together, % of the month', title: 'Shows the share of each month’s hours with the Sun and Earth in view together.' },
 ]
 
 /**
