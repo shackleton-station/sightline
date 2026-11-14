@@ -14,6 +14,10 @@ interface Props {
   onClose: () => void
   /** Why each scenario, if it fits, is only a marginal fit: one line each; empty when it is not. */
   marginal: string[][]
+  /** The odds (0 to 1) that a landing fits, for each scenario, once Landing accuracy has been used; null where not known. */
+  odds?: (number | null)[]
+  /** The accuracy those odds are for, in words: "250 m". */
+  oddsFor?: string
 }
 
 /**
@@ -22,7 +26,7 @@ interface Props {
  * four scenarios fit without scrolling sideways. The best value in a row is marked; there is no
  * blended score, because its weights would be invented.
  */
-export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, onClose, marginal: marginalOf }: Props) {
+export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, onClose, marginal: marginalOf, odds, oddsFor }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, site, flags, mission, slopeDeg) : null
@@ -87,9 +91,27 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
               </tr>
             )
           })}
+          {odds?.some((one) => one !== null) && (
+            <tr>
+              <th scope="row">Landings that fit, %</th>
+              {(() => {
+                const best = bestIn(odds, 'high', 0.005)
+                return odds.map((one, i) => (
+                  <td key={i} className={best[i] ? 'is-best' : undefined}>
+                    {one === null ? '–' : one > 0.99 && one < 1 ? '>99' : one < 0.01 && one > 0 ? '<1' : Math.round(100 * one)}
+                    {best[i] && (
+                      <span className="sl-best" title="Best in this row">
+                        {' '}
+                        ★
+                      </span>
+                    )}
+                  </td>
+                ))
+              })()}
+            </tr>
+          )}
           <tr>
-            <th scope="row">Fits the mission</th>
-            {measures.map((measure, i) => (
+            <th scope="row">Fits the mission</th>            {measures.map((measure, i) => (
               <td key={i} className={measure && measure.problems.length === 0 ? 'is-best' : undefined}>
                 {!measure ? '…' : measure.problems.length > 0 ? '✗ No' : marginalOf[i].length > 0 ? '✓ Marginal' : '✓ Yes'}
               </td>
@@ -115,7 +137,7 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
           ))}
         </ul>
       )}
-      <p className="sl-quiet">★ best in its row</p>
+      <p className="sl-quiet">★ best in its row{odds?.some((one) => one !== null) && oddsFor ? `. Landings that fit: the odds of coming down where the mission fits, at ${oddsFor} accuracy` : ''}</p>
       {scenarios.length < MAX_SCENARIOS && (
         <div className="sl-compare-actions">
           <button type="button" className="sl-small" onClick={onAdd}>
