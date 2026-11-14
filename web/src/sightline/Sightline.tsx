@@ -81,6 +81,7 @@ import { useLightGrid } from '../atlas/useLightGrid'
 import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
 import { LayersDrawer } from './LayersDrawer'
+import { usePlaceNames } from './usePlaceNames'
 import { RoverDrawer } from './RoverDrawer'
 import { MissionInline } from './MissionDrawer'
 import { useMissionLight } from './useMissionLight'
@@ -260,6 +261,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [shade, setShade] = useState(false)
   // Where a landing fits the mission, shaded on the Moon: on from the first time Landing accuracy is opened.
   const [fitShade, setFitShade] = useState(false)
+  // The "Place names" layer: off until switched on in Layers; its names are fetched then.
+  const [namesOn, setNamesOn] = useState(false)
+  const placeNames = usePlaceNames(namesOn)
   // How the lander's misses are spread. Once Landing accuracy has been used, or a link carries it,
   // its odds show under the verdict and in Compare, and the spread rides in the link.
   const [spread, setSpread] = useState<Spread>(() => readSpreadLink(window.location.hash) ?? DEFAULT_SPREAD)
@@ -1134,6 +1138,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           shade={shown ? moonShade : null}
           layer={shown ? trekLayer(layer) : null}
           fine={shown ? finePhoto : null}
+          names={shown ? placeNames.features : null}
           grid={{ meta: lightGrid.meta, month: lightGrid.month, wide: lightGrid.wide, hour: wantGrid ? index : null, atSite: gridAtSite }}
           onPick={shown ? (lat, lon) => setScenario((current) => ({ ...current, site: `${Number(lat.toFixed(6))},${Number(lon.toFixed(6))}` })) : undefined}
         />
@@ -1362,7 +1367,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere }} onOdds={showFitShade} layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'layers' && <LayersDrawer onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere }} onOdds={showFitShade} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
       {shown && !planner && (
         <Rail
           mode={mode}
