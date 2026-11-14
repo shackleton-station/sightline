@@ -54,6 +54,7 @@ import {
 import { whyHard } from '../lib/explainer'
 import { ROVER_PRESET } from '../lib/csaRover'
 import { type TrekLayerId, trekLayer } from '../lib/trekLayers'
+import { layersReach, lightReachKm } from '../lib/layerReach'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
@@ -169,9 +170,6 @@ interface Props {
   /** Open with How it works on show. */
   openHow?: boolean
 }
-
-/** The light grid reaches from the pole to about here: south of it, a site's close-up is lit from the grid. */
-const GRID_FROM_LAT_DEG = -85
 
 /**
  * The one screen. Watch is the Moon playing with everything else hideable; Plan puts a frame round
@@ -892,7 +890,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // Close on a site near the pole, the ground is lit from the pipeline's light grid for the hour on
   // the bar: the same grid the Atlas draws. Its months are large, so they are fetched only then.
   // The "Light and shadow" layer, off until asked for: the light grid's months are megabytes, fetched only then.
-  const shadeHere = site.lat <= GRID_FROM_LAT_DEG
+  // Which layers hold the ground at the site on show, each from what it declares about itself: the
+  // Moon Trek maps from their own tiles, the light grid from its own description (a small file, read
+  // once; its months are not). Until that description has arrived the grid counts as not reaching.
+  const gridMeta = useLightGrid(month, true, false).meta
+  const layerReach = useMemo(() => layersReach(site, gridMeta), [site, gridMeta])
+  const shadeHere = layerReach.light === true
   // Our own finer photo tiles round the ridge sites: looked up once the photo is switched on, or close on a
   // ridge site with no layer on, where the Moon's own picture gets sharper from the same tiles.
   const finePhoto = useFinePhoto(layer === 'photo' || (shown && mode === 'site' && shadeHere))
@@ -927,6 +930,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     spread,
     shown && accuracyUsed,
   )
+  // A layer of the ground near the south pole is seen close: switching one on from Orbit or Surface
+  // goes to Site in the same move. Place names, which cover the whole Moon, change no view. While a
+  // tour or guide is on, the view stays where its step put it.
+  const closeUp = () => {
+    if (mode !== 'site' && tourAt === null) setMode('site')
+  }
   // The mission's chance of success as a layer on the Moon, in every view.
   const showFitShade = (on: boolean) => {
     setFitShade(on)
@@ -1367,7 +1376,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere }} onOdds={showFitShade} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere }} onOdds={(on) => {
+            if (on) closeUp()
+            showFitShade(on)
+          }} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
+            if (next !== null) closeUp()
+            setLayer(next)
+          }} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={(on) => {
+            if (on) closeUp()
+            setShade(on)
+          }} onClose={() => setDrawer(null)} />}
       {shown && !planner && (
         <Rail
           mode={mode}

@@ -1,7 +1,14 @@
+import { trekReachKm } from '../lib/layerReach'
 import { type FinePhoto, TREK_LAYERS, type TrekLayerId, trekHalfWidthM, trekLayer } from '../lib/trekLayers'
 import type { TrekOverlay } from './useTrekOverlay'
 
 interface Props {
+  /** Which Moon Trek maps hold the ground at the site on show: one that does not is greyed, with how far it reaches. */
+  reach: Record<TrekLayerId, boolean>
+  /** How far the app's light grid reaches from the pole, in km, from its own description; null until that has arrived. */
+  lightKm: number | null
+  /** The site on show, by name, for a greyed layer's hover text. */
+  place: string
   /** The layer that is on, or none. */
   layer: TrekLayerId | null
   onLayer: (layer: TrekLayerId | null) => void
@@ -30,12 +37,16 @@ interface Props {
 }
 
 /**
- * Layers: NASA's own maps of the ground around the south pole, from Moon Trek, laid over the Moon
- * on the stage one at a time. Each says how to read it, and the one that is on carries Trek's own
- * title and credit.
+ * Layers, in two groups. "Whole Moon": the place names, which change no view. "South pole, close
+ * up": this app's own light and shadow and the mission's chance of success, and NASA's maps of the
+ * ground from Moon Trek, laid over the Moon one at a time; each of these is seen close, so switching
+ * one on goes to Site, and one that does not reach the site on show is greyed and says how far it
+ * goes. Each map says how to read it, and the one that is on carries Trek's own title and credit.
  */
-export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds, onOdds, names, onNames, onClose, onShowHow }: Props) {
+export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fine, shade, onShade, odds, onOdds, names, onNames, onClose, onShowHow }: Props) {
   const on = trekLayer(layer)
+  /** Why a ground layer is greyed at the site on show: how far it reaches from the pole, and that the site is beyond it. */
+  const outside = (km: number | null, what: string) => (km === null ? `${what} covers the ground near the south pole. ${place} is outside it.` : `${what} reaches ${km} km from the south pole. ${place} is outside it.`)
   return (
     <aside className="sl-drawer sl-layers" aria-label="Layers">
       <header className="sl-drawer-head">
@@ -49,19 +60,9 @@ export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds
           Close
         </button>
       </header>
-      <ul className="sl-layer-own">
-        <li>
-          <label title={shade.here ? 'Darkens the ground the Sun cannot reach at the hour on the time bar.' : 'Only the ground near the south pole has this; this site is outside it.'}>
-            <input type="checkbox" role="switch" checked={shade.on && shade.here} disabled={!shade.here} onChange={() => onShade(!shade.on)} />
-            <span>Light and shadow</span>
-          </label>
-        </li>
-        <li>
-          <label title={'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.'}>
-            <input type="checkbox" role="switch" checked={odds.on} onChange={() => onOdds(!odds.on)} />
-            <span>Mission success probability</span>
-          </label>
-        </li>
+      {/* Two groups, so no switch is a dead end: what covers the whole Moon, and what is of the ground near the south pole and seen close. */}
+      <h3 className="sl-layer-group">Whole Moon</h3>
+      <ul className="sl-layer-own sl-layer-whole">
         <li>
           <label title="Prints the names of the Moon's large seas, craters, valleys and mountains, and of earlier landings, where they are: for finding your way around. Best seen with Orbit.">
             <input type="checkbox" role="switch" checked={names.on} onChange={() => onNames(!names.on)} />
@@ -84,6 +85,22 @@ export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds
           )}
         </p>
       )}
+      <h3 className="sl-layer-group">South pole, close up</h3>
+      {/* A layer that does not reach the site on show is greyed and says how far it goes; one already on can still be switched off. */}
+      <ul className="sl-layer-own sl-layer-ground">
+        <li>
+          <label title={shade.here ? 'Darkens the ground the Sun cannot reach at the hour on the time bar.' : outside(lightKm, 'This app’s light grid')}>
+            <input type="checkbox" role="switch" checked={shade.on && shade.here} disabled={!shade.here} onChange={() => onShade(!shade.on)} />
+            <span>Light and shadow</span>
+          </label>
+        </li>
+        <li>
+          <label title={odds.here || odds.on ? 'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.' : outside(lightKm, 'The terrain this layer is worked out from')}>
+            <input type="checkbox" role="switch" checked={odds.on} disabled={!odds.here && !odds.on} onChange={() => onOdds(!odds.on)} />
+            <span>Mission success probability</span>
+          </label>
+        </li>
+      </ul>
       {shade.on && shade.here && (
         <p className="sl-layer-shade" role="status">
           {shade.state === 'missing'
@@ -91,12 +108,12 @@ export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds
             : `Shadow from the terrain at the hour on the time bar, from this app’s hourly light grid.${shade.cellM ? ` One cell is ${shade.cellM} m of ground${shade.wideCellM ? `, ${shade.wideCellM} m farther from the pole` : ''}; edges are blended between cells.` : ''}`}
         </p>
       )}
-      <p className="sl-quiet">NASA’s maps of the ground around the south pole, from Moon Trek. One at a time; best seen close, with Site.</p>
+      <p className="sl-quiet">NASA’s maps of the ground, from Moon Trek. One at a time; switching one on goes to Site, where it is seen close.</p>
       <ul className="sl-layer-list">
         {TREK_LAYERS.map((item) => (
           <li key={item.id}>
-            <label title={item.says}>
-              <input type="checkbox" role="switch" checked={layer === item.id} onChange={() => onLayer(layer === item.id ? null : item.id)} />
+            <label title={reach[item.id] ? item.says : outside(trekReachKm(item), 'This map')}>
+              <input type="checkbox" role="switch" checked={layer === item.id} disabled={!reach[item.id] && layer !== item.id} onChange={() => onLayer(layer === item.id ? null : item.id)} />
               <span>{item.label}</span>
             </label>
           </li>

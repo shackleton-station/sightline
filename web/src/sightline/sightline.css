@@ -1750,7 +1750,23 @@ button.sl-moment-heights[aria-expanded='true'] {
   margin-bottom: 0.2rem;
 }
 
-.sl-layer-own input:disabled + span {
+/* The panel's two groups, each under a plain heading: what covers the whole Moon, and what is of the ground near the south pole. */
+.sl-layer-group {
+  margin: 0.7rem 0 0.3rem;
+  color: var(--soft);
+  /* 12 px: the smallest type the screen sets. */
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sl-drawer-head + .sl-layer-group {
+  margin-top: 0;
+}
+
+.sl-layer-own input:disabled + span,
+.sl-layer-list input:disabled + span {
   color: var(--soft);
 }
 
