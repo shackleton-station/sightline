@@ -900,14 +900,6 @@
   gap: 0.25rem;
 }
 
-.sl-np .np-side .pl-where .pl-label {
-  color: var(--text);
-  font-family: inherit;
-  font-size: 0.875rem;
-  letter-spacing: 0;
-  text-transform: none;
-}
-
 .sl-np .np-side .pl-where select,
 .sl-np .np-side .pl-where input {
   width: 100%;
@@ -927,21 +919,6 @@
   width: auto;
 }
 
-.sl-np .np-side .pl-where-add .pl-label {
-  display: none;
-}
-
-.sl-np .np-side .pl-where-add {
-  grid-template-rows: auto;
-}
-
-.sl-np .np-side .pl-where-row .pl-button {
-  flex: 1 1 auto;
-  border-color: var(--gold);
-  border-radius: 10px;
-  background: var(--gold);
-  color: #17120a;
-}
 
 .sl-np .np-side .pl-where-row .pl-button:disabled {
   border-color: var(--line);
@@ -967,4 +944,114 @@
     position: static;
     max-height: none;
   }
+}
+
+/* ---------- The left column, between the two looks: the Planner's own controls, the app's gold ---------- */
+.sl-np .np-side .pl-where-field,
+.sl-np .np-side .pl-where-row,
+.sl-np .np-side .pl-where select,
+.sl-np .np-side .pl-where input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sl-np .np-side .pl-where .pl-label,
+.sl-np .np-side .pl-mission .pl-label,
+.sl-np .np-side .pl-more .pl-label {
+  font-size: 0.6875rem;
+}
+
+/* The Add button: compact, in gold, after the time. */
+.sl-np .np-side .pl-where-add {
+  grid-template-rows: auto;
+  justify-items: start;
+}
+
+.sl-np .np-side .pl-where-add .pl-label {
+  display: none;
+}
+
+.sl-np .np-side .pl-where-row .pl-button {
+  height: 2rem;
+  padding: 0 1.1rem;
+  border-color: var(--gold);
+  border-radius: 999px;
+  background: var(--gold);
+  color: #17120a;
+  font-size: 0.8125rem;
+}
+
+/* The mission's dials, one under another in the column. */
+.sl-np .np-side .pl-mission {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.55rem;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.sl-np .np-side .pl-mission .pl-at-landing,
+.sl-np .np-side .pl-mission .pl-earth-rule {
+  grid-column: auto;
+}
+
+.sl-np .np-side .pl-dial-value input {
+  font-size: 1.35rem;
+}
+
+.sl-np .np-side .pl-dial-value input:hover,
+.sl-np .np-side .pl-dial-value input:focus {
+  border-bottom-color: var(--gold);
+}
+
+.sl-np .np-side .pl-slider::-webkit-slider-thumb {
+  background: var(--gold);
+}
+
+.sl-np .np-side .pl-slider::-moz-range-thumb {
+  background: var(--gold);
+}
+
+.sl-np .np-side .pl-check input {
+  accent-color: var(--gold);
+}
+
+.sl-np .np-side .pl-mission-note .pl-link {
+  color: var(--gold);
+}
+
+/* More settings, folded in the column; its choices stacked. */
+.sl-np .np-side .pl-more {
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--pl-rule);
+}
+
+.sl-np .np-side .pl-more-summary {
+  display: none;
+}
+
+.sl-np .np-side .pl-more-body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.7rem;
+}
+
+.sl-np .np-side .pl-segments button[aria-pressed='true'] {
+  background: var(--gold);
+  color: #17120a;
+}
+
+.sl-np .np-side .pl-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 20%);
+}
+
+.sl-np .np-side .pl-slider::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 20%);
+}
+
+.sl-np .np-side .pl-slider::-webkit-slider-thumb {
+  margin-top: -6.5px;
 }

@@ -17,7 +17,9 @@ import { WindowGrid } from '../planner/WindowGrid'
 import type { PlannerSite } from '../planner/plannerModel'
 import { type KeptPick, PlannerAlternatives } from './PlannerAlternatives'
 import { PlannerLocation } from './PlannerLocation'
-import { AdvancedControls, MissionControls } from './MissionDrawer'
+import { MissionBar } from '../planner/MissionBar'
+import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
+import { PlannerMore } from './PlannerMore'
 import { PlannerNearby } from './PlannerNearby'
 import { PlannerPower } from './PlannerPower'
 import { PlannerSunChart } from './PlannerSunChart'
@@ -254,16 +256,15 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
               />
             )}
           <h3>Mission</h3>
-          <MissionControls mission={mission} onMission={onMission} />
-          <h3>Advanced</h3>
-          <AdvancedControls
+          <MissionBar value={mission.requirements} example={EXAMPLE_REQUIREMENTS} onChange={(requirements) => onMission({ ...mission, requirements })} />
+          <PlannerMore
             mission={mission}
             onMission={onMission}
             site={site}
             month={month}
             year={year}
             summary={summary}
-            heightChoice={{ off: isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null }}
+            heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null}
           />
         </aside>
       <div className="planner sl-fp">
