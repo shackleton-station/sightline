@@ -1,0 +1,324 @@
+name: Deploy co-pilot
+
+# After CI passes on main: build the co-pilot service's image and roll it out in steps, if anything it
+# is built from changed. The site, the plans service and the events worker have their own workflows
+# (deploy.yml, deploy-plans.yml, deploy-events-worker.yml); none of them waits on another. Every
+# one of them waits for Terraform: its first step lets an apply that started earlier finish.
+#
+#   1. Start the new version with no visitors, tag it `canary`, and test it through the load balancer
+#      with the header `x-clps-canary: copilot`: its status (this commit, this commit's site data and
+#      co-pilot code, Claude, Redis, the question log and tracing switched on), the API's refusals,
+#      then the two set questions.
+#   2. Require that it carries the same site data as the web server that is live.
+#   3. Send it a tenth of the requests and watch both versions for a minute.
+#   4. Send it everyone, and test it again through the load balancer, a streamed question included.
+#   Phase 8: while a second region is on, everyone in us-east4 goes first, then the copy in the second
+#   region gets the same image in one step, before the last tests (web/scripts/second-region.sh).
+#   If any step fails, every request goes back to the version that was live before, in both regions.
+#
+# Since Phase 6 every test goes through the load balancer and its edge firewall. The canary header is
+# plain and documented, not a secret (infra/canary.tf, web/scripts/canary-header.mjs). The service's
+# own run.app address is not used: from Phase 6's last step it refuses requests from the internet.
+# The co-pilot's own limits count by the visitor's address, which is this runner's whichever way the
+# request comes, so the waits for its minute below are the same as before.
+#
+# What "a tenth" means here depends on the load balancer. Visitors reach this service only when its
+# route rule sends /api/chat and /api/ask to it (`copilot_route = "copilot"` in infra/). Until then no
+# visitor reaches it, and there is no live version to watch. The run says which. The canary header
+# reaches the new version either way.
+#
+# The two set questions (chat-eval.mjs --quick) are asked here and nowhere else: the web server has
+# no co-pilot, and its deploy (deploy.yml) calls no model. With the one streamed question after the
+# rollout, a deploy asks the chat three questions (four if one is asked again), out of the number
+# everyone together may ask in a day.
+#
+# Sign-in is the same as deploy.yml: no key anywhere. GitHub proves which repository and branch this
+# run belongs to, and Google hands back a short-lived token for the deployer service account.
+
+on:
+  # A manual run from the Actions tab: always builds and deploys main, changed or not.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # lets the job ask GitHub for the identity token Google Cloud checks
+  actions: read # lets the job see whether a Terraform run is still going
+
+# One deploy of the co-pilot service at a time, in order.
+concurrency:
+  group: deploy-copilot
+  cancel-in-progress: false
+
+env:
+  PROJECT: clps-compute-6z1nc
+  REGION: us-east4
+  # Phase 8: where the copy of this service runs while the second region is on (infra/second-region.tf).
+  # With no copy there, the step that rolls it out says so and does nothing.
+  SECOND_REGION: us-central1
+  SERVICE: clps-copilot
+  REGISTRY: us-east4-docker.pkg.dev
+  IMAGE_REPO: us-east4-docker.pkg.dev/clps-compute-6z1nc/web
+  IMAGE_NAME: copilot
+  SITE: https://shackletonstation.dev
+  # Everything the service's image is built from: its own folder, the shared folder, the page's
+  # calculations that the tools and prompts reuse (web/src/lib, web/src/data), the site data, and the
+  # two scripts that hash the data and the code. A commit that touches none of these does not deploy
+  # it. web/copilot/build.test.ts fails if the service ever imports a file from outside this list.
+  BUILT_FROM: >-
+    web/copilot web/shared web/src/lib web/src/data web/public/data web/scripts/data-version.mjs
+    web/scripts/copilot-version.mjs web/package.json web/package-lock.json .github/workflows/deploy-copilot.yml
+
+jobs:
+  deploy:
+    name: build, canary, roll out
+    # Only after a green CI run for a push to main (never for a pull request's CI run).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      # The exact commit CI tested. The whole history, to compare it with the commit that is live.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      # Terraform first. If the same merge changed infra/, its apply must finish before this version
+      # goes out, and a deploy must never move visitors while an apply is changing the service under
+      # it. This waits for every Terraform run that started before this one, and stops if the last
+      # of them failed (infra/scripts/wait-for-runs.mjs; docs/DEPLOY.md, "Infrastructure changes").
+      - name: Wait for Terraform
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node infra/scripts/wait-for-runs.mjs deploy --minutes 45
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/919194174067/locations/global/workloadIdentityPools/github/providers/github-oidc
+          service_account: clps-web-deployer@clps-compute-6z1nc.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      # If anything below goes wrong, this is the version to go back to. It carries a label with the
+      # commit it was built from, which is how this run knows what has changed since.
+      - name: Note which version is live now
+        id: live
+        run: |
+          if ! gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format json > before.json 2> describe.err; then
+            cat describe.err
+            echo "::warning::The service $SERVICE does not exist yet (infra/copilot.tf has not been applied with copilot_service = true). Nothing to deploy."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+          LIVE="$(jq -r '[.status.traffic[] | select((.percent // 0) > 0)] | max_by(.percent) | .revisionName' before.json)"
+          # The commit the live version was built from: the label every deploy puts on the version
+          # it makes. Not the image's name: Cloud Run records an image by its digest, whatever tag
+          # it was deployed by (every revision in the project shows sha256:..., those made by
+          # gcloud too). A version Terraform makes keeps the label, as it keeps the image.
+          LIVE_COMMIT="$(gcloud run revisions describe "$LIVE" --project "$PROJECT" --region "$REGION" --format 'value(metadata.labels.commit)')"
+          # No label: a version made before the deploys labelled theirs (or by hand, or by a
+          # Terraform apply on top of one of those). Its status address says which commit it runs.
+          # Believed only when the answer names $LIVE as the version that gave it. Asked through the
+          # load balancer: the service's own address refuses the internet since Phase 6.
+          if [ -z "$LIVE_COMMIT" ]; then
+            for attempt in 1 2 3; do
+              STATUS="$(curl -s --max-time 10 "$SITE/api/chat/status" || true)"
+              if [ "$(echo "$STATUS" | jq -r '.revision // empty' 2>/dev/null || true)" = "$LIVE" ]; then
+                LIVE_COMMIT="$(echo "$STATUS" | jq -r '.version // empty' 2>/dev/null || true)"
+                echo "$LIVE carries no commit label; its status address reports commit ${LIVE_COMMIT:-none}."
+                break
+              fi
+              sleep 3
+            done
+          fi
+          echo "LIVE=$LIVE" >> "$GITHUB_ENV"
+          echo "LIVE_COMMIT=$LIVE_COMMIT" >> "$GITHUB_ENV"
+          echo "Live: $LIVE, built from ${LIVE_COMMIT:-an unknown commit (it carries no commit label)}"
+
+      # Build only when something the image is built from changed since the commit that is live.
+      # Compared with what is live, not with the previous commit, so a deploy that was skipped or
+      # rolled back is not forgotten.
+      - name: Decide whether there is anything to deploy
+        id: changed
+        if: steps.live.outputs.exists == 'true'
+        run: |
+          if ! git cat-file -e "${LIVE_COMMIT}^{commit}" 2>/dev/null; then
+            echo "Neither the live version's commit label nor its status address names a commit of this repository (${LIVE_COMMIT:-none}): it is the placeholder from the first apply, most likely. Deploying as a first deploy."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "first=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "A manual run: deploying."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$LIVE_COMMIT" HEAD -- $BUILT_FROM; then
+            echo "Nothing the co-pilot service is built from changed since $LIVE_COMMIT: not deploying."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changed since $LIVE_COMMIT:"
+            git diff --stat "$LIVE_COMMIT" HEAD -- $BUILT_FROM | tail -15
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push the image
+        if: steps.changed.outputs.deploy == 'true'
+        working-directory: web
+        run: |
+          gcloud auth configure-docker "$REGISTRY" --quiet
+          COMMIT="$(git rev-parse --short HEAD)"
+          IMAGE="$IMAGE_REPO/$IMAGE_NAME:$COMMIT"
+          docker build --platform linux/amd64 -f copilot/Dockerfile --build-arg "VERSION=$COMMIT" -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          echo "COMMIT=$COMMIT" >> "$GITHUB_ENV"
+          # The same two hashes the image computed for itself, from the same files.
+          npm ci --silent
+          echo "DATA_VERSION=$(node scripts/data-version.mjs public/data | jq -r .dataVersion)" >> "$GITHUB_ENV"
+          echo "CODE_VERSION=$(node scripts/copilot-version.mjs | jq -r .codeVersion)" >> "$GITHUB_ENV"
+
+      - name: Start the new version with no visitors
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          # No --tag here. With --tag, gcloud names the new version itself and leaves that name in the
+          # service's settings, and every `terraform plan` after that wants to clear it, which would
+          # start yet another version. So: make the version, check it is ours, then give it the tag.
+          gcloud run deploy "$SERVICE" --project "$PROJECT" --region "$REGION" --image "$IMAGE" --no-traffic --update-labels "commit=$COMMIT" --quiet
+          NEW="$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format 'value(status.latestCreatedRevisionName)')"
+          NEW_COMMIT="$(gcloud run revisions describe "$NEW" --project "$PROJECT" --region "$REGION" --format 'value(metadata.labels.commit)')"
+          if [ "$NEW" = "$LIVE" ] || [ "$NEW_COMMIT" != "$COMMIT" ]; then
+            echo "::error::The newest version of $SERVICE is $NEW (commit label: ${NEW_COMMIT:-none}), which is not one this run made from $COMMIT. Something else changed the service at the same moment. No requests were sent to it."
+            exit 1
+          fi
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --update-tags "canary=$NEW" --quiet
+          echo "NEW=$NEW" >> "$GITHUB_ENV"
+          echo "New version $NEW tagged canary; requests stay on $LIVE"
+
+      # The load balancer sends the co-pilot's paths with `x-clps-canary: copilot` to the revision
+      # tagged canary. This waits until the status says the new version answers there.
+      - name: Wait for the load balancer to reach the new version
+        if: steps.changed.outputs.deploy == 'true'
+        run: node web/scripts/wait-for-canary.mjs "$SITE" --canary copilot --revision "$NEW" --status-path /api/chat/status --seconds 180
+
+      # Its status, with the service's real settings, and the API's refusals. No model call.
+      - name: Test the new version through the load balancer
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          node web/scripts/copilot-check.mjs "$SITE" --canary copilot --version "$COMMIT" --data-version "$DATA_VERSION" --code-version "$CODE_VERSION" --cloud
+          echo "CHECKED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
+      # The co-pilot's tools read the site data in this image, and the page that shows the answer
+      # draws from the site data in the web server's image. If the two differ, an answer and the page
+      # disagree. The site's own deploy of this same commit may still be running, so this waits for
+      # it, up to 15 minutes, and then fails the deploy: the new version takes no requests.
+      - name: Require the same site data as the web server
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          for attempt in $(seq 1 45); do
+            SITE_DATA="$(curl -s --max-time 10 "$SITE/api/status" | jq -r '.dataVersion // "none"' 2>/dev/null || echo unreachable)"
+            if [ "$SITE_DATA" = "$DATA_VERSION" ]; then
+              echo "The web server and this version carry the same site data: $DATA_VERSION"
+              exit 0
+            fi
+            echo "The web server reports data version ${SITE_DATA:-unreachable}; this version carries $DATA_VERSION. Waiting for the site's own deploy (try $attempt of 45)."
+            sleep 20
+          done
+          echo "::error::The web server still reports data version $SITE_DATA and this version carries $DATA_VERSION. Not rolling out: the co-pilot would answer from other data than the pages show. Check the site's deploy (Actions, Deploy), then run this workflow again."
+          exit 1
+
+      # Two set questions: one answer must look something up, the other must not repeat a planted
+      # claim; both carry no unfilled number and no link, and offer only buttons the app can open.
+      # The check above counts against no limit (a malformed question is refused before it is
+      # counted); the minute is still waited out, as a margin under this runner's 6 a minute.
+      - name: Check the co-pilot still answers from the data
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          WAIT=$(( CHECKED_AT + 61 - $(date +%s) ))
+          if [ "$WAIT" -gt 0 ]; then echo "Waiting ${WAIT} s for the rate limit's minute to pass"; sleep "$WAIT"; fi
+          node web/scripts/chat-eval.mjs "$SITE" --canary copilot --quick
+          echo "ASKED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
+      # Does the load balancer send /api/chat to this service? Only this service has a status
+      # address there, so asking for it through the site's address tells.
+      - name: See whether visitors reach this service
+        id: route
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          ANSWERED_BY="$(curl -s --max-time 10 "$SITE/api/chat/status" | jq -r '.service // "web"' 2>/dev/null || echo web)"
+          if [ "$ANSWERED_BY" = "copilot" ]; then
+            echo "The load balancer sends the co-pilot's paths to this service: the next steps move real visitors."
+            echo "routed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::The load balancer does not send /api/chat to this service (copilot_route is \"web\"). No visitor reaches it, so \"a tenth of the visitors\" below is a tenth of nothing, and with no visitor's way in there is no live version to watch. The canary header still reaches the new version, and the tests after the rollout use it."
+            echo "routed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # On the very first deploy the version that is live is Google's placeholder image, which
+      # answers every path with a web page. There is nothing of ours to compare with, so the
+      # tenth is skipped and the tests above stand alone.
+      - name: Send it a tenth of the requests
+        if: steps.changed.outputs.deploy == 'true' && steps.changed.outputs.first != 'true'
+        run: gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-tags canary=10 --quiet
+
+      # Every three seconds: the status, and a GET of each endpoint (405, no model call), twice
+      # through the load balancer: as a visitor (the live split) and with the header (the new version
+      # alone). Any server error fails the step. That is 60 API calls a minute each way; the edge
+      # firewall allows 120 a minute from one address to each backend, and the canary is a backend of
+      # its own. Only when visitors are routed here: otherwise there is no live version to compare.
+      - name: Watch both versions for a minute
+        if: steps.changed.outputs.deploy == 'true' && steps.changed.outputs.first != 'true' && steps.route.outputs.routed == 'true'
+        run: node web/scripts/canary.mjs "$SITE" "$SITE" --canary copilot --seconds 60 --paths /api/chat/status,/api/chat,/api/ask --status-path /api/chat/status
+
+      - name: Send it everyone
+        if: steps.changed.outputs.deploy == 'true'
+        run: gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-latest --quiet
+
+      # Phase 8: the same image to this service's copy in the second region, if there is one
+      # (web/scripts/second-region.sh). After everyone in us-east4 is on it, and before the tests as a
+      # visitor below, which may be answered by either region.
+      - name: Roll the same version out in the second region
+        if: steps.changed.outputs.deploy == 'true'
+        run: bash web/scripts/second-region.sh follow
+
+      # The set questions used this runner's whole allowance of 6 questions a minute, and the two
+      # tests below count three more against it (a malformed question each, and one streamed
+      # question). On a first deploy nothing waits in between, so the minute is waited out here.
+      # Without this the last test was refused with 429 and the deploy rolled a good version back
+      # (the deploy of af946d5 on 2026-11-12, the first with visitors routed to this service).
+      #
+      # Through the load balancer: as a visitor when visitors are routed here, otherwise with the
+      # header (the tag is still on the new version, which now takes every request).
+      - name: Test the live version through the load balancer
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          WAIT=$(( ASKED_AT + 61 - $(date +%s) ))
+          if [ "$WAIT" -gt 0 ]; then echo "Waiting ${WAIT} s for the rate limit's minute to pass"; sleep "$WAIT"; fi
+          if [ "${{ steps.route.outputs.routed }}" = "true" ]; then
+            node web/scripts/copilot-check.mjs "$SITE" --version "$COMMIT" --data-version "$DATA_VERSION" --code-version "$CODE_VERSION" --cloud
+          else
+            node web/scripts/copilot-check.mjs "$SITE" --canary copilot --version "$COMMIT" --data-version "$DATA_VERSION" --code-version "$CODE_VERSION" --cloud
+          fi
+
+      # Through the load balancer: the status, the refusals, and one streamed question, to see that
+      # each lookup still reaches the browser as it happens. A question the set asked a minute ago
+      # is a kept answer, so this one is worded apart.
+      - name: Test the address visitors use
+        if: steps.changed.outputs.deploy == 'true' && steps.route.outputs.routed == 'true'
+        run: node web/scripts/copilot-check.mjs "$SITE" --version "$COMMIT" --data-version "$DATA_VERSION" --code-version "$CODE_VERSION" --stream
+
+      - name: Say plainly when no visitor was involved
+        if: steps.changed.outputs.deploy == 'true' && steps.route.outputs.routed != 'true'
+        run: echo "::notice::$COMMIT is live on $SERVICE and passed its tests through the load balancer with the canary header. Visitors are still served /api/chat and /api/ask by the web server. They reach this service after copilot_route = \"copilot\" is applied (docs/ARCHITECTURE_PHASE_3.md)."
+
+      # The new version stays deployed with no requests, and keeps the canary tag, so it can be looked
+      # at through the load balancer with `x-clps-canary: copilot` (docs/DEPLOY.md).
+      - name: Go back to the version that was live
+        if: failure() && steps.changed.outputs.deploy == 'true' && env.LIVE != ''
+        run: |
+          bash web/scripts/second-region.sh back || echo "::error::Could not put the copy in $SECOND_REGION back; do it by hand (docs/DEPLOY.md)."
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-revisions "$LIVE=100" --quiet
+          echo "::error::The rollout failed. Every request goes to $LIVE again."

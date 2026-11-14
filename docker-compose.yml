@@ -1,0 +1,148 @@
+# The real images, side by side on one machine:
+#
+#   docker compose up --build
+#   open http://localhost:8080            the site (How it works shows today's counts and how the services are; Share this plan saves a plan)
+#   node web/scripts/push-sample.mjs http://localhost:8081      puts sample events through the worker
+#   node web/scripts/plans-check.mjs http://localhost:8082 --save      checks the plans service on its own address
+#   node web/scripts/copilot-check.mjs http://localhost:8083 --stream  checks the co-pilot service on its own address
+#   node web/scripts/smoke.mjs http://localhost:8080 --plans-service --copilot-service   the same APIs through the site's address
+#
+#   node web/scripts/redis-stats.mjs http://localhost:8083             cache hit rates per kind of key, single flights, Redis memory
+#   node web/scripts/failover-watch.mjs http://localhost:8080          then, in another terminal: docker compose restart redis
+#
+# This is for seeing the services talk to each other, not for development (`npm run dev:server` in
+# web/ reloads on a change; this does not). What is real: all four images exactly as they are
+# deployed, and Redis, which holds the rate limits (shared by the web server, plans and the
+# co-pilot), the answer cache, the event outbox and the co-pilot's circuit breaker. Redis is a
+# primary and one replica, as Memorystore's Standard tier with read replicas is: the web server and
+# the co-pilot read cached values from the replica (REDIS_READ_HOST) and send everything else to the
+# primary. Take the two REDIS_READ_HOST lines out and they use the primary for everything, as on the
+# Basic tier. A Redis Cluster for the co-pilot's answers is a second file: docker-compose.cluster.yml.
+# What is stood in for:
+#   - A failover: Memorystore promotes the replica and keeps the address. Here nothing promotes
+#     anything; `docker compose restart redis` drops every connection and brings the primary back
+#     empty, which is what the services have to survive either way.
+#   - The load balancer: there is none, so the web server passes /api/plans on to the plans service
+#     (PLANS_URL), and /api/chat, /api/chat/* and /api/ask on to the co-pilot service (COPILOT_URL).
+#     In the cloud path rules on the load balancer do that, and no service calls another.
+#   - The model: a scripted stand-in answers (FAKE_MODEL=on), so the co-pilot works with no account
+#     and costs nothing. Its answers say they come from the stand-in. To use Claude instead, with your
+#     own key from your shell (never a file in the repository; .env* is git-ignored for that reason):
+#     export ANTHROPIC_API_KEY=... FAKE_MODEL=off before `docker compose up`. CLAUDE_MODEL,
+#     CLAUDE_SPEED and CLAUDE_EFFORT pass through too. In the cloud the service signs in by Workload
+#     Identity Federation instead, which needs Google's metadata server: there is none here.
+#   - Firestore, for plans: Google's own emulator, so the plans service runs the same calls it makes
+#     in the cloud, the atomic write of a plan with its idempotency key included. It keeps everything
+#     in memory and forgets it when it stops. No time-to-live rule is set up in it, so nothing
+#     expires there. Its image is large (about 380 MB to download, once).
+#   - Pub/Sub: there is none, so the co-pilot sends each event straight to the worker, shaped as
+#     Pub/Sub would push it (EVENTS_PUSH_URL). The outbox still retries; nothing dead-letters.
+#   - Firestore, for the counts: the worker keeps the counts in its own memory, and the web server
+#     asks the worker for them (STATS_URL). In the cloud the web server reads the database, read-only.
+#   - Who may call the worker: nobody is asked. In the cloud only Pub/Sub's identity may.
+#   - Who may ask the services for their status as the web server: there is no identity to sign with
+#     here, so the web server asks their public status (PLANS_STATUS_URL, COPILOT_STATUS_URL).
+#   - Sign-in with Google: off, so every plan is saved without an owner. To switch it on, give both
+#     `web` and `plans` a GOOGLE_CLIENT_ID.
+
+services:
+  web:
+    build:
+      context: web
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_HOST: redis
+      REDIS_READ_HOST: redis-replica
+      STATS_URL: http://events-worker:8080/counts
+      PLANS_URL: http://plans:8080
+      COPILOT_URL: http://copilot:8080
+      PLANS_STATUS_URL: http://plans:8080
+      COPILOT_STATUS_URL: http://copilot:8080
+      ALLOWED_ORIGINS: http://localhost:8080
+    depends_on:
+      - redis
+      - redis-replica
+      - events-worker
+      - plans
+      - copilot
+
+  events-worker:
+    build:
+      context: web
+      dockerfile: events-worker/Dockerfile
+      args:
+        VERSION: compose
+    ports:
+      - "8081:8080"
+    environment:
+      LOCAL_READS: "on"
+
+  plans:
+    build:
+      context: web
+      dockerfile: plans/Dockerfile
+      args:
+        VERSION: compose
+    ports:
+      - "8082:8080"
+    environment:
+      REDIS_HOST: redis
+      # The emulator's project and database, and the token it takes as "may do anything". None of
+      # these is a real project, database or credential.
+      GOOGLE_CLOUD_PROJECT: demo-clps
+      PLANS_DATABASE: (default)
+      FIRESTORE_HOST: http://firestore:8085
+      GOOGLE_OAUTH_ACCESS_TOKEN: owner
+      # A page on :8080 reaches this service through the web server, so its origin is allowed here.
+      ALLOWED_ORIGINS: http://localhost:8080
+    depends_on:
+      - redis
+      - firestore
+
+  copilot:
+    build:
+      context: web
+      dockerfile: copilot/Dockerfile
+      args:
+        VERSION: compose
+    ports:
+      - "8083:8080"
+    environment:
+      REDIS_HOST: redis
+      REDIS_READ_HOST: redis-replica
+      EVENTS_PUSH_URL: http://events-worker:8080/push
+      FAKE_MODEL: ${FAKE_MODEL:-on}
+      # Slows each of the stand-in's answers, to watch a stream, a shutdown, or many people waiting on one answer.
+      FAKE_MODEL_DELAY_MS: ${FAKE_MODEL_DELAY_MS:-0}
+      # From your shell only, and only when FAKE_MODEL=off. Empty: the co-pilot is "not configured".
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-}
+      CLAUDE_EFFORT: ${CLAUDE_EFFORT:-}
+      # Unset means the default (fast); set it empty in your shell to send no speed field.
+      CLAUDE_SPEED: ${CLAUDE_SPEED-fast}
+      # For the tool that reads the light grid in the bucket, as you.
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      GOOGLE_OAUTH_ACCESS_TOKEN: ${GOOGLE_OAUTH_ACCESS_TOKEN:-}
+      # A page on :8080 reaches this service through the web server, so its origin is allowed here.
+      ALLOWED_ORIGINS: http://localhost:8080
+    depends_on:
+      - redis
+      - redis-replica
+      - events-worker
+
+  firestore:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    command: ["gcloud", "emulators", "firestore", "start", "--host-port=0.0.0.0:8085", "--project=demo-clps"]
+
+  redis:
+    image: redis:7.2-alpine
+    # Like Memorystore: nothing kept on disk.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  # A read-only copy of `redis`, a moment behind it, standing in for Memorystore's read endpoint.
+  redis-replica:
+    image: redis:7.2-alpine
+    command: ["redis-server", "--replicaof", "redis", "6379", "--save", "", "--appendonly", "no"]
+    depends_on:
+      - redis
