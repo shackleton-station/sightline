@@ -34,7 +34,7 @@ Built on our team's own pre-event practice code; reuse approved by the Bethesda 
 ## Using the site
 
 Scout gives a one-minute tour of the screen: its chip is in Watch on every visit, and it is
-always the first thing in **How it works** (on a phone, also under **More**). It drives the real
+always the first thing in the **Guide** (on a phone, also under **More**). It drives the real
 screen: each step puts the app in a state, rings the control it is about, and says one or two
 sentences. Back, Next and Close, or the arrow keys and Escape; closing at any step puts the screen back
 as it was. **Listen** plays each line in Scout's voice (AI-generated; off until pressed). The steps:
@@ -49,7 +49,7 @@ as it was. **Listen** plays each line in Scout's voice (AI-generated; off until 
 8. **Ask Scout.** Ask Scout in plain words: he looks the answer up in the same data. Home takes you back to the Moon.
 
 The steps, their words and what each one rings are in one file, `web/src/sightline/tour.json`, which
-the tour, How it works, the voice files (`web/public/tour/voice/`, made by `web/scripts/tour-voice.mjs`)
+the tour, the Guide, the voice files (`web/public/tour/voice/`, made by `web/scripts/tour-voice.mjs`)
 and the tutorial video's recorder all read, so they say the same thing.
 
 ## Where the numbers come from

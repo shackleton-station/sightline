@@ -30,8 +30,10 @@ export interface TourStep {
 export interface TourFile {
   name: string
   voice: { disclosure: string; files: string; from: string }
-  /** The tutorial video's files, under /media/. The page shows the player only once the file answers. */
-  video: { file: string; poster: string; captions: string }
+  /** The walkthrough video's files, under /media/, with where its chapters are read from. The Guide shows the player only once the file answers. */
+  video: { file: string; poster: string; captions: string; chapters: string; steps: string }
+  /** The 30-second demo's files, shown the same way. */
+  demo: { file: string; poster: string; captions: string }
   /** The landing the tour plans from its first Plan step on. */
   scenario: { site: string; landing: string }
   steps: TourStep[]

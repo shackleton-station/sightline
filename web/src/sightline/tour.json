@@ -7,10 +7,18 @@
     "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\""
   },
   "video": {
-    "about": "The tutorial video, recorded from this tour. The page shows its player only once the file answers.",
-    "file": "/media/sightline-tutorial.mp4",
-    "poster": "/media/sightline-tutorial-poster.jpg",
-    "captions": "/media/sightline-tutorial.vtt"
+    "about": "The walkthrough video. The Guide shows its player only once the file answers as a video. Its chapters are read from the chapters file (WebVTT, one cue a chapter) or, if that is not there, from the list of steps the recorder writes beside the video.",
+    "file": "/media/sightline-walkthrough.mp4",
+    "poster": "/media/sightline-walkthrough-poster.jpg",
+    "captions": "/media/sightline-walkthrough.vtt",
+    "chapters": "/media/sightline-walkthrough-chapters.vtt",
+    "steps": "/media/sightline-walkthrough.json"
+  },
+  "demo": {
+    "about": "The 30-second demo. Shown in the Guide only once the file answers as a video.",
+    "file": "/media/sightline-demo-30s.mp4",
+    "poster": "/media/sightline-demo-30s-poster.jpg",
+    "captions": "/media/sightline-demo-30s.vtt"
   },
   "scenario": {
     "about": "The landing the tour plans from step 3 on: one that does not fit the default mission, so the verdict has a reason and a next landing to show.",

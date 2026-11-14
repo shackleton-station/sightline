@@ -84,7 +84,7 @@ import { Skyline } from './Skyline'
 import { Stage } from './Stage'
 import { useHeightFlags } from './useHeights'
 import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useScenarioFacts'
-import { useTutorialVideo } from './useTutorialVideo'
+import { useGuideVideos } from './useGuideVideos'
 import { PlayControl, ScoutLine } from './WatchControls'
 
 /** The site "Plan a landing" opens on. */
@@ -271,7 +271,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const tourPlanned = useRef(false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
   const [tourTaken, setTourTaken] = useStored('tourTaken', false)
-  const tutorialVideo = useTutorialVideo(TOUR.video, tourAt !== null || how)
+  const guideVideos = useGuideVideos(TOUR, tourAt !== null || how)
   /** How it works opens at its video when the tour's last step asks for it. */
   const [howAtVideo, setHowAtVideo] = useState(false)
 
@@ -831,7 +831,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onStep={setTourAt}
           onClose={endTour}
           onVideo={
-            tutorialVideo
+            guideVideos.walkthrough
               ? () => {
                   endTour()
                   setHowAtVideo(true)
@@ -1168,7 +1168,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         </Suspense>
       )}
       {how && (
-        <div className="sl-how" role="dialog" aria-modal="true" aria-label="How it works">
+        <div className="sl-how" role="dialog" aria-modal="true" aria-label="Guide">
           <HowItWorks
             data={here}
             siteCount={sites.length}
@@ -1179,7 +1179,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             }}
             onTour={startTour}
             tourTaken={tourTaken}
-            video={tutorialVideo}
+            videos={guideVideos}
             openAtVideo={howAtVideo}
           />
         </div>

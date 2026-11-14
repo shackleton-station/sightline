@@ -26,11 +26,11 @@ interface Props {
   onPlanner: () => void
   /** Open the New Planner: the Planner page's look, on the same scenarios. */
   onNewPlanner: () => void
-  /** Open How it works, as a sheet over the scene. */
+  /** Open the Guide (the tour, the videos, how to use the screen and how it works), as a sheet over the scene. */
   onHow: () => void
   /** The easter egg: its button is in the rail only once the word has been typed. Null until then. */
   hype: { open: boolean; onOpen: () => void } | null
-  /** Start Scout's tour of the screen. On a phone it is in "More"; on a laptop it is the first thing in How it works. */
+  /** Start Scout's tour of the screen. On a phone it is in "More"; on a laptop it is the first thing in the Guide. */
   onTour: () => void
   /** Back to the opening screen: the Moon playing, as a first visit finds it. */
   onHome: () => void
@@ -109,8 +109,8 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen
   )
   const ways = (
     <>
-      <button type="button" title="The data, the checks and the tech stack" onClick={onHow}>
-        How it works
+      <button type="button" data-tour="guide" title="The tour, the videos and how it works" onClick={onHow}>
+        Guide
       </button>
       {/* A house, with the word beside it only in a phone's menu, where every other row is a word. */}
       <button type="button" className="sl-rail-home" title="Home: back to the opening screen" onClick={onHome}>

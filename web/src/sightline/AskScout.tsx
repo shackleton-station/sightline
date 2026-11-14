@@ -6,10 +6,10 @@ import type { RiverState } from '../lib/river'
 import { Mascot } from '../scout/Mascot'
 import { NOT_A_LOGIN } from './inputs'
 
-/** The disclosure Space Apps asks for, as a small tag beside Scout's name; How it works says it in full. */
+/** The disclosure Space Apps asks for, as a small tag beside Scout's name; the Guide says it in full. */
 export function AiTag() {
   return (
-    <abbr className="sl-ai" title="Scout's answers and its mark are AI-generated. How it works says more.">
+    <abbr className="sl-ai" title="Scout's answers and its mark are AI-generated. The Guide says more.">
       AI
     </abbr>
   )
@@ -47,7 +47,7 @@ export function ModelTag() {
     }
   }, [])
   return (
-    <abbr className="sl-ai sl-ai-model" title={`Scout's answers and its mark are AI-generated${model ? `: he is Anthropic's ${model}` : ''}. How it works says more.`}>
+    <abbr className="sl-ai sl-ai-model" title={`Scout's answers and its mark are AI-generated${model ? `: he is Anthropic's ${model}` : ''}. The Guide says more.`}>
       {model ? `AI · ${model}` : 'AI'}
     </abbr>
   )

@@ -10,7 +10,7 @@ interface Props {
   onStep: (index: number) => void
   /** Leave the tour: the screen goes back to how the visitor had it. */
   onClose: () => void
-  /** Open the tutorial video; null until the video exists. */
+  /** Open the Guide at the walkthrough video; null until the video exists. */
   onVideo: (() => void) | null
   /** What the step on show offers to try, as a link under its words; null when it offers nothing. */
   tryIt: { label: string; onPick: () => void } | null
@@ -158,7 +158,7 @@ export function Tour({ tour, at, onStep, onClose, onVideo, tryIt, state }: Props
           <span className="sl-tour-nav">
             {last && onVideo && (
               <button type="button" className="sl-link sl-tour-video" onClick={onVideo}>
-                Watch the video
+                Watch the walkthrough
               </button>
             )}
             <button type="button" className="sl-small" disabled={at === 0} onClick={() => onStep(at - 1)}>
