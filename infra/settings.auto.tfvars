@@ -14,6 +14,14 @@
 # The site's own address, without www. Empty would serve on run.app only.
 domain = "shackletonstation.dev"
 
+# Moving to lunarsightline.com (bought 2026-11-14), in two pull requests (infra/README.md, "Moving to
+# another domain"). This one: the new domain gets its zone, records and certificate, and serves the site
+# as it is. The next, once its certificate is ACTIVE: domain = "lunarsightline.com",
+# other_domains = ["shackletonstation.dev"] and other_domains_redirect = true, so the old address
+# forwards every link, path and query kept, to the new one.
+other_domains          = ["lunarsightline.com"]
+other_domains_redirect = false
+
 # The GitHub repositories whose workflows may sign in to this project with no key: the deploys, the
 # Terraform plan and the Terraform apply (github.tf, pipeline.tf). Each by name and by GitHub's own
 # number for it (gh api repos/<owner>/<name> --jq .id): neither is a secret. A second repository is
