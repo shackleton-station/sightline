@@ -36,7 +36,7 @@
     {
       "id": "plan",
       "title": "Plan a landing",
-      "say": "Choose where to land, when, and the mission. Everything below answers for that plan.",
+      "say": "Choose where to land, when, and which mission. Everything below answers for that plan.",
       "state": { "view": "plan" },
       "targets": [".sl-plan"]
     },

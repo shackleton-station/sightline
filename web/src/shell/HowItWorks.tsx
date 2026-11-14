@@ -1,4 +1,7 @@
-import { Fragment, type ReactNode, useEffect } from 'react'
+import type { TourFile } from '../lib/tour'
+import tourFile from '../sightline/tour.json'
+import type { TutorialVideo } from '../sightline/useTutorialVideo'
+import { Fragment, type ReactNode, useEffect, useRef } from 'react'
 import { useLightChecks } from '../data/lightChecks'
 import { useQuestionCounts } from '../data/questionCounts'
 import type { ScenarioData } from '../data/scenarioData'
@@ -18,7 +21,15 @@ interface Props {
   siteCount: number
   backLabel: string
   onBack: () => void
+  /** Start Scout's tour of the screen (Sightline only: the tour drives that screen). */
+  onTour?: () => void
+  /** The tutorial video's files, once they exist; the player shows only then. */
+  video?: TutorialVideo | null
+  /** Open with the video in view: the tour's last step leads here. */
+  openAtVideo?: boolean
 }
+
+const TOUR = tourFile as TourFile
 
 interface Step {
   name: string
@@ -99,11 +110,16 @@ const STACK: { layer: string; items: string[] }[] = [
 ]
 
 /** How the numbers are made, why to trust them, what the site runs on, and how the co-pilot stays honest. */
-export function HowItWorks({ data, siteCount, backLabel, onBack }: Props) {
+export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, video = null, openAtVideo = false }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+  // From the tour's last step it opens at the video.
+  const player = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (openAtVideo && video) player.current?.scrollIntoView({ block: 'center' })
+  }, [openAtVideo, video])
 
   // The years come from the data's own description of what it covers, not from this page.
   const range = useRange()
@@ -147,6 +163,37 @@ export function HowItWorks({ data, siteCount, backLabel, onBack }: Props) {
           ← {backLabel}
         </button>
       </header>
+
+      {/* First, how to use the screen: the same steps Scout's tour walks through, from the same file. */}
+      <section className="how-use" aria-labelledby="how-use-title">
+        <p className="how-kicker">Start here</p>
+        <h2 id="how-use-title">How to use Sightline</h2>
+        <ol className="how-use-steps">
+          {TOUR.steps.map((step) => (
+            <li key={step.id}>
+              <b>{step.title}.</b> {step.say}
+            </li>
+          ))}
+        </ol>
+        {onTour && (
+          <p className="how-use-tour">
+            <button type="button" className="how-tour-button" onClick={onTour}>
+              Take the tour
+            </button>{' '}
+            Scout walks you through these on the real screen, in about a minute.
+          </p>
+        )}
+        {video && (
+          <div ref={player} className="how-video">
+            {/* Recorded from the tour itself, with the same words: its voice is AI-generated, and its captions say every line. */}
+            <video controls preload="none" poster={video.poster} aria-label="Sightline tutorial video">
+              <source src={video.file} type="video/mp4" />
+              <track kind="captions" src={video.captions} srcLang="en" label="English" default />
+            </video>
+            <p className="how-caption">The same tour as a video. Its voice is AI-generated; the captions say every line.</p>
+          </div>
+        )}
+      </section>
 
       <div className="how-intro">
         <p className="how-kicker">How it works</p>

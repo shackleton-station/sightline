@@ -14,6 +14,9 @@ const TYPES: Record<string, string> = {
   '.gz': 'application/octet-stream',
   '.bin': 'application/octet-stream',
   '.vtt': 'text/vtt; charset=utf-8',
+  // The lines of Scout's tour, rendered once in his voice (public/tour/voice/), and a video if one is served from here.
+  '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
   '.txt': 'text/plain; charset=utf-8',
 }
 

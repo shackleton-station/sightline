@@ -260,6 +260,9 @@ Look at it with `cd web && node scripts/sightline-shots.mjs --out=shots`.
 - [ ] 7. The user test, then the default at `/` (needs Rodrigo)
   - Prepared on 2026-11-14, as a pull request that waits for his yes: Sightline at `/` (and still at `/sightline/`), the site as it was at `/classic/`, and every old address at `/` forwarded (`web/src/lib/oldAddress.ts`). Merging that pull request is the switch.
 
+- [x] Scout's tour of the screen (2026-11-14, Rodrigo's request for "a clear tutorial of the website"): eight steps that drive the real screen, each ringing the control it is about with one or two sentences in Scout's bubble; Back, Next, Close, the arrow keys and Escape; closing puts the screen back as it was. Ways in: Scout's closed line on a first visit, the first item of How it works, and "More" on a phone. "Listen" plays each line from a file rendered once in Scout's voice (`web/public/tour/voice/`, `web/scripts/tour-voice.mjs`). One file holds the steps (`web/src/sightline/tour.json`); How it works ("How to use Sightline"), the README ("Using the site") and the tutorial video's recorder read the same words. How it works has a place for the video, shown once `/video/sightline-tutorial.json` exists.
+  - [ ] Not done: the video itself (the resources session records it from the tour); the tour held on a real phone.
+
 ## The Atlas's three looks (started 2026-11-13)
 
 Three directions from a design canvas, built on the one Atlas page and picked with `&look=a|b|c`.
