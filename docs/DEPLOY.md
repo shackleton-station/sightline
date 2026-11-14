@@ -554,7 +554,9 @@ tutorial video's `sightline-tutorial.mp4`, `sightline-tutorial-poster.jpg`, `sig
 `sightline-tutorial.json`, and the 30-second demo's `sightline-demo-30s.mp4` and `sightline-demo-30s-poster.jpg`
 (`web/scripts/video/README.md` says how those are recorded). A file with a new name needs it added in three places:
 `media_files` in `infra/assets.tf` (the route rule and the load balancer's grant), and `MEDIA_TYPES` in
-`web/server/storage.ts` (the way back). Replacing a file on the list keeps its name; the CDN keeps the old copy for up to an hour, or invalidate `/media/*` as for tiles above.
+`web/server/storage.ts` (the way back). The grant's condition may hold 12 "or"s at most (Google refuses a longer one at
+apply, not at plan), so the videos recorded from the site are granted by their shared prefix, `media/sightline-`; a
+new file with that prefix needs only its route. Replacing a file on the list keeps its name; the CDN keeps the old copy for up to an hour, or invalidate `/media/*` as for tiles above.
 
 ## Checking a running site
 

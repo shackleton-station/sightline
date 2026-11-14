@@ -44,6 +44,17 @@ locals {
     "media/sightline-demo-30s.mp4", "media/sightline-demo-30s-poster.jpg",
   ]
 
+  # What the grant's condition names. Google allows a condition 12 "or"s at most and refuses a longer
+  # one when it is applied, not when it is planned (LintValidationUnits/ConditionComplexityCheck,
+  # met on 2026-11-14). So the videos recorded from the site share one prefix in the condition, and
+  # the route rules above still send only the exact names to the bucket.
+  media_granted_prefixes = ["media/sightline-"]
+  media_granted_files    = [for name in local.media_files : name if !anytrue([for prefix in local.media_granted_prefixes : startswith(name, prefix)])]
+  grant_terms = concat(
+    [for prefix in concat(local.tile_prefixes, local.media_granted_prefixes) : "resource.name.startsWith(\"${local.assets_object}${prefix}\")"],
+    [for name in concat(local.tile_files, local.media_granted_files) : "resource.name == \"${local.assets_object}${name}\""],
+  )
+
   # Google's own account for load balancers in this project. Google makes it when the project's
   # first backend bucket is made (docs: "Set up a backend bucket", private bucket access).
   load_balancer_agent = "serviceAccount:service-${data.google_project.this.number}@https-lb.iam.gserviceaccount.com"
@@ -99,10 +110,7 @@ resource "google_storage_bucket_iam_member" "load_balancer_reads_assets" {
   condition {
     title       = "only-tiles-and-video"
     description = "The load balancer reads the terrain tiles, the light grid and the media files the site serves, nothing else."
-    expression = join(" || ", concat(
-      [for prefix in local.tile_prefixes : "resource.name.startsWith(\"${local.assets_object}${prefix}\")"],
-      [for name in concat(local.tile_files, local.media_files) : "resource.name == \"${local.assets_object}${name}\""],
-    ))
+    expression  = join(" || ", local.grant_terms)
   }
 
   depends_on = [google_compute_backend_bucket.tiles, google_compute_backend_bucket.media]
@@ -112,5 +120,10 @@ resource "google_storage_bucket_iam_member" "load_balancer_reads_assets" {
   # throughout.
   lifecycle {
     create_before_destroy = true
+
+    precondition {
+      condition     = length(local.grant_terms) <= 13
+      error_message = "The grant's condition would hold more than 12 \"or\"s, which Google refuses when it is applied. Put the new names under a prefix in media_granted_prefixes instead of naming each."
+    }
   }
 }
