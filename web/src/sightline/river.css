@@ -77,6 +77,14 @@
   font-size: 0.8125rem;
 }
 
+/* Under "More": why the hourly file could not be made, in the words the file's maker gives. */
+.sl-hourly-problem {
+  max-width: 17rem;
+  color: #e8915a;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
 /* What is in view at the hour on show, and how far above the skyline. */
 .sl-moment {
   display: inline-flex;

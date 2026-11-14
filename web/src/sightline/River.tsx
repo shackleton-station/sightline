@@ -5,6 +5,7 @@ import { locateHour } from '../lib/mission'
 import type { RiverSegment, RiverState } from '../lib/river'
 import { ABOVE_SKYLINE_MEANS, bandWords, clockTime, DEFAULT_SPEED, degWords, type RiverZoom, riverTicks, riverWindow, runAt, SPEEDS, stateAt, stateRuns, TIME_KEYS_MEAN } from '../lib/sightline'
 import type { Clock } from './hooks'
+import { HourlyProblem } from './hourlyExport'
 import { axisName, flagPlaces, labelSide, missionLabel, type RiverScenario, siteRows } from './riverRows'
 import { BAND, STATE_CHIP } from './states'
 import './river.css'
@@ -29,6 +30,8 @@ interface Props {
   onSelect: (key: string) => void
   /** The skyline strip above this bar ("What the lander sees"): whether it is open, and its door, which is this bar's readout of the Sun's and Earth's heights. */
   sky: { open: boolean; onToggle: () => void }
+  /** Make and save the hour-by-hour file of the scenario on show, offered under "More"; rejects when it cannot be made. */
+  onHourly: () => Promise<void>
 }
 
 const ZOOMS: { id: RiverZoom; label: string }[] = [
@@ -80,7 +83,7 @@ const SHORT_DOOR_ROOM_REM = 33.5
  * every row is the hour on show, with a handle at its top and its date under it. Drag anywhere on
  * the rows to move time, or press a flag to choose that scenario.
  */
-export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, sky }: Props) {
+export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, sky, onHourly }: Props) {
   const [zoom, setZoom] = useState<RiverZoom>('month')
   const [earthRow, setEarthRow] = useState(false)
   const { from, to } = riverWindow(start, hour, zoom, hours)
@@ -150,6 +153,22 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
       window.removeEventListener('keydown', close)
     }
   }, [menu])
+  // The hourly file may have a month or two to read first; its line under "More" says so, and says why if it cannot be made.
+  const [hourly, setHourly] = useState<{ kind: 'idle' } | { kind: 'working' } | { kind: 'failed'; message: string }>({ kind: 'idle' })
+  const saveHourly = () => {
+    if (hourly.kind === 'working') return
+    setHourly({ kind: 'working' })
+    onHourly().then(
+      () => {
+        setHourly({ kind: 'idle' })
+        setMenu(null)
+      },
+      (reason: unknown) => {
+        if (!(reason instanceof HourlyProblem)) console.error(reason)
+        setHourly({ kind: 'failed', message: reason instanceof HourlyProblem ? reason.message : 'The file could not be made just now. Try again in a moment.' })
+      },
+    )
+  }
   const speed = SPEEDS.find((one) => one.hoursPerSecond === clock.hoursPerSecond) ?? SPEEDS.find((one) => one.hoursPerSecond === DEFAULT_SPEED) ?? SPEEDS[0]
   // At a year's width an Earth day is narrower than a pixel, so the row is offered up to a month, and only while the rows are open.
   const earthDayOffered = zoom !== 'year' && !folded
@@ -229,12 +248,21 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                 ))}
               </span>
             )}
-            {/* "More" holds what is rarely needed, and what a narrow header has no room for: the skyline's door, and the key. */}
-            {(earthDayOffered || doorInMenu) && (
-              <button type="button" className="sl-small sl-more" aria-label="More for the time bar" aria-haspopup="true" aria-expanded={menu === 'more'} title="More for the time bar" onClick={() => setMenu(menu === 'more' ? null : 'more')}>
-                ⋯
-              </button>
-            )}
+            {/* "More" holds what is rarely needed (the hourly file, "A day on Earth") and what a narrow header has no room for: the skyline's door, and the key. */}
+            <button
+              type="button"
+              className="sl-small sl-more"
+              aria-label="More for the time bar"
+              aria-haspopup="true"
+              aria-expanded={menu === 'more'}
+              title="More for the time bar"
+              onClick={() => {
+                setMenu(menu === 'more' ? null : 'more')
+                if (hourly.kind === 'failed') setHourly({ kind: 'idle' })
+              }}
+            >
+              ⋯
+            </button>
             <button type="button" className="sl-small sl-fold" aria-expanded={!folded} onClick={() => onFold(!folded)}>
               {folded ? 'Open' : 'Fold'}
             </button>
@@ -258,7 +286,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             ))}
           </div>
         )}
-        {menu === 'more' && (earthDayOffered || doorInMenu) && (
+        {menu === 'more' && (
           <div ref={menuBox} className="sl-menu" role="group" aria-label="More for the time bar">
             {doorInMenu && (
               <button
@@ -280,6 +308,15 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
               <label className="sl-check">
                 <input type="checkbox" checked={earthRow} onChange={(event) => setEarthRow(event.target.checked)} /> A day on Earth
               </label>
+            )}
+            {/* The same file as the Planner's Export: the scenario on show over its mission, one row for each hour. */}
+            <button type="button" className="sl-small sl-hourly" aria-busy={hourly.kind === 'working'} title="The scenario on show over its mission, one row for each hour, as a CSV file" onClick={saveHourly}>
+              {hourly.kind === 'working' ? 'Reading the hours…' : 'Hourly Sun and Earth (CSV)'}
+            </button>
+            {hourly.kind === 'failed' && (
+              <span className="sl-hourly-problem" role="alert">
+                {hourly.message}
+              </span>
             )}
           </div>
         )}

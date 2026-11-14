@@ -87,6 +87,7 @@ import { useMissionLight } from './useMissionLight'
 import { useTrekOverlay } from './useTrekOverlay'
 import { Fields, PlanColumn, Verdict } from './PlanColumn'
 import { Rail, type StageMode } from './Rail'
+import { saveHourlyCsv } from './hourlyExport'
 import { River } from './River'
 import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
@@ -1107,6 +1108,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             }))}
             missionHours={mission.requirements.missionDays * 24}
             sky={{ open: !skyMin, onToggle: () => setSkyMin(!skyMin) }}
+            onHourly={() => saveHourlyCsv({ site, start, landing: scenario.landing, missionDays: mission.requirements.missionDays, years: held, heights: mission.heights })}
             folded={riverMin}
             onFold={setRiverMin}
             onSelect={(key) => setActive(Number(key))}
