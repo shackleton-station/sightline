@@ -1,6 +1,7 @@
 import { LIGHT_URLS } from '../atlas/useLightGrid'
-import { type LightMeta, readMonth } from '../lib/lightGrid'
-import { addMonth, type GridGaps, missionMonths, slopeDegFrom, type SlopePart, type Square, startGaps } from '../lib/missionGrid'
+import { type LightMeta, lightMeta, type LightMetaFile, readMonth } from '../lib/lightGrid'
+import { locateHour } from '../lib/mission'
+import { addMonth, type GridGaps, missionMonthsAt, slopeDegFrom, type SlopePart, type Square, startGaps } from '../lib/missionGrid'
 import { bytes, gunzip } from './customSite'
 
 /**
@@ -9,7 +10,13 @@ import { bytes, gunzip } from './customSite'
  * another and let go: each is tens of megabytes unpacked, and the gaps keep six bytes a cell.
  */
 export async function loadGaps(meta: LightMeta, startIso: string, landing: number, missionDays: number): Promise<GridGaps | 'past'> {
-  const parts = missionMonths(meta, startIso, landing, missionDays)
+  const { month, index } = locateHour(startIso, landing)
+  return loadGapsAt(meta, month, index, missionDays)
+}
+
+/** The same, for a landing given as a month and the hour within it. */
+export async function loadGapsAt(meta: LightMeta, month: string, index: number, missionDays: number): Promise<GridGaps | 'past'> {
+  const parts = missionMonthsAt(meta, month, index, missionDays)
   if (!parts) return 'past'
   const run = startGaps(meta.size)
   for (const [i, part] of parts.entries()) {
@@ -121,18 +128,44 @@ function keep<T>(limit: number) {
 const gapsKept = keep<GridGaps | 'past'>(4)
 const slopeKept = keep<SlopePart | null>(4)
 
-export function gapsKey(startIso: string, landing: number, missionDays: number): string {
-  return `${startIso}@${landing}+${missionDays}`
+/** A landing's name among those kept: its month, the hour within it and the mission's length. */
+export function gapsKeyAt(month: string, index: number, missionDays: number): string {
+  return `${month}+${index}+${missionDays}`
 }
 
-/** `loadGaps`, kept: a landing already read is not read again. */
-export function gapsFor(meta: LightMeta, startIso: string, landing: number, missionDays: number): Promise<GridGaps | 'past'> {
-  return gapsKept.get(gapsKey(startIso, landing, missionDays), () => loadGaps(meta, startIso, landing, missionDays))
+export function gapsKey(startIso: string, landing: number, missionDays: number): string {
+  const { month, index } = locateHour(startIso, landing)
+  return gapsKeyAt(month, index, missionDays)
+}
+
+/** `loadGapsAt`, kept: a landing already read is not read again. */
+export function gapsAt(meta: LightMeta, month: string, index: number, missionDays: number): Promise<GridGaps | 'past'> {
+  return gapsKept.get(gapsKeyAt(month, index, missionDays), () => loadGapsAt(meta, month, index, missionDays))
 }
 
 /** The gaps for a landing if they have arrived. */
+export function gapsAtNow(month: string, index: number, missionDays: number): GridGaps | 'past' | undefined {
+  return gapsKept.now(gapsKeyAt(month, index, missionDays))
+}
+
+/** `gapsAt`, for a landing counted in hours from `startIso`. */
+export function gapsFor(meta: LightMeta, startIso: string, landing: number, missionDays: number): Promise<GridGaps | 'past'> {
+  const { month, index } = locateHour(startIso, landing)
+  return gapsAt(meta, month, index, missionDays)
+}
+
+/** `gapsAtNow`, for a landing counted in hours from `startIso`. */
 export function gapsNow(startIso: string, landing: number, missionDays: number): GridGaps | 'past' | undefined {
   return gapsKept.now(gapsKey(startIso, landing, missionDays))
+}
+
+/** The light grids' description, or null when this build has none: asked for once. */
+let metaAsked: Promise<LightMeta | null> | null = null
+export function loadLightMeta(): Promise<LightMeta | null> {
+  metaAsked ??= fetch(LIGHT_URLS.meta)
+    .then(async (response) => (response.ok ? lightMeta((await response.json()) as LightMetaFile) : null))
+    .catch(() => null)
+  return metaAsked
 }
 
 function squareKey(square: Square): string {

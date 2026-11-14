@@ -18,6 +18,18 @@ export interface SurfaceFrame {
   earth: SkyBody
 }
 
+/**
+ * A tint for the land, from something known about the ground: one color for the ground underfoot
+ * and one for the ground out toward each point of the horizon, mixed into the land's own dark
+ * shape by `amount` (0 to 1). Colors are display values, 0 to 255.
+ */
+export interface GroundTint {
+  under: readonly [number, number, number]
+  /** One for each point of the horizon, in the same order. */
+  rim: readonly (readonly [number, number, number])[]
+  amount: number
+}
+
 export interface SurfaceViewerConfig {
   canvas: HTMLCanvasElement
   onLostChange: (lost: boolean) => void
@@ -241,15 +253,20 @@ export class SurfaceViewer {
    * reaches straight down under the eye. It is a little lighter just under the top edge, so the
    * edge reads against a black sky: a way of drawing, not light worked out from anything.
    */
-  setHorizon(horizon: { az: number; el: number }[]): void {
+  setHorizon(horizon: { az: number; el: number }[], tint: GroundTint | null = null): void {
     this.releaseLand()
     const count = horizon.length
     // Three rings of points: the top edge, the same edge a few degrees lower, and the point below the eye.
     const positions = new Float32Array((2 * count + 1) * 3)
     const colors = new Float32Array((2 * count + 1) * 3)
-    const rim = new THREE.Color(LAND_RIM_COLOR)
-    const deep = new THREE.Color(LAND_COLOR)
+    // With a tint, the land takes some of its color: toward the skyline the color of the ground out that way.
+    const tinted = (base: number, color: readonly [number, number, number] | undefined) => {
+      const own = new THREE.Color(base)
+      return tint && color ? own.lerp(new THREE.Color().setRGB(color[0] / 255, color[1] / 255, color[2] / 255, THREE.SRGBColorSpace), tint.amount) : own
+    }
+    const deep = tinted(LAND_COLOR, tint?.under)
     horizon.forEach((point, i) => {
+      const rim = tinted(LAND_RIM_COLOR, tint?.rim[i])
       const top = skyVector(point.az, point.el)
       const lower = skyVector(point.az, Math.max(point.el - LAND_RIM_DEG, -89))
       positions.set([top[0] * LAND_RADIUS, top[1] * LAND_RADIUS, top[2] * LAND_RADIUS], i * 3)

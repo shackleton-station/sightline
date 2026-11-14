@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLightGrid } from '../atlas/useLightGrid'
 import type { SiteInfo } from '../data/contract'
 import { gapsFor, gapsKey, gapsNow, loadSlopeWhole, slopePartFor, slopePartNow, WHOLE_SUB } from '../data/loadMissionGrid'
-import { ACCURACY_RANGE, cellChances, FIT_COLOR, landingOdds, type Miss, MISS_COLORS, MISSES, type Spread } from '../lib/landingOdds'
+import { ACCURACY_RANGE, cellChances, landingOdds, type Spread } from '../lib/landingOdds'
 import type { LightMeta } from '../lib/lightGrid'
 import { locateHour } from '../lib/mission'
-import { fitMapAround, fitPixels, type GridGaps, squareAround } from '../lib/missionGrid'
+import { blurReads, fitField, fitMapAround, type GridGaps, halved, oddsField, oddsPixels, squareAround } from '../lib/missionGrid'
 import type { SightlineMission, SightlineScenario } from '../lib/sightlineMission'
-import type { GlobeOverlay } from '../three/GlobeViewer'
+import type { GlobeShade } from '../three/GlobeViewer'
+import { loadYearPositions } from '../data/customSite'
+import type { Requirements } from '../lib/mission'
+import { hourOfYear, smoothMoonFit, softened, WASH_SIZE } from '../lib/moonWash'
 
 /**
  * How far the ground is read around a target (m): far enough to hold nearly every landing at the
@@ -60,28 +63,20 @@ export function useMissionGrid(start: string, landing: number, missionDays: numb
   return mine === 'past' ? { meta, gaps: null, state: 'past' } : { meta, gaps: mine, state: 'ready' }
 }
 
-function rgb(hex: string): [number, number, number] {
-  return [Number.parseInt(hex.slice(1, 3), 16), Number.parseInt(hex.slice(3, 5), 16), Number.parseInt(hex.slice(5, 7), 16)]
-}
-
-/** Each verdict's color as the picture's pixels: the one that fits first, then each reason in `MISSES`' order. */
-const COLORS = [rgb(FIT_COLOR), ...MISSES.map((miss) => rgb(MISS_COLORS[miss]))]
-
 /** How much of the Moon the shading hides: the ground still shows through it. */
-const SHADE_OPACITY = 0.45
-
-export interface FitShade {
-  /** The picture to lay over the Moon; null while off or not yet read. */
-  overlay: GlobeOverlay | null
-  /** The reasons that appear in it, for its key. */
-  reasons: Miss[]
-}
+export const SHADE_OPACITY = 0.38
+/** The least the picture is softened by, in its own pixels (60 m each at full size): the grid's 120 m cells do not show as squares. */
+const SOFTEN_PX = 1.25
+/** The most pixel reads one picture may cost: past it, the picture is made at half the size. */
+const READS_BUDGET = 80e6
 
 /**
- * The grid's verdicts as a picture to lay over the Moon: green where a landing at this hour fits
- * the mission, and each reason it does not in its own color, across the light grid's square.
+ * The odds of a landing fitting, as a picture to lay over the Moon: for a lander aimed at each
+ * point of the light grid's square, with the spread given, green where nearly every landing fits
+ * the mission, through amber, to red where almost none does. Null while off or not yet read. A
+ * spread being dragged is drawn once it rests.
  */
-export function useFitOverlay(grid: MissionGrid, mission: SightlineMission, on: boolean): FitShade {
+export function useFitOverlay(grid: MissionGrid, mission: SightlineMission, spread: Spread, on: boolean): GlobeShade['polar'] {
   const { meta, gaps } = grid
   const [slope, setSlope] = useState<Float32Array | null | undefined>(undefined)
   useEffect(() => {
@@ -93,25 +88,37 @@ export function useFitOverlay(grid: MissionGrid, mission: SightlineMission, on: 
     }
   }, [on, meta])
 
+  const [rested, setRested] = useState(spread)
+  useEffect(() => {
+    const wait = window.setTimeout(() => setRested(spread), 200)
+    return () => window.clearTimeout(wait)
+  }, [spread])
+
   const { requirements, maxSlopeDeg } = mission
-  return useMemo(() => {
+  // Where a landing fits changes with the mission, not with the spread laid on it.
+  const fits = useMemo(() => {
     // The slope is waited for, so the picture does not arrive twice.
-    if (!on || !meta || !gaps || slope === undefined) return { overlay: null, reasons: [] }
-    const side = gaps.size * WHOLE_SUB
+    if (!on || !meta || !gaps || slope === undefined) return null
+    return fitField(gaps, requirements, maxSlopeDeg, WHOLE_SUB, slope, true)
+  }, [on, meta, gaps, slope, requirements, maxSlopeDeg])
+
+  return useMemo(() => {
+    if (!fits || !meta || !gaps) return null
+    const full = gaps.size * WHOLE_SUB
+    const fullM = meta.pixel_m / WHOLE_SUB
+    // A wide spread blurs far: at half the size it reads a quarter of the pixels over half the distance.
+    const small = full * full * blurReads(fullM, rested) > READS_BUDGET
+    const side = small ? full / 2 : full
+    const odds = oddsField(small ? halved(fits, full) : fits, side, small ? 2 * fullM : fullM, rested, small ? SOFTEN_PX / 2 : SOFTEN_PX)
     const image = document.createElement('canvas')
     image.width = side
     image.height = side
     const context = image.getContext('2d')
-    if (!context) return { overlay: null, reasons: [] }
-    const { pixels, seen } = fitPixels(gaps, requirements, maxSlopeDeg, WHOLE_SUB, slope, COLORS)
-    context.putImageData(new ImageData(pixels as Uint8ClampedArray<ArrayBuffer>, side, side), 0, 0)
-    return {
-      overlay: { image, halfWidthM: meta.half_width_m, radiusM: meta.radius_m, paint: 'picture', opacity: SHADE_OPACITY },
-      reasons: MISSES.filter((_, i) => seen[i + 1]),
-    }
-  }, [on, meta, gaps, slope, requirements, maxSlopeDeg])
+    if (!context) return null
+    context.putImageData(new ImageData(oddsPixels(odds) as Uint8ClampedArray<ArrayBuffer>, side, side), 0, 0)
+    return { image, halfWidthM: meta.half_width_m, radiusM: meta.radius_m }
+  }, [fits, meta, gaps, rested])
 }
-
 /**
  * The odds of a landing fitting, for each scenario: its own landing read from the light grid, the
  * ground around its site judged against the mission, and the spread laid on it. Null for a
@@ -160,4 +167,49 @@ export function useScenarioOdds(meta: LightMeta | null | undefined, start: strin
     // oxlint-disable-next-line react-hooks/exhaustive-deps
     [meta, wanted, asked, start, days, requirements, maxSlopeDeg, spread, arrived],
   )
+}
+
+/**
+ * The whole Moon colored by whether a landing at this hour fits the mission's Sun and Earth limits
+ * on a smooth Moon (`moonWash.ts`): the same green and red as the light grid's picture, for the
+ * ground the grid does not reach. Null while off, while the year's positions load, or when the
+ * mission runs past them.
+ */
+export function useMoonWash(start: string, landing: number, requirements: Requirements, on: boolean): HTMLCanvasElement | null {
+  const { year, hour } = hourOfYear(start, landing)
+  // A mission that runs into the next year needs that year's positions too.
+  const spills = hourOfYear(start, landing + requirements.missionDays * 24).year > year
+  const key = `${year}${spills ? '+' : ''}`
+  const [loaded, setLoaded] = useState<{ key: string; positions: Float32Array } | null>(null)
+  useEffect(() => {
+    if (!on) return
+    let current = true
+    Promise.all([loadYearPositions(year), spills ? loadYearPositions(year + 1) : null])
+      .then(([first, second]) => {
+        if (!current) return
+        const positions = new Float32Array(first.length + (second?.length ?? 0))
+        positions.set(first)
+        if (second) positions.set(second, first.length)
+        setLoaded({ key, positions })
+      })
+      // Without the positions the Moon keeps only the light grid's picture.
+      .catch((reason: unknown) => console.error(reason))
+    return () => {
+      current = false
+    }
+  }, [on, year, spills, key])
+
+  const positions = loaded?.key === key ? loaded.positions : null
+  return useMemo(() => {
+    if (!on || !positions) return null
+    const fit = smoothMoonFit(positions, hour, requirements)
+    if (!fit) return null
+    const image = document.createElement('canvas')
+    image.width = WASH_SIZE.width
+    image.height = WASH_SIZE.height
+    const context = image.getContext('2d')
+    if (!context) return null
+    context.putImageData(new ImageData(oddsPixels(softened(fit, WASH_SIZE)) as Uint8ClampedArray<ArrayBuffer>, WASH_SIZE.width, WASH_SIZE.height), 0, 0)
+    return image
+  }, [on, positions, hour, requirements])
 }

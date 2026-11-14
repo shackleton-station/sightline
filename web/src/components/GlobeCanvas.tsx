@@ -3,7 +3,7 @@ import { loadPart } from '../data/staleBuild'
 import type { GlobeView } from '../lib/globe'
 import { LIGHT_URLS } from '../atlas/useLightGrid'
 import type { LightMeta, LightMonth } from '../lib/lightGrid'
-import type { GlobeFrame, GlobeOverlay, GlobeOverlayDetail, GlobeViewer, GroundDetail, SlopeMaps } from '../three/GlobeViewer'
+import type { GlobeFrame, GlobeOverlay, GlobeOverlayDetail, GlobeViewer, GlobeShade, GroundDetail, SlopeMaps } from '../three/GlobeViewer'
 import type { LightView } from '../three/lightLayer'
 
 const BASE = `${import.meta.env.BASE_URL}data/maps/`
@@ -52,6 +52,8 @@ interface Props {
   terrain?: boolean
   /** A picture laid over the ground around the south pole (a Moon Trek layer), or none. Keep the same object while it is on. */
   overlay?: GlobeOverlay | null
+  /** A transparent shade over the whole Moon, or none. */
+  shade?: GlobeShade | null
   /** A sharper picture of the ground in view, laid over `overlay` where it reaches, or none. Keep the same object while it is on. */
   overlayDetail?: GlobeOverlayDetail | null
   /** A photo of the ground in view, for the Moon's own picture to get sharper from (GlobeViewer `setGroundDetail`); for when no layer is on. */
@@ -107,7 +109,7 @@ async function slopeMaps(): Promise<SlopeMaps | null> {
  * The globe itself: one canvas drawn by the Three.js GlobeViewer, only when the view, zoom or Sun
  * changes. Three.js downloads with the first globe, not with the rest of the page.
  */
-export function GlobeCanvas({ view, zoom, sun, up, earth = null, color = false, terrain = false, overlay = null, overlayDetail = null, ground = null, lightMeta = null, lightMonth = null, lightWide = null, lightShow = null, onSize, onLost, onDrawn }: Props) {
+export function GlobeCanvas({ view, zoom, sun, up, earth = null, color = false, terrain = false, overlay = null, shade = null, overlayDetail = null, ground = null, lightMeta = null, lightMonth = null, lightWide = null, lightShow = null, onSize, onLost, onDrawn }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const viewerRef = useRef<GlobeViewer | null>(null)
   const frameRef = useRef<GlobeFrame>({ view, zoom, sun, up, earth, light: lightShow ?? undefined })
@@ -118,6 +120,7 @@ export function GlobeCanvas({ view, zoom, sun, up, earth = null, color = false, 
   const onSizeRef = useRef(onSize)
   const onDrawnRef = useRef(onDrawn)
   const overlayRef = useRef(overlay)
+  const shadeRef = useRef(shade)
   const detailRef = useRef(overlayDetail)
   const groundRef = useRef(ground)
   useEffect(() => {
@@ -127,6 +130,7 @@ export function GlobeCanvas({ view, zoom, sun, up, earth = null, color = false, 
     onSizeRef.current = onSize
     onDrawnRef.current = onDrawn
     overlayRef.current = overlay
+    shadeRef.current = shade
     detailRef.current = overlayDetail
     groundRef.current = ground
   })
@@ -180,6 +184,7 @@ export function GlobeCanvas({ view, zoom, sun, up, earth = null, color = false, 
         if (discPx > COLOR_8K_ABOVE_PX && frameRef.current.view.lat > COLOR_ENDS_LAT_DEG) sharpenColor(viewer, canvas)
         // A layer switched on before the viewer was ready.
         if (overlayRef.current) viewer.setOverlay(overlayRef.current)
+        if (shadeRef.current) viewer.setShade(shadeRef.current)
         if (detailRef.current) viewer.setOverlayDetail(detailRef.current)
         if (groundRef.current) viewer.setGroundDetail(groundRef.current)
         viewer.draw(frameRef.current)
@@ -223,6 +228,10 @@ export function GlobeCanvas({ view, zoom, sun, up, earth = null, color = false, 
     if (discPx > POLE_SLOPES_SHARP_ABOVE_PX) viewer.sharpenTerrain('pole')
   }, [view.lat, view.lon, zoom, sunX, sunY, sunZ, upX, upY, upZ, earthX, earthY, earthZ, lightShow?.hour, lightShow?.view, lightMonth, lightWide, terrain])
 
+  useEffect(() => {
+    viewerRef.current?.setShade(shade)
+    if (canvasRef.current) canvasRef.current.dataset.shade = shade ? (shade.polar ? 'whole' : 'wash') : 'off'
+  }, [shade])
   useEffect(() => {
     viewerRef.current?.setOverlay(overlay)
     // For the page's checks: whether a layer's picture has been handed to the globe.

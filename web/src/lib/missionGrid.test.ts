@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { cellCentreM, FITS, missCode, missOf } from './landingOdds'
-import { cellCenter, type LightMeta, type LightMonth, readMonth, upSeries } from './lightGrid'
+import { cellCentreM, cellChances, erf, type FitMap, FITS, landingOdds, missCode, missOf, sigmaM } from './landingOdds'
+import { cellCenter, type LightMeta, type LightMonth, planeXY, readMonth, upSeries } from './lightGrid'
 import { landingProblems, type Requirements } from './mission'
-import { addMonth, fitMapAround, fitPixels, fitsAtTarget, type GridGaps, lightVerdict, missionMonths, slopeDegFrom, squareAround, startGaps } from './missionGrid'
+import { addMonth, fieldOf, fitField, fitMapAround, fitsAtTarget, type GridGaps, lightVerdict, missionMonths, oddsAlongBearings, oddsAt, oddsColor, oddsField, oddsPixels, slopeDegFrom, squareAround, startGaps } from './missionGrid'
 
 const SIZE = 12
 const SUN_SLOTS = 6
@@ -181,25 +181,6 @@ describe('the map around a target', () => {
   })
 })
 
-describe('the whole grid as a picture', () => {
-  it('is each verdict’s own color, and says which verdicts are in it', () => {
-    const gaps = startGaps(2)
-    gaps.sunAt.set([1, 0, 1, 1])
-    gaps.earthAt.fill(1)
-    const slope = new Float32Array(16).fill(3)
-    slope[15] = 20 // the last pixel of the last cell
-    // One color per code: fits, too steep, Sun down at landing, and the rest unused here.
-    const colors = [[10, 200, 30], [90, 60, 220], [200, 40, 20], [1, 1, 1], [2, 2, 2], [3, 3, 3]] as const
-    const { pixels, seen } = fitPixels(gaps, REQ, 10, 2, slope, colors)
-    const at = (pixel: number) => Array.from(pixels.slice(4 * pixel, 4 * pixel + 4))
-    expect(pixels.length).toBe(4 * 16)
-    expect(at(0)).toEqual([10, 200, 30, 255])
-    expect(at(2)).toEqual([200, 40, 20, 255])
-    expect(at(10)).toEqual([10, 200, 30, 255])
-    expect(at(15)).toEqual([90, 60, 220, 255])
-    expect(seen).toEqual([true, true, true, false, false, false])
-  })
-})
 describe('slope from the slope images', () => {
   it('reads level, a known slope, and the steepest stored', () => {
     const slope = slopeDegFrom(new Uint8Array([128, 255, 128, 150]), new Uint8Array([128, 128, 1, 128]), 1)
@@ -208,5 +189,155 @@ describe('slope from the slope images', () => {
     expect(slope[2]).toBeCloseTo(45, 4)
     // 22 steps of 1/127 rise over run: atan(0.1732) = 9.83 degrees.
     expect(slope[3]).toBeCloseTo(9.83, 2)
+  })
+})
+
+describe('the odds of fitting, aimed at every pixel', () => {
+  const SIDE = 120
+  const PIXEL_M = 30
+  /** A field where `keep` says a landing fits, by each pixel's middle in meters from the picture's centre (x right, y up). */
+  function field(keep: (x: number, y: number) => boolean): Float32Array {
+    const out = new Float32Array(SIDE * SIDE)
+    for (let row = 0; row < SIDE; row += 1) {
+      for (let col = 0; col < SIDE; col += 1) out[row * SIDE + col] = keep((col + 0.5 - SIDE / 2) * PIXEL_M, (SIDE / 2 - row - 0.5) * PIXEL_M) ? 1 : 0
+    }
+    return out
+  }
+  const at = (odds: Float32Array, x: number, y: number) => odds[Math.floor(SIDE / 2 - y / PIXEL_M) * SIDE + Math.floor(x / PIXEL_M + SIDE / 2)]
+  const round = (accuracyM: number) => ({ accuracyM, stretch: 1, bearingDeg: 0 })
+
+  it('is the field itself where a landing fits everywhere, or nowhere', () => {
+    expect(at(oddsField(field(() => true), SIDE, PIXEL_M, round(300)), 15, 15)).toBeCloseTo(1, 5)
+    expect(at(oddsField(field(() => false), SIDE, PIXEL_M, round(300)), 15, 15)).toBe(0)
+  })
+
+  it('fades across an edge as the bell curve says', () => {
+    const odds = oddsField(field((x) => x > 0), SIDE, PIXEL_M, round(300))
+    const sigma = sigmaM(300)
+    // Aimed at the middle of a pixel whose middle is this far inside the good ground.
+    for (const inside of [15, 105, 195, -75]) expect(at(odds, inside, 15)).toBeCloseTo(0.5 * (1 + erf(inside / (sigma * Math.SQRT2))), 3)
+    expect(at(odds, 900, 15)).toBeCloseTo(1, 4)
+    expect(at(odds, -900, 15)).toBeCloseTo(0, 4)
+  })
+
+  it('agrees with the odds the panel works out for one target', () => {
+    // Good ground: a disc of 240 m, off to one side of the target.
+    const keep = (x: number, y: number) => Math.hypot(x - 150, y + 90) < 240
+    const map: FitMap = { size: SIDE, cellM: PIXEL_M, leftM: (-SIDE * PIXEL_M) / 2 - 15, topM: (SIDE * PIXEL_M) / 2 - 15, verdict: new Uint8Array(SIDE * SIDE) }
+    const good = field(keep)
+    for (let i = 0; i < good.length; i += 1) map.verdict[i] = good[i] ? FITS : missCode('dark')
+    for (const spread of [round(200), { accuracyM: 150, stretch: 3, bearingDeg: 0 }, { accuracyM: 150, stretch: 3, bearingDeg: 90 }, { accuracyM: 150, stretch: 2.5, bearingDeg: 40 }]) {
+      // The map's target is the middle of the pixel at (15, 15) m.
+      const panel = landingOdds(map, cellChances(map, spread)).fit
+      expect(at(oddsField(good, SIDE, PIXEL_M, spread), 15, 15), `${spread.stretch}x at ${spread.bearingDeg}°`).toBeCloseTo(panel, 1)
+      expect(Math.abs(at(oddsField(good, SIDE, PIXEL_M, spread), 15, 15) - panel)).toBeLessThan(0.02)
+    }
+  })
+
+  it('reaches farther along the approach than across it', () => {
+    // A strip of good ground up the middle; aimed 300 m to its right.
+    const strip = field((x) => Math.abs(x) < 90)
+    const across = at(oddsField(strip, SIDE, PIXEL_M, { accuracyM: 150, stretch: 4, bearingDeg: 0 }), 315, 15)
+    const along = at(oddsField(strip, SIDE, PIXEL_M, { accuracyM: 150, stretch: 4, bearingDeg: 90 }), 315, 15)
+    expect(across).toBeLessThan(0.01)
+    expect(along).toBeGreaterThan(0.1)
+  })
+
+  it('marks where a landing fits from the grid and the slope', () => {
+    const gaps = startGaps(2)
+    gaps.sunAt.set([1, 0, 1, 1])
+    gaps.earthAt.fill(1)
+    const slope = new Float32Array(16).fill(3)
+    slope[15] = 20
+    expect(Array.from(fitField(gaps, REQ, 10, 2, slope))).toEqual([1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0])
+    expect(Array.from(fitField(gaps, REQ, 10, 1, null))).toEqual([1, 0, 1, 1])
+  })
+
+  it('draws odds from red through amber to green', () => {
+    expect(oddsColor(0)).toEqual([194, 69, 45])
+    expect(oddsColor(0.5)).toEqual([224, 178, 58])
+    expect(oddsColor(1)).toEqual([87, 192, 138])
+    expect(oddsColor(0.25)).toEqual([209, 124, 52])
+    expect(oddsColor(7)).toEqual([87, 192, 138])
+    const pixels = oddsPixels(new Float32Array([0, 1]))
+    expect(Array.from(pixels)).toEqual([194, 69, 45, 255, 87, 192, 138, 255])
+  })
+})
+describe('a picture with no squares', () => {
+  it('reads the light verdict between the cells’ middles, and keeps the slope’s own detail', () => {
+    // Two light cells side by side: the left fits, the right does not.
+    const gaps = startGaps(2)
+    gaps.sunAt.set([1, 0, 1, 0])
+    gaps.earthAt.fill(1)
+    const hard = fitField(gaps, REQ, 10, 4, null)
+    const soft = fitField(gaps, REQ, 10, 4, null, true)
+    // Cell by cell, a row is four ones and four zeros.
+    expect(Array.from(hard.slice(0, 8))).toEqual([1, 1, 1, 1, 0, 0, 0, 0])
+    // Between the middles it falls evenly from 1 to 0, and is flat outside them.
+    expect(Array.from(soft.slice(0, 8)).map((value) => Number(value.toFixed(3)))).toEqual([1, 1, 0.875, 0.625, 0.375, 0.125, 0, 0])
+    // Both say the same about how much of the ground fits.
+    const sum = (field: Float32Array) => field.reduce((total, value) => total + value, 0)
+    expect(sum(soft)).toBeCloseTo(sum(hard), 5)
+    // Steep ground is still left out pixel by pixel.
+    const slope = new Float32Array(64).fill(2)
+    slope[0] = 30
+    expect(fitField(gaps, REQ, 10, 4, slope, true)[0]).toBe(0)
+  })
+
+  it('is softened by at least as much as asked, whatever the spread', () => {
+    const SIDE = 40
+    const edge = new Float32Array(SIDE * SIDE)
+    for (let i = 0; i < edge.length; i += 1) edge[i] = i % SIDE < SIDE / 2 ? 1 : 0
+    const tight = { accuracyM: 50, stretch: 1, bearingDeg: 0 }
+    // A 50 m spread on 60 m pixels leaves the edge nearly as sharp as it was.
+    const sharp = oddsField(edge, SIDE, 60, tight)
+    expect(sharp[SIDE * 20 + 18]).toBeGreaterThan(0.99)
+    // Softened by two pixels, the same edge fades over several.
+    const softened = oddsField(edge, SIDE, 60, tight, 2)
+    expect(softened[SIDE * 20 + 18]).toBeGreaterThan(0.7)
+    expect(softened[SIDE * 20 + 18]).toBeLessThan(0.85)
+    expect(softened[SIDE * 20 + 19] + softened[SIDE * 20 + 20]).toBeCloseTo(1, 5)
+  })
+})
+
+describe('looking around from a site', () => {
+  // A map 3 km across in 30 m cells, centred on a target at 30° E: good ground only to one side.
+  const size = 100
+  const map = (keep: (x: number, y: number) => boolean): FitMap => {
+    const out: FitMap = { size, cellM: 30, leftM: -1500, topM: 1500, verdict: new Uint8Array(size * size) }
+    for (let cell = 0; cell < out.verdict.length; cell += 1) {
+      const { x, y } = cellCentreM(out, cell)
+      out.verdict[cell] = keep(x, y) ? FITS : missCode('dark')
+    }
+    return out
+  }
+
+  it('finds north straight away from the pole, and east a quarter turn on', () => {
+    const lon = 30
+    // The site's place on the polar map: north of it is farther from the pole along the same line.
+    const site = planeXY(META, -89.5, lon)
+    const away = Math.hypot(site.x, site.y)
+    const north = { x: site.x / away, y: site.y / away }
+    const good = map((x, y) => x * north.x + y * north.y > 200)
+    const odds = fieldOf(good)
+    const [toNorth, toEast, toSouth, toWest] = oddsAlongBearings(good, odds, lon, [0, 90, 180, 270], 300, 1200)
+    expect(toNorth).toBeCloseTo(1, 5)
+    expect(toSouth).toBeCloseTo(0, 5)
+    expect(toEast).toBeCloseTo(0, 5)
+    expect(toWest).toBeCloseTo(0, 5)
+    // East is the way longitude grows: good ground lying that way is found at bearing 90.
+    const eastward = planeXY(META, -89.5, lon + 1)
+    const east = { x: eastward.x - site.x, y: eastward.y - site.y }
+    const toTheEast = map((x, y) => x * east.x + y * east.y > 200 * Math.hypot(east.x, east.y))
+    const found = oddsAlongBearings(toTheEast, fieldOf(toTheEast), lon, [0, 90, 180, 270], 300, 1200)
+    expect(found[1]).toBeCloseTo(1, 5)
+    expect(found[3]).toBeCloseTo(0, 5)
+  })
+
+  it('reads the odds at a point, and none off the map', () => {
+    const all = map(() => true)
+    expect(oddsAt(all, fieldOf(all), 100, -100)).toBe(1)
+    expect(oddsAt(all, fieldOf(all), 5000, 0)).toBeNull()
+    expect(oddsAlongBearings(all, fieldOf(all), 0, [0], 4000, 5000)).toEqual([null])
   })
 })

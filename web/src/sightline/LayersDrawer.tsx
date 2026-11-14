@@ -15,6 +15,12 @@ interface Props {
    */
   shade: { on: boolean; here: boolean; cellM: number | null; wideCellM: number | null; state: 'loading' | 'ready' | 'missing' }
   onShade: (on: boolean) => void
+  /**
+   * "Landing odds", the app's own: the odds that a lander aimed at each point comes down where the
+   * mission fits, shaded on the Moon. Whether it is on, and whether the light grid reaches the site on show.
+   */
+  odds: { on: boolean; here: boolean }
+  onOdds: (on: boolean) => void
   onClose: () => void
 }
 
@@ -23,7 +29,7 @@ interface Props {
  * on the stage one at a time. Each says how to read it, and the one that is on carries Trek's own
  * title and credit.
  */
-export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, onClose }: Props) {
+export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds, onOdds, onClose }: Props) {
   const on = trekLayer(layer)
   return (
     <aside className="sl-drawer sl-layers" aria-label="Layers">
@@ -40,7 +46,12 @@ export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, onCl
             <span>Light and shadow</span>
           </label>
         </li>
-      </ul>
+        <li>
+          <label title={'Colors the Moon by how likely a landing is to fit the mission: green where it is likely, through amber, to red where it is not'}>
+            <input type="checkbox" role="switch" checked={odds.on} onChange={() => onOdds(!odds.on)} />
+            <span>Mission success probability</span>
+          </label>
+        </li>      </ul>
       {shade.on && shade.here && (
         <p className="sl-layer-shade" role="status">
           {shade.state === 'missing'
