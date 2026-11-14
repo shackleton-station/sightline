@@ -277,7 +277,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [tourAt, setTourAt] = useState<number | null>(null)
   /** Which steps are on show: a feature guide's, by its id, or the main tour's (null). */
   const [tourGuide, setTourGuide] = useState<string | null>(null)
-  const beforeTour = useRef<{ plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
+  const beforeTour = useRef<{ plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
   /** Whether the tour has put its own landing in Plan yet: once, so what the visitor tries on the way is kept. */
   const tourPlanned = useRef(false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
@@ -660,7 +660,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
 
   /** Start the main tour, or a feature guide by its id. Either way the screen as it is now is kept, to put back at the end. */
   const startTour = (guide: string | null = null) => {
-    beforeTour.current = { plan, scenarios, chosen, drawer, full, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
+    beforeTour.current = { plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
     tourPlanned.current = false
     if (guide === null) setTourTaken(true)
     setHow(false)
@@ -678,6 +678,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setActive(was.chosen)
     setDrawer(was.drawer)
     setFull(was.full)
+    setPlannerTab(was.plannerTab)
     setBrief(was.brief)
     setScoutOpen(was.scoutOpen)
     setMode(was.mode)
@@ -700,7 +701,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setBare(false)
     // A step may open the panel it is about; every other panel is shut.
     setDrawer(open === 'compare' || open === 'layers' ? open : null)
-    setFull(false)
+    // Or the Planner, on the tab it is about.
+    setFull(open === 'planner-find' || open === 'planner-compare')
+    if (open === 'planner-find' || open === 'planner-compare') setPlannerTab(open === 'planner-find' ? 'find' : 'compare')
     setBrief(false)
     setHow(false)
     setScoutOpen(false)

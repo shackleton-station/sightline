@@ -57,8 +57,8 @@ describe("Scout's tour: the steps", () => {
 describe('the feature guides', () => {
   const guides = (guidesFile as GuidesFile).guides
 
-  it('are the four short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
-    expect(guides.map((guide) => guide.name)).toEqual(['Compare scenarios', 'Views and layers', 'A custom point', 'Share a plan'])
+  it('are the five short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
+    expect(guides.map((guide) => guide.name)).toEqual(['Compare scenarios', 'The Planner', 'Views and layers', 'A custom point', 'Share a plan'])
     for (const guide of guides) {
       expect(guide.steps.length, guide.id).toBeGreaterThanOrEqual(2)
       expect(guide.steps.length, guide.id).toBeLessThanOrEqual(4)
@@ -84,8 +84,8 @@ describe('the feature guides', () => {
 
   it('open only what a step can open, and ask for the two nearby sites only where a step is about several scenarios', () => {
     const steps = guides.flatMap((guide) => guide.steps)
-    for (const step of steps) if (step.state.open) expect(['compare', 'layers', 'custom', 'share'], step.id).toContain(step.state.open)
-    expect(steps.filter((step) => step.state.pair).map((step) => step.id)).toEqual(['compare-table', 'compare-rows'])
+    for (const step of steps) if (step.state.open) expect(['compare', 'layers', 'custom', 'share', 'planner-find', 'planner-compare'], step.id).toContain(step.state.open)
+    expect(steps.filter((step) => step.state.pair).map((step) => step.id)).toEqual(['compare-table', 'compare-rows', 'planner-compare', 'planner-back'])
     // One step is about the zoom buttons, which a phone does not have: it is marked, and its guide still has two steps without it.
     expect(steps.filter((step) => step.wide).map((step) => step.id)).toEqual(['views-zoom'])
     for (const guide of guides) expect(guide.steps.filter((step) => !step.wide).length, guide.id).toBeGreaterThanOrEqual(2)
