@@ -189,8 +189,9 @@
   pointer-events: none;
 }
 
-/* The view's tools: the recentre compass, when the view has been moved, above the zoom buttons. In
-   the stage's corner over empty sky, under "Hide all", clear of the Moon's disc at every width. */
+/* The view's tools: the zoom buttons, which never move, and under them the recentre compass once the
+   view has been moved. In the stage's corner over empty sky, under "Hide all", clear of the Moon's
+   disc at every width. */
 .sl-view-tools {
   position: absolute;
   top: 4rem;
@@ -198,7 +199,8 @@
   z-index: 3;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  /* Held to the right edge, not centred: a wider thing below (the arrow to Earth) must not shift the zoom buttons sideways. */
+  align-items: flex-end;
   gap: 0.3rem;
   transition: opacity 0.5s ease;
 }
