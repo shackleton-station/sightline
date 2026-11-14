@@ -492,6 +492,21 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     closePlan()
   }, [setBare, closePlan])
 
+  /**
+   * Home: the opening screen as a first visit finds it. Watch, with the controls on show, the Moon
+   * at the opening hour with time playing, Scout's card shut and his line offering the tour again.
+   * The scenarios are kept: "Plan a landing" opens on the same site, landing at the hour on the clock
+   * as it always does from Watch.
+   */
+  const goHome = useCallback(() => {
+    showControls()
+    setScoutOpen(false)
+    setPillMin(false)
+    setTourSeen(false)
+    setHour(opening)
+    setPlaying(!still)
+  }, [showControls, setPillMin, setTourSeen, setHour, setPlaying, opening, still])
+
   const startTour = () => {
     beforeTour.current = { plan, scenarios, chosen, drawer, full, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
     tourPlanned.current = false
@@ -986,8 +1001,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           layersOpen={drawer === 'layers'}
           layerOn={layer !== null}
           onLayers={() => setDrawer(drawer === 'layers' ? null : 'layers')}
-          onWatch={closePlan}
-          onHide={() => setBare(true)}
+          onHome={goHome}
         />
       )}
     </div>
