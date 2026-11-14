@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { loadRange } from '../data/loadSite'
+import { browserHeader } from '../lib/browserId'
 import { applyAsk, ASK_MAX_CHARS, askMonths, type AskResult, describeAsk, notUnderstoodMessage } from '../lib/ask'
 import { DEFAULT_WAIT_SECONDS, retryAfterSeconds, waitWords } from '../lib/chatClient'
 import { useCooldown } from '../lib/cooldown'
@@ -40,7 +41,7 @@ export function AskBox({ sites, requirements }: Props) {
     try {
       const response = await fetch('/api/ask', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...browserHeader() },
         body: JSON.stringify({ question: text }),
       })
       const body = (await response.json().catch(() => ({}))) as { result?: AskResult; error?: string }

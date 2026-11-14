@@ -49,6 +49,13 @@ A streamed answer whose headers have already gone says "busy" as an `error` even
 `503 {"error":"not-configured"}` means no model is set up. Waiting will not change that, so it has
 no `Retry-After`.
 
+**Who counts as one visitor.** A visitor is a network address together with the browser id the page sends in
+`x-sightline-browser` (`src/lib/browserId.ts`), so people on one venue Wi-Fi each get their own allowance. Without
+the header, or with one not shaped as a page makes it, a visitor is the address alone, as before the header. Since
+any client can send any id, everyone at one address together is also capped: by default four visitors' worth
+(`address`, `addressDay` in `copilot/limits.ts`, set on their own with `COPILOT_LIMIT_<CHAT|ASK>_ADDRESS[_DAY]`).
+The limits for everyone together are unchanged, so the most the model can cost in a day is unchanged too.
+
 The limits are the same as before the service was split out, counted in the same Redis keys:
 6 questions a minute and 20 a day per visitor, 30 a minute and 120 a day for everyone together;
 10 typed questions a minute and 30 a day per visitor, 30 a minute and 150 a day for everyone. The daily
@@ -63,7 +70,7 @@ had none), so that the model cannot cost more than about $15 a day (docs/decisio
   "method": "POST",
   "path": "/api/chat",
   "request": {
-    "headers": { "origin": "the site's own origin; required", "content-type": "application/json", "accept?": "text/event-stream for a streamed answer (next block)" },
+    "headers": { "origin": "the site's own origin; required", "content-type": "application/json", "accept?": "text/event-stream for a streamed answer (next block)", "x-sightline-browser?": "the page's random browser id, 16 to 64 of A-Z a-z 0-9 _ -; splits one address among its browsers for the per-visitor limits" },
     "body": { "messages": [{ "role": "=user or =assistant", "text": "string" }], "view?": "string", "spot?": "string" }
   },
   "replies": {
@@ -96,7 +103,7 @@ for up to a day (`x-cache: hit`), as long as the co-pilot's code and the site da
   "operation": "chat-stream",
   "method": "POST",
   "path": "/api/chat",
-  "request": { "headers": { "origin": "the site's own origin; required", "content-type": "application/json", "accept": "text/event-stream" }, "body": "as for chat" },
+  "request": { "headers": { "origin": "the site's own origin; required", "content-type": "application/json", "accept": "text/event-stream", "x-sightline-browser?": "the page's random browser id, 16 to 64 of A-Z a-z 0-9 _ -; splits one address among its browsers for the per-visitor limits" }, "body": "as for chat" },
   "replies": {
     "200": {
       "headers": { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store, no-transform" },
@@ -125,7 +132,7 @@ question, an open breaker) is an ordinary JSON reply from the block above, with 
   "operation": "ask",
   "method": "POST",
   "path": "/api/ask",
-  "request": { "headers": { "origin": "the site's own origin; required", "content-type": "application/json" }, "body": { "question": "string" } },
+  "request": { "headers": { "origin": "the site's own origin; required", "content-type": "application/json", "x-sightline-browser?": "the page's random browser id, 16 to 64 of A-Z a-z 0-9 _ -; splits one address among its browsers for the per-visitor limits" }, "body": { "question": "string" } },
   "replies": {
     "200": { "body": { "result": { "sites": ["string"], "month": "string|null", "requirements": { "missionDays?": "number", "maxSunGapH?": "number", "maxEarthGapH?": "number", "sunAtLanding?": "boolean", "earthAtLanding?": "boolean", "minEarthClearanceDeg?": "number" } } } },
     "400": { "body": { "error": "=bad-question" } },

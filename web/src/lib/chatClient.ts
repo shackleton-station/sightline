@@ -1,3 +1,5 @@
+import { browserHeader } from './browserId'
+
 /** One thing said in the co-pilot's thread. Answers carry the buttons, sources and follow-ups the server sent. */
 export interface ChatMessage {
   role: 'user' | 'assistant'
@@ -168,7 +170,7 @@ export async function askCopilot(thread: ChatMessage[], view: string, onStep: (t
   try {
     const response = await fetch('/api/chat', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
+      headers: { 'content-type': 'application/json', accept: 'text/event-stream', ...browserHeader() },
       body: JSON.stringify(toRequest(thread, view, spot)),
     })
     if (!response.ok) {

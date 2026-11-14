@@ -1,7 +1,7 @@
 import { ASK_MAX_CHARS } from '../../src/lib/ask'
 import { briefly, type QuestionEvent, questionAttributes } from '../../shared/events'
 import { currentTraceId, currentTraceparent, span } from '../../shared/trace'
-import { originAllowed, reply, visitorOf } from '../../shared/http'
+import { originAllowed, reply, visitorKeys } from '../../shared/http'
 import { createHash, randomUUID } from 'node:crypto'
 import type { Relay } from '../outbox'
 import { singleFlight } from '../../shared/singleFlight'
@@ -36,6 +36,9 @@ export interface ChatLimits {
   each: Limiter
   /** Per visitor, per day. */
   eachDay: Limiter
+  /** Everyone at one network address together, per minute and per day (limits.ts). */
+  address: Limiter
+  addressDay: Limiter
   /** Everyone together, per minute and per day: the ceiling on what the model can cost. */
   all: Limiter
   allDay: Limiter
@@ -149,11 +152,13 @@ export async function handleChat(
   if (!body) return reply({ error: 'bad-question' }, 400)
   if (!deps.model) return reply({ error: 'not-configured' }, 503)
 
-  const visitor = visitorOf(request, deps.trustedProxies)
+  const { address, visitor } = visitorKeys(request, deps.trustedProxies)
   const refused = await span('rate limits', () =>
     countIfAllowed([
       [limits.each, visitor],
       [limits.eachDay, visitor],
+      [limits.address, address],
+      [limits.addressDay, address],
       [limits.all, 'all'],
       [limits.allDay, 'all'],
     ]),
