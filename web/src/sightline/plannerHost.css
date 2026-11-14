@@ -108,3 +108,35 @@
 .plh .pl-day {
   border-color: var(--pl-paper-rule);
 }
+
+/* ---------- One typography ----------
+   The imported parts bring headings in spaced capitals and text in a fixed-width face. Inside the
+   Planner they take the Planner's own: its headings, its labels, the screen's font with its tabular figures. */
+.sl-full .plh.planner {
+  --pl-mono: var(--sans);
+
+  font-family: var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-full .plh.planner :is(h3, h4, h5, .pl-label) {
+  margin: 0 0 0.25rem;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-transform: none;
+}
+
+.sl-full .plh.planner :is(p, li, dd, dt, span, button, input, label) {
+  font-family: var(--sans);
+  letter-spacing: 0;
+}
+
+/* The ground nearby is under this Planner's own heading, so the part's own is left out. */
+.plh-nearby section > h5:first-child,
+.plh-nearby > div > h5:first-child {
+  display: none;
+}

@@ -5,11 +5,11 @@ import { NothingWorks } from '../planner/NothingWorks'
 import { CSA_ROVER, ROVER_PRESET, roverMissionDays } from '../lib/csaRover'
 import { type GridCell, type MonthSpan, shadePct } from '../lib/grid'
 import { monthLabel, monthName } from '../lib/months'
-import { clockTime, isoAt, stateRuns } from '../lib/sightline'
+import { clockTime, stateRuns } from '../lib/sightline'
 import { fitProblems, MAX_SCENARIOS, presetOf, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { cellDetail, cellWords, FIND_MEASURES, type FindMeasure, findRow, findTally, fitHours, monthsWithFit, runningTotals } from './plannerFit'
 import { PlannerFindMore } from './PlannerFindMore'
-import { PlannerLocation } from './PlannerLocation'
+import { PlannerOwnPoint } from './PlannerOwnPoint'
 import { siteValue } from './site'
 import { BAND } from './states'
 
@@ -145,28 +145,12 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
         >
           Example: Canada’s utility rover
         </button>
-        <button type="button" className="sl-small pl-own" aria-expanded={ownPoint} title="Shows a form to add a point of your own, by its latitude and longitude." onClick={() => setOwnPoint(!ownPoint)}>
+        <button type="button" className="sl-small pl-own" aria-expanded={ownPoint} title="Shows a box to add a point of your own, by its latitude and longitude." onClick={() => setOwnPoint(!ownPoint)}>
           Your own point
         </button>
       </div>
       {ownPoint && (
-        <div className="plh planner pl-own-form">
-          <PlannerLocation
-            sites={flagged.map(({ site }) => site)}
-            siteId={flagged.some(({ site }) => site.id === onShow.siteId) ? onShow.siteId : flagged[0].site.id}
-            landing={isoAt(start, onShow.landing)}
-            first={isoAt(start, 0)}
-            last={isoAt(start, hours - 1)}
-            nextLetter={room ? letter : null}
-            onAdd={(value, iso) => onAdd({ site: value, landing: Math.round((Date.parse(iso) - Date.parse(start)) / 3_600_000) })}
-            sameAs={(value, iso) => {
-              const hour = Math.round((Date.parse(iso) - Date.parse(start)) / 3_600_000)
-              const i = scenarios.findIndex((scenario) => scenario.site === value && scenario.landing === hour)
-              return i < 0 ? null : SCENARIO_LETTERS[i]
-            }}
-          />
-          <p className="sl-quiet">A point of your own is added as a scenario, and then has a row of its own in the grid.</p>
-        </div>
+        <PlannerOwnPoint start={start} hours={hours} landing={onShow.landing} letter={room ? letter : null} scenarios={scenarios} onAdd={onAdd} />
       )}
       {example && exampleNote && (
         <p className="pl-rover">

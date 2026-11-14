@@ -101,7 +101,10 @@ export function PlannerFindMore({ start, sites, site, month, landing, mission, l
         />
       </section>
 
+      {/* Only where the ground around the site is mapped; the heading is this Planner's, in its own spelling. */}
+      {site.nearby_half_m ? (
       <section className="plh-part plh-nearby" aria-label="The ground around the site">
+        <h5>A few meters make a difference</h5>
         <PlannerNearby
           site={site}
           month={month}
@@ -112,6 +115,7 @@ export function PlannerFindMore({ start, sites, site, month, landing, mission, l
           }}
         />
       </section>
+      ) : null}
     </div>
   )
 }
