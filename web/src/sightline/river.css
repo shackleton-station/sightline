@@ -1,0 +1,302 @@
+/* The time bar, "When the Sun and Earth are in view" (River.tsx): its header, one row per site with
+   the scenarios as lettered flags, the selected mission lit, and the line for the hour on show with
+   its handle and its date. The bands' colours and the header's shared parts are in sightline.css. */
+
+.sl-river {
+  /* The label column: as wide as the longest site's name needs, between a floor (the axis's "September 2027") and a limit. */
+  --sl-name: clamp(5.4rem, calc(var(--sl-label-chars, 16) * 0.42rem + 0.4rem), 12rem);
+}
+
+/* ---------- The header ---------- */
+.sl-river .sl-river-head {
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+}
+
+/* Play, with the speeds in a small menu that opens from its right half. */
+.sl-play {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sl-play .sl-round {
+  border-radius: 999px 0 0 999px;
+}
+
+.sl-speed {
+  min-width: 1.3rem;
+  height: 2rem;
+  padding: 0 0.3rem;
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: #1d1826;
+  color: var(--soft);
+  font-size: 0.6875rem;
+  line-height: 1;
+}
+
+.sl-speed:hover,
+.sl-speed[aria-expanded='true'] {
+  color: var(--ink);
+}
+
+.sl-menu.sl-speed-menu {
+  right: auto;
+  left: 0;
+  gap: 0.25rem;
+  justify-items: stretch;
+}
+
+.sl-speed-menu button {
+  text-align: left;
+}
+
+.sl-speed-menu button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-river-name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* A narrow header (a panel is open beside the Moon, or a phone): the name a little smaller. The chip keeps
+   its width whatever it says, so nothing beside it moves while time plays. */
+.sl-river-head.is-tight {
+  column-gap: 0.4rem;
+}
+
+.sl-river-head.is-tight .sl-river-name {
+  font-size: 0.8125rem;
+}
+
+/* What is in view at the hour on show, and how far above the skyline. */
+.sl-moment {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* How much time the rows cover, and "Fold": at the right end of whichever line they are on. */
+.sl-river-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+}
+
+/* ---------- The rows ---------- */
+.sl-river .sl-rows {
+  margin-top: 0.25rem;
+}
+
+/* Room above the first row for the line's handle. */
+.sl-row.sl-lane {
+  height: 0.55rem;
+  margin-top: 0;
+}
+
+.sl-row.sl-site-row {
+  align-items: end;
+  margin-top: 0.1rem;
+}
+
+.sl-site-name {
+  overflow: hidden;
+  font-size: 0.75rem;
+  line-height: 1.15rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-site-track {
+  min-width: 0;
+}
+
+/* The flags stand above their row's bands, over the layer that takes a drag, so each can be pressed. */
+.sl-flags {
+  position: relative;
+  z-index: 2;
+  height: 1rem;
+  pointer-events: none;
+}
+
+/* A scenario: its letter, in the colour of what is in view at its landing, standing where it lands. */
+.sl-flags .sl-flag {
+  position: absolute;
+  bottom: 0;
+  width: 1.1rem;
+  height: 0.95rem;
+  padding: 0;
+  border: 1px solid #000;
+  border-radius: 4px 4px 0 0;
+  background: var(--sl-none);
+  color: #14110a;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.sl-flags .sl-flag.is-sun {
+  background: var(--sl-sun);
+}
+
+.sl-flags .sl-flag.is-earth {
+  background: var(--sl-earth);
+}
+
+.sl-flags .sl-flag.is-both {
+  background: var(--sl-both);
+}
+
+/* The scenario on show: ringed in the page's ink, and in front of its neighbours. */
+.sl-flags .sl-flag[aria-pressed='true'] {
+  z-index: 1;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.sl-flags .sl-flag:hover {
+  filter: brightness(1.15);
+}
+
+/* A landing before or after the days on show: its flag stands at that end of the row, with an arrow. */
+.sl-flags .sl-flag.is-before,
+.sl-flags .sl-flag.is-after {
+  font-size: 0.625rem;
+  letter-spacing: -0.03em;
+}
+
+/* The selected mission's name, beside its flag. */
+.sl-span-label {
+  position: absolute;
+  bottom: 0;
+  padding: 0 0.35rem;
+  color: var(--ink);
+  font-size: 0.6875rem;
+  line-height: 0.95rem;
+  white-space: nowrap;
+}
+
+.sl-span-label.is-left {
+  transform: translateX(-100%);
+}
+
+/* A mission, from its landing to its end: a thin outline over its row, its landing the thicker edge. */
+.sl-span {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  box-sizing: border-box;
+  border: solid rgb(255 255 255 / 55%);
+  border-width: 1px 0;
+  pointer-events: none;
+}
+
+.sl-span.has-start {
+  border-left-width: 2px;
+  border-radius: 2px 0 0 2px;
+}
+
+.sl-span.has-end {
+  border-right-width: 1px;
+}
+
+/* The selected mission is lit: a full outline, and the row dimmed on either side of it. */
+.sl-span.is-lit {
+  z-index: 1;
+  border-color: var(--ink);
+  border-width: 2px 0;
+  box-shadow: 0 0 0 1px #000;
+}
+
+.sl-span.is-lit.has-start {
+  border-left-width: 3px;
+}
+
+.sl-span.is-lit.has-end {
+  border-right-width: 2px;
+}
+
+.sl-dim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgb(13 11 18 / 62%);
+  pointer-events: none;
+}
+
+/* ---------- The axis, and the hour on show ---------- */
+.sl-river .sl-axis {
+  margin-top: 0.3rem;
+}
+
+.sl-river .sl-axis .sl-track {
+  height: 1.3rem;
+}
+
+.sl-axis-name {
+  overflow: hidden;
+  color: var(--soft);
+  font-size: 0.6875rem;
+  line-height: 1.3rem;
+  white-space: nowrap;
+}
+
+/* The layer that takes a drag covers the handle's lane and every row, down to the axis. */
+.sl-river .sl-seek {
+  bottom: 1.6rem;
+  z-index: 1;
+}
+
+/* The line's handle, at its top. */
+.sl-line-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0.8rem;
+  height: 0.6rem;
+  border-radius: 3px 3px 50% 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 1px #000;
+  transform: translateX(-50%);
+}
+
+/* The hour on show, written once: on the axis, under the line, kept inside the row's ends. */
+.sl-axis .sl-now {
+  --half: 6.3rem;
+
+  position: absolute;
+  top: 0;
+  left: clamp(var(--half), var(--at), calc(100% - var(--half)));
+  z-index: 1;
+  box-sizing: border-box;
+  width: 12.6rem;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 0.4rem;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: #1d1826;
+  color: var(--ink);
+  font-size: 0.75rem;
+  line-height: 1.2rem;
+  text-align: center;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 760px) {
+  .sl-river {
+    --sl-name: clamp(5.2rem, calc(var(--sl-label-chars, 16) * 0.42rem + 0.4rem), 8.2rem);
+  }
+}

@@ -3174,11 +3174,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   line-height: 1.4;
 }
 
-/* The date changes as time plays; its room does not, so the two links stay where they are. */
-.sl-off-landing > span {
-  min-width: 21.5rem;
-}
-
 @media (max-width: 760px) {
   .sl-off-landing {
     border-radius: 10px;
@@ -3187,10 +3182,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   /* On a phone the note runs the stage's width, up to three lines: the scale bar sits just above it, in the same corner. */
   .sl-stage:has(.sl-off-landing) .sl-scale {
     bottom: 4.4rem;
-  }
-
-  .sl-off-landing > span {
-    min-width: 0;
   }
 }
 

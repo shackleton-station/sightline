@@ -43,7 +43,6 @@ import {
   NO_LIMIT_H,
   presetOf,
   readScenarioLink,
-  rowLabels,
   type RemovedScenario,
   removeScenarioAt,
   restoreScenario,
@@ -846,12 +845,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     return () => window.removeEventListener('keydown', onKey)
   }, [tourAt, playing, bare, plan, clock.hour, setPlaying, setHour, setBare, openPlan, closePlan, showControls])
 
-  // The river's rows are named by what differs between them: the date, the site, or both.
-  const labels = rowLabels(
-    scenarios,
-    facts.map((fact) => fact.site.name),
-    start,
-  )
   // Escape leaves the How sheet, then the Planner.
   useEffect(() => {
     if (!how && !full && !brief) return
@@ -1105,7 +1098,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             rows={scenarios.map((one, i) => ({
               key: String(i),
               letter: SCENARIO_LETTERS[i],
-              label: labels[i],
+              site: one.site,
+              siteName: facts[i].site.name,
               full: `${facts[i].site.name} · ${clockTime(start, one.landing)}`,
               flags: facts[i].flags,
               landing: one.landing,
@@ -1146,7 +1140,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {shown && !planner && fitShade && <FitLegend on={fitShade} onToggle={showFitShade} spread={spread} onSpread={setSpread} detailed={fitHere} onDetails={() => setDrawer('accuracy')} />}
         {shown && !planner && mode !== 'surface' && hour !== scenario.landing && (
           <p className="sl-off-landing sl-fade">
-            <span>Showing {clockTime(start, hour)}, not the landing</span>
+            <span>Not the landing</span>
             <button type="button" className="sl-link" title="Put the time bar back on the landing" onClick={() => setHour(scenario.landing)}>
               Back to landing
             </button>
