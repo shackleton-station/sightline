@@ -1749,8 +1749,10 @@ const SCENES = [
     name: 'plan-open',
     // The plan has its panel at 5 m and its antenna at 10 m: those heights' files are meant to be asked for.
     heights: true,
-    hash: '',
-    steps: [STAND_IN_PLANS({ title: 'Ridge and rim in May', note: 'Two sites, a 5 m panel.', view: '#a=connecting-ridge@2027-05&t=133&limits=21_48_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00&slope=8&hp=5&ha=10&sc=1&sky=1&panel=compare' }), "(location.hash = '#plan=abcd2345', true)"],
+    // Opened as a visitor opens it: a new page at the front door, on the short link. The plans service's stand-in is in place before the page's own code runs.
+    path: '/',
+    hash: '#plan=abcd2345',
+    beforeLoad: STAND_IN_PLANS({ title: 'Ridge and rim in May', note: 'Two sites, a 5 m panel.', view: '#a=connecting-ridge@2027-05&t=133&limits=21_48_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00&slope=8&hp=5&ha=10&sc=1&sky=1&panel=compare' }),
     checks: [
       ['every scenario and setting is back: three scenarios with the second on show, the 21-day mission, its heights, the skyline unfolded and, on a laptop, Compare open', `${after(4500, "(() => { const tabs = [...document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]')]; const text = document.querySelector('.sl-col').textContent; const laptop = window.innerWidth >= 761; const got = { tabs: tabs.length, shown: tabs.findIndex((tab) => tab.getAttribute('aria-pressed') === 'true'), heights: /panel at 5 m, antenna at 10 m/.test(text), address: location.hash, sky: document.querySelector('.sl-sky') !== null, compare: document.querySelector('.sl-compare') !== null }; return (got.tabs === 3 && got.shown === 1 && got.heights && got.address.startsWith('#a=connecting-ridge@2027-05&t=133&limits=21_48_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00&slope=8&hp=5&ha=10&sc=1') && (!laptop || (got.sky && got.compare))) || JSON.stringify(got) })()")}`, 6000],
       ['the plan\'s name is shown once, in a quiet line beside the title, with the note in its hover text; it takes no room of its own', "(() => { const note = document.querySelector('.sl-col-head .sl-plan-note'); if (!note) return window.innerWidth < 761 && document.querySelector('.sl-compare') !== null ? true : 'no line'; const words = note.querySelector('.sl-plan-note-words'); const head = document.querySelector('.sl-col-head').getBoundingClientRect(); return (words.textContent === 'Plan: Ridge and rim in May' && words.title === 'Ridge and rim in May: Two sites, a 5 m panel.' && head.height < 40 && note.getBoundingClientRect().right <= head.right + 1) || words.textContent })()"],
@@ -2357,6 +2359,8 @@ try {
       if (!realChat) await page('Fetch.enable', { patterns: CHAT_ADDRESSES.map((urlPattern) => ({ urlPattern, requestStage: 'Request' })) })
       heldBack.set(sessionId, 0)
       if (scene.frames) await page('Page.addScriptToEvaluateOnNewDocument', { source: KEEP_FRAMES })
+      // Something a scene needs in place before the page's own code runs (a stand-in for a service the page asks as it opens).
+      if (scene.beforeLoad) await page('Page.addScriptToEvaluateOnNewDocument', { source: scene.beforeLoad })
       // Watch opens on the hour it is. The checks were written for the data's default month, so the page
       // is told it is then, except in the scene that looks at the real clock.
       if (!scene.realNow) await page('Page.addScriptToEvaluateOnNewDocument', { source: `window.__SIGHTLINE_NOW = ${JSON.stringify(scene.now ?? '2027-05-01T00:00:00Z')}` })
