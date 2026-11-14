@@ -16,7 +16,11 @@ The live tests ran against `https://shackletonstation.dev` between about 17:15 a
 > 100 a day. Also urgent: when I finished, `shackletonstation.dev` was redirecting to `lunarsightline.com`, but the
 > new domain was still serving the old certificate.
 
-## 0. Urgent: the domain move (seen 17:32 UTC)
+## 0. The domain move (seen 17:32 UTC, resolved by 18:45 UTC)
+
+**Update, 18:45 UTC:** `https://lunarsightline.com` now serves its own certificate (`CN=lunarsightline.com`, valid
+until 2027-02-12), and the 301 from `shackletonstation.dev` works. Nothing to do now. For next time: wait for the
+certificate to be ACTIVE before switching on the redirect, as the runbook says. What was seen at 17:32:
 
 PRs #17 and #18 (merged 12:27 EST) switched on the 301 from `shackletonstation.dev` to `lunarsightline.com`. At
 17:32 UTC, `https://lunarsightline.com` was serving the certificate for `shackletonstation.dev` only
@@ -114,7 +118,24 @@ The server is not the bottleneck: the time is the model's.
   some limits and still be refused by another, which contradicts the comment "a refused call spends nothing". The overcount
   is small, but a test would settle it.
 - Circuit breaker drill locally (`MODEL_FAULTS=529@100`).
-- A 30-minute soak test, to check memory over time.
+
+### Soak: 30 minutes of steady load (local, done 2026-11-14)
+
+[`soak.mjs`](test-report/scout/soak.mjs) ran 20 clients asking without a break for 30 minutes against one local copy built
+from `main` at `fabdc50`, with the scripted model taking 2.5 s per call and the memory capped at 900 MB (as on a 1 GiB
+Cloud Run copy). 70% of the questions repeat, so they hit the answer cache; 30% are new every time.
+
+| Measure | Result ([`soak-run2.jsonl`](test-report/scout/soak-run2.jsonl)) |
+| --- | --- |
+| Questions answered | **21,648, 0 errors** |
+| Slowest 5% of answers | 5.04 s in the first 5 minutes, **5.01 s** in the last 5 (no slowdown) |
+| Memory (MB) at 0 / 5 / 10 / 15 / 20 / 25 / 30 min | 74 / 150 / 147 / 152 / 155 / 160 / 150, and **149 when idle** afterwards |
+
+**No leak.** Memory rises in the first few minutes and then levels off around 150 MB, far below the 1 GiB a copy has.
+The early rise is the local answer cache filling up: it holds at most 500 answers and drops the oldest
+(`MAX_CACHED` in `shared/store.ts`). On Cloud Run the answers are kept in Redis, so a copy's own memory grows even less.
+A first run ([`soak-run1-latency-only.jsonl`](test-report/scout/soak-run1-latency-only.jsonl)) gave the same answer
+times and 0 errors in 21,583 questions; its memory column is wrong (it read a launcher process, not the server).
 
 ## 5. Proposals
 
