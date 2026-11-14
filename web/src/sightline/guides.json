@@ -5,6 +5,7 @@
       "id": "compare",
       "name": "Compare scenarios",
       "about": "Keep two plans side by side.",
+      "panel": "compare",
       "steps": [
         {
           "id": "compare-add",

@@ -1329,7 +1329,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         />
       )}
       {shown && !planner && drawer === 'compare' && (
-        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} onFull={() => {
+        <CompareDrawer onShowHow={tourAt === null ? () => startTour('compare') : null} start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} onFull={() => {
           // The full comparison is the Planner's Compare tab; in the Planner the only panel is Scout's.
           setDrawer(null)
           setNewPlanner(false)
