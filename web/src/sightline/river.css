@@ -240,8 +240,17 @@
   margin-top: 0.3rem;
 }
 
+/* Two lines: the axis's labels, then the date of the hour on show under them. */
 .sl-river .sl-axis .sl-track {
-  height: 1.3rem;
+  height: 2.25rem;
+}
+
+.sl-river .sl-axis {
+  align-items: start;
+}
+
+.sl-river .sl-axis .sl-track > span {
+  line-height: 0.9rem;
 }
 
 .sl-axis-name {
@@ -254,8 +263,29 @@
 
 /* The layer that takes a drag covers the handle's lane and every row, down to the axis. */
 .sl-river .sl-seek {
-  bottom: 1.6rem;
+  bottom: 2.55rem;
   z-index: 1;
+}
+
+/* A band's words: above the rows, so they lie on no flag and no label; the row they are about is marked by its name. */
+.sl-river .sl-seek .sl-band-tip {
+  bottom: calc(100% + 2px);
+}
+
+.sl-site-row.is-pointed .sl-site-name {
+  color: var(--gold);
+}
+
+/* The line carries on from the rows, past the axis's labels, to its date. */
+.sl-axis .sl-line-foot {
+  position: absolute;
+  top: -0.3rem;
+  width: 2px;
+  height: 1.3rem;
+  margin-left: -1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px #000;
+  pointer-events: none;
 }
 
 /* The line's handle, at its top. */
@@ -271,12 +301,12 @@
   transform: translateX(-50%);
 }
 
-/* The hour on show, written once: on the axis, under the line, kept inside the row's ends. */
+/* The hour on show, written once: under the axis's labels, at the foot of the line, kept inside the row's ends. */
 .sl-axis .sl-now {
   --half: 6.3rem;
 
   position: absolute;
-  top: 0;
+  top: 1rem;
   left: clamp(var(--half), var(--at), calc(100% - var(--half)));
   z-index: 1;
   box-sizing: border-box;

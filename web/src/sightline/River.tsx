@@ -67,9 +67,6 @@ function useEarthDay(start: string, from: number, to: number, wanted: boolean): 
 /** A flag's width and the room the selected mission's label needs, in rem; the styles use the same numbers. */
 const FLAG_REM = 1.1
 const LABEL_REM = 7.6
-/** Half the width of the date under the line, and the room an axis label takes, in rem. */
-const DATE_HALF_REM = 6.3
-const TICK_REM = 2.6
 /** The header's width, in rem, from which the chip, the heights in full and the tools fit one line. */
 const DOOR_ROOM_REM = 46
 /** The header's widths, in rem, under which the key does not fit beside the name, and under which the short door does not fit beside the chip and the tools. */
@@ -137,10 +134,6 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
       <i className="sl-key is-sun" /> Sun <i className="sl-key is-earth" /> Earth <i className="sl-key is-both" /> Both <i className="sl-key is-none" /> Neither
     </span>
   )
-  // Where the date under the line sits (it stays inside the row's ends), to leave out the axis labels it would cover.
-  const dateHalf = Math.min(DATE_HALF_REM * track.rem, track.width / 2)
-  const dateAt = Math.min(Math.max(((hour - from + 0.5) / count) * track.width, dateHalf), track.width - dateHalf)
-  const underDate = (x: number) => track.width > 0 && x > dateAt - dateHalf - TICK_REM * track.rem && x < dateAt + dateHalf
 
   // Two small menus open upward from the header: the speeds, from the play button, and "More".
   const [menu, setMenu] = useState<'speed' | 'more' | null>(null)
@@ -305,7 +298,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             const selected = site.scenarios.findIndex((one) => one.active)
             const side = places && selected >= 0 ? labelSide(places, selected, track.width, flagWidth, LABEL_REM * track.rem) : 'right'
             return (
-              <div key={site.site} className="sl-row sl-site-row" data-site={site.site}>
+              <div key={site.site} className={band && band.row === s ? 'sl-row sl-site-row is-pointed' : 'sl-row sl-site-row'} data-site={site.site}>
                 <span className="sl-site-name" title={site.name}>
                   {site.name}
                 </span>
@@ -365,12 +358,6 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                     {selected >= 0 && site.scenarios[selected].landing + missionHours < to && (
                       <span className="sl-dim" style={{ left: at(Math.max(site.scenarios[selected].landing + missionHours, from) - from), right: 0 }} />
                     )}
-                    {/* What the band under the pointer is, and for how long: over the middle of what shows of it. */}
-                    {band && band.row === s && (
-                      <span className="sl-band-tip" role="tooltip" style={{ '--at': at((Math.max(band.from, from) + Math.min(band.to, to)) / 2 - from) } as CSSProperties}>
-                        {bandWords(start, band, STATE_CHIP[band.state])}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -386,19 +373,17 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
               </div>
             </div>
           )}
-          {/* The axis says what it is an axis of, at its left; the date of the hour on show sits on it, under the line. */}
+          {/* The axis says what it is an axis of, at its left; under its labels, the date of the hour on show, at the foot of the line. */}
           <div className="sl-row sl-axis">
             <span className="sl-axis-name">{axisName(start, from, zoom)}</span>
             <div className="sl-track">
-              {ticks.map(
-                (tick) =>
-                  // A label the date would cover is left out, so no part of it shows beside the date.
-                  !underDate((tick.at / count) * track.width) && (
-                    <span key={tick.at} aria-hidden="true" style={{ left: at(tick.at) }}>
-                      {tick.label}
-                    </span>
-                  ),
-              )}
+              {ticks.map((tick) => (
+                <span key={tick.at} aria-hidden="true" style={{ left: at(tick.at) }}>
+                  {tick.label}
+                </span>
+              ))}
+              {/* The line runs on down past the axis's labels to its date, which sits under them and covers none. */}
+              <i className="sl-line-foot" aria-hidden="true" style={{ left: at(hour - from + 0.5) }} />
               <output className="sl-now" style={{ '--at': at(hour - from + 0.5) } as CSSProperties}>
                 {clockTime(start, hour)}
               </output>
@@ -434,6 +419,13 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             <span className="sl-playhead" style={{ left: at(hour - from + 0.5) }}>
               <span className="sl-line-handle" />
             </span>
+            {/* What the band under the pointer is, and for how long: above the rows, over the middle of what shows of it,
+                so it never lies on a flag or on the selected mission's label. Its row's name is marked meanwhile. */}
+            {band && (
+              <span className="sl-band-tip" role="tooltip" style={{ '--at': at((Math.max(band.from, from) + Math.min(band.to, to)) / 2 - from) } as CSSProperties}>
+                {bandWords(start, band, STATE_CHIP[band.state])}
+              </span>
+            )}
             <input type="range" aria-label="Time" aria-valuetext={clockTime(start, hour)} min={from} max={to - 1} step={1} value={hour} onChange={(event) => clock.setHour(Number(event.target.value))} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
           </div>
         </div>
