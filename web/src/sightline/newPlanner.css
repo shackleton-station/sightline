@@ -818,3 +818,33 @@
     border-color: var(--pl-rule);
   }
 }
+
+/* The page's title and what to do, in the top bar beside the small Moon. */
+.sl-np .np-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.sl-np .sl-full-head .np-title h2 {
+  margin: 0;
+  color: var(--pl-ink);
+  font-family: inherit;
+  font-size: clamp(1.15rem, 1.6vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.sl-np .np-title p {
+  max-width: 46rem;
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+/* With the title gone up, the count sits on its own at the right. */
+.sl-np .pl-head {
+  justify-content: flex-end;
+}

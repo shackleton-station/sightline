@@ -226,7 +226,10 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   return (
     <section className="sl-np" aria-label="New Planner">
       <header className="sl-full-head">
-        <h2>New Planner</h2>
+        <div className="np-title">
+          <h2>Where and when can this mission land?</h2>
+          <p>Pick a place and time, or set your mission and let the grid show every site against every month. Whatever you choose here is what the Moon shows.</p>
+        </div>
         <button type="button" className="sl-small sl-rail-scout" aria-pressed={scoutOpen} title="Ask Scout about these scenarios" onClick={onScout}>
           <Mascot state={null} size={16} /> Scout
         </button>
@@ -239,10 +242,6 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
       </header>
       <div className="planner sl-fp">
         <header className="pl-head">
-          <div>
-            <h2 className="sl-fp-title">Where and when can this mission land?</h2>
-            <p className="pl-intro">Pick a place and time, or set your mission and let the grid show every site against every month. Whatever you choose here is what the Moon shows.</p>
-          </div>
           {view && (
             <p className="pl-tally" aria-live="polite">
               <strong className={view.grid.tally.withLanding === 0 ? 'none' : undefined}>{view.grid.tally.withLanding}</strong>
