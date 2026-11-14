@@ -41,7 +41,10 @@ locals {
     "media/demo.mp4", "media/demo.vtt", "media/demo-poster.jpg", "media/hype.mp4", "media/hype-poster.jpg",
     # The tutorial video with its poster, captions and list of steps, and the 30-second demo with its poster.
     "media/sightline-tutorial.mp4", "media/sightline-tutorial-poster.jpg", "media/sightline-tutorial.vtt", "media/sightline-tutorial.json",
-    "media/sightline-demo-30s.mp4", "media/sightline-demo-30s-poster.jpg",
+    "media/sightline-demo-30s.mp4", "media/sightline-demo-30s-poster.jpg", "media/sightline-demo-30s.vtt",
+    # The walkthrough video with its poster, captions, chapter marks and list of chapters.
+    "media/sightline-walkthrough.mp4", "media/sightline-walkthrough-poster.jpg", "media/sightline-walkthrough.vtt",
+    "media/sightline-walkthrough-chapters.vtt", "media/sightline-walkthrough.json",
   ]
 
   # What the grant's condition names. Google allows a condition 12 "or"s at most and refuses a longer
