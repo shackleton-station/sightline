@@ -24,6 +24,11 @@ interface ScoutProps {
   onPlan: (hash: string) => void
   /** How tall the open card is, so the Moon can move aside for it on a narrow screen; 0 when closed. */
   onHeight: (px: number) => void
+  /**
+   * On a first visit his closed line offers the tour instead of its usual words: a line to press,
+   * which fades as his line does and is not offered again. Null once it has been seen or taken.
+   */
+  offer: { words: string; onTake: () => void; onGone: () => void } | null
 }
 
 /** How long Scout's line stays beside his mark before it fades to the mark alone. */
@@ -39,12 +44,22 @@ const WATCH_IDEAS = ['What am I looking at?', 'Which site has the most Sun this 
  * left, and closes it; it never leaves Watch. A reply that names a place carries "Show me" and "Plan
  * this", the only things in a reply that change the screen, and only when pressed.
  */
-export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight }: ScoutProps) {
+export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, offer }: ScoutProps) {
   const [draft, setDraft] = useState('')
   const [said, setSaid] = useState<string | null>(line)
   const card = useRef<HTMLDivElement>(null)
   const talk = useRef<HTMLDivElement>(null)
   const { thread, waiting, step } = chat
+  // The tour's offer stands in for his first line only: once that has faded, or he has something
+  // else to say (a site under the pointer), the line is his own again.
+  const [offering, setOffering] = useState(offer !== null)
+  const firstLine = useRef(line)
+  const offered = offering && offer !== null && line === firstLine.current
+  useEffect(() => {
+    if (said !== null || !offering) return
+    setOffering(false)
+    offer?.onGone()
+  }, [said, offering, offer])
 
   // The line shows when it is new (or the mark is hovered or focused), then fades after a while or once the visitor does anything else.
   useEffect(() => {
@@ -117,7 +132,13 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
       )}
       {!open && (
         <p className={said ? 'sl-scout-line' : 'sl-scout-line is-gone'} role="status">
-          {line}
+          {offered ? (
+            <button type="button" className="sl-tour-offer" onClick={offer.onTake}>
+              {offer.words}
+            </button>
+          ) : (
+            line
+          )}
         </p>
       )}
       {open && (

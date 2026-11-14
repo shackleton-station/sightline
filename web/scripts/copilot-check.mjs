@@ -1,7 +1,7 @@
 // Checks a deployed co-pilot service on an address of its own:
 //
-//   node scripts/copilot-check.mjs https://shackletonstation.dev --canary copilot --version abc1234 --data-version 0123456789abcdef --code-version fedcba9876543210 --cloud --stream
-//   node scripts/copilot-check.mjs https://shackletonstation.dev --version abc1234 --stream     (the live version, through the load balancer)
+//   node scripts/copilot-check.mjs https://lunarsightline.com --canary copilot --version abc1234 --data-version 0123456789abcdef --code-version fedcba9876543210 --cloud --stream
+//   node scripts/copilot-check.mjs https://lunarsightline.com --version abc1234 --stream     (the live version, through the load balancer)
 //   node scripts/copilot-check.mjs http://localhost:8083 --stream                              (on a laptop)
 //
 // --canary copilot sends every request with the header x-clps-canary: copilot, which the load

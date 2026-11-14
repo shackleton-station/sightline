@@ -1,6 +1,6 @@
 // Watches the site through a Redis failover and prints what happened, second by second.
 //
-//   node scripts/failover-watch.mjs https://shackletonstation.dev              start this first...
+//   node scripts/failover-watch.mjs https://lunarsightline.com              start this first...
 //   gcloud redis instances failover clps-web-store --region us-east4           ...then this, in another terminal
 //   (Ctrl-C, or --seconds 300, ends the watch and prints the summary)
 //

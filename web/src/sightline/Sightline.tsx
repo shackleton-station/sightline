@@ -52,6 +52,9 @@ import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
 import { HeaderTools } from './HeaderTools'
 import { Tips } from './Tips'
+import { Tour } from './Tour'
+import type { TourFile } from '../lib/tour'
+import tourFile from './tour.json'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
 import { useLightGrid } from '../atlas/useLightGrid'
@@ -69,6 +72,7 @@ import { siteValue } from './site'
 import { Stage } from './Stage'
 import { useHeightFlags } from './useHeights'
 import { useLandingShares, useScenarioFacts } from './useScenarioFacts'
+import { useTutorialVideo } from './useTutorialVideo'
 import { PlayControl, ScoutLine } from './WatchControls'
 
 /** The site "Plan a landing" opens on. */
@@ -104,6 +108,9 @@ function useRoom(): 'phone' | 'narrow' | 'wide' {
 const NOTE_ROOM_PX = 30
 /** How long a removed scenario can be brought back. */
 const UNDO_MS = 5000
+/** Scout's tour: its steps, words and what each rings, from the one file the video's recorder reads too. */
+const TOUR = tourFile as TourFile
+
 /** The phone's bottom sheet has three heights: the answer; half the screen; nearly all of it. */
 const SHEET_HEIGHTS = 3
 
@@ -196,6 +203,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [riverMin, setRiverMin] = useStored('riverMin', false)
   const idle = useIdle(clock.playing && !bare && !plan, FADE_AFTER_MS)
   const [pointed, setPointed] = useState<SiteInfo | null>(null)
+
+  // Scout's tour: which step is on show (null when it is not running), and the screen as the
+  // visitor had it, to put back when the tour is closed at any step. It never starts by itself.
+  const [tourAt, setTourAt] = useState<number | null>(null)
+  const beforeTour = useRef<{ plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
+  /** Whether the tour has put its own landing in Plan yet: once, so what the visitor tries on the way is kept. */
+  const tourPlanned = useRef(false)
+  // The offer in Scout's closed line shows on a first visit only: remembered once seen or taken.
+  const [tourSeen, setTourSeen] = useStored('tourSeen', false)
+  /** Whether the visitor has taken the tour: How it works then offers it "again". */
+  const [tourTaken, setTourTaken] = useStored('tourTaken', false)
+  const tutorialVideo = useTutorialVideo(TOUR.video, tourAt !== null || how)
+  /** How it works opens at its video when the tour's last step asks for it. */
+  const [howAtVideo, setHowAtVideo] = useState(false)
 
   // The listed sites' flags with the Sun seen from the panel's height and Earth from the antenna's.
   // At 2 m and 2 m they are the flags given, and nothing more is loaded.
@@ -461,8 +482,78 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     closePlan()
   }, [setBare, closePlan])
 
+  const startTour = () => {
+    beforeTour.current = { plan, scenarios, chosen, drawer, full, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
+    tourPlanned.current = false
+    setTourSeen(true)
+    setTourTaken(true)
+    setHow(false)
+    setTourAt(0)
+  }
+  /** Leave the tour at any step: the screen goes back to how the visitor had it. */
+  const endTour = useCallback(() => {
+    const was = beforeTour.current
+    beforeTour.current = null
+    setTourAt(null)
+    if (!was) return
+    setPlan(was.plan)
+    setScenarios(was.scenarios)
+    setActive(was.chosen)
+    setDrawer(was.drawer)
+    setFull(was.full)
+    setBrief(was.brief)
+    setScoutOpen(was.scoutOpen)
+    setMode(was.mode)
+    setSheet(was.sheet)
+    setBare(was.bare)
+    setPillMin(was.pillMin)
+    setRiverMin(was.riverMin)
+    setSkyMin(was.skyMin)
+    setHour(was.hour)
+    setPlaying(was.playing)
+  }, [setBare, setPillMin, setRiverMin, setSkyMin, setHour, setPlaying])
+  // Each step puts the real screen in its state before Scout speaks: Watch or Plan, with nothing
+  // else open and time held, so what the step rings is there and stays put.
+  const tourStep = tourAt === null ? null : TOUR.steps[tourAt]
+  useEffect(() => {
+    if (!tourStep) return
+    const { view, show } = tourStep.state
+    setBare(false)
+    setDrawer(null)
+    setFull(false)
+    setBrief(false)
+    setHow(false)
+    setScoutOpen(false)
+    setMode('orbit')
+    setPlaying(false)
+    if (view === 'watch') {
+      setPlan(false)
+      setPillMin(false)
+      // "Lit as it is right now": Watch shows the hour it is, where the data on hand holds it.
+      if (!tourPlanned.current && nowHour >= 0 && nowHour < hours) setHour(nowHour)
+      return
+    }
+    // The tour's own landing, once: one that does not fit the default mission, so the verdict has a reason and a next landing to show.
+    const landing = hourOf(start, TOUR.scenario.landing)
+    if (!tourPlanned.current && sites.some((listed) => listed.id === TOUR.scenario.site) && Number.isInteger(landing) && landing >= 0 && landing < hours) {
+      setScenarios([{ site: TOUR.scenario.site, landing }])
+      setActive(0)
+      setHour(landing)
+    }
+    tourPlanned.current = true
+    setPlan(true)
+    if (show === 'skyline') setSkyMin(false)
+    if (show === 'time') setRiverMin(false)
+    // On a phone the strips are down the sheet: it opens to its full height for them, to half for the rest.
+    setSheet(show ? SHEET_HEIGHTS : 2)
+    // The step alone decides when this runs: the setters and the data it reads do not change while a tour is on.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourStep])
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // While Scout's tour is on, the keys are its own (the arrows step it, Escape closes it).
+      if (tourAt !== null) return
       const target = event.target instanceof HTMLElement ? event.target : null
       const tag = target?.tagName ?? ''
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
@@ -483,7 +574,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [playing, bare, plan, clock.hour, setPlaying, setHour, setBare, openPlan, closePlan, showControls])
+  }, [tourAt, playing, bare, plan, clock.hour, setPlaying, setHour, setBare, openPlan, closePlan, showControls])
 
   // The river's rows are named by what differs between them: the date, the site, or both.
   const labels = rowLabels(
@@ -534,6 +625,24 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   return (
     <div className={classes}>
       <Tips />
+      {tourAt !== null && (
+        <Tour
+          tour={TOUR}
+          at={tourAt}
+          onStep={setTourAt}
+          onClose={endTour}
+          onVideo={
+            tutorialVideo
+              ? () => {
+                  endTour()
+                  setHowAtVideo(true)
+                  setHow(true)
+                }
+              : null
+          }
+          state={now ? riverState(now) : (pointedState ?? null)}
+        />
+      )}
       {shown && (
         <div className="sl-wrap">
           <button type="button" className="sl-sheet-handle" aria-label="Change the sheet's height" onClick={() => setSheet((sheet % SHEET_HEIGHTS) + 1)}>
@@ -649,7 +758,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           earth={earth}
           bare={bare || planner}
           reserveBottom={!plan && !bare ? Math.max(PLAY_CONTROL_ROOM_PX, scoutOpen && room !== 'wide' && scoutHeight > 0 ? scoutHeight + (room === 'phone' ? SHEET_AIR_PX : SCOUT_FOOT_PX) : 0) : shown && !planner ? NOTE_ROOM_PX : 0}
-          selectedId={shown ? site.id : ringed}
+          selectedId={shown ? site.id : (tourStep?.state.ring ?? ringed)}
           focus={shown && !planner && mode === 'site' ? site : null}
           onChoose={openPlan}
           onPoint={setPointed}
@@ -668,7 +777,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             <button type="button" className="sl-link" title="Put the time bar back on the landing" onClick={() => setHour(scenario.landing)}>
               Back to landing
             </button>
-            <button type="button" className="sl-link" title="Make this moment the landing" onClick={() => setScenario((current) => ({ ...current, landing: hour }))}>
+            <button type="button" className="sl-link" data-tour="land" title="Make this moment the landing" onClick={() => setScenario((current) => ({ ...current, landing: hour }))}>
               Land here
             </button>
           </p>
@@ -691,14 +800,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <p>Where to land on the Moon, and when</p>
             </header>
             <div className="sl-top sl-fade">
-              <button type="button" className="is-main" title="Open the planner (P)" onClick={() => openPlan(null)}>
+              <button type="button" className="is-main" data-tour="plan" title="Open the planner (P)" onClick={() => openPlan(null)}>
                 Plan a landing
               </button>
               <button type="button" title="Hide everything but the Moon (H)" onClick={() => setBare(true)}>
                 Hide all
               </button>
             </div>
-            <ScoutLine
+            {/* While the tour is on, Scout speaks from its bubble instead. */}
+            {tourAt === null && <ScoutLine
+              offer={tourSeen ? null : { words: TOUR.offer, onTake: startTour, onGone: () => setTourSeen(true) }}
               line={line}
               state={pointedState ?? null}
               open={scoutOpen}
@@ -714,7 +825,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               }}
               onPlan={openLink}
               onHeight={setScoutHeight}
-            />
+            />}
           </>
         )}
         {/* On a phone Scout's open card is a sheet across the bottom, where the play control would be. */}
@@ -780,7 +891,19 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       )}
       {how && (
         <div className="sl-how" role="dialog" aria-modal="true" aria-label="How it works">
-          <HowItWorks data={here} siteCount={sites.length} backLabel="Back to the Moon" onBack={() => setHow(false)} />
+          <HowItWorks
+            data={here}
+            siteCount={sites.length}
+            backLabel="Back to the Moon"
+            onBack={() => {
+              setHow(false)
+              setHowAtVideo(false)
+            }}
+            onTour={startTour}
+            tourTaken={tourTaken}
+            video={tutorialVideo}
+            openAtVideo={howAtVideo}
+          />
         </div>
       )}
       {shown && drawer === 'scout' && (
@@ -816,6 +939,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           mode={mode}
           onMode={setMode}
           onHow={() => setHow(true)}
+          onTour={startTour}
           onPlanner={() => {
             // In the Planner the only panel is Scout's.
             if (drawer !== 'scout') setDrawer(null)

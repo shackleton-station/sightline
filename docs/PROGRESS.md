@@ -260,6 +260,9 @@ Look at it with `cd web && node scripts/sightline-shots.mjs --out=shots`.
 - [ ] 7. The user test, then the default at `/` (needs Rodrigo)
   - Prepared on 2026-11-14, as a pull request that waits for his yes: Sightline at `/` (and still at `/sightline/`), the site as it was at `/classic/`, and every old address at `/` forwarded (`web/src/lib/oldAddress.ts`). Merging that pull request is the switch.
 
+- [x] Scout's tour of the screen (2026-11-14, Rodrigo's request for "a clear tutorial of the website"): eight steps that drive the real screen, each ringing the control it is about with one or two sentences in Scout's bubble; Back, Next, Close, the arrow keys and Escape; closing puts the screen back as it was. Ways in: Scout's closed line on a first visit, the first item of How it works, and "More" on a phone. "Listen" plays each line from a file rendered once in Scout's voice (`web/public/tour/voice/`, `web/scripts/tour-voice.mjs`). One file holds the steps (`web/src/sightline/tour.json`); How it works ("How to use Sightline"), the README ("Using the site") and the tutorial video's recorder read the same words. What a step rings stays usable, so a visitor can try it and go on; once taken, How it works offers the tour "again". How it works has a place for the video (`/media/sightline-tutorial.mp4`, with its poster and captions), shown once the file answers.
+  - [ ] Not done: the video itself (the resources session records it from the tour); the tour held on a real phone.
+
 ## The Atlas's three looks (started 2026-11-13)
 
 Three directions from a design canvas, built on the one Atlas page and picked with `&look=a|b|c`.
@@ -290,3 +293,8 @@ Local Lead.
 - [x] Catch-up: a change made on 2026-11-14 in the working copy, Scout's taller chat card and the model's name
       in his tag (pull request 7)
 - [x] Step 7: these documents
+
+## A science measure: distance to permanent shadow (2026-11-14)
+
+- [x] `web/public/data/shadow.json`: for each of the 13 sites, the distance to the nearest permanently shadowed pixel and to the nearest shadowed region of at least 10 km², from NASA's LOLA maps (`pipeline/scripts/make_shadow_distance.py`; `docs/VALIDATION.md` §16). Seven sites have numbers; the six outside NASA's maps say so
+- [ ] Show it: a row in Compare and in the Planner (types `ShadowDistances`, `ShadowAnswer` in `web/src/data/contract.ts`)

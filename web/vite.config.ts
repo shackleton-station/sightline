@@ -106,7 +106,7 @@ function dataVersionFile(): Plugin {
   }
 }
 
-const LIVE_SITE = 'https://shackletonstation.dev'
+const LIVE_SITE = 'https://lunarsightline.com'
 /**
  * Where the dev server sends /api, /tiles and /media. By default the live site, so a fresh clone
  * needs no cloud access. When working on the server itself, run `npm run dev:server` in another

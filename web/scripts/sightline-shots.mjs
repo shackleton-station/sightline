@@ -9,9 +9,9 @@
 //   node scripts/sightline-shots.mjs --only=watch --out=shots    some scenes only
 //   node scripts/sightline-shots.mjs --only=layers --layer=2 --out=shots   the Layers scene, ending on another layer
 //   node scripts/sightline-shots.mjs --sizes=laptop              one size only
-//   node scripts/sightline-shots.mjs --load=slow --base=https://shackletonstation.dev   how the page opens on a slow connection
+//   node scripts/sightline-shots.mjs --load=slow --base=https://lunarsightline.com   how the page opens on a slow connection
 //   node scripts/sightline-shots.mjs --poster=poster.png         a picture of the Moon as the page first shows it
-//   node scripts/sightline-shots.mjs --base=https://shackletonstation.dev   against a site already running
+//   node scripts/sightline-shots.mjs --base=https://lunarsightline.com   against a site already running
 //   node scripts/sightline-shots.mjs --ask --only=scout-reply    also ask Scout one real question (calls the model)
 //
 // Without --ask no question reaches the chat, on a laptop or against a live site: whatever a page
@@ -38,7 +38,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
 ]
 
 /**
@@ -296,6 +296,108 @@ const MOON_SMOOTH = (ms, { mean = 1.5, points = 12, least = 20 } = {}) => `(${MO
  */
 const earthIsRight = (hourOfYear) => `(async () => { const f = new Float32Array(await (await fetch('/data/custom/ephemeris-2027.bin')).arrayBuffer()); const unit = (o) => { const n = Math.hypot(f[${hourOfYear} * 6 + o], f[${hourOfYear} * 6 + o + 1], f[${hourOfYear} * 6 + o + 2]); return [f[${hourOfYear} * 6 + o] / n, f[${hourOfYear} * 6 + o + 1] / n, f[${hourOfYear} * 6 + o + 2] / n] }; const sun = unit(0); const earthDir = unit(3); const p = document.querySelector('.scout-globe').dataset.pose.split(',').map(Number); const c = p.slice(0, 3); const u = p.slice(3); const r = [u[1] * c[2] - u[2] * c[1], u[2] * c[0] - u[0] * c[2], u[0] * c[1] - u[1] * c[0]]; const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; const apart = (a, b) => Math.abs(((a - b + 540) % 360) - 180); const deg = (x, y) => Math.atan2(y, x) * 180 / Math.PI; const earth = document.querySelector('.sl-earth'); if (earth.dataset.moved !== '0') return 'Earth has no room on its own bearing here (moved ' + earth.dataset.moved + '°)'; const globe = document.querySelector('.scout-globe').getBoundingClientRect(); const e = earth.getBoundingClientRect(); const drawn = deg((e.left + e.right) / 2 - (globe.left + globe.right) / 2, (globe.top + globe.bottom) / 2 - (e.top + e.bottom) / 2); const bearingOff = apart(drawn, deg(dot(earthDir, r), dot(earthDir, u))); const litOff = Math.abs(Number(earth.dataset.lit) - Math.round((1 + dot(sun, c)) / 2 * 100)); const data = earth.getContext('2d').getImageData(0, 0, earth.width, earth.height).data; let sx = 0; let sy = 0; for (let y = 0; y < earth.height; y += 1) for (let x = 0; x < earth.width; x += 1) { const i = (y * earth.width + x) * 4; const bright = (data[i] + data[i + 1] + data[i + 2]) * data[i + 3]; sx += bright * (x - earth.width / 2); sy += bright * (earth.height / 2 - y) } const sideOff = apart(deg(sx, sy), deg(dot(sun, r), dot(sun, u))); return (bearingOff <= 1 && litOff <= 2 && sideOff <= 30) || 'bearing ' + bearingOff.toFixed(1) + '° off, lit share ' + litOff + ' points off, bright side ' + sideOff.toFixed(0) + '° off the Sun' })()`
 
+
+// ---- Scout's tour. Its steps come from the file the page reads, so the checks follow the words.
+const TOUR = JSON.parse(readFileSync(new URL('../src/sightline/tour.json', import.meta.url), 'utf8'))
+/**
+ * A step of the tour is on show as it should be: Scout's bubble holds its title, its words and
+ * "i of n"; everything the step is about that is on screen has a ring, inside the window; neither
+ * a ring nor the bubble lies over the Moon's disc; and the bubble does not cover what it rings.
+ */
+const TOUR_STEP = (i) => {
+  const step = TOUR.steps[i]
+  return `(() => { const bubble = document.querySelector('.sl-tour'); if (!bubble) throw new Error('no bubble'); if (bubble.dataset.step !== ${JSON.stringify(step.id)}) throw new Error('the bubble is on step ' + bubble.dataset.step); const says = bubble.querySelector('.sl-tour-say').textContent.trim(); const title = bubble.querySelector('.sl-tour-title').textContent.trim(); const count = bubble.querySelector('.sl-tour-count').textContent.replace(/\\s+/g, ' ').trim(); const shown = (el) => { if (el.closest('[hidden]')) return false; const b = el.getBoundingClientRect(); const style = getComputedStyle(el); return b.width >= 2 && b.height >= 2 && style.visibility !== 'hidden' && style.display !== 'none' && b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth }; const targets = ${JSON.stringify(step.targets)}.flatMap((selector) => [...document.querySelectorAll(selector)]).filter(shown); const rings = [...document.querySelectorAll('.sl-tour-ring')].map((ring) => ring.getBoundingClientRect()); const box = bubble.getBoundingClientRect(); const globe = document.querySelector('.scout-globe'); const g = globe.getBoundingClientRect(); const r = Number(globe.dataset.discPx) / 2; const cx = (g.left + g.right) / 2; const cy = (g.top + g.bottom) / 2; const overDisc = (b) => r > 0 && Math.hypot(Math.min(Math.max(cx, b.left), b.right) - cx, Math.min(Math.max(cy, b.top), b.bottom) - cy) < r - 1; const inWindow = (b, air) => b.left >= -air && b.top >= -air && b.right <= innerWidth + air && b.bottom <= innerHeight + air; const hits = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; const wrong = []; if (says !== ${JSON.stringify(step.say)}) wrong.push('says: ' + says); if (title !== ${JSON.stringify(step.title)}) wrong.push('title: ' + title); if (count !== '${i + 1} of ${TOUR.steps.length}') wrong.push('count: ' + count); if (targets.length === 0) wrong.push('nothing on screen to ring'); if (rings.length !== targets.length) wrong.push(rings.length + ' rings for ' + targets.length + ' things'); if (!rings.every((ring) => inWindow(ring, 6))) wrong.push('a ring leaves the window'); if (rings.some(overDisc)) wrong.push('a ring is over the Moon'); if (!inWindow(box, 0.5)) wrong.push('the bubble leaves the window: ' + Math.round(box.left) + ',' + Math.round(box.top) + ' to ' + Math.round(box.right) + ',' + Math.round(box.bottom)); if (overDisc(box)) wrong.push('the bubble is over the Moon'); if (rings.some((ring) => hits(box, ring))) wrong.push('the bubble covers what it rings'); if (bubble.scrollHeight > bubble.clientHeight + 1) wrong.push('the bubble scrolls'); if (wrong.length) throw new Error(wrong.join('; ')); return true })()`
+}
+/** Put in the page before the tour's video is asked for: its file answers as a video (true) or is not there (false), whatever the server has. */
+const TOUR_VIDEO = (there) => `(() => { const real = window.fetch; window.fetch = (url, init) => (String(url).endsWith(${JSON.stringify(TOUR.video.file)}) ? Promise.resolve(new Response(null, ${there ? "{ status: 200, headers: { 'content-type': 'video/mp4' } }" : '{ status: 404 }'})) : real(url, init)); return true })()`
+const TOUR_NEXT = `(document.querySelector('.sl-tour .sl-tour-next').click(), true)`
+const TOUR_KEY = (key) => `(window.dispatchEvent(new KeyboardEvent('keydown', { key: '${key}', bubbles: true, cancelable: true })), true)`
+/** The scenes of the tour: every step in turn, the ways in, Escape putting the screen back, the voice, and the video's place. */
+function tourScenes() {
+  const n = TOUR.steps.length
+  const stepName = (i) => `step ${i + 1} of ${n}, "${TOUR.steps[i].title}": its words, a ring on what it is about, and nothing of the tour over the Moon`
+  return [
+    {
+      // A first visit, in Watch, with motion reduced: the offer, then all eight steps, then "Done".
+      name: 'tour',
+      hash: '',
+      still: true,
+      noChat: true,
+      steps: [TOUR_VIDEO(false)],
+      checks: [
+        ['on a first visit Scout\'s closed line offers the tour, as a line to press; it has not started by itself', `(() => { const offer = document.querySelector('.sl-scout-line .sl-tour-offer'); window.__before = { date: document.querySelector('.sl-date').textContent, hash: location.hash, watch: document.querySelector('.sightline.is-watch') !== null }; return (offer?.textContent.trim() === ${JSON.stringify(TOUR.offer)} && offer.tagName === 'BUTTON' && document.querySelector('.sl-tour') === null && document.querySelector('.sl-tour-ring') === null) || offer?.textContent })()`],
+        ['no voice file is asked for before "Listen" is pressed', "performance.getEntriesByType('resource').every((entry) => !entry.name.includes('/tour/voice/'))"],
+        [`taking it starts the tour: ${stepName(0)}`, `(document.querySelector('.sl-tour-offer').click(), true) && ${after(900, TOUR_STEP(0))}`],
+        ['the bubble is Scout\'s: his mark, "Listen" off with "AI-generated voice" beside it, Back (not yet), Next and Close; his own line gives way to it', "(() => { const bubble = document.querySelector('.sl-tour'); const listen = bubble.querySelector('.sl-tour-listen'); const buttons = [...bubble.querySelectorAll('.sl-tour-nav button')].map((button) => button.textContent.trim() + (button.disabled ? ' (off)' : '')); return (bubble.querySelector('.scout-badge') !== null && listen.getAttribute('aria-pressed') === 'false' && bubble.querySelector('.sl-tour-voice small').textContent === 'AI-generated voice' && buttons.join('|') === 'Back (off)|Next|Close' && document.querySelector('.sl-scout-line') === null && bubble.getAttribute('role') === 'dialog' && document.activeElement === bubble.querySelector('.sl-tour-next')) || buttons.join('|') })()"],
+        ['nothing is dimmed: the Moon and the play control are as bright as before, and the play control still works', "(() => { const pill = document.querySelector('.sl-pill'); const top = document.elementFromPoint(pill.getBoundingClientRect().left + 20, pill.getBoundingClientRect().top + 20); return getComputedStyle(document.querySelector('.scout-globe')).opacity === '1' && getComputedStyle(pill).opacity === '1' && pill.contains(top) })()"],
+        [stepName(1) + '; the site it names is ringed on the Moon as a reply of Scout\'s rings one', `${TOUR_NEXT} && ${after(900, `${TOUR_STEP(1)} && document.querySelector('.sl-dot.is-selected, .sl-group-dot.is-selected') !== null`)}`],
+        ['with motion reduced, going on to Plan makes no camera flight: the Moon is at its new size at once and stays there', `(document.querySelector('.sl-tour .sl-tour-next').click(), true) && ${after(350, "(window.__discAt = Number(document.querySelector('.scout-globe').dataset.discPx), true)")} && ${after(1300, "(() => { const now = Number(document.querySelector('.scout-globe').dataset.discPx); return Math.abs(now - window.__discAt) < 0.5 || window.__discAt + ' then ' + now })()")}`],
+        [stepName(2) + '; Plan is on the tour\'s own landing', `${TOUR_STEP(2)} && document.querySelector('.sightline.is-plan') !== null && document.querySelector('#sl-site').value === 'connecting-ridge' && ${LANDING} === '6 May 2027 · 13:00 UTC'`],
+        [stepName(3) + '; the verdict has a reason and a next landing to show', `${TOUR_KEY('ArrowRight')} && ${after(900, `${TOUR_STEP(3)} && ${text('.sl-verdict-words')}.trim() === '✗ Does not fit the mission' && document.querySelector('.sl-reasons li') !== null && /^Next landing that fits: /.test(${text('.sl-next')}.trim())`)}`],
+        ['the arrow keys step the tour and not the time: the landing and the date on the time bar are as they were', `${LANDING} === '6 May 2027 · 13:00 UTC' && ${text('.sl-now')} === '6 May 2027 · 13:00 UTC'`],
+        [stepName(4), `${TOUR_NEXT} && ${after(900, TOUR_STEP(4))}`],
+        [stepName(5), `${TOUR_KEY('ArrowRight')} && ${after(900, TOUR_STEP(5))}`],
+        ['the left arrow goes back a step', `${TOUR_KEY('ArrowLeft')} && ${after(700, TOUR_STEP(4))}`],
+        ['and the right arrow on again', `${TOUR_KEY('ArrowRight')} && ${after(900, TOUR_STEP(5))}`],
+        [stepName(6), `${TOUR_NEXT} && ${after(900, TOUR_STEP(6))}`],
+        [stepName(7) + '; the last step says "Done", and offers no video while there is none', `${TOUR_NEXT} && ${after(900, `${TOUR_STEP(7)} && document.querySelector('.sl-tour .sl-tour-next').textContent.trim() === 'Done' && document.querySelector('.sl-tour-video') === null`)}`],
+        ['"Listen" plays the step\'s line from its own file, and every step\'s file is there as audio', `(document.querySelector('.sl-tour-listen').click(), true) && ${after(1200, `(async () => { const asked = performance.getEntriesByType('resource').map((entry) => new URL(entry.name).pathname).filter((path) => path.startsWith('/tour/voice/')); const kinds = await Promise.all(${JSON.stringify(TOUR.steps.map((step) => `/tour/voice/${step.id}.mp3`))}.map((path) => fetch(path).then((r) => (r.ok ? r.headers.get('content-type') : String(r.status))))); return (document.querySelector('.sl-tour-listen').getAttribute('aria-pressed') === 'true' && asked.join() === '/tour/voice/scout.mp3' && kinds.every((kind) => /^audio\\/mpeg/.test(kind ?? ''))) || asked.join() + ' // ' + kinds.join() })()`)}`],
+        ['"Done" ends it and puts the screen back as it was: Watch, at the same date, with Scout\'s own line and no offer a second time', `${TOUR_NEXT} && ${after(1200, "(() => { const date = document.querySelector('.sl-date')?.textContent; const back = document.querySelector('.sl-tour') === null && document.querySelector('.sl-tour-ring') === null && document.querySelector('.sightline.is-watch') !== null && date === window.__before.date && location.hash === window.__before.hash && document.querySelector('.scout-face') !== null && document.querySelector('.sl-tour-offer') === null && localStorage.getItem('sightline.tourSeen') === '1'; return back || date + ' ' + location.hash })()")}`],
+      ],
+    },
+    {
+      // From Plan, with the visitor's own two scenarios and Compare open: the tour from How it works, and Escape half-way.
+      name: 'tour-restore',
+      hash: '#a=shackleton-rim@2027-06&t=22&limits=14_24_99999_1_1&mode=plan&list=apollo-11@2028-07-20T20&sc=1',
+      noChat: true,
+      steps: [TOUR_VIDEO(false), click('Compare')],
+      checks: [
+        ['How it works opens with "How to use Sightline": the tour\'s eight steps, word for word, and "Take the tour"', `(() => { window.__before = { hash: location.hash, tabs: document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length, site: document.querySelector('#sl-site').value }; ${click('How it works')}; return true })() && ${after(900, `(() => { const first = document.querySelector('.sl-how .how > section, .sl-how .how > div'); const items = [...document.querySelectorAll('.how-use-steps li')].map((item) => item.textContent.replace(/\\s+/g, ' ').trim()); const want = ${JSON.stringify(TOUR.steps.map((step) => `${step.title}. ${step.say}`))}; return (document.querySelector('#how-use-title').textContent === 'How to use Sightline' && first.classList.contains('how-use') && JSON.stringify(items) === JSON.stringify(want) && document.querySelector('.how-tour-button').textContent.trim() === 'Take the tour' && document.querySelector('.how-video') === null) || items.slice(0, 2).join(' // ') })()`)}`],
+        [`"Take the tour" closes the sheet and starts at ${stepName(0)}`, `(document.querySelector('.how-tour-button').click(), true) && ${after(1200, `document.querySelector('.sl-how') === null && document.querySelector('.sl-compare') === null && ${TOUR_STEP(0)}`)}`],
+        ['three steps on, the tour is on its own landing, not the visitor\'s', `${TOUR_NEXT} && ${after(700, TOUR_NEXT)} && ${after(1500, TOUR_NEXT)} && ${after(2500, `${TOUR_STEP(3)} && document.querySelector('#sl-site').value === 'connecting-ridge'`)}`],
+        ['Escape closes it there and the screen is back as the visitor had it: both scenarios, the second on show, Compare open, the same address', `${TOUR_KEY('Escape')} && ${after(1200, "(() => { const tabs = document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]').length; const back = document.querySelector('.sl-tour') === null && document.querySelector('.sl-tour-ring') === null && tabs === window.__before.tabs && document.querySelector('#sl-site').value === window.__before.site && location.hash === window.__before.hash && document.querySelector('.sl-compare') !== null; return back || tabs + ' ' + document.querySelector('#sl-site').value + ' ' + location.hash })()")}`],
+        ['once the tour has been taken, How it works offers it again', `(${click('How it works')}, true) && ${after(900, "document.querySelector('.how-tour-button')?.textContent.trim() === 'Take the tour again' || document.querySelector('.how-tour-button')?.textContent")} && ${after(1000, `(${click('Back to the Moon')}, true)`)}`],
+        ['on a phone "Tour" is in "More"; on a laptop the rail has no such button', `window.innerWidth > 760 ? ![...document.querySelectorAll('.sl-rail button')].some((button) => button.textContent.trim() === 'Tour') : ((${click('Close')}, ${click('More')}, true) && ${after(400, `(${click('Tour')}, true)`)} && ${after(1500, `${TOUR_STEP(0)} && ${TOUR_KEY('Escape')}`)})`],
+      ],
+    },
+    {
+      // What a step rings stays usable while the step is on show: the visitor can try it and then go on.
+      name: 'tour-try',
+      hash: '',
+      still: true,
+      noChat: true,
+      steps: [TOUR_VIDEO(false), "document.querySelector('.sl-tour-offer').click()"],
+      checks: [
+        ['step 1: the play control it rings can be pressed, and the tour stays on its step', `(document.querySelector('.sl-pill button').click(), true) && ${after(500, `document.querySelector('.sl-pill button').getAttribute('aria-label') === 'Pause' && ${TOUR_STEP(0)}`)}`, 900],
+        ['going on holds time again', `${TOUR_NEXT} && ${after(700, "document.querySelector('.sl-pill button').getAttribute('aria-label') === 'Play'")}`],
+        ['step 3: another site can be picked in the controls it rings; the tour stays on its step, with its ring', `${TOUR_NEXT} && ${after(1500, siteMore('shackleton-rim'))} && ${after(2300, `document.querySelector('#sl-site').value === 'shackleton-rim' && ${TOUR_STEP(2)}`)}`],
+        ['the next step speaks of the visitor\'s own pick, not the tour\'s landing', `${TOUR_NEXT} && ${after(900, `document.querySelector('#sl-site').value === 'shackleton-rim' && ${TOUR_STEP(3)}`)}`],
+        ['step 6: the time bar it rings can be moved, and the tour stays on its step', `${TOUR_NEXT} && ${after(700, TOUR_NEXT)} && ${after(1700, "(() => { window.__shown = document.querySelector('.sl-now').textContent; const range = document.querySelector('.sl-river input[type=\"range\"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(range, String(Number(range.value) + 40)); range.dispatchEvent(new Event('input', { bubbles: true })); return true })()")} && ${after(2300, `(document.querySelector('.sl-now').textContent !== window.__shown || 'the time shown did not move') && ${TOUR_STEP(5)}`)}`],
+        ['Escape still puts Watch back as it was', `${TOUR_KEY('Escape')} && ${after(1200, `document.querySelector('.sl-tour') === null && document.querySelector('.sightline.is-watch') !== null && ${text('.sl-date')} === '1 May 2027'`)}`],
+      ],
+    },
+    // Two steps held on screen, for a picture of each (with --out): the markers in Watch, and the verdict in Plan.
+    ...[1, 3].map((stop) => ({
+      name: `tour-at-${TOUR.steps[stop].id}`,
+      hash: '',
+      noChat: true,
+      steps: ["document.querySelector('.sl-tour-offer').click()", ...Array.from({ length: stop }, () => after(600, TOUR_NEXT))],
+      checks: [[stepName(stop), TOUR_STEP(stop), 1500]],
+    })),
+    {
+      // The tutorial video exists (its file answers as a video): How it works shows a player, and the tour's last step leads to it.
+      name: 'tour-video',
+      hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
+      noChat: true,
+      steps: [TOUR_VIDEO(true)],
+      checks: [
+        ['with the video in place, How it works shows a player under the steps: the file, its poster and its captions, and nothing is fetched until it is played', `(${click('How it works')}, true) && ${after(1200, `(() => { const video = document.querySelector('.how-use .how-video video'); if (!video) return false; return (video.querySelector('source').getAttribute('src') === ${JSON.stringify(TOUR.video.file)} && video.getAttribute('poster') === ${JSON.stringify(TOUR.video.poster)} && video.querySelector('track').getAttribute('src') === ${JSON.stringify(TOUR.video.captions)} && video.querySelector('track').kind === 'captions' && video.controls && video.preload === 'none' && /AI-generated/.test(document.querySelector('.how-video .how-caption').textContent)) || video.outerHTML.slice(0, 200) })()`)}`],
+        ['the tour\'s last step links to the video, which closes the tour and opens How it works at the player', `(document.querySelector('.how-tour-button').click(), true) && ${after(900, `(async () => { for (let i = 0; i < ${n - 1}; i += 1) { document.querySelector('.sl-tour .sl-tour-next').click(); await new Promise((done) => setTimeout(done, 450)) } const link = document.querySelector('.sl-tour .sl-tour-video'); if (link?.textContent.trim() !== 'Watch the video') return 'no link on step ' + document.querySelector('.sl-tour')?.dataset.step; link.click(); await new Promise((done) => setTimeout(done, 900)); const video = document.querySelector('.sl-how .how-video video'); const box = video?.getBoundingClientRect(); return (document.querySelector('.sl-tour') === null && video !== null && box.top >= 0 && box.bottom <= innerHeight + 1) || 'the player is at ' + Math.round(box?.top) + ' to ' + Math.round(box?.bottom) })()`)}`],
+      ],
+    },
+  ]
+}
+
 const SCENES = [
   {
     name: 'watch',
@@ -312,9 +414,9 @@ const SCENES = [
       ['the Moon fills the stage: at least 80% of its shorter side, clear of the play control, with every marker and name inside', `${MOON_FILLS} && (() => { const globe = document.querySelector('.scout-globe').getBoundingClientRect(); const disc = Number(document.querySelector('.scout-globe').dataset.discPx); const pill = document.querySelector('.sl-pill'); return pill === null || (globe.top + globe.bottom) / 2 + disc / 2 <= pill.getBoundingClientRect().top })()`],
       ['a name with no room is fully hidden, and comes back on focus', "(() => { const lost = document.querySelector('.sl-dot > span.off'); if (!lost) return window.innerWidth > 760 ? false : true; const hidden = getComputedStyle(lost).visibility === 'hidden'; lost.parentElement.focus(); const back = getComputedStyle(lost).visibility === 'visible' && getComputedStyle(lost).opacity === '1'; lost.parentElement.blur(); return hidden && back })()"],
       ['the tab reads "Sightline · Lunar landing site planner", with Scout\'s mark as its icon', "document.title === 'Sightline · Lunar landing site planner' && new URL(document.querySelector('link[rel=\"icon\"]').href).pathname === '/sightline-icon.svg'"],
-      ['the page has its description and share tags', "(() => { const meta = (key) => document.querySelector('meta[name=\"' + key + '\"], meta[property=\"' + key + '\"]')?.content; const line = 'Where to land on the Moon, and when. See the hours a landing site has sunlight for power and Earth in view for radio.'; return meta('description') === line && meta('og:title') === 'Sightline' && meta('og:description') === line && meta('og:image') === 'https://shackletonstation.dev/og.jpg' && meta('theme-color') === '#000000' })()"],
+      ['the page has its description and share tags', "(() => { const meta = (key) => document.querySelector('meta[name=\"' + key + '\"], meta[property=\"' + key + '\"]')?.content; const line = 'Where to land on the Moon, and when. See the hours a landing site has sunlight for power and Earth in view for radio.'; return meta('description') === line && meta('og:title') === 'Sightline' && meta('og:description') === line && meta('og:image') === 'https://lunarsightline.com/og.jpg' && meta('theme-color') === '#000000' })()"],
       ['at the default view there is no recentre compass', "document.querySelector('.sl-recentre') === null && document.querySelector('.sl-view-tools .zoom-buttons') !== null"],
-      ['Scout says its line beside his mark', `${text('.sl-scout-line')} === 'Pick a site, or just watch.' && document.querySelector('.sl-card') === null`],
+      ['Scout says one line beside his mark: on a first visit, the offer of his tour', `${text('.sl-scout-line')} === ${JSON.stringify(TOUR.offer)} && document.querySelector('.sl-card') === null`],
       ['Scout is its badge: with no site chosen, the gold disc on its sightline, named Scout', "(() => { const badge = document.querySelector('.sl-scout .scout-badge'); return badge !== null && badge.classList.contains('is-idle') && badge.getAttribute('aria-label') === 'Scout' && badge.getAttribute('width') === '44' && badge.querySelectorAll('path').length === 2 && badge.querySelector('.scout-badge-disc').getAttribute('fill') === '#e9b44c' })()"],
       ['the badge takes the state of the site Scout is talking about', `(document.querySelector('.sl-dot').focus(), true) && ${after(200, "(() => { const dot = document.querySelector('.sl-dot'); const state = /is-(both|sun|earth|none)/.exec(dot.className)[1]; const badge = document.querySelector('.sl-scout .scout-badge'); dot.blur(); return badge.classList.contains('is-' + state) && badge.getAttribute('aria-label').startsWith('Scout: ') })()")}`],
       ['an "AI" tag sits with Scout\'s mark even when he is closed, and says what it means', "(() => { const tag = document.querySelector('.sl-scout .sl-scout-tag .sl-ai'); const mark = document.querySelector('.scout-face').getBoundingClientRect(); const box = tag.getBoundingClientRect(); return tag.textContent.trim() === 'AI' && /AI-generated/.test(tag.title) && box.width > 0 && Math.abs((box.left + box.right) / 2 - (mark.left + mark.right) / 2) < 30 })()"],
@@ -561,7 +663,7 @@ const SCENES = [
     hash: '',
     still: true,
     checks: [
-      ['closed, Scout is his mark with one line beside it', `${STAND_IN_SCOUT} && ${text('.sl-scout-line')} === 'Pick a site, or just watch.' && !document.querySelector('.sl-scout-line').classList.contains('is-gone') && document.querySelector('.sl-card') === null && document.querySelector('.scout-face').getAttribute('aria-label') === 'Ask Scout'`, 600],
+      ['closed, Scout is his mark with one line beside it (on a first visit, the offer of his tour)', `${STAND_IN_SCOUT} && ${text('.sl-scout-line')} === ${JSON.stringify(TOUR.offer)} && !document.querySelector('.sl-scout-line').classList.contains('is-gone') && document.querySelector('.sl-card') === null && document.querySelector('.scout-face').getAttribute('aria-label') === 'Ask Scout'`, 600],
       ['after about eight seconds the line has faded and the mark remains; focusing the mark brings the line back', `${after(8600, "getComputedStyle(document.querySelector('.sl-scout-line')).opacity === '0' && document.querySelector('.scout-face .scout-badge') !== null && (document.querySelector('.scout-face').focus(), true)")} && ${after(9300, "getComputedStyle(document.querySelector('.sl-scout-line')).opacity !== '0' && (document.querySelector('.scout-face').blur(), true)")}`],
       ['his mark opens a chat card and closes it again; nothing else happens, and the address stays on Watch', `(document.querySelector('.scout-face').click(), true) && ${after(400, "document.querySelector('.sl-card') !== null && document.querySelector('.scout-face').getAttribute('aria-expanded') === 'true' && document.querySelector('.sightline.is-watch') !== null && location.hash === '' && (document.querySelector('.scout-face').click(), true)")} && ${after(900, "document.querySelector('.sl-card') === null && document.querySelector('.sightline.is-watch') !== null && document.querySelector('.sl-col') === null && location.hash === '' && (document.querySelector('.scout-face').click(), true)")}`],
       ['the tag in the card\'s header says he is AI and names the model the co-pilot\'s status reports, on one line', `${after(1500, MODEL_TAG('.sl-card .sl-card-head .sl-ai'))}`],
@@ -1064,7 +1166,7 @@ const SCENES = [
     checks: [
       ['on a laptop the rail is as it was, with no "More"', "window.innerWidth < 761 || (document.querySelector('.sl-rail-more') === null && document.querySelector('.sl-rail-menu') === null && [...document.querySelectorAll('.sl-rail > button')].map((button) => button.firstChild.textContent.trim() || button.textContent.trim()).join('|') === 'Layers|Scout|Mission|Compare|Planner|How it works|Watch|Hide')"],
       ['on a phone the rail is one row: the three heights, Scout and "More"', "window.innerWidth > 760 || (() => { const rail = document.querySelector('.sl-rail'); const shown = [...rail.children].filter((el) => getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0); const names = shown.map((el) => (el.classList.contains('sl-heights') ? [...el.querySelectorAll('button')].map((b) => b.textContent.trim()).join('/') : el.textContent.trim())); const boxes = shown.map((el) => el.getBoundingClientRect()); const oneRow = boxes.every((box) => box.top < boxes[0].bottom && box.bottom > boxes[0].top) && boxes.every((box) => box.left >= 0 && box.right <= window.innerWidth); return (names.join('|') === 'Orbit/Site/Surface|Scout|More' && oneRow && rail.getBoundingClientRect().height < 60) || names.join('|') + ' one row: ' + oneRow + ' height ' + rail.getBoundingClientRect().height })()"],
-      ['"More" opens the rest as a short menu, inside the window, on an opaque ground', `window.innerWidth > 760 || ((${click('More')}, true) && ${after(300, "(() => { const menu = document.querySelector('.sl-rail-menu.is-open'); if (!menu) return false; const names = [...menu.querySelectorAll('button')].map((button) => button.firstChild.textContent.trim()); const box = menu.getBoundingClientRect(); return (names.join('|') === 'Layers|Mission|Compare|Planner|How it works|Watch|Hide' && box.left >= 0 && box.right <= window.innerWidth && box.bottom <= window.innerHeight && /^rgb\\(/.test(getComputedStyle(menu).backgroundColor) && document.querySelector('.sl-rail-more').getAttribute('aria-expanded') === 'true') || names.join('|') + ' ' + JSON.stringify(box) })()")})`],
+      ['"More" opens the rest as a short menu, inside the window, on an opaque ground', `window.innerWidth > 760 || ((${click('More')}, true) && ${after(300, "(() => { const menu = document.querySelector('.sl-rail-menu.is-open'); if (!menu) return false; const names = [...menu.querySelectorAll('button')].map((button) => button.firstChild.textContent.trim()); const box = menu.getBoundingClientRect(); return (names.join('|') === 'Layers|Mission|Compare|Planner|How it works|Watch|Hide|Tour' && box.left >= 0 && box.right <= window.innerWidth && box.bottom <= window.innerHeight && /^rgb\\(/.test(getComputedStyle(menu).backgroundColor) && document.querySelector('.sl-rail-more').getAttribute('aria-expanded') === 'true') || names.join('|') + ' ' + JSON.stringify(box) })()")})`],
       ['Escape closes the menu', `window.innerWidth > 760 || ((window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && ${after(300, "document.querySelector('.sl-rail-menu.is-open') === null && document.querySelector('.sl-rail-more').getAttribute('aria-expanded') === 'false'")})`],
       ['a choice from the menu does its work and closes the menu', `window.innerWidth > 760 || ((${click('More')}, true) && ${after(300, `(${click('Mission')}, true)`)} && ${after(900, "document.querySelector('.sl-rail-menu.is-open') === null && document.querySelector('.sl-drawer') !== null")})`],
     ],
@@ -1468,6 +1570,7 @@ const SCENES = [
       ['every source links to its own page (the made-up stars have none) and says who it is from, how it gets here, where it shows and its credit', "(() => { const all = [...document.querySelectorAll('.how-source')]; return all.length >= 14 && all.every((el) => (el.dataset.source === 'stars' ? el.querySelector('a') === null : /^https:\\/\\//.test(el.querySelector('a')?.href ?? '')) && el.querySelectorAll('dd').length === 4 && [...el.querySelectorAll('dd')].every((dd) => dd.textContent.trim().length > 3)) })()"],
     ],
   },
+  ...tourScenes(),
 ]
 
 const chrome =
@@ -1736,6 +1839,8 @@ try {
       }
       // Measurements, printed and not judged: for comparing before and after a change.
       for (const [name, expression] of scene.notes ?? []) console.log(`note   ${name}: ${await evaluate(expression)}`)
+      // A scene that must not ask Scout anything (his tour): nothing was sent to the chat, held back or not.
+      if (scene.noChat) check('  nothing was sent to the chat', heldBack.get(sessionId) === 0, `${heldBack.get(sessionId)} question(s)`)
       // Said, so a reader knows which scenes would have asked the real chat. (Scenes that set a stand-in up in the page never get this far.)
       if (heldBack.get(sessionId) > 0) console.log(`note   ${heldBack.get(sessionId)} question(s) to the chat were answered in the browser with a stand-in; none reached the chat`)
       heldBack.delete(sessionId)

@@ -57,7 +57,7 @@ env:
   REGISTRY: us-east4-docker.pkg.dev
   IMAGE_REPO: us-east4-docker.pkg.dev/clps-compute-6z1nc/web
   IMAGE_NAME: plans
-  SITE: https://shackletonstation.dev
+  SITE: https://lunarsightline.com
   # Everything the service's image is built from: its own folder, the shared folder, the page's
   # calculations that the data tools reuse (web/src/lib, web/src/data), and the site data. A commit
   # that touches none of these does not deploy it. web/plans/build.test.ts fails if the service

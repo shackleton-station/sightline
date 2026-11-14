@@ -32,7 +32,7 @@ export function ScenarioTabs({ count, active, onSelect, onAdd, onRemove }: TabsP
         </span>
       ))}
       {count < MAX_SCENARIOS && (
-        <button type="button" aria-label="Add a scenario" title="Add this site, at the time shown, as another scenario to compare" onClick={onAdd}>
+        <button type="button" data-tour="add" aria-label="Add a scenario" title="Add this site, at the time shown, as another scenario to compare" onClick={onAdd}>
           +
         </button>
       )}

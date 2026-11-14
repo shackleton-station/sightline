@@ -1,7 +1,7 @@
 // Checks a deployed plans service on an address of its own:
 //
-//   node scripts/plans-check.mjs https://shackletonstation.dev --canary plans --version abc1234 --data-version 0123456789abcdef --cloud --save
-//   node scripts/plans-check.mjs https://shackletonstation.dev --version abc1234          (the live version, through the load balancer)
+//   node scripts/plans-check.mjs https://lunarsightline.com --canary plans --version abc1234 --data-version 0123456789abcdef --cloud --save
+//   node scripts/plans-check.mjs https://lunarsightline.com --version abc1234          (the live version, through the load balancer)
 //   node scripts/plans-check.mjs http://localhost:8082                                     (on a laptop)
 //
 // --canary plans sends every request with the header x-clps-canary: plans, which the load balancer
