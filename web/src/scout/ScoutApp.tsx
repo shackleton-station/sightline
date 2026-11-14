@@ -199,7 +199,7 @@ export function ScoutApp() {
         <footer className="scout-links">
           <a href={`${OLD_HOME}#how`}>How it works</a>
           <a href={OLD_HOME}>Classic view</a>
-          <span>Practice demo by team Shackleton Station. Scout’s mark and voice are AI-generated.</span>
+          <span>By team Shackleton Station. Scout’s mark and voice are AI-generated.</span>
         </footer>
       </aside>
 
