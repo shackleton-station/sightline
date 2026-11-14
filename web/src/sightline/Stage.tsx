@@ -8,6 +8,7 @@ import { type FinePhoto, inFinePhoto, TREK_RADIUS_M, type TrekLayer, trekClosest
 import { ZoomButtons } from '../components/ZoomButtons'
 import { useMoonCamera } from '../components/useMoonCamera'
 import { MOON_RADIUS_M } from '../lib/customModel'
+import { WHOLE_MOON_SHARE } from '../lib/moonRoom'
 import { toCanvas } from '../lib/globe'
 import type { RiverState } from '../lib/river'
 import type { Vec3 } from '../lib/sightline'
@@ -66,8 +67,6 @@ const POSTER_URL = `${import.meta.env.BASE_URL}data/maps/moon_poster.jpg`
 /** The view starts over the south pole, where the sites worth landing at are. */
 const OVER_THE_POLE = { lat: -90, lon: 0 }
 const DEFAULT_POSE = poseAt(OVER_THE_POLE.lat, OVER_THE_POLE.lon)
-/** The whole Moon takes this share of the shorter side of the stage's free room, centred in it. */
-const WHOLE_MOON_SHARE = 0.9
 /** Zoomed all the way out, the Moon's disc is this share of the stage's shorter side: room to see Earth and the sky around it. */
 const FAR_MOON_SHARE = 1 / 3
 /** The polar map holds about 300 m a pixel: closer than this many metres a pixel it goes soft. */
