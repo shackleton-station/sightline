@@ -1,6 +1,7 @@
 /**
  * The easter egg: the team's hype video is linked from nowhere. Typing its name on the Sightline
- * screen, outside a text box, makes a "Hype" button appear in the rail and opens its panel. On any
+ * screen, outside a text box, or sending it to Scout as a message of its own, makes a "Hype" button
+ * appear in the rail and opens its panel, for that visit only: a reload starts without it. On any
  * other page of the site the same word opens Sightline with that panel open. The old page at /hype/
  * still answers for links that were shared, but nothing sends anyone there.
  */
@@ -9,6 +10,11 @@ export const HYPE_PATH = '/hype/'
 export const HYPE_HASH = '#hype'
 export const HYPE_IN_SIGHTLINE = `/${HYPE_HASH}`
 export const HYPE_WORD = 'hype'
+
+/** Whether a message to Scout is the word and nothing else, in any case, with or without spaces round it: the one way to it on a phone. */
+export function isHypeWord(message: string): boolean {
+  return message.trim().toLowerCase() === HYPE_WORD
+}
 
 /**
  * The last few letters typed, after one more key. Anything that isn't a single letter (an arrow,

@@ -6,7 +6,7 @@ import type { FlaggedSite } from '../data/useAllFlags'
 import { useScenario } from '../data/useScenario'
 import { onHypeTyped } from '../components/listenForHype'
 import { setAddressBar } from '../lib/address'
-import { HYPE_HASH } from '../lib/hypeEgg'
+import { HYPE_HASH, isHypeWord } from '../lib/hypeEgg'
 import { horizonAt } from '../lib/customModel'
 import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, marginalReasons, shortWhen } from '../lib/sightlineSky'
@@ -138,13 +138,17 @@ function useRoom(): 'phone' | 'narrow' | 'wide' {
 const NOTE_ROOM_PX = 30
 /** How long a removed scenario can be brought back. */
 const UNDO_MS = 5000
-/** Whether the easter egg was found earlier in this visit (kept for the tab's life, not beyond it: it stays an egg). */
-const HYPE_KEY = 'sightline.hype'
-function hypeRemembered(): boolean {
+/**
+ * The easter egg is found for the visit only: nothing is stored, so a reload starts without its
+ * button. Earlier versions kept a mark under this key; what is left of it is cleared.
+ */
+const OLD_HYPE_KEY = 'sightline.hype'
+function forgetOldHype(): void {
   try {
-    return window.sessionStorage.getItem(HYPE_KEY) === '1'
+    window.sessionStorage.removeItem(OLD_HYPE_KEY)
+    window.localStorage.removeItem(OLD_HYPE_KEY)
   } catch {
-    return false
+    // A private window may refuse storage altogether: then there is nothing to clear.
   }
 }
 
@@ -194,9 +198,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const { setPlaying, setHour, playing } = clock
 
   // The easter egg: the word typed here, or on another page (which opens this one at "#hype"),
-  // puts a Hype button in the rail and opens its panel. The button stays for the visit.
+  // or sent to Scout as a message of its own, puts a Hype button in the rail and opens its panel.
+  // The button stays until the page is reloaded or left: nothing is stored.
   const [arrivedForHype] = useState(() => window.location.hash === HYPE_HASH)
-  const [hypeFound, setHypeFound] = useState(() => arrivedForHype || hypeRemembered())
+  const [hypeFound, setHypeFound] = useState(arrivedForHype)
+  useEffect(forgetOldHype, [])
   const [plan, setPlan] = useState(linked !== null || arrivedForHype)
   // Up to four scenarios, A to D; the column, the skyline and the answer are about the active one.
   // With none in the address, Plan starts with two: the two prospective sites at the same hour, so
@@ -211,7 +217,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [mission, setMission] = useState(linked?.mission ?? DEFAULT_MISSION)
   // One panel on the right at a time. Scout's conversation lives here, so closing his panel keeps it.
   const [drawer, setDrawer] = useState<'scout' | 'mission' | 'advanced' | 'compare' | 'layers' | 'rover' | 'accuracy' | 'hype' | null>(arrivedForHype ? 'hype' : null)
-  const chat = useScoutChat()
+  // The word sent to Scout as a message of its own (any case, spaces or not) is the easter egg: it is
+  // not a question, so it is not sent to the co-pilot or added to the conversation. The only way to
+  // it on a phone, which has no keyboard outside a text box.
+  const hypeFromScout = useRef<() => void>(() => {})
+  const takenByScreen = useCallback((message: string) => {
+    if (!isHypeWord(message)) return false
+    hypeFromScout.current()
+    return true
+  }, [])
+  const chat = useScoutChat(takenByScreen)
   // The Planner takes the whole window, with the Moon kept small in a corner; How it works opens as a sheet over the scene.
   // A link that names a Planner tab opens the Planner on it.
   const [full, setFull] = useState(() => linked !== null && plannerTabIn(window.location.hash) !== null)
@@ -705,11 +720,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const revealHype = useCallback(() => {
     if (tourAt !== null) return
     setHypeFound(true)
-    try {
-      window.sessionStorage.setItem(HYPE_KEY, '1')
-    } catch {
-      // A private window may refuse; the button still shows until the page is left.
-    }
     setBare(false)
     setFull(false)
     setHow(false)
@@ -718,6 +728,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setDrawer('hype')
   }, [tourAt, setBare])
   useEffect(() => onHypeTyped(revealHype), [revealHype])
+  useEffect(() => {
+    hypeFromScout.current = revealHype
+  }, [revealHype])
   useEffect(() => {
     if (arrivedForHype) revealHype()
     // Once, on arriving at "#hype".
