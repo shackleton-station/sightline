@@ -134,6 +134,16 @@ export async function loadSiteFlags(site: SiteInfo, span?: YearSpan): Promise<Si
 const MAST_HEIGHTS_M = [2, 5, 10]
 
 /** A site's yearly numbers at each height above the ground, for the page's years. */
+/** A listed site's skyline: the terrain's height all the way round, every half degree. */
+export function loadHorizon(site: SiteInfo): Promise<HorizonPoint[]> {
+  return getJson<HorizonPoint[]>(`${site.id}/horizon.json`)
+}
+
+/** A listed site's hourly Sun and Earth positions for one month ("YYYY-MM"). */
+export function loadTrack(site: SiteInfo, month: string): Promise<TrackPoint[]> {
+  return getJson<TrackPoint[]>(`${site.id}/${month}/track.json`)
+}
+
 export async function loadMastHeights(site: SiteInfo): Promise<MastHeight[]> {
   const span = await pageSpan()
   if (isCustomSite(site)) return loadCustomHeights(site, MAST_HEIGHTS_M, span)

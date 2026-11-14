@@ -50,11 +50,14 @@ import { type TrekLayerId, trekLayer } from '../lib/trekLayers'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
+import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
 import type { TourFile } from '../lib/tour'
 import tourFile from './tour.json'
+import { AccuracyDrawer } from './AccuracyDrawer'
+import { useFitOverlay, useMissionGrid } from './useMissionGrid'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
 import { useLightGrid } from '../atlas/useLightGrid'
@@ -164,10 +167,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const setScenario = useCallback((change: (current: SightlineScenario) => SightlineScenario) => setScenarios((all) => all.map((one, i) => (i === active ? change(one) : one))), [active])
   const [mission, setMission] = useState(linked?.mission ?? DEFAULT_MISSION)
   // One panel on the right at a time. Scout's conversation lives here, so closing his panel keeps it.
-  const [drawer, setDrawer] = useState<'scout' | 'mission' | 'advanced' | 'compare' | 'layers' | 'rover' | null>(null)
+  const [drawer, setDrawer] = useState<'scout' | 'mission' | 'advanced' | 'compare' | 'layers' | 'rover' | 'accuracy' | null>(null)
   const chat = useScoutChat()
   // The Planner takes the whole window, with the Moon kept small in a corner; How it works opens as a sheet over the scene.
-  const [full, setFull] = useState(false)
+  // A link that names a Planner tab opens the Planner on it.
+  const [full, setFull] = useState(() => linked !== null && plannerTabIn(window.location.hash) !== null)
+  const [plannerTab, setPlannerTab] = useState<PlannerTab>(() => plannerTabIn(window.location.hash) ?? 'find')
   const [how, setHow] = useState(openHow)
   // The written brief for the scenario on show, as a sheet too.
   const [brief, setBrief] = useState(false)
@@ -205,6 +210,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [layer, setLayer] = useState<TrekLayerId | null>(null)
   // The app's own computed light, as a layer: off by default, so Site view opens on the Moon's own picture.
   const [shade, setShade] = useState(false)
+  // Where a landing fits the mission, shaded on the Moon: on from the first time Landing accuracy is opened.
+  const [fitShade, setFitShade] = useState(false)
   const trek = useTrekOverlay(layer)
   const [mode, setMode] = useState<StageMode>('orbit')
   const [sheet, setSheet] = useState(1)
@@ -392,8 +399,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
   const scoutView = active > 0 ? view : `${view}&sc=0`
   useEffect(() => {
-    setAddressBar(plan ? view : window.location.pathname)
-  }, [plan, view])
+    // With the Planner open the address also says which of its tabs is on show.
+    setAddressBar(plan ? (full ? withPlannerTab(view, plannerTab) : view) : window.location.pathname)
+  }, [plan, view, full, plannerTab])
 
   // A date the data covers but in a year not on hand: ask for the years, and go there once they
   // are here. A date far from the years on hand starts the screen again around it, on this link.
@@ -648,6 +656,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     return { sun: upSeries(data, 'sun', cell)[at] === 1, earth: upSeries(data, 'earth', cell)[at] === 1 }
   }, [wantGrid, lightGrid.meta, lightGrid.month, lightGrid.wide, lightGrid.wideMeta, site.lat, site.lon, index])
   const planner = shown && full
+  // Landing accuracy: the light grid read for the landing, for the panel's map and odds, and (when
+  // asked for) the same verdicts shaded on the Moon. Its months are megabytes, read only then.
+  const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, shown && !planner && (drawer === 'accuracy' || fitShade))
+  const fitOverlay = useFitOverlay(missionGrid, mission, shown && !planner && fitShade)
   const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', gliding && !plan ? 'is-gliding' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
@@ -795,8 +807,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onChoose={openPlan}
           onPoint={setPointed}
           onRecentre={() => setMode('orbit')}
-          overlay={shown ? trek.overlay : null}
-          layer={shown ? trekLayer(layer) : null}
+          // The fit shading takes the one place a picture has on the Moon; a Moon Trek layer waits under it.
+          overlay={shown ? (fitOverlay ?? trek.overlay) : null}
+          layer={shown && !fitOverlay ? trekLayer(layer) : null}
           fine={shown ? finePhoto : null}
           grid={{ meta: lightGrid.meta, month: lightGrid.month, wide: lightGrid.wide, hour: wantGrid ? index : null, atSite: gridAtSite }}
           onPick={shown ? (lat, lon) => setScenario((current) => ({ ...current, site: `${Number(lat.toFixed(6))},${Number(lon.toFixed(6))}` })) : undefined}
@@ -894,8 +907,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           active={active}
           onSelect={setActive}
           onAdd={addScenario}
+          onAddShown={() => addScenario({ site: scenario.site, landing: hour })}
           onRemove={removeScenario}
           onBack={() => setFull(false)}
+          tab={plannerTab}
+          onTab={setPlannerTab}
+          onBrief={() => setBrief(true)}
           scoutOpen={drawer === 'scout'}
           onScout={() => setDrawer(drawer === 'scout' ? null : 'scout')}
           site={site}
@@ -966,6 +983,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} />
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={setFitShade} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'layers' && <LayersDrawer layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
       {shown && !planner && (
         <Rail
@@ -985,6 +1003,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onMission={toggleMission}
           compareOpen={drawer === 'compare'}
           onCompare={() => setDrawer(drawer === 'compare' ? null : 'compare')}
+          accuracyOpen={drawer === 'accuracy'}
+          accuracyOn={fitShade}
+          onAccuracy={() => {
+            // Opening it shades the Moon too; the panel has the switch to take the shading off.
+            if (drawer !== 'accuracy') setFitShade(true)
+            setDrawer(drawer === 'accuracy' ? null : 'accuracy')
+          }}
           layersOpen={drawer === 'layers'}
           layerOn={layer !== null}
           onLayers={() => setDrawer(drawer === 'layers' ? null : 'layers')}

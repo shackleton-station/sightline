@@ -1,8 +1,7 @@
 import type { SiteFlags } from '../lib/flags'
-import { gridRow, type GridCell, type MonthSpan } from '../lib/grid'
 import { missionEarth } from '../lib/mission'
 import { isoAt } from '../lib/sightline'
-import { bestIn, COMPARE_ROWS, type ScenarioMeasure, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { bestIn, COMPARE_ROWS, type ScenarioMeasure, SCENARIO_LETTERS, shareHours, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 
 /** One row of the Full planner's table: a name, a cell per scenario, and which cells are the best. */
 export interface PlannerRow {
@@ -10,6 +9,8 @@ export interface PlannerRow {
   label: string
   /** What each scenario's cell says; null while its site is still being worked out. */
   cells: (string | null)[]
+  /** The hours behind each cell that is a share of the mission ("12 of 24 h"); null for any other cell. */
+  notes: (string | null)[]
   best: boolean[]
 }
 
@@ -33,15 +34,22 @@ export function bothPct(flags: SiteFlags, landing: number, mission: SightlineMis
  */
 export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioMeasure | null)[], flags: (SiteFlags | null)[], mission: SightlineMission): PlannerRow[] {
   const write = (value: number | null, known: boolean, digits: number) => (value === null ? (known ? '?' : null) : value.toFixed(digits))
+  const hours = (value: number | null) => (value === null ? null : shareHours(value, mission.requirements.missionDays))
   const rows: PlannerRow[] = COMPARE_ROWS.map((row) => {
     const values = measures.map((measure) => measure?.[row.key] ?? null)
-    return { key: row.key, label: row.label, cells: values.map((value, i) => write(value, measures[i] !== null, row.digits)), best: bestIn(values, row.better, row.tie) }
+    return {
+      key: row.key,
+      label: row.label,
+      cells: values.map((value, i) => write(value, measures[i] !== null, row.digits)),
+      notes: values.map((value) => (row.share ? hours(value) : null)),
+      best: bestIn(values, row.better, row.tie),
+    }
   })
   const both = scenarios.map((scenario, i) => {
     const site = flags[i]
     return site ? bothPct(site, scenario.landing, mission) : null
   })
-  rows.splice(4, 0, { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), best: bestIn(both, 'high', 0.5) })
+  rows.splice(4, 0, { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), notes: both.map(hours), best: bestIn(both, 'high', 0.5) })
   return rows
 }
 
@@ -63,14 +71,4 @@ export function plannerCsv(start: string, scenarios: SightlineScenario[], siteNa
     ['Mission', missionWords],
   ]
   return `${lines.map((line) => line.map(field).join(',')).join('\n')}\n`
-}
-
-/** The months of one calendar year, from the data's months. */
-export function yearSpans(spans: MonthSpan[], year: number): MonthSpan[] {
-  return spans.filter((span) => span.month.startsWith(`${year}-`))
-}
-
-/** One site's row of the month grid: the share of each month of the year with the Sun in view. */
-export function sunMonths(flags: SiteFlags, spans: MonthSpan[]): GridCell[] {
-  return gridRow(flags.sun, spans, 'sun')
 }

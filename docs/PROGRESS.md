@@ -299,3 +299,29 @@ Local Lead.
 
 - [x] `web/public/data/shadow.json`: for each of the 13 sites, the distance to the nearest permanently shadowed pixel and to the nearest shadowed region of at least 10 km², from NASA's LOLA maps (`pipeline/scripts/make_shadow_distance.py`; `docs/VALIDATION.md` §16). Seven sites have numbers; the six outside NASA's maps say so
 - [ ] Show it: a row in Compare and in the Planner (types `ShadowDistances`, `ShadowAnswer` in `web/src/data/contract.ts`)
+
+## The Planner as two tabs, Find and Compare (2026-11-14)
+
+- [x] Find: the header (back, tabs, scenario tray, Brief, Share, Export, Scout), the tab in the link (`&planner=find`), and every site by month with the days a landing fits (`web/src/sightline/plannerFit.ts`, `PlannerFind.tsx`; checks in `sightline-shots.mjs`, scene `planner-find`)
+- [ ] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science row from `shadow.json`, and "Add scenario" as the last column
+
+## Landing accuracy (2026-11-14)
+
+- [x] The odds of landing where the mission fits: `web/src/lib/landingOdds.ts` (the miss as a circular bell curve; the accuracy typed is the radius holding 99% of landings) and `web/src/lib/missionGrid.ts` (one pass over the light grid's months for a landing: Sun and Earth at landing and the longest gaps, at every cell). The cell verdict is tested to agree with `landingProblems` hour by hour
+- [x] The "Accuracy" panel in Sightline's rail: the ground around the target in green and red (Sun and Earth on the grid's 120 m cells, slope on the 30 m slope images), the odds for the accuracy on the slider, the reasons for the misses, a chart of miss distance, and the loosest accuracy that keeps 90%
+- [x] The same verdicts shaded on the Moon (Orbit and Site), through the place a Moon Trek layer has; on from the first time the panel is opened, with a switch in the panel. A Moon Trek layer waits under it
+- [ ] Not done: the panel reads the grid at 2 m with any part of Earth counting, so a mission with other heights or an Earth clearance is told so and not judged with them; ground beyond the fine grid (about 61 km from the pole) has no map; the miss is the same in every direction (no approach path); the accuracy is not carried in the link; not looked at on a phone
+- [ ] Ask Misha: the panel adds a button to the rail and takes the overlay's place on the Moon while its shading is on
+
+## The landing brief: what the sky does from the landing on (2026-11-14, Sebastian)
+
+- [x] Brief section "From the landing on" (`web/src/planner/LandingSky.tsx`), on the Planner page and in the
+      front page's brief sheet: sunset and Earthset (or the next rise) and whether inside the mission; power
+      and radio over the mission; the mission hour by hour; the Sun's height; the skyline with the Sun's and
+      Earth's paths. A custom point's track and skyline come from the app's own model (`loadScenario`)
+- [x] "Why" under a tight or empty month's verdict (`web/src/planner/why.ts`, `why.test.ts`)
+- [x] Planner page: instruction line, the key above the grid, striped tight months, the click brings the brief up
+- [ ] Not checked: a real phone, print, and the skyline's look with Scout's panel open
+- [ ] Offered to Rodrigo, not in this change: the same additions for the front page's Planner (a site, coordinates
+      and time bar at the top; suggestions near the date as cards beside the brief). Kept on branch
+      `feat/planner-intuitive` until he decides how they fit Find and Compare
