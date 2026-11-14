@@ -1,5 +1,5 @@
 import { LIGHT_URLS } from '../atlas/useLightGrid'
-import { type LightMeta, lightMeta, type LightMetaFile, readMonth } from '../lib/lightGrid'
+import { type LightMeta, lightMeta, type LightMetaFile, type LightMonth, readMonth } from '../lib/lightGrid'
 import { locateHour } from '../lib/mission'
 import { addMonth, type GridGaps, missionMonthsAt, slopeDegFrom, type SlopePart, type Square, startGaps } from '../lib/missionGrid'
 import { bytes, gunzip } from './customSite'
@@ -20,7 +20,7 @@ export async function loadGapsAt(meta: LightMeta, month: string, index: number, 
   if (!parts) return 'past'
   const run = startGaps(meta.size)
   for (const [i, part] of parts.entries()) {
-    addMonth(run, readMonth(await gunzip(await bytes(LIGHT_URLS.month(part.month))), meta, part.month), part, i === 0)
+    addMonth(run, await monthFor(meta, part.month), part, i === 0)
   }
   return run
 }
@@ -122,6 +122,15 @@ function keep<T>(limit: number) {
     },
     now: (key: string): T | undefined => arrived.get(key),
   }
+}
+
+/**
+ * A month of the grid, unpacked: tens of megabytes, so only the last two are kept. A landing moved
+ * along the time bar reads the same one or two months over and over.
+ */
+const monthsKept = keep<LightMonth>(2)
+function monthFor(meta: LightMeta, month: string): Promise<LightMonth> {
+  return monthsKept.get(month, async () => readMonth(await gunzip(await bytes(LIGHT_URLS.month(month))), meta, month))
 }
 
 /** One landing's gaps are six megabytes; four scenarios at most are on show. */
