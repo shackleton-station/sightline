@@ -83,6 +83,9 @@ const CLOSEST_M_PER_PX = 250
  */
 const SITE_M_PER_PX = 420
 const FLIGHT_MS = 1400
+/** The flight back to the whole Moon, and how long after a flight's end a change of size still counts as part of it. */
+const WHOLE_FLIGHT_MS = 600
+const FLIGHT_SETTLE_MS = 250
 
 /**
  * The Moon, and only the Moon: one globe seen from over the south pole, lit as the ephemeris has it
@@ -194,9 +197,22 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
   // screen. Nothing flies anywhere, and nothing waits on an animation. (An effect, not a layout
   // effect: the camera learns its new zoom limits in an effect of its own, which must run first.)
   const [fit, setFit] = useState({ side: 0, wholeZoom: 1 })
+  // The flight last asked for, to one of the two resting places, and when it is due to have landed.
+  const flight = useRef<{ until: number } | null>(null)
+  const flyToRest = () => {
+    const whole = focusLat === undefined || focusLon === undefined
+    flight.current = { until: performance.now() + (whole ? WHOLE_FLIGHT_MS : FLIGHT_MS) + FLIGHT_SETTLE_MS }
+    if (whole) void flyTo(OVER_THE_POLE, wholeZoom, WHOLE_FLIGHT_MS)
+    else void flyTo({ lat: focusLat, lon: focusLon }, siteZoom, FLIGHT_MS)
+  }
   useEffect(() => {
     if (side === 0) return
-    setZoom(refitZoom(zoom, fit, { side, wholeZoom, farZoom }))
+    // A panel that opens or closes in the same move as the view changes (Layers going to Site, a
+    // guide going back to the whole Moon) resizes the stage while that flight is under way, or just
+    // landed where motion is reduced. Refitting then would keep a zoom the flight is replacing: the
+    // flight is flown again instead, for the new size.
+    if (flight.current && performance.now() < flight.current.until) flyToRest()
+    else setZoom(refitZoom(zoom, fit, { side, wholeZoom, farZoom }))
     setFit({ side, wholeZoom })
     setPlaced(true)
     // Only a change of size starts this, with the zoom as it is at that moment.
@@ -206,8 +222,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
   // The visitor chose the whole Moon or a site (the rail's Orbit and Site): fly there.
   useEffect(() => {
     if (!placed) return
-    if (focusLat === undefined || focusLon === undefined) void flyTo(OVER_THE_POLE, wholeZoom, 600)
-    else void flyTo({ lat: focusLat, lon: focusLon }, siteZoom, FLIGHT_MS)
+    flyToRest()
     // The sizes are read as they are when the choice is made; a change of size is the effect above.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [focusLat, focusLon, flyTo])
