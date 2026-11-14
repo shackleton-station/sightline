@@ -1055,3 +1055,149 @@
 .sl-np .np-side .pl-slider::-webkit-slider-thumb {
   margin-top: -6.5px;
 }
+
+/* ---------- Find | Compare: two big tabs at the top of the main side ---------- */
+.sl-np .np-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0 0 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.sl-np .np-tabs button {
+  display: grid;
+  gap: 0.1rem;
+  justify-items: start;
+  padding: 0.65rem 1.1rem;
+  border: 0;
+  background: none;
+  color: var(--soft);
+  font: inherit;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sl-np .np-tabs button + button {
+  border-left: 1px solid var(--line);
+}
+
+.sl-np .np-tabs button small {
+  font-family: var(--pl-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.sl-np .np-tabs button[aria-selected='true'] {
+  background: var(--gold);
+  color: #17120a;
+}
+
+.sl-np .np-tabs button:hover:not([aria-selected='true']) {
+  background: rgb(255 255 255 / 4%);
+  color: var(--text);
+}
+
+/* ---------- Compare: each pick as a column, the brief's own pictures, rows lining up ---------- */
+.sl-np .np-compare-cols {
+  display: grid;
+  gap: 0.8rem;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+}
+
+.sl-np .np-pick {
+  min-width: 0;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.sl-np .np-pick.is-on-show {
+  box-shadow: 0 0 0 1.5px var(--gold), 0 10px 28px rgb(0 0 0 / 35%);
+}
+
+.sl-np .np-pick-head h3 {
+  margin: 0.35rem 0 0;
+  color: var(--pl-paper-ink);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sl-np .np-pick-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--pl-paper-muted);
+  font-family: var(--pl-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sl-np .np-pick-fit {
+  margin-left: auto;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sl-np .np-pick-fit.fits {
+  color: var(--both);
+}
+
+.sl-np .np-pick-fit.misses {
+  color: var(--warning);
+}
+
+.sl-np .np-pick-when {
+  margin: 0.1rem 0 0;
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+}
+
+.sl-np .np-pick-why {
+  margin: 0.35rem 0 0;
+  color: var(--warning);
+  font-size: 0.8125rem;
+}
+
+.sl-np .np-pick-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+}
+
+/* In a column the brief's facts sit two to a row, and its four figures two by two. */
+.sl-np .np-pick .pl-sky-figures {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sl-np .np-compare-all {
+  margin-top: 1rem;
+}
+
+.sl-np .np-compare-empty {
+  padding: 1.6rem 1.2rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--soft);
+}
+
+.sl-np .np-compare-empty h3 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 1.1rem;
+}
+
+.sl-np .np-compare-empty p {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+}

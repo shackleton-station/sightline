@@ -20,9 +20,8 @@ import { PlannerLocation } from './PlannerLocation'
 import { MissionBar } from '../planner/MissionBar'
 import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { PlannerMore } from './PlannerMore'
+import { NewPlannerCompare } from './NewPlannerCompare'
 import { PlannerNearby } from './PlannerNearby'
-import { PlannerPower } from './PlannerPower'
-import { PlannerSunChart } from './PlannerSunChart'
 import { useMissionTracks } from './useMissionTracks'
 import { isBaseHeights } from '../lib/heights'
 import { siteValue } from './site'
@@ -90,6 +89,8 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   )
 
   const room = scenarios.length < MAX_SCENARIOS
+  // Find (every site by month, the brief) or Compare (your picks side by side).
+  const [tab, setTab] = useState<'find' | 'compare'>('find')
   // Each pick's mission, hour by hour, for the Sun's height and the power budget under the cards.
   const tracks = useMissionTracks(
     start,
@@ -268,6 +269,20 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           />
         </aside>
       <div className="planner sl-fp">
+        <div className="np-tabs" role="tablist" aria-label="New Planner">
+          <button type="button" role="tab" aria-selected={tab === 'find'} onClick={() => setTab('find')}>
+            Find
+            <small>where and when could I land?</small>
+          </button>
+          <button type="button" role="tab" aria-selected={tab === 'compare'} onClick={() => setTab('compare')}>
+            Compare
+            <small>{scenarios.length > 1 ? `your ${scenarios.length} picks side by side` : 'your picks side by side'}</small>
+          </button>
+        </div>
+        {tab === 'compare' ? (
+          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
+        ) : (
+        <>
         <header className="pl-head">
           {view && (
             <p className="pl-tally" aria-live="polite">
@@ -307,11 +322,6 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                 }}
               />
             )}
-            <details className="np-detail">
-              <summary>Sun height and power for your picks</summary>
-              <PlannerSunChart rows={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i] }))} missionDays={mission.requirements.missionDays} />
-              <PlannerPower columns={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i], sunGapH: measures[i]?.sunGapH ?? null }))} heightsNote={heightsNote} />
-            </details>
             {view ? <WindowGrid grid={view.grid} siteId={view.row.site.id} month={view.month} listed={listed} onPick={pick} keptWords="kept to compare" /> : <p className="pl-grid sl-quiet">Reading every site and month…</p>}
             {view && (
               <PlannerNearby
@@ -357,6 +367,8 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           </div>
 
         </div>
+        </>
+        )}
       </div>
       </div>
     </section>
