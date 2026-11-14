@@ -1567,3 +1567,11 @@
 .sl-np .np-side .pl-segments button {
   min-height: 1.75rem;
 }
+
+/* The small uppercase labels in the left column (MISSION LENGTH, LOCATION, …): a size smaller. */
+.sl-np .np-side .pl-where .pl-label,
+.sl-np .np-side .pl-mission .pl-label,
+.sl-np .np-side .pl-more .pl-label {
+  font-size: 0.5625rem;
+  letter-spacing: 0.08em;
+}
