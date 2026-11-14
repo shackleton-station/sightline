@@ -412,6 +412,51 @@
   box-shadow: 0 10px 26px rgb(0 0 0 / 50%);
 }
 
+/* The tour's chip in Watch: under Scout's mark, in the corner, level with the play control. */
+.sl-tour-chip {
+  position: absolute;
+  left: var(--sl-edge);
+  bottom: var(--sl-edge-bottom);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--sl-panel);
+  color: inherit;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.sl-tour-chip span {
+  color: var(--gold);
+  font-size: 0.625rem;
+}
+
+/* Until the tour has been taken the chip is outlined in gold. */
+.sl-tour-chip.is-new,
+.sl-tour-chip:hover,
+.sl-tour-chip:focus-visible {
+  border-color: var(--gold-deep);
+}
+
+/* On a window too narrow for the chip beside the play control it sits under the page's name
+   (on a phone, under the key that is there). */
+@media (max-width: 899px) {
+  .sl-tour-chip {
+    top: 4.9rem;
+    bottom: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .sl-tour-chip {
+    top: 7.4rem;
+  }
+}
+
 /* Beside the Moon the card is given the height of the empty sky (WatchControls.tsx): the
    conversation fills it, and the input stays at its foot. */
 .sl-card.is-tall {
@@ -3511,19 +3556,6 @@
 
 .sl-tour .sl-tour-video {
   font-size: 0.8125rem;
-}
-
-/* On a first visit Scout's closed line is the offer of the tour: a line to press. */
-.sl-scout-line .sl-tour-offer {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  text-decoration: underline;
-  text-decoration-color: var(--gold);
-  text-underline-offset: 3px;
 }
 
 @media (max-width: 760px) {

@@ -33,7 +33,7 @@ Built on our team's own pre-event practice code; reuse approved by the Bethesda 
 
 ## Using the site
 
-Scout gives a one-minute tour of the screen: on a first visit his line in Watch offers it, and it is
+Scout gives a one-minute tour of the screen: its chip is in Watch on every visit, and it is
 always the first thing in **How it works** (on a phone, also under **More**). It drives the real
 screen: each step puts the app in a state, rings the control it is about, and says one or two
 sentences. Back, Next and Close, or the arrow keys and Escape; closing at any step puts the screen back

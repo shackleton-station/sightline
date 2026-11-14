@@ -31,12 +31,6 @@ interface ScoutProps {
    * narrower window, where the Moon moves up for a card only as tall as its conversation.
    */
   beside: number | null
-  /**
-   * On a first visit he offers the tour: in his closed line, instead of its usual words (a line to
-   * press, which fades as his line does), and in his open card, above the ideas. Not offered again
-   * once the closed line has faded or the tour is taken. Null once it has been seen or taken.
-   */
-  offer: { words: string; onTake: () => void; onGone: () => void } | null
 }
 
 /** How long Scout's line stays beside his mark before it fades to the mark alone. */
@@ -62,23 +56,12 @@ const WATCH_IDEAS = ['What am I looking at?', 'Which site has the most Sun this 
  * left, and closes it; it never leaves Watch. A reply that names a place carries "Show me" and "Plan
  * this", the only things in a reply that change the screen, and only when pressed.
  */
-export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, offer, beside }: ScoutProps) {
+export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, beside }: ScoutProps) {
   const [draft, setDraft] = useState('')
   const [said, setSaid] = useState<string | null>(line)
   const card = useRef<HTMLDivElement>(null)
   const talk = useRef<HTMLDivElement>(null)
   const { thread, waiting, step } = chat
-  // The tour's offer stands in for his first line only: once that has faded, or he has something
-  // else to say (a site under the pointer), the line is his own again.
-  const [offering, setOffering] = useState(offer !== null)
-  const firstLine = useRef(line)
-  const offered = offering && offer !== null && line === firstLine.current
-  // While his card is open the offer waits in it: it is only spent once his closed line has faded.
-  useEffect(() => {
-    if (open || said !== null || !offering) return
-    setOffering(false)
-    offer?.onGone()
-  }, [open, said, offering, offer])
 
   // Beside the Moon the open card is as tall as the empty sky: from his mark up to the page's name,
   // or to the Moon's disc where the disc reaches over the card. Worked out from the stage's size, for
@@ -180,13 +163,7 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
       )}
       {!open && (
         <p className={said ? 'sl-scout-line' : 'sl-scout-line is-gone'} role="status">
-          {offered ? (
-            <button type="button" className="sl-tour-offer" onClick={offer.onTake}>
-              {offer.words}
-            </button>
-          ) : (
-            line
-          )}
+          {line}
         </p>
       )}
       {open && (
@@ -203,11 +180,6 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
             {thread.length === 0 && !waiting && (
               <div className="sl-said is-scout sl-hello">
                 <p>{HELLO}</p>
-                {offering && offer !== null && (
-                  <button type="button" className="sl-small sl-tour-offer" onClick={offer.onTake}>
-                    {offer.words}
-                  </button>
-                )}
               </div>
             )}
             {thread.length === 0 && !waiting && (
