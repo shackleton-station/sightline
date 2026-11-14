@@ -69,6 +69,7 @@ import { Rail, type StageMode } from './Rail'
 import { River } from './River'
 import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
+import { Skyline } from './Skyline'
 import { Stage } from './Stage'
 import { useHeightFlags } from './useHeights'
 import { useLandingShares, useScenarioFacts } from './useScenarioFacts'
@@ -201,6 +202,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [bare, setBare] = useStored('clear', false)
   const [pillMin, setPillMin] = useStored('pillMin', false)
   const [riverMin, setRiverMin] = useStored('riverMin', false)
+  const [skyMin, setSkyMin] = useStored('skyMin', false)
   const idle = useIdle(clock.playing && !bare && !plan, FADE_AFTER_MS)
   const [pointed, setPointed] = useState<SiteInfo | null>(null)
 
@@ -722,6 +724,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               }
             />
           </PlanColumn>
+          {/* The 3D Surface view shows the horizon better, so the strip is only up for the tour's step about it. */}
+          {tourStep?.state.show === 'skyline' && (
+            <Skyline horizon={hereOnBar?.horizon ?? null} track={hereOnBar?.track ?? null} index={index} obsHeightM={hereOnBar ? siteHeights.panelM : 0} folded={skyMin} onFold={setSkyMin} />
+          )}
           <River
             start={start}
             hours={hours}
