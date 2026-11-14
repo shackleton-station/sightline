@@ -248,16 +248,57 @@
   font-weight: 600;
 }
 
-.pl-slip-ask input {
-  width: 3.4rem;
+/* The days a landing may slip: − and + either side of the number, which the browser's own arrows weren't. */
+.pl-stepper {
+  display: inline-flex;
+  align-items: stretch;
   margin: 0 0.4rem;
-  padding: 0.1rem 0.3rem;
   border: 1.5px solid var(--pl-paper-ink);
-  border-radius: 2px;
-  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.pl-stepper button {
+  width: 1.9rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pl-paper-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pl-stepper button:hover:not(:disabled) {
+  background: var(--pl-paper-rule);
+}
+
+.pl-stepper button:disabled {
+  color: var(--pl-paper-muted);
+  cursor: default;
+}
+
+.pl-slip-ask .pl-stepper input {
+  width: 2.6rem;
+  margin: 0;
+  padding: 0.15rem 0;
+  border: 0;
+  border-right: 1px solid var(--pl-paper-rule);
+  border-left: 1px solid var(--pl-paper-rule);
+  border-radius: 0;
+  background: none;
+  color: var(--pl-paper-ink);
   font-family: var(--pl-mono);
   font-weight: 700;
   text-align: center;
+  appearance: textfield;
+}
+
+.pl-slip-ask .pl-stepper input::-webkit-inner-spin-button,
+.pl-slip-ask .pl-stepper input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 .pl-brief .pl-slip-answer {
