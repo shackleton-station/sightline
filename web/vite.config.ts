@@ -132,7 +132,7 @@ export default defineConfig({
       // and one measurement that is on no tab: the globe on WebGL2 next to the same globe on WebGPU, at /gpu/.
       // Sightline, the one-screen redesign, is the front page (and still answers at /sightline/, where it was built).
       // The site as it was before, with its tabs, is at /classic/.
-      input: { main: 'index.html', classic: 'classic/index.html', scout: 'scout/index.html', planner: 'planner/index.html', atlas: 'atlas/index.html', briefing: 'briefing/index.html', surface: 'surface/index.html', sightline: 'sightline/index.html', hype: 'hype/index.html', gpu: 'gpu/index.html', privacy: 'privacy/index.html', terms: 'terms/index.html' },
+      input: { classic: 'classic/index.html', privacy: 'privacy/index.html', terms: 'terms/index.html' },
     },
   },
   server: {
