@@ -61,7 +61,7 @@ import type { TourFile } from '../lib/tour'
 import tourFile from './tour.json'
 import { AccuracyDrawer } from './AccuracyDrawer'
 import { FitLegend } from './FitLegend'
-import { SHADE_OPACITY, useFitOverlay, useMissionGrid, useMoonWash, usePaced, useScenarioOdds } from './useMissionGrid'
+import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
@@ -721,15 +721,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // Landing accuracy: the light grid read for the landing, for the panel's map and odds, and (when
   // asked for) the same verdicts shaded on the Moon. Its months are megabytes, read only then.
   const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, shown && !planner && drawer === 'accuracy')
-  // The shade on the Moon follows the time bar, as the Moon does: it is for a landing at the hour
-  // on show. Each hour is a pass over a month of the grid, so a bar being played is followed at a pace.
-  const shadeHour = usePaced(hour, 700)
-  const shadeGrid = useMissionGrid(start, shadeHour, mission.requirements.missionDays, shown && !planner && fitShade)
-  const fitOverlay = useFitOverlay(shadeGrid, mission, spread, shown && !planner && fitShade)
-  // The rest of the Moon, colored by the same test on a smooth Moon, under the grid's own picture.
-  const moonWash = useMoonWash(start, shadeHour, mission.requirements, shown && !planner && fitShade)
-  // The shade over the Moon: the whole of it from the smooth Moon, and round the south pole the grid's finer picture in its place.
-  const moonShade = useMemo(() => (moonWash ? { wash: moonWash, polar: fitOverlay, opacity: SHADE_OPACITY } : null), [moonWash, fitOverlay])
+  // The shade on the Moon follows the time bar, as the Moon does: it is for a landing at the hour on show.
+  const moonShade = useMoonShade(missionGrid.meta, start, hour, mission, spread, shown && !planner && fitShade)
   // Whether the light grid reaches the site on show: only there do the odds know the terrain.
   const fitHere = missionGrid.meta ? cellAt(missionGrid.meta, site.lat, site.lon) !== null : shadeHere
   // Each scenario's odds of landing where the mission fits: read only once Landing accuracy is in use.
