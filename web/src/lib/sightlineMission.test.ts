@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteFlags } from './flags'
 import type { SiteInfo } from '../data/contract'
-import { bestIn, betterDate, DEFAULT_MISSION, fitProblems, marginalWords, measureScenario, missionWords, steadierLanding, NO_LIMIT_H, PRESETS, presetOf, readScenarioLink, removeScenarioAt, restoreScenario, rowLabels, scenarioLink, type SightlineMission, silenceHours, silenceStop } from './sightlineMission'
+import { bestIn, betterDate, DEFAULT_MISSION, fitProblems, marginalWords, measureScenario, missionWords, steadierLanding, NO_LIMIT_H, PRESETS, presetOf, readScenarioLink, removeScenarioAt, restoreScenario, rowLabels, scenarioLink, type SightlineMission, surfaceLink, silenceHours, silenceStop } from './sightlineMission'
 
 const START = '2027-01-01T00:00:00Z'
 
@@ -10,6 +10,12 @@ describe('a scenario in the address', () => {
   it('is written in the app\'s own link format, which the other pages read', () => {
     const link = scenarioLink([{ site: 'connecting-ridge', landing: 2880 + 133 }], 0, START, DEFAULT_MISSION)
     expect(link).toBe('#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan')
+  })
+  it('gives the Surface view the scenario on show as its own site and hour, not scenario A', () => {
+    const two = [{ site: 'connecting-ridge', landing: 2880 }, { site: 'shackleton-rim', landing: 3624 + 22 }]
+    expect(surfaceLink(two, 0, START, DEFAULT_MISSION)).toBe(scenarioLink([two[0]], 0, START, DEFAULT_MISSION))
+    expect(surfaceLink(two, 1, START, DEFAULT_MISSION)).toBe('#a=shackleton-rim@2027-06&t=22&limits=14_24_99999_1_1&mode=plan')
+    expect(surfaceLink(two, 7, START, DEFAULT_MISSION)).toBe(surfaceLink(two, 0, START, DEFAULT_MISSION))
   })
   it('reads back what it wrote, custom points included', () => {
     for (const scenario of [{ site: 'shackleton-rim', landing: 9000 }, { site: '-89.5,12.25', landing: 0 }]) {

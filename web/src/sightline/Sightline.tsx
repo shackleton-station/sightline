@@ -46,6 +46,7 @@ import {
   restoreScenario,
   SCENARIO_LETTERS,
   scenarioLink,
+  surfaceLink,
   type SightlineScenario,
 } from '../lib/sightlineMission'
 import { ROVER_PRESET } from '../lib/csaRover'
@@ -66,6 +67,7 @@ import { FitLegend } from './FitLegend'
 import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
+import { readSurfaceMoved } from '../surface/address'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
 import { useLightGrid } from '../atlas/useLightGrid'
@@ -444,6 +446,40 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const view = `${scenarioLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
   // In Watch there is no scenario on show: Scout is sent the featured site at the moment on the clock.
   const watchView = scenarioLink([{ site: scenarios[0].site, landing: hour }], 0, start, mission)
+  // The Surface view stands at the scenario on show, at its landing: the side panel's site and date.
+  const surfaceView = `${surfaceLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
+  // The other way: an hour or month chosen in the Surface view becomes the landing in the side panel.
+  // The link that change makes is not sent back to the view, which already shows it: while time plays
+  // there, sending it back would pull the view back to an hour it has just left.
+  const [surfaceSrc, setSurfaceSrc] = useState(surfaceView)
+  const fromSurface = useRef<string | null>(null)
+  const surfaceFrame = useRef<HTMLIFrameElement>(null)
+  useEffect(() => {
+    if (surfaceView !== fromSurface.current) {
+      setSurfaceSrc(surfaceView)
+      // After a change made in the view, the frame is ahead of `surfaceSrc`: a link equal to it would not move the frame.
+      const frame = surfaceFrame.current?.contentWindow
+      if (frame && surfaceView === surfaceSrc) frame.location.hash = `${surfaceView}${fitShade ? '&odds=1' : ''}`
+    }
+    fromSurface.current = null
+    // Only a new link moves the view; the rest is read as it is then.
+  }, [surfaceView])
+  useEffect(() => {
+    if (mode !== 'surface') return
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      const moved = readSurfaceMoved(event.data)
+      if (!moved || moved.site !== scenario.site) return
+      const landing = hourOf(start, `${moved.month}-01T00:00:00Z`) + moved.index
+      if (!Number.isInteger(landing) || landing < 0 || landing >= hours || landing === scenario.landing) return
+      const next = scenarios.map((one, i) => (i === active ? { ...one, landing } : one))
+      fromSurface.current = `${surfaceLink(next, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
+      setScenario((current) => ({ ...current, landing }))
+      setHour(landing)
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [mode, scenario, scenarios, active, start, hours, mission, accuracyUsed, spread, setScenario, setHour])
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
   const scoutView = active > 0 ? view : `${view}&sc=0`
   useEffect(() => {
@@ -1029,7 +1065,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           </p>
         )}
         {/* Standing at the site: the app's own surface view, inside the stage, on the scenario's site and landing. */}
-        {shown && !planner && mode === 'surface' && <iframe className="sl-surface" title="Standing at the site, looking around" src={`/surface/${view}${fitShade ? '&odds=1' : ''}`} />}
+        {shown && !planner && mode === 'surface' && <iframe ref={surfaceFrame} className="sl-surface" title="Standing at the site, looking around" src={`/surface/${surfaceSrc}${fitShade ? '&odds=1' : ''}`} />}
         {/* In the Planner the Moon is a small live view: pressing it comes back. */}
         {planner && (
           <button type="button" className="sl-mini-back" aria-label="Back to the Moon" title="Back to the Moon (Esc)" onClick={() => setFull(false)} />
