@@ -68,18 +68,27 @@ export interface GlobeOverlay {
   opacity: number
 }
 
+/** One of a shade's pictures: two moments of it and how far between them the Moon is, 0 (the first) to 1 (the second). */
+export interface ShadeBlend<Picture> {
+  from: Picture
+  to: Picture
+  mix: number
+}
+
 /**
  * A shade over the whole Moon (`setShade`): a transparent picture drawn over it, apart from the
- * Moon's own shader, which has no texture to spare. Any layer shows through it.
+ * Moon's own shader, which has no texture to spare. Any layer shows through it. Each picture is
+ * given at two moments and blended between them, so a shade that changes with time moves smoothly
+ * from pictures worked out some hours apart.
  */
 export interface GlobeShade {
   /** The whole Moon, laid out like a map of the world: longitude across from 180° W, latitude down from the north pole. */
-  wash: HTMLCanvasElement
+  wash: ShadeBlend<HTMLCanvasElement>
   /**
    * A finer picture of the ground round the south pole, shown in the wash's place as far as it
    * reaches: laid out as a `GlobeOverlay` is. Null for none.
    */
-  polar: { image: HTMLCanvasElement; halfWidthM: number; radiusM: number } | null
+  polar: (ShadeBlend<HTMLCanvasElement> & { halfWidthM: number; radiusM: number }) | null
   /** How much of the Moon the shade hides, 0 to 1. */
   opacity: number
 }
@@ -97,15 +106,19 @@ void main() {
 `
 
 const SHADE_FRAGMENT = /* glsl */ `
-uniform sampler2D washMap;
-uniform sampler2D polarMap;
+uniform sampler2D washFrom;
+uniform sampler2D washTo;
+uniform float washBlend;
+uniform sampler2D polarFrom;
+uniform sampler2D polarTo;
+uniform float polarBlend;
 uniform float polarOn;
 uniform float polarSize; // Moon radius / the polar picture's full width on the ground
 uniform float shadeMix;
 varying vec2 vShadeUv;
 varying vec3 vShadeView;
 void main() {
-  vec4 shade = texture2D(washMap, vShadeUv);
+  vec4 shade = mix(texture2D(washFrom, vShadeUv), texture2D(washTo, vShadeUv), washBlend);
   // The polar picture's place, as the Moon's own shader finds a layer's: from where the pixel is on
   // screen, polar stereographic from the south pole, with 90° E to the right and 0° E up.
   vec2 disk = vShadeView.xy;
@@ -115,13 +128,13 @@ void main() {
   // The polar picture is shown as a disc that gives way to the wash over its outer third, so its
   // square never shows.
   float fade = smoothstep(1.0, 0.66, 2.0 * length(at - 0.5));
-  vec4 polar = texture2D(polarMap, clamp(at, 0.0, 1.0));
+  vec2 inside = clamp(at, 0.0, 1.0);
+  vec4 polar = mix(texture2D(polarFrom, inside), texture2D(polarTo, inside), polarBlend);
   shade = mix(shade, polar, polarOn * fade * step(up.z, 0.0) * polar.a);
   gl_FragColor = vec4(shade.rgb, shade.a * shadeMix);
   #include <colorspace_fragment>
 }
 `
-
 /**
  * A photo of the ground in view, for the Moon's own picture to get sharper from (`setGroundDetail`):
  * laid on the Moon as a square round the south pole (as a `GlobeOverlayDetail` is) or as a rectangle
@@ -403,7 +416,7 @@ export class GlobeViewer {
   private readonly ambient = new THREE.AmbientLight(0xffffff, NIGHT_INTENSITY)
   private readonly geometry = new THREE.SphereGeometry(1, 192, 96)
   /** The shade over the Moon, made the first time one is given. */
-  private shade: { mesh: THREE.Mesh; material: THREE.ShaderMaterial } | null = null
+  private shade: { mesh: THREE.Mesh; material: THREE.ShaderMaterial; textures: Map<HTMLCanvasElement, THREE.Texture> } | null = null
   private readonly material: THREE.MeshStandardMaterial
   private readonly uniforms = {
     reliefMap: { value: placeholderTexture() as THREE.Texture },
@@ -725,8 +738,10 @@ export class GlobeViewer {
   }
 
   /**
-   * Shade the whole Moon with a picture, or take the shade away (null). It is drawn over the Moon
-   * as it is, not lit by the hour's Sun, and any layer shows through it.
+   * Shade the whole Moon, or take the shade away (null). It is drawn over the Moon as it is, not
+   * lit by the hour's Sun, and any layer shows through it. A picture already given is not sent to
+   * the graphics card again: a shade whose pictures are the same and only blended differently
+   * costs nothing to set.
    */
   setShade(shade: GlobeShade | null): void {
     if (this.disposed) return
@@ -736,8 +751,9 @@ export class GlobeViewer {
       return
     }
     if (!this.shade) {
+      const none = () => ({ value: null as THREE.Texture | null })
       const material = new THREE.ShaderMaterial({
-        uniforms: { washMap: { value: null }, polarMap: { value: null }, polarOn: { value: 0 }, polarSize: { value: 1 }, shadeMix: { value: 0 } },
+        uniforms: { washFrom: none(), washTo: none(), washBlend: { value: 0 }, polarFrom: none(), polarTo: none(), polarBlend: { value: 0 }, polarOn: { value: 0 }, polarSize: { value: 1 }, shadeMix: { value: 0 } },
         vertexShader: SHADE_VERTEX,
         fragmentShader: SHADE_FRAGMENT,
         transparent: true,
@@ -749,10 +765,18 @@ export class GlobeViewer {
       const mesh = new THREE.Mesh(this.geometry, material)
       mesh.renderOrder = 1
       this.scene.add(mesh)
-      this.shade = { mesh, material }
+      this.shade = { mesh, material, textures: new Map() }
     }
-    const { mesh, material } = this.shade
-    const picture = (image: HTMLCanvasElement, wraps: boolean) => {
+    const { mesh, material, textures } = this.shade
+    const wanted = new Set<HTMLCanvasElement>([shade.wash.from, shade.wash.to, ...(shade.polar ? [shade.polar.from, shade.polar.to] : [])])
+    for (const [image, texture] of textures) {
+      if (wanted.has(image)) continue
+      texture.dispose()
+      textures.delete(image)
+    }
+    const textureOf = (image: HTMLCanvasElement, wraps: boolean) => {
+      const made = textures.get(image)
+      if (made) return made
       const texture = new THREE.CanvasTexture(image)
       texture.colorSpace = THREE.SRGBColorSpace
       // Round the back of the Moon the wash's two ends meet. No smaller copies of it: they would show that seam as a line.
@@ -762,21 +786,23 @@ export class GlobeViewer {
         texture.generateMipmaps = false
         texture.minFilter = THREE.LinearFilter
       } else texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy()
+      textures.set(image, texture)
       return texture
     }
-    const swap = (uniform: { value: THREE.Texture | null }, next: THREE.Texture | null) => {
-      uniform.value?.dispose()
-      uniform.value = next
-    }
-    swap(material.uniforms.washMap, picture(shade.wash, true))
-    swap(material.uniforms.polarMap, shade.polar ? picture(shade.polar.image, false) : null)
+    material.uniforms.washFrom.value = textureOf(shade.wash.from, true)
+    material.uniforms.washTo.value = textureOf(shade.wash.to, true)
+    material.uniforms.washBlend.value = shade.wash.mix
     material.uniforms.polarOn.value = shade.polar ? 1 : 0
-    if (shade.polar) material.uniforms.polarSize.value = shade.polar.radiusM / (2 * shade.polar.halfWidthM)
+    if (shade.polar) {
+      material.uniforms.polarFrom.value = textureOf(shade.polar.from, false)
+      material.uniforms.polarTo.value = textureOf(shade.polar.to, false)
+      material.uniforms.polarBlend.value = shade.polar.mix
+      material.uniforms.polarSize.value = shade.polar.radiusM / (2 * shade.polar.halfWidthM)
+    }
     material.uniforms.shadeMix.value = shade.opacity
     mesh.visible = true
     this.schedule()
   }
-
   /**
    * Lay a picture over the ground around the south pole, or take it away (null). A new picture
    * fades in from nothing; taking it away fades it out.
@@ -1139,8 +1165,7 @@ export class GlobeViewer {
     this.geometry.dispose()
     this.material.dispose()
     if (this.shade) {
-      this.shade.material.uniforms.washMap.value?.dispose()
-      this.shade.material.uniforms.polarMap.value?.dispose()
+      for (const texture of this.shade.textures.values()) texture.dispose()
       this.shade.material.dispose()
     }
     this.uniforms.reliefMap.value.dispose()

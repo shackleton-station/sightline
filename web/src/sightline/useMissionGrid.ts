@@ -1,41 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLightGrid } from '../atlas/useLightGrid'
 import type { SiteInfo } from '../data/contract'
-import { gapsFor, gapsKey, gapsNow, loadSlopeWhole, slopePartFor, slopePartNow, WHOLE_SUB } from '../data/loadMissionGrid'
+import { gapsFor, gapsKey, gapsNow, loadSlopeWhole, slopePartFor, slopePartNow } from '../data/loadMissionGrid'
 import { ACCURACY_RANGE, cellChances, landingOdds, type Spread } from '../lib/landingOdds'
 import type { LightMeta } from '../lib/lightGrid'
 import { locateHour } from '../lib/mission'
-import { blurReads, fitField, fitMapAround, type GridGaps, halved, oddsField, oddsPixels, squareAround } from '../lib/missionGrid'
+import { fitMapAround, type GridGaps, squareAround } from '../lib/missionGrid'
+import { hourOfYear } from '../lib/moonWash'
 import type { SightlineMission, SightlineScenario } from '../lib/sightlineMission'
 import type { GlobeShade } from '../three/GlobeViewer'
-import { loadYearPositions } from '../data/customSite'
-import type { Requirements } from '../lib/mission'
-import { hourOfYear, smoothMoonFit, softened, WASH_SIZE } from '../lib/moonWash'
-
+import { type Frame, giveSlope, keepFrame, nextWanted, pickFrames, polarPicture, washPicture } from './shadeFrames'
 /**
  * How far the ground is read around a target (m): far enough to hold nearly every landing at the
  * loosest accuracy offered, with room left to look for a better place to aim.
  */
 export const REACH_M = ACCURACY_RANGE.max * 2
-
-/**
- * A value that changes at most every `everyMs`: while it keeps changing, the latest is handed on at
- * that pace; once it rests, the last one arrives. For work too heavy to redo on every hour of a
- * time bar being played.
- */
-export function usePaced<T>(value: T, everyMs: number): T {
-  const [paced, setPaced] = useState(value)
-  const last = useRef(0)
-  useEffect(() => {
-    const wait = Math.max(0, last.current + everyMs - performance.now())
-    const timer = window.setTimeout(() => {
-      last.current = performance.now()
-      setPaced(value)
-    }, wait)
-    return () => window.clearTimeout(timer)
-  }, [value, everyMs])
-  return paced
-}
 
 export interface MissionGrid {
   /** The light grid's description: undefined until known, null if this build has none. */
@@ -79,66 +58,86 @@ export function useMissionGrid(start: string, landing: number, missionDays: numb
 }
 
 /** How much of the Moon the shading hides: the ground still shows through it. */
-export const SHADE_OPACITY = 0.38
-/** The least the picture is softened by, in its own pixels (60 m each at full size): the grid's 120 m cells do not show as squares. */
-const SOFTEN_PX = 1.25
-/** The most pixel reads one picture may cost: past it, the picture is made at half the size. */
-const READS_BUDGET = 80e6
+const SHADE_OPACITY = 0.38
+/** How far apart the pictures blended between are, in hours: the polar one is the costly one. */
+const POLAR_EVERY_H = 24
+const WASH_EVERY_H = 12
+/** The time bar counts as resting once the hour has stood this long: then the hour's own picture is made. */
+const RESTED_MS = 350
+
+/** The pictures on hand, for the one Sightline screen there is. */
+const polarFrames: Frame[] = []
+const washFrames: Frame[] = []
+let slopeGiven: Promise<void> | null = null
 
 /**
- * The odds of a landing fitting, as a picture to lay over the Moon: for a lander aimed at each
- * point of the light grid's square, with the spread given, green where nearly every landing fits
- * the mission, through amber, to red where almost none does. Null while off or not yet read. A
- * spread being dragged is drawn once it rests.
+ * The shade for "Mission success probability", for a landing at the hour on the time bar: the
+ * whole Moon from the smooth Moon, and round the south pole the light grid's finer picture.
+ *
+ * The pictures change slowly and smoothly with the hour, so they are not made for every hour.
+ * Key frames some hours apart are worked out off the page's thread, and the globe blends between
+ * the two either side of the hour, which costs nothing. Once the bar rests, the hour's own picture
+ * is made and shown in their place. Null while off, or before any picture has arrived.
  */
-export function useFitOverlay(grid: MissionGrid, mission: SightlineMission, spread: Spread, on: boolean): GlobeShade['polar'] {
-  const { meta, gaps } = grid
-  const [slope, setSlope] = useState<Float32Array | null | undefined>(undefined)
+export function useMoonShade(meta: LightMeta | null | undefined, start: string, hour: number, mission: SightlineMission, spread: Spread, on: boolean): GlobeShade | null {
+  const [arrived, setArrived] = useState(0)
+  const [restedHour, setRestedHour] = useState(hour)
   useEffect(() => {
-    if (!on || !meta) return
-    let current = true
-    void loadSlopeWhole(meta).then((value) => current && setSlope(value))
-    return () => {
-      current = false
-    }
-  }, [on, meta])
-
-  const [rested, setRested] = useState(spread)
+    const timer = window.setTimeout(() => setRestedHour(hour), RESTED_MS)
+    return () => window.clearTimeout(timer)
+  }, [hour])
+  const rested = restedHour === hour
+  // A spread being dragged is drawn once it rests.
+  const [restedSpread, setRestedSpread] = useState(spread)
   useEffect(() => {
-    const wait = window.setTimeout(() => setRested(spread), 200)
-    return () => window.clearTimeout(wait)
+    const timer = window.setTimeout(() => setRestedSpread(spread), 200)
+    return () => window.clearTimeout(timer)
   }, [spread])
 
   const { requirements, maxSlopeDeg } = mission
-  // Where a landing fits changes with the mission, not with the spread laid on it.
-  const fits = useMemo(() => {
-    // The slope is waited for, so the picture does not arrive twice.
-    if (!on || !meta || !gaps || slope === undefined) return null
-    return fitField(gaps, requirements, maxSlopeDeg, WHOLE_SUB, slope, true)
-  }, [on, meta, gaps, slope, requirements, maxSlopeDeg])
+  const washSign = JSON.stringify(requirements)
+  const polarSign = JSON.stringify([requirements, maxSlopeDeg, restedSpread])
+  const busy = useRef({ polar: false, wash: false })
 
-  const picture = useMemo(() => {
-    if (!fits || !meta || !gaps) return null
-    const full = gaps.size * WHOLE_SUB
-    const fullM = meta.pixel_m / WHOLE_SUB
-    // A wide spread blurs far: at half the size it reads a quarter of the pixels over half the distance.
-    const small = full * full * blurReads(fullM, rested) > READS_BUDGET
-    const side = small ? full / 2 : full
-    const odds = oddsField(small ? halved(fits, full) : fits, side, small ? 2 * fullM : fullM, rested, small ? SOFTEN_PX / 2 : SOFTEN_PX)
-    const image = document.createElement('canvas')
-    image.width = side
-    image.height = side
-    const context = image.getContext('2d')
-    if (!context) return null
-    context.putImageData(new ImageData(oddsPixels(odds) as Uint8ClampedArray<ArrayBuffer>, side, side), 0, 0)
-    return { image, halfWidthM: meta.half_width_m, radiusM: meta.radius_m }
-  }, [fits, meta, gaps, rested])
-  // While the next hour's picture is on the way the last one stays, so the Moon does not blink.
-  const [kept, setKept] = useState(picture)
   useEffect(() => {
-    if (picture) setKept(picture)
-  }, [picture])
-  return on ? (picture ?? kept) : null
+    if (!on) return
+    const tell = () => setArrived((count) => count + 1)
+    const washHour = nextWanted(washFrames, washSign, hour, WASH_EVERY_H, rested)
+    if (washHour !== null && !busy.current.wash) {
+      busy.current.wash = true
+      const { year, hour: inYear } = hourOfYear(start, washHour)
+      void washPicture({ year, hour: inYear, requirements }).then((picture) => {
+        keepFrame(washFrames, { sign: washSign, hour: washHour, picture }, 8)
+        busy.current.wash = false
+        tell()
+      })
+    }
+    const polarHour = meta ? nextWanted(polarFrames, polarSign, hour, POLAR_EVERY_H, rested) : null
+    if (meta && polarHour !== null && !busy.current.polar) {
+      busy.current.polar = true
+      // The slope goes to the worker once, before its first polar picture.
+      slopeGiven ??= loadSlopeWhole(meta).then(giveSlope)
+      const { month, index } = locateHour(start, polarHour)
+      void slopeGiven
+        .then(() => polarPicture({ meta, month, index, requirements, maxSlopeDeg, spread: restedSpread }))
+        .then((picture) => {
+          keepFrame(polarFrames, { sign: polarSign, hour: polarHour, picture }, 5)
+          busy.current.polar = false
+          tell()
+        })
+    }
+    // `arrived` counts the pictures that have come: each arrival may leave another to ask for.
+  }, [on, meta, start, hour, rested, washSign, polarSign, requirements, maxSlopeDeg, restedSpread, arrived])
+
+  return useMemo(() => {
+    if (!on) return null
+    const wash = pickFrames(washFrames, washSign, hour, WASH_EVERY_H)
+    if (!wash) return null
+    const polar = meta ? pickFrames(polarFrames, polarSign, hour, POLAR_EVERY_H) : null
+    return { wash, polar: polar && meta ? { ...polar, halfWidthM: meta.half_width_m, radiusM: meta.radius_m } : null, opacity: SHADE_OPACITY }
+    // `arrived` counts the pictures that have come: each arrival may change what there is to show.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [on, meta, hour, washSign, polarSign, arrived])
 }
 /**
  * The odds of a landing fitting, for each scenario: its own landing read from the light grid, the
@@ -190,47 +189,3 @@ export function useScenarioOdds(meta: LightMeta | null | undefined, start: strin
   )
 }
 
-/**
- * The whole Moon colored by whether a landing at this hour fits the mission's Sun and Earth limits
- * on a smooth Moon (`moonWash.ts`): the same green and red as the light grid's picture, for the
- * ground the grid does not reach. Null while off, while the year's positions load, or when the
- * mission runs past them.
- */
-export function useMoonWash(start: string, landing: number, requirements: Requirements, on: boolean): HTMLCanvasElement | null {
-  const { year, hour } = hourOfYear(start, landing)
-  // A mission that runs into the next year needs that year's positions too.
-  const spills = hourOfYear(start, landing + requirements.missionDays * 24).year > year
-  const key = `${year}${spills ? '+' : ''}`
-  const [loaded, setLoaded] = useState<{ key: string; positions: Float32Array } | null>(null)
-  useEffect(() => {
-    if (!on) return
-    let current = true
-    Promise.all([loadYearPositions(year), spills ? loadYearPositions(year + 1) : null])
-      .then(([first, second]) => {
-        if (!current) return
-        const positions = new Float32Array(first.length + (second?.length ?? 0))
-        positions.set(first)
-        if (second) positions.set(second, first.length)
-        setLoaded({ key, positions })
-      })
-      // Without the positions the Moon keeps only the light grid's picture.
-      .catch((reason: unknown) => console.error(reason))
-    return () => {
-      current = false
-    }
-  }, [on, year, spills, key])
-
-  const positions = loaded?.key === key ? loaded.positions : null
-  return useMemo(() => {
-    if (!on || !positions) return null
-    const fit = smoothMoonFit(positions, hour, requirements)
-    if (!fit) return null
-    const image = document.createElement('canvas')
-    image.width = WASH_SIZE.width
-    image.height = WASH_SIZE.height
-    const context = image.getContext('2d')
-    if (!context) return null
-    context.putImageData(new ImageData(oddsPixels(softened(fit, WASH_SIZE)) as Uint8ClampedArray<ArrayBuffer>, WASH_SIZE.width, WASH_SIZE.height), 0, 0)
-    return image
-  }, [on, positions, hour, requirements])
-}
