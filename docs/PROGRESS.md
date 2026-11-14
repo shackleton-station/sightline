@@ -305,6 +305,14 @@ Local Lead.
 - [x] Find: the header (back, tabs, scenario tray, Brief, Share, Export, Scout), the tab in the link (`&planner=find`), and every site by month with the days a landing fits (`web/src/sightline/plannerFit.ts`, `PlannerFind.tsx`; checks in `sightline-shots.mjs`, scene `planner-find`)
 - [ ] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science row from `shadow.json`, and "Add scenario" as the last column
 
+## Landing accuracy (2026-11-14)
+
+- [x] The odds of landing where the mission fits: `web/src/lib/landingOdds.ts` (the miss as a circular bell curve; the accuracy typed is the radius holding 99% of landings) and `web/src/lib/missionGrid.ts` (one pass over the light grid's months for a landing: Sun and Earth at landing and the longest gaps, at every cell). The cell verdict is tested to agree with `landingProblems` hour by hour
+- [x] The "Accuracy" panel in Sightline's rail: the ground around the target in green and red (Sun and Earth on the grid's 120 m cells, slope on the 30 m slope images), the odds for the accuracy on the slider, the reasons for the misses, a chart of miss distance, and the loosest accuracy that keeps 90%
+- [x] The same verdicts shaded on the Moon (Orbit and Site), through the place a Moon Trek layer has; on from the first time the panel is opened, with a switch in the panel. A Moon Trek layer waits under it
+- [ ] Not done: the panel reads the grid at 2 m with any part of Earth counting, so a mission with other heights or an Earth clearance is told so and not judged with them; ground beyond the fine grid (about 61 km from the pole) has no map; the miss is the same in every direction (no approach path); the accuracy is not carried in the link; not looked at on a phone
+- [ ] Ask Misha: the panel adds a button to the rail and takes the overlay's place on the Moon while its shading is on
+
 ## The landing brief: what the sky does from the landing on (2026-11-14, Sebastian)
 
 - [x] Brief section "From the landing on" (`web/src/planner/LandingSky.tsx`), on the Planner page and in the
