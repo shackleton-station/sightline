@@ -3377,3 +3377,130 @@
     box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
   }
 }
+
+/* ---------- Scout's tour: a ring round what a step is about, and his bubble. Nothing is dimmed,
+   and neither is ever drawn over the Moon's disc (the bubble's place is worked out: lib/tour.ts). ---------- */
+.sl-tour-ring {
+  position: fixed;
+  z-index: 45;
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px rgb(232 180 76 / 25%);
+  pointer-events: none;
+}
+
+.sl-tour {
+  position: fixed;
+  z-index: 46;
+  width: 21.5rem;
+  max-width: calc(100vw - 24px);
+  padding: 0.7rem 0.8rem 0.65rem;
+  border: 1.5px solid var(--gold-deep);
+  border-radius: 14px;
+  /* Opaque: on a phone it lies over the sheet, and nothing under it may show through its words. */
+  background: #15121c;
+  box-shadow: 0 10px 26px rgb(0 0 0 / 55%);
+}
+
+.sl-tour-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sl-tour .sl-tour-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.sl-tour-count {
+  margin-left: auto;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sl-tour-say {
+  margin: 0.45rem 0 0.6rem;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.sl-tour .sl-tour-foot {
+  /* Scout's pages give a footer a rule and room above it: not this one. */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.6rem;
+}
+
+.sl-tour-voice,
+.sl-tour-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sl-tour-voice small {
+  color: var(--soft);
+  font-size: 0.6875rem;
+}
+
+.sl-tour .sl-small {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8125rem;
+}
+
+.sl-tour .sl-small:disabled {
+  opacity: 0.45;
+}
+
+.sl-tour .sl-tour-next,
+.sl-tour .sl-tour-listen[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-tour .sl-tour-video {
+  font-size: 0.8125rem;
+}
+
+/* On a first visit Scout's closed line is the offer of the tour: a line to press. */
+.sl-scout-line .sl-tour-offer {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--gold);
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  /* On a phone the bubble spans the screen, and its foot is one row, so it is short enough to sit
+     between the Moon and the play control when that is what it rings. */
+  .sl-tour {
+    width: calc(100vw - 24px);
+  }
+
+  .sl-tour .sl-tour-foot {
+    flex-wrap: nowrap;
+    gap: 0.3rem;
+  }
+
+  .sl-tour .sl-small {
+    padding: 0.25rem 0.5rem;
+  }
+}

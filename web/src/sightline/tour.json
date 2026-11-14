@@ -1,0 +1,79 @@
+{
+  "about": "Scout's tour of Sightline: the one file that holds its steps. The page (src/sightline/Tour.tsx) reads it to drive the real screen, How it works and the README list the same steps, scripts/tour-voice.mjs renders each step's words once in Scout's voice, and the tutorial video's recorder reads it too, so the tour and the video say the same thing.",
+  "name": "The one-minute tour",
+  "offer": "New here? Take the one-minute tour.",
+  "voice": {
+    "disclosure": "AI-generated voice",
+    "files": "/tour/voice/<id>.mp3",
+    "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\""
+  },
+  "video": {
+    "about": "The tutorial video, recorded from this tour. The page shows its player only once the file answers.",
+    "file": "/media/sightline-tutorial.mp4",
+    "poster": "/media/sightline-tutorial-poster.jpg",
+    "captions": "/media/sightline-tutorial.vtt"
+  },
+  "scenario": {
+    "about": "The landing the tour plans from step 3 on: one that does not fit the default mission, so the verdict has a reason and a next landing to show.",
+    "site": "connecting-ridge",
+    "landing": "2027-05-06T13:00:00Z"
+  },
+  "steps": [
+    {
+      "id": "watch",
+      "title": "The Moon, now",
+      "say": "A lander needs the Sun for power and Earth for radio. This is the Moon from above its south pole, lit as it is now: press play.",
+      "state": { "view": "watch" },
+      "targets": [".sl-pill"]
+    },
+    {
+      "id": "markers",
+      "title": "The markers",
+      "say": "Each marker is a landing site. Its shape and colour say what it can see at this moment: the Sun, Earth, both or neither.",
+      "state": { "view": "watch", "ring": "connecting-ridge" },
+      "targets": [".sl-watch-key"]
+    },
+    {
+      "id": "plan",
+      "title": "Plan a landing",
+      "say": "Choose where to land, when, and which mission. Everything below answers for that plan.",
+      "state": { "view": "plan" },
+      "targets": [".sl-plan"]
+    },
+    {
+      "id": "verdict",
+      "title": "The verdict",
+      "say": "Sightline says whether the landing fits the mission, and why. If it does not, it offers the next landing that does.",
+      "state": { "view": "plan" },
+      "targets": [".sl-verdict"]
+    },
+    {
+      "id": "skyline",
+      "title": "What the lander sees",
+      "say": "This is the real skyline around the site, with the Sun and Earth where they stand at that hour. A body below the skyline is out of view.",
+      "state": { "view": "plan", "show": "skyline" },
+      "targets": [".sl-sky"]
+    },
+    {
+      "id": "time",
+      "title": "The month ahead",
+      "say": "The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press \"land here\" to try that hour.",
+      "state": { "view": "plan", "show": "time" },
+      "targets": [".sl-river"]
+    },
+    {
+      "id": "compare",
+      "title": "More than one plan",
+      "say": "Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window.",
+      "state": { "view": "plan" },
+      "targets": [".sl-tabs", "[data-tour='compare']", "[data-tour='planner']", "[data-tour='more']"]
+    },
+    {
+      "id": "scout",
+      "title": "Ask Scout",
+      "say": "Ask Scout in plain words: he looks the answer up in the same data. Hide leaves only the Moon.",
+      "state": { "view": "plan" },
+      "targets": ["[data-tour='scout']", "[data-tour='hide']", "[data-tour='more']"]
+    }
+  ]
+}
