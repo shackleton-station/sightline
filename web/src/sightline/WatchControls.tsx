@@ -3,7 +3,7 @@ import { DEFAULT_SPEED, SPEEDS } from '../lib/sightline'
 import { Mascot } from '../scout/Mascot'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { MAX_QUESTION_CHARS } from '../lib/chatClient'
-import { AiTag, type ScoutChat } from './AskScout'
+import { AiTag, ModelTag, type ScoutChat } from './AskScout'
 import { NOT_A_LOGIN } from './inputs'
 import type { Clock } from './hooks'
 
@@ -124,7 +124,7 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
         <div ref={card} className="sl-card" role="dialog" aria-label="Scout">
           <header className="sl-card-head">
             <span className="sl-ask-name">
-              Scout <AiTag />
+              Scout <ModelTag />
             </span>
             <button type="button" className="sl-small" onClick={() => onOpen(false)}>
               Close
