@@ -982,6 +982,25 @@
   overflow: hidden;
 }
 
+/* Another panel is open beside Scout's on a window under 1600 px: his is narrower, so the Moon keeps its room. */
+@media (max-width: 1599px) {
+  .scout.sightline.has-both-panels .sl-drawer.sl-scout-panel {
+    width: 17rem;
+  }
+
+  /* His name and "Close" keep their row: the model's tag drops under them. */
+  .scout.sightline.has-both-panels .sl-scout-panel .sl-drawer-head {
+    flex-wrap: wrap;
+    row-gap: 0.2rem;
+  }
+
+  .scout.sightline.has-both-panels .sl-scout-panel .sl-ask-name {
+    flex-wrap: wrap;
+    flex: 1 1 8rem;
+    min-width: 0;
+  }
+}
+
 .sl-ask-name {
   display: flex;
   align-items: center;

@@ -98,8 +98,12 @@ const PLAY_CONTROL_ROOM_PX = 64
 /** Under this window width Scout's bubble would reach the Moon's disc, so the Moon is fitted above it. */
 const NARROW_UNDER_PX = 1180
 
-/** From this window width a panel of Plan's (Mission, Compare, Layers) and Scout's can both stand beside the Moon. */
-const BOTH_PANELS_FROM_PX = 1600
+/**
+ * From this window width a panel of Plan's (Compare, Accuracy, Layers) and Scout's both stand beside the Moon: opening
+ * one does not shut Scout. Under 1600 px Scout's panel is drawn narrower while the other is open, so the Moon keeps
+ * its room; under this width there is no room for both, and the other panel takes Scout's place while it is open.
+ */
+const BOTH_PANELS_FROM_PX = 1400
 /** Under this window width the page is laid out for a phone: Scout's card and panels are sheets. */
 const PHONE_UNDER_PX = 761
 
@@ -819,7 +823,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // window with no room for both beside the Moon.
   const scoutPanel = room === 'phone' ? drawer === 'scout' : !scoutShut && tourAt === null && (planner || drawer === null || drawer === 'scout' || window.innerWidth >= BOTH_PANELS_FROM_PX)
   const docked = room !== 'phone' && !bare && (plan ? false : scoutOpen && tourAt === null)
-  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', docked ? 'has-dock' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
+  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', scoutPanel && drawer !== null && drawer !== 'scout' && !planner ? 'has-both-panels' : '', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', docked ? 'has-dock' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
     <div className={classes}>
