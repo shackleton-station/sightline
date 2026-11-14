@@ -32,11 +32,11 @@ export function bothPct(flags: SiteFlags, landing: number, mission: SightlineMis
 
 /**
  * The table's rows with a number in them: Compare's five, the share of the mission with both the
- * Sun and Earth, and the average sunlight on a panel (each scenario's is undefined while its months
- * load, null if it cannot be worked out). Every one is engineering; the app has no science measure
+ * Sun and Earth, and, where the caller has it, the average sunlight on a panel (each scenario's is
+ * undefined while its months load, null if it cannot be worked out). Every one is engineering; the app has no science measure
  * (such as the distance to permanent shadow), so there are no science rows.
  */
-export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioMeasure | null)[], flags: (SiteFlags | null)[], mission: SightlineMission, sunlightWm2: (number | null | undefined)[]): PlannerRow[] {
+export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioMeasure | null)[], flags: (SiteFlags | null)[], mission: SightlineMission, sunlightWm2?: (number | null | undefined)[]): PlannerRow[] {
   const write = (value: number | null, known: boolean, digits: number) => (value === null ? (known ? '?' : null) : value.toFixed(digits))
   const hours = (value: number | null) => (value === null ? null : shareHours(value, mission.requirements.missionDays))
   const rows: PlannerRow[] = COMPARE_ROWS.map((row) => {
@@ -53,20 +53,18 @@ export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioM
     const site = flags[i]
     return site ? bothPct(site, scenario.landing, mission) : null
   })
-  const sunlight = sunlightWm2.map((value) => value ?? null)
-  rows.splice(
-    4,
-    0,
-    { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), notes: both.map(hours), best: bestIn(both, 'high', 0.5) },
-    {
+  rows.splice(4, 0, { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), notes: both.map(hours), best: bestIn(both, 'high', 0.5) })
+  if (sunlightWm2) {
+    const sunlight = sunlightWm2.map((value) => value ?? null)
+    rows.splice(5, 0, {
       key: 'sunlightWm2',
       label: 'Sunlight on a panel, W/m²',
       title: SUNLIGHT_MEANS,
       cells: sunlight.map((value, i) => write(value, sunlightWm2[i] !== undefined, 0)),
       notes: sunlight.map(() => null),
       best: bestIn(sunlight, 'high', SUNLIGHT_TIE_W_M2),
-    },
-  )
+    })
+  }
   return rows
 }
 

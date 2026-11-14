@@ -51,6 +51,10 @@ describe('plannerRows', () => {
     expect(rows[5].best).toEqual([false, false])
   })
 
+  it('has no sunlight row for a caller that does not have the sunlight', () => {
+    expect(plannerRows(scenarios, measures, [flags, flags], mission).map((row) => row.key)).toEqual(['sunPct', 'sunGapH', 'earthPct', 'earthGapH', 'bothPct', 'slopeDeg'])
+  })
+
   it('says the hours behind each share of the mission, and nothing beside the other rows', () => {
     const rows = plannerRows(scenarios, [measure({}), null], [flags, null], mission, [300, undefined])
     // A four-day mission is 96 hours: half of it sunlit, half with Earth, a quarter with both.
