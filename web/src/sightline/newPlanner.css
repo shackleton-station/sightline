@@ -511,3 +511,241 @@
   background: var(--muted);
   vertical-align: middle;
 }
+
+
+/* ---------- Compare: the Sun's height over each mission ---------- */
+.pl-sunchart {
+  margin-top: 1.2rem;
+}
+
+.pl-sunrow {
+  margin: 0.45rem 0 0;
+}
+
+.pl-sunrow figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+}
+
+.pl-sunrow-letter {
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 4px;
+  background: var(--pl-ink);
+  color: #17120a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pl-sunrow-read {
+  margin-left: auto;
+  color: var(--soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-sunrow svg {
+  display: block;
+}
+
+.pl-sun-seen {
+  fill: none;
+  stroke: var(--sl-sun);
+  stroke-width: 2;
+}
+
+.pl-sun-hidden {
+  fill: none;
+  stroke: var(--sl-sun);
+  stroke-width: 1.25;
+  stroke-dasharray: 2 3;
+  opacity: 0.45;
+}
+
+.pl-sun-level {
+  stroke: var(--soft);
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+
+.pl-sun-grid {
+  stroke: var(--line);
+}
+
+.pl-sun-tick {
+  fill: var(--soft);
+  font-size: 10px;
+}
+
+.pl-sun-cursor {
+  stroke: var(--text);
+  opacity: 0.5;
+}
+
+.pl-sun-key {
+  display: inline-block;
+  width: 1rem;
+  height: 0;
+  margin: 0 0.25rem 0.2rem 0.6rem;
+  border-top: 2px solid var(--sl-sun);
+  vertical-align: middle;
+}
+
+.pl-sun-key:first-child {
+  margin-left: 0;
+}
+
+.pl-sun-key.is-hidden {
+  border-top: 1.5px dashed var(--sl-sun);
+  opacity: 0.6;
+}
+
+.pl-sun-key.is-level {
+  border-top: 1.5px dashed var(--soft);
+}
+
+/* ---------- Compare: power and battery, roughly ---------- */
+.pl-power {
+  margin-top: 1.2rem;
+}
+
+.pl-power-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 1rem;
+  margin-top: 0.4rem;
+}
+
+.pl-power-field {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.pl-power-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pl-power-input input {
+  width: 4.5rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-power-input small {
+  color: var(--soft);
+}
+
+.pl-power-example {
+  margin: 0 0 0.45rem !important;
+  color: var(--soft);
+  font-size: 0.75rem !important;
+}
+
+.pl-power-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.pl-power-card {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.pl-power-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 !important;
+  font-weight: 600;
+}
+
+.pl-power-card dl {
+  margin: 0.4rem 0 0;
+}
+
+.pl-power-card dl > div + div {
+  margin-top: 0.35rem;
+}
+
+.pl-power-card dt {
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.pl-power-card dd {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-power-bar {
+  height: 4px;
+  margin-top: 0.2rem !important;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.pl-power-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--sl-sun);
+}
+
+/* ---------- Find: the ground around a ridge site, under the month opened ---------- */
+.pl-nearby {
+  margin-top: 0.8rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.pl-nearby h5 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+}
+
+.pl-nearby > p {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.pl-nearby-map {
+  margin-top: 0.6rem;
+}
+
+/* The New Planner: Sun height and power for your picks, folded under the cards. */
+.np-detail {
+  margin: 0 0 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--pl-rule);
+}
+
+.np-detail > summary {
+  color: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
