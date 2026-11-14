@@ -57,7 +57,9 @@ import { Tour } from './Tour'
 import type { TourFile } from '../lib/tour'
 import tourFile from './tour.json'
 import { AccuracyDrawer } from './AccuracyDrawer'
-import { useFitOverlay, useMissionGrid } from './useMissionGrid'
+import { FitLegend } from './FitLegend'
+import { useFitOverlay, useMissionGrid, useScenarioOdds } from './useMissionGrid'
+import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
 import { useLightGrid } from '../atlas/useLightGrid'
@@ -212,6 +214,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [shade, setShade] = useState(false)
   // Where a landing fits the mission, shaded on the Moon: on from the first time Landing accuracy is opened.
   const [fitShade, setFitShade] = useState(false)
+  // How the lander's misses are spread. Once Landing accuracy has been used, or a link carries it,
+  // its odds show under the verdict and in Compare, and the spread rides in the link.
+  const [spread, setSpread] = useState<Spread>(() => readSpreadLink(window.location.hash) ?? DEFAULT_SPREAD)
+  const [accuracyUsed, setAccuracyUsed] = useState(() => readSpreadLink(window.location.hash) !== null)
   const trek = useTrekOverlay(layer)
   const [mode, setMode] = useState<StageMode>('orbit')
   const [sheet, setSheet] = useState(1)
@@ -393,7 +399,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   }, [title])
 
   // The address always reopens what is on screen: the scenario in Plan, nothing in Watch.
-  const view = scenarioLink(scenarios, active, start, mission)
+  const view = `${scenarioLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
   // In Watch there is no scenario on show: Scout is sent the featured site at the moment on the clock.
   const watchView = scenarioLink([{ site: scenarios[0].site, landing: hour }], 0, start, mission)
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
@@ -423,6 +429,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       setScenarios(link.scenarios)
       setActive(link.active)
       setMission(link.mission)
+      const carried = readSpreadLink(hash)
+      if (carried) {
+        setSpread(carried)
+        setAccuracyUsed(true)
+      }
       setPlan(true)
       setPlaying(false)
       setHour(link.scenarios[link.active].landing)
@@ -659,7 +670,24 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // Landing accuracy: the light grid read for the landing, for the panel's map and odds, and (when
   // asked for) the same verdicts shaded on the Moon. Its months are megabytes, read only then.
   const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, shown && !planner && (drawer === 'accuracy' || fitShade))
-  const fitOverlay = useFitOverlay(missionGrid, mission, shown && !planner && fitShade)
+  const fit = useFitOverlay(missionGrid, mission, shown && !planner && fitShade)
+  const fitOverlay = fit.overlay
+  // Each scenario's odds of landing where the mission fits: read only once Landing accuracy is in use.
+  const odds = useScenarioOdds(
+    missionGrid.meta,
+    start,
+    scenarios,
+    facts.map((fact) => fact.site),
+    mission,
+    spread,
+    shown && accuracyUsed,
+  )
+  const openAccuracy = () => {
+    // Opening it shades the Moon too; the panel has the switch to take the shading off.
+    setFitShade(true)
+    setAccuracyUsed(true)
+    setDrawer('accuracy')
+  }
   const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', gliding && !plan ? 'is-gliding' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
@@ -737,6 +765,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               heightsLine={heightsLine}
               earthShare={shares[active]?.earth ?? null}
               verdict={
+                <>
                 <Verdict
                   problems={problems}
                   marginal={marginal}
@@ -759,6 +788,15 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                   onWhy={askWhy}
                   onMission={() => setDrawer('mission')}
                 />
+                {accuracyUsed && odds[active] !== null && (
+                  <p className="sl-odds-line">
+                    <button type="button" className="sl-link" title="Open Landing accuracy" onClick={openAccuracy}>
+                      {oddsWords(odds[active])} of landings fit
+                    </button>{' '}
+                    at {spreadWords(spread)} accuracy
+                  </p>
+                )}
+                </>
               }
             />
           </PlanColumn>
@@ -816,6 +854,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         />
         {/* The column is about the landing; the Moon follows the time bar. When the two differ, say so,
             in the strip kept clear under the Moon, with the two ways to bring them together. */}
+        {shown && !planner && mode !== 'surface' && fitOverlay && <FitLegend reasons={fit.reasons} />}
         {shown && !planner && mode !== 'surface' && hour !== scenario.landing && (
           <p className="sl-off-landing sl-fade">
             <span>Showing {clockTime(start, hour)}, not the landing</span>
@@ -980,10 +1019,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         <AdvancedDrawer mission={mission} onMission={setMission} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} onBack={() => setDrawer('mission')} onClose={() => setDrawer(null)} />
       )}
       {shown && !planner && drawer === 'compare' && (
-        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} />
+        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} />
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={setFitShade} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={setFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'layers' && <LayersDrawer layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
       {shown && !planner && (
         <Rail
@@ -1005,11 +1044,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onCompare={() => setDrawer(drawer === 'compare' ? null : 'compare')}
           accuracyOpen={drawer === 'accuracy'}
           accuracyOn={fitShade}
-          onAccuracy={() => {
-            // Opening it shades the Moon too; the panel has the switch to take the shading off.
-            if (drawer !== 'accuracy') setFitShade(true)
-            setDrawer(drawer === 'accuracy' ? null : 'accuracy')
-          }}
+          onAccuracy={() => (drawer === 'accuracy' ? setDrawer(null) : openAccuracy())}
           layersOpen={drawer === 'layers'}
           layerOn={layer !== null}
           onLayers={() => setDrawer(drawer === 'layers' ? null : 'layers')}

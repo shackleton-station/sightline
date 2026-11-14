@@ -1,27 +1,52 @@
 import { describe, expect, it } from 'vitest'
 import {
   ACCURACY_SHARE,
+  bestAim,
   cellAtM,
   cellCentreM,
-  chanceBetween,
+  cellChances,
+  DEFAULT_SPREAD,
   erf,
   type FitMap,
   FITS,
   landingOdds,
   largestAccuracyM,
   loosestAccuracyM,
+  MISS_COLORS,
   missCode,
   oddsWords,
   offeredAccuracies,
   radiusHolding,
+  readSpreadLink,
   rings,
   sigmaM,
+  type Spread,
+  spreadLink,
+  spreadWords,
+  verdictColor,
 } from './landingOdds'
 
 /** A square map centred on the target, every cell with one code. */
 function evenMap(size: number, cellM: number, code = FITS): FitMap {
   return { size, cellM, leftM: (-size * cellM) / 2, topM: (size * cellM) / 2, verdict: new Uint8Array(size * size).fill(code) }
 }
+
+/** A lander whose misses are the same in every direction. */
+function round(accuracyM: number): Spread {
+  return { accuracyM, stretch: 1, bearingDeg: 0 }
+}
+
+/** The map with only the cells `keep` picks fitting; the rest too dark. */
+function only(map: FitMap, keep: (x: number, y: number) => boolean): FitMap {
+  for (let cell = 0; cell < map.verdict.length; cell += 1) {
+    const { x, y } = cellCentreM(map, cell)
+    map.verdict[cell] = keep(x, y) ? FITS : missCode('dark')
+  }
+  return map
+}
+
+const oddsFor = (map: FitMap, spread: Spread) => landingOdds(map, cellChances(map, spread))
+const total = (chances: Float64Array) => chances.reduce((sum, chance) => sum + chance, 0)
 
 describe('the bell curve', () => {
   it('knows the error function', () => {
@@ -35,16 +60,56 @@ describe('the bell curve', () => {
   it('puts 99% of landings inside the accuracy radius', () => {
     const sigma = sigmaM(100)
     expect(sigma).toBeCloseTo(100 / Math.sqrt(2 * Math.log(100)), 9)
-    expect(chanceBetween(0, 100, sigma)).toBeCloseTo(ACCURACY_SHARE, 9)
     expect(radiusHolding(0.99, sigma)).toBeCloseTo(100, 9)
     // Half of all landings are within 1.1774 sigma of the target.
     expect(radiusHolding(0.5, sigma) / sigma).toBeCloseTo(1.17741, 4)
+    // Counted on a fine map: the cells within 100 m hold 99% of landings.
+    const map = only(evenMap(200, 5), (x, y) => Math.hypot(x, y) < 100)
+    expect(oddsFor(map, round(100)).fit).toBeCloseTo(ACCURACY_SHARE, 2)
   })
 
-  it('counts every landing once across rings', () => {
-    const sigma = sigmaM(300)
-    const total = rings(evenMap(40, 30), sigma, 30, 3000).reduce((sum, ring) => sum + ring.chance, 0)
-    expect(total).toBeCloseTo(1, 6)
+  it('counts every landing once across the map and its rings', () => {
+    const map = evenMap(80, 30)
+    const chances = cellChances(map, round(300))
+    expect(total(chances)).toBeCloseTo(1, 6)
+    expect(rings(map, chances, 30, 1200).reduce((sum, ring) => sum + ring.chance, 0)).toBeCloseTo(1, 3)
+  })
+})
+
+describe('a miss longer along the approach', () => {
+  it('holds 99% inside the stretched outline, whichever way it points', () => {
+    const map = evenMap(160, 10)
+    for (const bearingDeg of [0, 90, 35, 120]) {
+      const spread = { accuracyM: 100, stretch: 3, bearingDeg }
+      const turn = (bearingDeg * Math.PI) / 180
+      const inside = only(evenMap(160, 10), (x, y) => {
+        const along = x * Math.sin(turn) + y * Math.cos(turn)
+        const across = x * Math.cos(turn) - y * Math.sin(turn)
+        return (along / 300) ** 2 + (across / 100) ** 2 < 1
+      })
+      expect(total(cellChances(map, spread)), `whole map at ${bearingDeg}°`).toBeCloseTo(1, 2)
+      expect(oddsFor(inside, spread).fit, `inside the outline at ${bearingDeg}°`).toBeCloseTo(0.99, 2)
+    }
+  })
+
+  it('agrees with the exact count when it is lined up with the map', () => {
+    // A strip up the middle fits. Straight up (0°) is counted exactly; 0.001° off it is sampled.
+    const strip = () => only(evenMap(60, 30), (x) => Math.abs(x) < 90)
+    const exact = oddsFor(strip(), { accuracyM: 200, stretch: 2, bearingDeg: 0 }).fit
+    const sampled = oddsFor(strip(), { accuracyM: 200, stretch: 2, bearingDeg: 0.001 }).fit
+    // Sampling is good to a tenth of a point, and the odds are shown in whole points.
+    expect(Math.abs(sampled - exact)).toBeLessThan(0.002)
+    // The strip is 90 m each way across the path: 1.366 sigma at a sigma of 65.9 m.
+    expect(exact).toBeCloseTo(erf(90 / (sigmaM(200) * Math.SQRT2)), 3)
+  })
+
+  it('does better along a strip of good ground than across it', () => {
+    const strip = () => only(evenMap(80, 30), (x) => Math.abs(x) < 90)
+    const along = oddsFor(strip(), { accuracyM: 150, stretch: 4, bearingDeg: 0 }).fit
+    const across = oddsFor(strip(), { accuracyM: 150, stretch: 4, bearingDeg: 90 }).fit
+    const slanted = oddsFor(strip(), { accuracyM: 150, stretch: 4, bearingDeg: 45 }).fit
+    expect(along).toBeGreaterThan(slanted)
+    expect(slanted).toBeGreaterThan(across)
   })
 })
 
@@ -57,13 +122,18 @@ describe('cells of the map', () => {
     expect(cellAtM(map, 119, -119)).toBe(15)
     expect(cellAtM(map, 121, 0)).toBeNull()
   })
+
+  it('has a color for a cell that fits and for each reason it does not', () => {
+    expect(verdictColor(FITS)).toBe('#57c08a')
+    expect(verdictColor(missCode('slope'))).toBe(MISS_COLORS.slope)
+    expect(new Set([verdictColor(FITS), ...Object.values(MISS_COLORS)]).size).toBe(6)
+  })
 })
 
 describe('the odds of fitting', () => {
   it('is certain on ground that all fits and nil on ground that never does', () => {
-    const sigma = sigmaM(100)
-    expect(landingOdds(evenMap(20, 30), sigma).fit).toBeCloseTo(1, 9)
-    const none = landingOdds(evenMap(20, 30, missCode('dark')), sigma)
+    expect(oddsFor(evenMap(20, 30), round(100)).fit).toBeCloseTo(1, 9)
+    const none = oddsFor(evenMap(20, 30, missCode('dark')), round(100))
     expect(none.fit).toBe(0)
     expect(none.misses.dark).toBeCloseTo(1, 9)
   })
@@ -74,88 +144,138 @@ describe('the odds of fitting', () => {
       [8, 120],
       [2, 600],
     ]) {
-      const map = evenMap(size, cellM)
-      for (let cell = 0; cell < map.verdict.length; cell += 1) if (cellCentreM(map, cell).x > 0) map.verdict[cell] = missCode('slope')
-      const odds = landingOdds(map, sigmaM(150))
+      const odds = oddsFor(only(evenMap(size, cellM), (x) => x < 0), round(150))
       expect(odds.fit).toBeCloseTo(0.5, 6)
-      expect(odds.misses.slope).toBeCloseTo(0.5, 6)
+      expect(odds.misses.dark).toBeCloseTo(0.5, 6)
     }
   })
 
   it('weighs ground by how likely a landing there is', () => {
-    // Only a 120 m square on the target fits: 60 m each way, which is ±k sigma on each axis.
-    const map = evenMap(40, 30, missCode('dark'))
-    for (let cell = 0; cell < map.verdict.length; cell += 1) {
-      const { x, y } = cellCentreM(map, cell)
-      if (Math.abs(x) < 60 && Math.abs(y) < 60) map.verdict[cell] = FITS
-    }
-    const sigma = 60
-    // The chance of both coordinates within one sigma: erf(1/sqrt(2)) squared.
-    expect(landingOdds(map, sigma).fit).toBeCloseTo(0.6826895 ** 2, 5)
+    // Only a 120 m square on the target fits: 60 m each way.
+    const square = () => only(evenMap(40, 30), (x, y) => Math.abs(x) < 60 && Math.abs(y) < 60)
+    // At a sigma of 60 m that is one sigma each way: erf(1/sqrt(2)) squared.
+    const accuracyFor = (sigma: number) => sigma * Math.sqrt(2 * Math.log(100))
+    expect(oddsFor(square(), round(accuracyFor(60))).fit).toBeCloseTo(0.6826895 ** 2, 5)
     // A tighter lander does better on the same ground.
-    expect(landingOdds(map, 20).fit).toBeGreaterThan(0.99)
+    expect(oddsFor(square(), round(accuracyFor(20))).fit).toBeGreaterThan(0.99)
   })
 
   it('says how much of the bell curve the map holds, and adds up to one', () => {
     const map = evenMap(4, 30, missCode('silence'))
     map.verdict[5] = FITS
-    const odds = landingOdds(map, sigmaM(300))
+    const odds = oddsFor(map, round(300))
     expect(odds.covered).toBeGreaterThan(0)
     expect(odds.covered).toBeLessThan(0.5)
-    const total = odds.fit + Object.values(odds.misses).reduce((sum, chance) => sum + chance, 0)
-    expect(total).toBeCloseTo(1, 9)
+    expect(odds.fit + Object.values(odds.misses).reduce((sum, chance) => sum + chance, 0)).toBeCloseTo(1, 9)
   })
 
   it('answers for a map off-centre from the target', () => {
-    // The target sits 15 m right of and 45 m below the map's middle; the right half-plane fits.
-    const map: FitMap = { size: 30, cellM: 30, leftM: -465, topM: 495, verdict: new Uint8Array(900) }
-    for (let cell = 0; cell < 900; cell += 1) if (cellCentreM(map, cell).x < 0) map.verdict[cell] = missCode('dark')
-    // Cell edges fall at x = -15 and +15: the split is at -15, so a little more than half fits.
-    const sigma = 50
-    expect(landingOdds(map, sigma).fit).toBeCloseTo(0.5 * (1 + erf(15 / (sigma * Math.SQRT2))), 5)
+    // The target sits 15 m right of and 45 m below the map's middle; cell edges fall at x = -15 and +15.
+    const map = only({ size: 30, cellM: 30, leftM: -465, topM: 495, verdict: new Uint8Array(900) }, (x) => x >= 0)
+    // The split is at -15 m, so a little more than half fits.
+    const sigma = sigmaM(150)
+    expect(oddsFor(map, round(150)).fit).toBeCloseTo(0.5 * (1 + erf(15 / (sigma * Math.SQRT2))), 5)
   })
 })
 
 describe('rings and the loosest accuracy', () => {
   it('reports how much of each ring fits', () => {
-    const map = evenMap(40, 30, missCode('dark'))
-    for (let cell = 0; cell < map.verdict.length; cell += 1) {
-      const { x, y } = cellCentreM(map, cell)
-      if (Math.hypot(x, y) < 300) map.verdict[cell] = FITS
-    }
-    const all = rings(map, sigmaM(200), 150, 900)
+    const map = only(evenMap(40, 30), (x, y) => Math.hypot(x, y) < 300)
+    const chances = cellChances(map, round(200))
+    const all = rings(map, chances, 150, 900)
     expect(all.slice(0, 4).map((ring) => ring.fitShare)).toEqual([1, 1, 0, 0])
     expect(all[0]).toMatchObject({ fromM: 0, toM: 150 })
+    // The first ring holds the landings within 150 m: 1 - exp(-150² / 2 sigma²), to the cells' coarseness.
+    expect(all[0].chance).toBeCloseTo(1 - Math.exp(-(150 ** 2) / (2 * sigmaM(200) ** 2)), 1)
     // Past the map's corner there is no ground to judge.
-    expect(rings(map, sigmaM(200), 150, 1500).at(-1)?.fitShare).toBeNull()
+    expect(rings(map, chances, 150, 1500).at(-1)?.fitShare).toBeNull()
   })
 
   it('finds the loosest accuracy that keeps the odds', () => {
     // Ground that fits within 200 m of the target and nowhere else.
-    const map = evenMap(100, 30, missCode('dark'))
-    for (let cell = 0; cell < map.verdict.length; cell += 1) {
-      const { x, y } = cellCentreM(map, cell)
-      if (Math.hypot(x, y) < 200) map.verdict[cell] = FITS
-    }
+    const map = only(evenMap(100, 30), (x, y) => Math.hypot(x, y) < 200)
     expect(largestAccuracyM(map)).toBeCloseTo(1200, 9)
+    expect(largestAccuracyM(map, 3)).toBeCloseTo(400, 9)
     const offered = offeredAccuracies()
     expect(offered[0]).toBe(50)
     expect(offered.at(-1)).toBe(1000)
-    const loosest = loosestAccuracyM(map, 0.9, offered)
     // 90% of landings within 200 m means sigma = 200 / 2.146 = 93.2 m: an accuracy of 283 m.
-    expect(loosest).toBe(275)
+    expect(loosestAccuracyM(map, 0.9, offered)).toBe(275)
+    // Longer along the approach, the same accuracy spills farther: the loosest is tighter.
+    expect(loosestAccuracyM(map, 0.9, offered, { ...DEFAULT_SPREAD, stretch: 3 })).toBeLessThan(275)
     expect(loosestAccuracyM(evenMap(100, 30, missCode('dark')), 0.9, offered)).toBeNull()
     // A map too small to hold a loose lander's landings does not answer for it.
     expect(loosestAccuracyM(evenMap(6, 30), 0.9, offered)).toBe(50)
   })
 })
 
-describe('odds in words', () => {
-  it('never rounds to certain', () => {
+describe('a better place to aim', () => {
+  it('is the middle of the good ground, when the target is at its edge', () => {
+    // Good ground is a disc of 150 m centred 180 m to the right of the target and 60 m above it.
+    const map = only(evenMap(120, 30), (x, y) => Math.hypot(x - 180, y - 60) < 150)
+    const chances = cellChances(map, round(150))
+    const here = landingOdds(map, chances).fit
+    const aim = bestAim(map, chances, 600)
+    if (!aim) throw new Error('no better aim')
+    expect(aim.x).toBeCloseTo(180, 9)
+    expect(aim.y).toBeCloseTo(60, 9)
+    expect(aim.fit).toBeGreaterThan(here + 0.3)
+    // The odds it promises are the odds of aiming there: the same map seen from that point.
+    const moved: FitMap = { ...map, leftM: map.leftM - aim.x, topM: map.topM - aim.y }
+    expect(aim.fit).toBeCloseTo(oddsFor(moved, round(150)).fit, 3)
+  })
+
+  it('stays within the distance allowed', () => {
+    const map = only(evenMap(120, 30), (x, y) => Math.hypot(x - 180, y - 60) < 150)
+    const aim = bestAim(map, cellChances(map, round(150)), 120)
+    if (!aim) throw new Error('no better aim')
+    expect(Math.hypot(aim.x, aim.y)).toBeLessThanOrEqual(120)
+  })
+
+  it('is none when the target is already as good as anywhere', () => {
+    const all = evenMap(60, 30)
+    expect(bestAim(all, cellChances(all, round(150)), 400)).toBeNull()
+    const none = evenMap(60, 30, missCode('dark'))
+    expect(bestAim(none, cellChances(none, round(150)), 400)).toBeNull()
+    const centred = only(evenMap(120, 30), (x, y) => Math.hypot(x, y) < 150)
+    expect(bestAim(centred, cellChances(centred, round(150)), 600)).toBeNull()
+  })
+
+  it('does not aim where landings would fall off the map', () => {
+    // Good ground only in the map's far corner: a lander aimed there would land partly off the map.
+    const map = only(evenMap(40, 30), (x, y) => x > 500 && y > 500)
+    expect(bestAim(map, cellChances(map, round(300)), 2000)).toBeNull()
+  })
+})
+
+describe('odds and spreads in words and links', () => {
+  it('never rounds odds to certain', () => {
     expect(oddsWords(0.874)).toBe('87%')
     expect(oddsWords(0.9995)).toBe('over 99%')
     expect(oddsWords(0.004)).toBe('under 1%')
     expect(oddsWords(1)).toBe('100%')
     expect(oddsWords(0)).toBe('0%')
+  })
+
+  it('says a spread as one length, or two when it is stretched', () => {
+    expect(spreadWords(round(250))).toBe('250 m')
+    expect(spreadWords({ accuracyM: 250, stretch: 2.5, bearingDeg: 40 })).toBe('250 m by 625 m')
+  })
+
+  it('carries a spread in a link and reads it back', () => {
+    expect(spreadLink(round(250))).toBe('&acc=250')
+    const stretched = { accuracyM: 400, stretch: 2.5, bearingDeg: 45 }
+    expect(spreadLink(stretched)).toBe('&acc=400&accs=2.5&accd=45')
+    expect(readSpreadLink(`#a=connecting-ridge@2026-11&t=5${spreadLink(stretched)}`)).toEqual(stretched)
+    expect(readSpreadLink('#a=connecting-ridge@2026-11&t=5&acc=250')).toEqual(round(250))
+    expect(readSpreadLink('#a=connecting-ridge@2026-11&t=5')).toBeNull()
+  })
+
+  it('brings a link’s values onto the sliders’ stops', () => {
+    expect(readSpreadLink('#acc=9999&accs=17&accd=400')).toEqual({ accuracyM: 1000, stretch: 4, bearingDeg: 175 })
+    expect(readSpreadLink('#acc=113&accs=1.2')).toEqual({ accuracyM: 125, stretch: 1, bearingDeg: 0 })
+    expect(readSpreadLink('#acc=abc')).toBeNull()
+    // With no stretch the direction means nothing and is dropped.
+    expect(readSpreadLink('#acc=200&accd=90')).toEqual(round(200))
   })
 })

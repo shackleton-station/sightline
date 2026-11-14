@@ -86,3 +86,65 @@ export function loadSlopeWhole(meta: LightMeta): Promise<Float32Array | null> {
   })()
   return whole
 }
+
+/**
+ * A few results kept by key: asked for once, read again at no cost, and the oldest let go. `now`
+ * gives a result that has arrived, without waiting, so a page can draw from it as it renders.
+ */
+function keep<T>(limit: number) {
+  const asked = new Map<string, Promise<T>>()
+  const arrived = new Map<string, T>()
+  return {
+    get(key: string, load: () => Promise<T>): Promise<T> {
+      const before = asked.get(key)
+      if (before) return before
+      const request = load()
+      asked.set(key, request)
+      request.then(
+        (value) => {
+          if (asked.get(key) === request) arrived.set(key, value)
+        },
+        () => asked.delete(key),
+      )
+      while (asked.size > limit) {
+        const oldest = asked.keys().next().value as string
+        asked.delete(oldest)
+        arrived.delete(oldest)
+      }
+      return request
+    },
+    now: (key: string): T | undefined => arrived.get(key),
+  }
+}
+
+/** One landing's gaps are six megabytes; four scenarios at most are on show. */
+const gapsKept = keep<GridGaps | 'past'>(4)
+const slopeKept = keep<SlopePart | null>(4)
+
+export function gapsKey(startIso: string, landing: number, missionDays: number): string {
+  return `${startIso}@${landing}+${missionDays}`
+}
+
+/** `loadGaps`, kept: a landing already read is not read again. */
+export function gapsFor(meta: LightMeta, startIso: string, landing: number, missionDays: number): Promise<GridGaps | 'past'> {
+  return gapsKept.get(gapsKey(startIso, landing, missionDays), () => loadGaps(meta, startIso, landing, missionDays))
+}
+
+/** The gaps for a landing if they have arrived. */
+export function gapsNow(startIso: string, landing: number, missionDays: number): GridGaps | 'past' | undefined {
+  return gapsKept.now(gapsKey(startIso, landing, missionDays))
+}
+
+function squareKey(square: Square): string {
+  return `${square.col},${square.row},${square.cells}`
+}
+
+/** `loadSlopePart`, kept. */
+export function slopePartFor(meta: LightMeta, square: Square): Promise<SlopePart | null> {
+  return slopeKept.get(squareKey(square), () => loadSlopePart(meta, square))
+}
+
+/** A square's slope if it has arrived: null when it could not be read, undefined while it has not arrived. */
+export function slopePartNow(square: Square): SlopePart | null | undefined {
+  return slopeKept.now(squareKey(square))
+}
