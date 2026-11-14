@@ -411,6 +411,36 @@
   color: var(--muted);
 }
 
+/* ---------- Why this site is hard: a few sentences from the site's own figures ---------- */
+.how-why {
+  padding: 1.25rem 0 0;
+  scroll-margin-top: 1rem;
+}
+
+.how-why:focus {
+  outline: none;
+}
+
+.how-why h2 {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.how-why-lines {
+  max-width: 46rem;
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.how-why-lines li {
+  margin: 0.3rem 0;
+}
+
+.how-why .how-start-note {
+  margin-top: 0.5rem;
+}
+
 /* ---------- How to use Sightline: the same steps Scout's tour walks through, written out ---------- */
 .how-use {
   padding: 1.25rem 0 0.5rem;

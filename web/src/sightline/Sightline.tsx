@@ -38,6 +38,7 @@ import {
   fitProblems,
   nearestFittingSite,
   MAX_SCENARIOS,
+  measureScenario,
   missionWords,
   NO_LIMIT_H,
   presetOf,
@@ -51,6 +52,7 @@ import {
   surfaceLink,
   type SightlineScenario,
 } from '../lib/sightlineMission'
+import { whyHard } from '../lib/explainer'
 import { ROVER_PRESET } from '../lib/csaRover'
 import { type TrekLayerId, trekLayer } from '../lib/trekLayers'
 import { Answer } from './Answer'
@@ -293,6 +295,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const guideVideos = useGuideVideos(TOUR, tourAt !== null || how)
   /** How it works opens at its video when the tour's last step asks for it. */
   const [howAtVideo, setHowAtVideo] = useState(false)
+  // The Guide opened at "Why this site is hard": Scout's ready idea leads there.
+  const [howAtWhy, setHowAtWhy] = useState(false)
 
   // The listed sites' flags with the Sun seen from the panel's height and Earth from the antenna's.
   // At 2 m and 2 m they are the flags given, and nothing more is loaded.
@@ -406,6 +410,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       chat.say(own)
     })
   }
+  // Why the site on show is hard, for the Guide: the site's own figures for the landing's month and
+  // year, and the mission's longest dark spell from this landing, the hours the verdict judges.
+  const why = useMemo(() => {
+    if (!here) return null
+    const onMission = flags ? { days: mission.requirements.missionDays, sunGapH: measureScenario(scenario, site, flags, mission, facts[active].slopeDeg).sunGapH } : null
+    return whyHard(here, onMission)
+  }, [here, flags, mission, scenario, site, facts, active])
   // Three questions to tap while Scout has said nothing, written for the scenario on show.
   const ideas = [
     problems && problems.length > 0 ? "Why doesn't this landing fit?" : 'How much margin does this landing have?',
@@ -1297,6 +1308,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             onBack={() => {
               setHow(false)
               setHowAtVideo(false)
+              setHowAtWhy(false)
             }}
             onTour={() => startTour()}
             tourTaken={tourTaken}
@@ -1304,6 +1316,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             onGuide={startTour}
             videos={guideVideos}
             openAtVideo={howAtVideo}
+            why={why}
+            openAtWhy={howAtWhy}
           />
         </div>
       )}
@@ -1322,6 +1336,18 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               setDrawer('rover')
             },
           }}
+          why={
+            why
+              ? {
+                  label: 'Why is landing here hard?',
+                  done: `The Guide is open at “Why this site is hard”, with ${site.name}’s own figures.`,
+                  onPick: () => {
+                    setHowAtWhy(true)
+                    setHow(true)
+                  },
+                }
+              : undefined
+          }
           onOpen={openAsScenario}
           onClose={toggleScoutPanel}
           onTour={() => startTour()}

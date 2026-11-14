@@ -116,6 +116,8 @@ interface Props {
   /** Three questions to tap while there is no conversation yet, written for the scenario on show. */
   ideas: string[]
   idea?: ScoutIdea
+  /** "Why is landing here hard?": answered by the Guide, from the site's own figures, not by the model. */
+  why?: ScoutIdea
   /** A button in an answer was pressed: go where its link points. */
   onOpen: (hash: string) => void
   onClose: () => void
@@ -129,7 +131,7 @@ interface Props {
  * height, the one-minute tour and the input pinned at its foot, and, until something is said, ideas
  * to tap for the scenario on show.
  */
-export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, onOpen, onClose, onTour, tourTaken }: Props) {
+export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, why, onOpen, onClose, onTour, tourTaken }: Props) {
   const [draft, setDraft] = useState('')
   const talk = useRef<HTMLDivElement>(null)
   const { thread, waiting, step } = chat
@@ -172,6 +174,21 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, onOpen
                   </button>
                 </li>
               ))}
+              {why && (
+                <li>
+                  <button
+                    type="button"
+                    className="sl-idea is-action"
+                    data-idea="why"
+                    onClick={() => {
+                      chat.say(why.done)
+                      why.onPick()
+                    }}
+                  >
+                    {why.label}
+                  </button>
+                </li>
+              )}
               {idea && (
                 <li>
                   <button
