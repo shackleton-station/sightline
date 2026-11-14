@@ -1,7 +1,6 @@
 {
   "about": "Scout's tour of Sightline: the one file that holds its steps. The page (src/sightline/Tour.tsx) reads it to drive the real screen, How it works and the README list the same steps, scripts/tour-voice.mjs renders each step's words once in Scout's voice, and the tutorial video's recorder reads it too, so the tour and the video say the same thing.",
   "name": "The one-minute tour",
-  "offer": "New here? Take the one-minute tour.",
   "voice": {
     "disclosure": "AI-generated voice",
     "files": "/tour/voice/<id>.mp3",

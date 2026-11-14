@@ -27,8 +27,6 @@ export interface TourStep {
 
 export interface TourFile {
   name: string
-  /** Scout's closed line on a first visit. */
-  offer: string
   voice: { disclosure: string; files: string; from: string }
   /** The tutorial video's files, under /media/. The page shows the player only once the file answers. */
   video: { file: string; poster: string; captions: string }
