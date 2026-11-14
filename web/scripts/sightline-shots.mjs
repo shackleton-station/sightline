@@ -40,7 +40,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
 ]
 
 /**
@@ -1304,6 +1304,39 @@ const SCENES = [
       { drag: true },
       ['after a drag the compass appears below the zoom buttons, which have not moved', COMPASS_BELOW],
     ],
+  },
+  {
+    // Rodrigo: a first visit's Plan has the two prospective sites up as A and B, so Compare can be used at once.
+    name: 'two-by-default',
+    hash: '',
+    still: true,
+    noChat: true,
+    checks: [
+      ['Watch is as it was: the Moon alone, no scenarios in the address', "document.querySelector('.sightline.is-watch') !== null && location.hash === '' && document.querySelector('.sl-tabs') === null", 900],
+      ['"Plan a landing" opens Plan with two scenarios: A at Connecting Ridge and B at Shackleton Rim, landing at the same hour, A on show', `(${click('Plan a landing')}, true) && ${after(1500, `(() => { const tabs = document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length; const rows = [...document.querySelectorAll('.sl-river .sl-row-name[aria-pressed]')].map((row) => row.getAttribute('aria-label')); return (tabs === 2 && document.querySelector('#sl-site').value === 'connecting-ridge' && ${LANDING} === '1 May 2027 · 00:00 UTC' && rows.length === 2 && /^Scenario A: Connecting Ridge · 1 May 2027 · 00:00 UTC$/.test(rows[0]) && /^Scenario B: Shackleton Rim · 1 May 2027 · 00:00 UTC$/.test(rows[1]) && /^#a=connecting-ridge@2027-05/.test(location.hash) && /list=shackleton-rim@2027-05-01T00/.test(location.hash)) || tabs + ' tabs // ' + rows.join(' // ') + ' // ' + location.hash })()`)}`],
+      ['the time bar has a row for each, told apart by their sites since the dates match; Compare stays shut until it is opened; nothing scrolls sideways and the Moon is whole', `(() => { const names = [...document.querySelectorAll('.sl-river .sl-row-name[aria-pressed]')].map((row) => row.textContent.replace(/\\s+/g, ' ').trim()); return (names.length === 2 && /Connecting Ridge/.test(names[0]) && /Shackleton Rim/.test(names[1]) && document.querySelector('.sl-compare') === null) || names.join(' // ') })() && (window.__colTwo = document.querySelector('.sl-col').scrollHeight, true) && document.querySelector('.sl-col').scrollWidth <= document.querySelector('.sl-col').clientWidth && ${DISC_INSIDE}`],
+      ['Compare, opened, has both side by side at once', `(${click('Compare')}, true) && ${after(1200, "(() => { const heads = [...document.querySelectorAll('.sl-compare thead th')].map((th) => th.textContent.trim()).join(''); const legend = [...document.querySelectorAll('.sl-compare-legend li')].map((item) => item.textContent.replace(/\\s+/g, ' ').trim()); return (heads === 'AB' && /Connecting Ridge/.test(legend[0]) && /Shackleton Rim/.test(legend[1])) || heads + ' // ' + legend.join(' // ') })()")} && ${after(1300, `(${click('Close')}, true)`)}`],
+      ['B, once removed, stays removed: the link holds one scenario, the column is as tall as it was with two (the second scenario adds nothing to it), and Home then "Plan a landing" does not bring it back', `(document.querySelector('.sl-tabs .sl-tab-remove[aria-label="Remove scenario B"]').click(), true) && ${after(600, "document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]').length === 1 && !/list=/.test(location.hash) && Math.abs(document.querySelector('.sl-col').scrollHeight - window.__colTwo) <= 1 && (document.querySelector('.sl-rail-home') ?? [...document.querySelectorAll('.sl-rail-menu button, .sl-rail button')].find((button) => /Home/.test(button.textContent)) ?? { click() {} }).click() === undefined")} && ${after(1700, `(document.querySelector('.sightline.is-watch') !== null || (${click('More')}, [...document.querySelectorAll('.sl-rail-menu button')].find((button) => /Home/.test(button.textContent))?.click(), true)) && true`)} && ${after(2700, `(${click('Plan a landing')}, true)`)} && ${after(3900, "document.querySelector('.sightline.is-plan') !== null && document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]').length === 1 && document.querySelector('#sl-site').value === 'connecting-ridge'")}`],
+    ],
+  },
+  {
+    // A site picked on the Moon on a first visit is A; B is Connecting Ridge.
+    name: 'two-by-default-pick',
+    hash: '',
+    still: true,
+    noChat: true,
+    steps: ["document.querySelector('.sl-group-dot').click()"],
+    checks: [
+      ['picking Shackleton Rim on the Moon opens Plan with it at A and Connecting Ridge at B, at the same hour', `([...document.querySelectorAll('.sl-group-list [role="menuitem"]')].find((item) => item.textContent.includes('Shackleton Rim')).click(), true) && ${after(1500, `(() => { const rows = [...document.querySelectorAll('.sl-river .sl-row-name[aria-pressed]')].map((row) => row.getAttribute('aria-label')); return (document.querySelector('#sl-site').value === 'shackleton-rim' && rows.length === 2 && /^Scenario A: Shackleton Rim · /.test(rows[0]) && /^Scenario B: Connecting Ridge · /.test(rows[1]) && rows[0].split(' · ').slice(1).join() === rows[1].split(' · ').slice(1).join()) || rows.join(' // ') })()`)}`, 600],
+    ],
+  },
+  {
+    // A link is exactly what it carries: one scenario stays one.
+    name: 'two-by-default-link',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
+    still: true,
+    noChat: true,
+    checks: [['a link with one scenario opens with one, and nothing is added', "document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]').length === 1 && !/list=/.test(location.hash) && document.querySelectorAll('.sl-river .sl-row-name[aria-pressed]').length === 1", 1200]],
   },
   {
     // The view belongs to the visitor: after a drag it stays where it was left, through time playing
