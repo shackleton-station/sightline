@@ -34,7 +34,12 @@ export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM 
         <ul>
           <li>
             The land is this site’s horizon, computed from NASA’s LOLA terrain for a point {obsHeightM} m above the ground: 720 directions, joined by
-            straight lines. It is a flat shape. Nothing on it is lit or modelled.
+            straight lines. That top edge is the data.
+          </li>
+          <li>
+            The ground under the edge is an illustration. Its craters, swells and dust are made up, the same on every visit and at every site. Its
+            light is real in one way: it comes from the Sun’s direction this hour, by the share of the disk in view, and goes dark when the Sun is
+            hidden. No shadows are cast by the land.
           </li>
           <li>
             The Sun and Earth are where the ephemeris puts them this hour, at the size they have from here: {across(radii.sun)}° and{' '}
