@@ -5,7 +5,9 @@ import { isCustomSite } from '../data/customSite'
 import type { ScenarioData } from '../data/scenarioData'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { useScenario } from '../data/useScenario'
+import { onHypeTyped } from '../components/listenForHype'
 import { setAddressBar } from '../lib/address'
+import { HYPE_HASH } from '../lib/hypeEgg'
 import { horizonAt } from '../lib/customModel'
 import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, marginalReasons, shortWhen } from '../lib/sightlineSky'
@@ -55,6 +57,7 @@ import { FullPlanner } from './FullPlanner'
 import { NewPlanner } from './NewPlanner'
 import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
+import { HypeDrawer } from './HypeDrawer'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
 import type { TourFile } from '../lib/tour'
@@ -120,6 +123,16 @@ function useRoom(): 'phone' | 'narrow' | 'wide' {
 const NOTE_ROOM_PX = 30
 /** How long a removed scenario can be brought back. */
 const UNDO_MS = 5000
+/** Whether the easter egg was found earlier in this visit (kept for the tab's life, not beyond it: it stays an egg). */
+const HYPE_KEY = 'sightline.hype'
+function hypeRemembered(): boolean {
+  try {
+    return window.sessionStorage.getItem(HYPE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 /** Scout's tour: its steps, words and what each rings, from the one file the video's recorder reads too. */
 const TOUR = tourFile as TourFile
 
@@ -166,7 +179,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const hour = wholeHour(clock.hour, hours)
   const { setPlaying, setHour, playing } = clock
 
-  const [plan, setPlan] = useState(linked !== null)
+  // The easter egg: the word typed here, or on another page (which opens this one at "#hype"),
+  // puts a Hype button in the rail and opens its panel. The button stays for the visit.
+  const [arrivedForHype] = useState(() => window.location.hash === HYPE_HASH)
+  const [hypeFound, setHypeFound] = useState(() => arrivedForHype || hypeRemembered())
+  const [plan, setPlan] = useState(linked !== null || arrivedForHype)
   // Up to four scenarios, A to D; the column, the skyline and the answer are about the active one.
   const [scenarios, setScenarios] = useState<SightlineScenario[]>(() => linked?.scenarios ?? [{ site: sites.some((site) => site.id === FEATURED) ? FEATURED : sites[0].id, landing: opening }])
   const [chosen, setActive] = useState(linked?.active ?? 0)
@@ -175,7 +192,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const setScenario = useCallback((change: (current: SightlineScenario) => SightlineScenario) => setScenarios((all) => all.map((one, i) => (i === active ? change(one) : one))), [active])
   const [mission, setMission] = useState(linked?.mission ?? DEFAULT_MISSION)
   // One panel on the right at a time. Scout's conversation lives here, so closing his panel keeps it.
-  const [drawer, setDrawer] = useState<'scout' | 'mission' | 'advanced' | 'compare' | 'layers' | 'rover' | 'accuracy' | null>(null)
+  const [drawer, setDrawer] = useState<'scout' | 'mission' | 'advanced' | 'compare' | 'layers' | 'rover' | 'accuracy' | 'hype' | null>(arrivedForHype ? 'hype' : null)
   const chat = useScoutChat()
   // The Planner takes the whole window, with the Moon kept small in a corner; How it works opens as a sheet over the scene.
   // A link that names a Planner tab opens the Planner on it.
@@ -580,6 +597,39 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       setPlaying(!still)
     })
   }, [showControls, setScoutShut, setPillMin, setHour, setPlaying, opening, still, morphScout])
+  // The word, typed at this screen outside a text box: the button appears and its panel opens, in
+  // Plan (where the rail is), whatever was open. Its letters are also keys of the screen (H hides,
+  // P opens Plan), so those have fired on the way: this puts the screen where the word leads.
+  const revealHype = useCallback(() => {
+    if (tourAt !== null) return
+    setHypeFound(true)
+    try {
+      window.sessionStorage.setItem(HYPE_KEY, '1')
+    } catch {
+      // A private window may refuse; the button still shows until the page is left.
+    }
+    setBare(false)
+    setFull(false)
+    setHow(false)
+    setBrief(false)
+    setPlan(true)
+    setDrawer('hype')
+  }, [tourAt, setBare])
+  useEffect(() => onHypeTyped(revealHype), [revealHype])
+  useEffect(() => {
+    if (arrivedForHype) revealHype()
+    // Once, on arriving at "#hype".
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  // Escape shuts the panel on the right, as Close does (after How it works, the brief and the Planner, which take it first).
+  useEffect(() => {
+    if (!drawer || how || full || brief || tourAt !== null) return
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDrawer(null)
+    }
+    window.addEventListener('keydown', onEscape)
+    return () => window.removeEventListener('keydown', onEscape)
+  }, [drawer, how, full, brief, tourAt])
 
   const startTour = () => {
     beforeTour.current = { plan, scenarios, chosen, drawer, full, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
@@ -1131,12 +1181,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'layers' && <LayersDrawer odds={{ on: fitShade, here: fitHere }} onOdds={showFitShade} layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
       {shown && !planner && (
         <Rail
           mode={mode}
           onMode={setMode}
           onHow={() => setHow(true)}
+          hype={hypeFound ? { open: drawer === 'hype', onOpen: () => setDrawer(drawer === 'hype' ? null : 'hype') } : null}
           onTour={startTour}
           onPlanner={() => {
             // In the Planner the only panel is Scout's.

@@ -38,7 +38,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['compass-below', 'compass-below-watch', 'compare-science', ...GUIDE_IDS.map((id) => `guide-${id}`), 'guide-ways', 'tour-video', 'nearby-pair', 'nearby-pair-tour', 'explains-itself', 'mission-advanced', 'mission-advanced-custom', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
 ]
 
 /**
@@ -1256,28 +1256,46 @@ const SCENES = [
     ],
   },
   {
-    // The easter egg: the Hype page is linked from nowhere, and opens when its name is typed on a page, outside a text box.
+    // The easter egg: no Hype button until its name is typed on the screen, outside a text box. Then the button is in the rail and its panel opens.
     name: 'hype-egg',
     hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
     checks: [
-      ['nothing on Sightline links to the Hype page or names it', "document.querySelector('a[href*=\"hype\"]') === null && !/hype/i.test(document.body.innerText)"],
-      ['typed into Scout\'s question box, the word is only a word', `(${OPEN_SCOUT}, true) && ${after(700, "(() => { const box = document.querySelector('#sl-question'); box.focus(); for (const key of 'hype') box.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); return true })()")} && ${after(900, "location.pathname === '/sightline/'")}`],
-      ['typed on the page, with nothing focused, the word is taken', `(document.activeElement?.blur(), setTimeout(() => ${TYPE_HYPE}, 100), true)`],
-      ['it opens the Hype page, which has its video and no tab of its own', "(() => { const tabs = [...document.querySelectorAll('a.site-tab')].map((tab) => tab.textContent.trim()); return location.pathname === '/hype/' && document.querySelector('.hype video') !== null && tabs.length > 5 && !tabs.some((tab) => /hype/i.test(tab)) })()", 6000],
+      ['before the word is typed there is no Hype button, in the rail or in "More", and nothing names it', "![...document.querySelectorAll('.sl-rail button')].some((button) => /hype/i.test(button.textContent)) && document.querySelector('.sl-hype') === null && document.querySelector('a[href*=\"hype\"]') === null && !/hype/i.test(document.body.innerText)"],
+      ['typed into Scout\'s question box, the word is only a word: no button, no panel', `(${OPEN_SCOUT}, true) && ${after(700, "(() => { const box = document.querySelector('#sl-question'); box.focus(); for (const key of 'hype') box.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); return true })()")} && ${after(1500, "location.pathname === '/sightline/' && document.querySelector('.sl-hype') === null && document.querySelector('.sl-rail-hype') === null && document.querySelector('.sl-scout-panel') !== null")}`],
+      ['typed on the screen, it stays on this page: a Hype button appears in the rail and its panel opens, with the video, its poster and one line', `(document.activeElement?.blur(), ${TYPE_HYPE}) && ${after(1200, "(() => { const panel = document.querySelector('.sl-drawer.sl-hype'); if (!panel) return 'no panel at ' + location.pathname; const video = panel.querySelector('video'); const lines = [...panel.querySelectorAll('p')].map((p) => p.textContent.trim()); const button = window.innerWidth < 761 ? null : document.querySelector('.sl-rail .sl-rail-hype'); return (location.pathname === '/sightline/' && document.querySelector('.sightline.is-plan') !== null && panel.querySelector('h2').textContent === 'Hype' && [...panel.querySelectorAll('.sl-drawer-head button')].map((b) => b.textContent.trim()).join() === 'Close' && video.getAttribute('poster') === '/media/hype-poster.jpg' && video.querySelector('source').getAttribute('src') === '/media/hype.mp4' && video.controls && lines.length === 1 && /^AI-generated/.test(lines[0]) && panel.querySelector('.site-tabs, a') === null && (window.innerWidth < 761 || (button.textContent.trim() === 'Hype' && button.getAttribute('aria-pressed') === 'true')) && sessionStorage.getItem('sightline.hype') === '1') || lines.join(' // ') })()")}`],
+      ['the panel is a panel like the others: the same width, nothing scrolling, and the Moon\'s whole disc beside it, not under it', `(() => { const panel = document.querySelector('.sl-hype'); const line = panel.querySelector('p').getBoundingClientRect(); const oneLine = line.height < 1.9 * parseFloat(getComputedStyle(panel.querySelector('p')).fontSize) * 1.5; if (window.innerWidth < 761) return oneLine && panel.scrollHeight <= panel.clientHeight + 1; return (Math.abs(panel.getBoundingClientRect().width - 304) <= 2 && oneLine && panel.scrollHeight <= panel.clientHeight && panel.getBoundingClientRect().left >= document.querySelector('.sl-stage').getBoundingClientRect().right - 1) || Math.round(panel.getBoundingClientRect().width) + ' wide, ' + panel.scrollHeight + ' in ' + panel.clientHeight })() && ${COLUMN_FITS} && (window.innerWidth < 761 || ${DISC_INSIDE})`],
+      ['Close shuts it and the button stays; the button opens it again, and Escape shuts it', `(${click('Close')}, true) && ${after(500, `(() => { if (document.querySelector('.sl-hype') !== null) return 'still open'; if (window.innerWidth < 761) { ${click('More')}; } return true })()`)} && ${after(900, "(() => { const button = [...document.querySelectorAll('.sl-rail button')].find((b) => b.textContent.trim() === 'Hype'); if (!button) return 'no button'; button.click(); return true })()")} && ${after(1500, "(document.querySelector('.sl-hype') !== null && (window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true))")} && ${after(2100, "document.querySelector('.sl-hype') === null && [...document.querySelectorAll('.sl-rail button')].some((b) => b.textContent.trim() === 'Hype')")}`],
     ],
   },
   {
-    // The same from a page with the tab bar (the Atlas): no tab leads to the Hype page, and the typed word opens it.
+    // From Watch, where there is no rail: the word opens Plan with the panel.
+    name: 'hype-egg-watch',
+    hash: '',
+    still: true,
+    checks: [
+      ['typed in Watch, the word opens Plan with the Hype panel, on this page', `${TYPE_HYPE} && ${after(1500, "location.pathname === '/sightline/' && document.querySelector('.sightline.is-plan') !== null && document.querySelector('.sl-drawer.sl-hype video') !== null && document.querySelector('.sl-handle') === null")}`],
+    ],
+  },
+  {
+    // From a page with the tab bar (the Atlas): no tab leads to it, and the typed word opens Sightline with the panel, not the old page.
     name: 'hype-egg-tabs',
     path: '/atlas/',
     hash: '#a=connecting-ridge@2027-05&t=120&limits=14_72_72_1_1&mode=learn',
     ready: "document.querySelector('a.site-tab') !== null",
     checks: [
-      ['no tab and no link on a page with the tab bar leads to the Hype page', "(() => { const tabs = [...document.querySelectorAll('a.site-tab')].map((tab) => tab.textContent.trim()); return (tabs.length > 5 && !tabs.some((tab) => /hype/i.test(tab)) && document.querySelector('a[href*=\"hype\"]') === null) || tabs.join('|') })()"],
+      ['no tab and no link on a page with the tab bar leads to it', "(() => { const tabs = [...document.querySelectorAll('a.site-tab')].map((tab) => tab.textContent.trim()); return (tabs.length > 5 && !tabs.some((tab) => /hype/i.test(tab)) && document.querySelector('a[href*=\"hype\"]') === null) || tabs.join('|') })()"],
       ['three of its letters and then another key do nothing', `(() => { for (const key of ['h', 'y', 'p', 'ArrowLeft', 'e']) window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); return true })() && ${after(700, "location.pathname === '/atlas/'")}`],
       ['typed in one go, the word is taken', `(setTimeout(() => ${TYPE_HYPE}, 100), true)`],
-      ['it opens the Hype page', "location.pathname === '/hype/' && document.querySelector('.hype video') !== null", 6000],
+      ['it opens Sightline, the front page, with the Hype panel open: not the old page', "location.pathname === '/' && document.querySelector('.sightline.is-plan') !== null && document.querySelector('.sl-drawer.sl-hype video') !== null && document.querySelector('.site-tabs') === null && !location.hash.includes('hype')", 8000],
     ],
+  },
+  {
+    // The old page still answers for links that were shared.
+    name: 'hype-old-page',
+    path: '/hype/',
+    hash: '',
+    ready: "document.querySelector('.hype video') !== null",
+    checks: [['the old address still opens its page', "location.pathname === '/hype/' && document.querySelector('.hype video') !== null"]],
   },
   {
     // Three scenarios, A on show: B is removed from its own tab, then brought back.

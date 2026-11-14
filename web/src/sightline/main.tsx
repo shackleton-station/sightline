@@ -8,12 +8,8 @@ import './sightline.css'
 import { AppErrorBoundary } from '../components/AppErrorBoundary'
 import { watchForStaleBuild } from '../data/staleBuild'
 import { SightlineApp } from './SightlineApp'
-import { listenForHype } from '../components/listenForHype'
 
 watchForStaleBuild()
-
-// The easter egg: typing its name anywhere on the site opens the Hype page.
-listenForHype()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

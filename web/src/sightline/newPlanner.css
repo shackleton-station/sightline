@@ -1333,3 +1333,84 @@
 .sl-np .pl-sugs-more:hover {
   text-decoration: underline;
 }
+
+/* ---------- One line: Find | Compare, then the count ---------- */
+.sl-np .np-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.5rem;
+  margin: 0 0 0.9rem;
+}
+
+.sl-np .np-topbar .np-tabs {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.sl-np .np-topbar .np-tabs button {
+  padding: 0.38rem 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.sl-np .np-tabs button small {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  margin-left: 0.15rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 12%);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  opacity: 1;
+}
+
+.sl-np .np-tabs button[aria-selected='true'] small {
+  background: rgb(0 0 0 / 15%);
+}
+
+.sl-np .np-tally {
+  flex: 1 1 22rem;
+  justify-content: flex-end;
+  max-width: 34rem;
+  margin: 0;
+  gap: 0.6rem;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
+
+.sl-np .np-tally strong {
+  font-size: 1.75rem;
+}
+
+/* The brief stays in view beside the cards and the grid, with its own scroll. */
+.sl-np .pl-answer.sl-fp-brief {
+  position: sticky;
+  top: 5.5rem;
+  max-height: calc(100vh - 6.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1180px) {
+  .sl-np .pl-answer.sl-fp-brief {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* A pick that can't be added (the same as one you have, or a bad date or point): in red. */
+.sl-np .np-side .pl-where-problem {
+  margin: 0.1rem 0 0;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid rgb(255 99 99 / 45%);
+  border-radius: 8px;
+  background: rgb(255 99 99 / 10%);
+  color: #ff7676;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}

@@ -174,16 +174,10 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   // A square chosen with the pointer: bring the brief up if it is out of sight, so the click visibly answers. Keyboard choices stay on the grid.
   const briefRef = useRef<HTMLDivElement>(null)
   const pick = useCallback((siteId: string, month: string, byPointer = false) => {
+    // A bar chosen with the pointer: the page stays where it is; the brief, which stays in view beside
+    // the grid, goes back to its own top so the new answer reads from the start.
+    if (byPointer) briefRef.current?.scrollTo({ top: 0 })
     choose({ site: siteId, month, index: null })
-    if (!byPointer) return
-    requestAnimationFrame(() => {
-      const box = briefRef.current
-      if (!box) return
-      const top = box.getBoundingClientRect().top
-      if (top > 0 && top < window.innerHeight * 0.6) return
-      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      box.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
-    })
   }, [choose])
   /** A landing at an exact time, at this site or another. */
   const landAt = (siteId: string, iso: string) => {
@@ -254,6 +248,11 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                 last={new Date(Date.parse(view.row.flags.start) + (view.row.flags.sun.length - 1) * 3_600_000).toISOString().replace('.000Z', 'Z')}
                 nextLetter={room ? SCENARIO_LETTERS[scenarios.length] : null}
                 onAdd={(value, iso) => onAdd({ site: value, landing: hourOf(start, iso) })}
+            sameAs={(value, iso) => {
+              const hour = hourOf(start, iso)
+              const i = scenarios.findIndex((scenario) => scenario.site === value && scenario.landing === hour)
+              return i < 0 ? null : SCENARIO_LETTERS[i]
+            }}
               />
             )}
           <h3>Mission</h3>
@@ -269,23 +268,18 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           />
         </aside>
       <div className="planner sl-fp">
-        <div className="np-tabs" role="tablist" aria-label="New Planner">
-          <button type="button" role="tab" aria-selected={tab === 'find'} onClick={() => setTab('find')}>
-            Find
-            <small>where and when could I land?</small>
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'compare'} onClick={() => setTab('compare')}>
-            Compare
-            <small>{scenarios.length > 1 ? `your ${scenarios.length} picks side by side` : 'your picks side by side'}</small>
-          </button>
-        </div>
-        {tab === 'compare' ? (
-          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
-        ) : (
-        <>
-        <header className="pl-head">
+        {/* One line: Find | Compare on the left, how much of the grid this mission can land in on the right. */}
+        <div className="np-topbar">
+          <div className="np-tabs" role="tablist" aria-label="New Planner">
+            <button type="button" role="tab" aria-selected={tab === 'find'} title="Where and when could I land? Every site by month, and the brief" onClick={() => setTab('find')}>
+              Find
+            </button>
+            <button type="button" role="tab" aria-selected={tab === 'compare'} title="Your picks side by side" onClick={() => setTab('compare')}>
+              Compare{scenarios.length > 1 ? <small>{scenarios.length}</small> : null}
+            </button>
+          </div>
           {view && (
-            <p className="pl-tally" aria-live="polite">
+            <p className="pl-tally np-tally" aria-live="polite">
               <strong className={view.grid.tally.withLanding === 0 ? 'none' : undefined}>{view.grid.tally.withLanding}</strong>
               <span>
                 of {view.grid.tally.total} months across {view.grid.rows.length} sites have at least one day this mission can land and get through
@@ -293,7 +287,11 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
               </span>
             </p>
           )}
-        </header>
+        </div>
+        {tab === 'compare' ? (
+          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
+        ) : (
+        <>
 
         {shown && facts[active] && isCustomSite(facts[active].site) && !facts[active].flags && <p className="pl-notice" role="status">Working out {facts[active].site.name}…</p>}
 

@@ -18,6 +18,8 @@ interface Props {
   nextLetter: string | null
   /** Add a pick at this site ("lat,lon" for a point) and landing hour, and show it. */
   onAdd: (site: string, iso: string) => void
+  /** The letter of a pick already at this site and hour, or null: the same pick twice is refused. */
+  sameAs: (site: string, iso: string) => string | null
 }
 
 /** "2026-11-17T09:00:00Z" → "2026-11-17T09:00", the form a datetime box takes (read as UTC here). */
@@ -30,7 +32,7 @@ function boxValue(iso: string): string {
  * coordinates, and the landing's date and hour (UTC). "Add" makes it the next scenario (up to four,
  * as everywhere in the app) and shows it, so the Moon goes there too. Both start from the landing on show.
  */
-export function PlannerLocation({ sites, siteId, landing, first, last, nextLetter, onAdd }: Props) {
+export function PlannerLocation({ sites, siteId, landing, first, last, nextLetter, onAdd, sameAs }: Props) {
   const [latText, setLatText] = useState('')
   const [lonText, setLonText] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
@@ -69,6 +71,11 @@ export function PlannerLocation({ sites, siteId, landing, first, last, nextLette
       }
       value = customSiteInfo(lat, lon > 180 ? lon - 360 : lon)
       name = `${value.lat},${value.lon}`
+    }
+    const twin = sameAs(name, iso)
+    if (twin) {
+      setProblem(`That's the same as ${twin}: same place and landing hour. Change the place or the time first.`)
+      return
     }
     setProblem(null)
     setLatText('')
