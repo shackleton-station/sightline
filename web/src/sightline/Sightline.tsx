@@ -74,7 +74,7 @@ import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
 import { LayersDrawer } from './LayersDrawer'
 import { RoverDrawer } from './RoverDrawer'
-import { MissionDrawer } from './MissionDrawer'
+import { MissionDrawer, MissionInline } from './MissionDrawer'
 import { useTrekOverlay } from './useTrekOverlay'
 import { Fields, PlanColumn, Verdict } from './PlanColumn'
 import { Rail, type StageMode } from './Rail'
@@ -775,7 +775,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     return () => window.removeEventListener('keydown', onEscape)
   }, [how, full, brief])
 
-  const toggleMission = () => setDrawer(drawer === 'mission' || drawer === 'advanced' ? null : 'mission')
+  // The mission's limits open in the column, under the mission's own control; the Mission panel is kept for its Advanced controls.
+  const [missionHere, setMissionHere] = useState(false)
+  const toggleMission = () => setMissionHere((open) => !open)
   const pointedState = pointed ? states.get(pointed.id) : undefined
   const line = pointed && pointedState ? `${pointed.name}: ${STATE_WORDS[pointedState]}.` : 'Pick a site, or just watch.'
   const shown = plan && !bare
@@ -867,34 +869,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <ScenarioTabs count={scenarios.length} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} onRemove={removeScenario} />
               {removed && <RemovedNotice letter={SCENARIO_LETTERS[removed.index]} onUndo={undoRemove} />}
             </div>
-            <Fields
-              sites={sites}
-              site={site}
-              onSite={(value) => setScenario((current) => ({ ...current, site: value }))}
-              landing={clockTime(start, scenario.landing)}
-              landingField={fieldAt(start, scenario.landing)}
-              firstField={fieldAt(range.start, 0)}
-              lastField={fieldAt(range.start, range.hours - 1)}
-              onPickDate={(value) => {
-                const landing = hourFromField(start, value, hours)
-                if (landing === null) {
-                  // Any hour the data covers can be picked. One outside the years on hand is reached by its link.
-                  const inData = hourFromField(range.start, value, range.hours)
-                  if (inData === null) return false
-                  const picked = inData + hourOf(start, range.start)
-                  reach(scenarioLink(scenarios.map((one, i) => (i === active ? { ...one, landing: picked } : one)), active, start, mission))
-                  return true
-                }
-                // The time bar goes to the landing, so the Moon and the skyline show the date picked.
-                setScenario((current) => ({ ...current, landing }))
-                setHour(landing)
-                return true
-              }}
-              missionName={presetOf(mission)?.label ?? 'Custom mission'}
-              mission={missionWords(mission)}
-              missionOpen={drawer === 'mission' || drawer === 'advanced'}
-              onMission={toggleMission}
-            />
             <Answer
               data={here}
               now={now}
@@ -904,6 +878,37 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               heights={siteHeights}
               heightsLine={heightsLine}
               earthShare={shares[active]?.earth ?? null}
+              plan={
+                <Fields
+                  sites={sites}
+                  site={site}
+                  onSite={(value) => setScenario((current) => ({ ...current, site: value }))}
+                  landing={clockTime(start, scenario.landing)}
+                  landingField={fieldAt(start, scenario.landing)}
+                  firstField={fieldAt(range.start, 0)}
+                  lastField={fieldAt(range.start, range.hours - 1)}
+                  onPickDate={(value) => {
+                    const landing = hourFromField(start, value, hours)
+                    if (landing === null) {
+                      // Any hour the data covers can be picked. One outside the years on hand is reached by its link.
+                      const inData = hourFromField(range.start, value, range.hours)
+                      if (inData === null) return false
+                      const picked = inData + hourOf(start, range.start)
+                      reach(scenarioLink(scenarios.map((one, i) => (i === active ? { ...one, landing: picked } : one)), active, start, mission))
+                      return true
+                    }
+                    // The time bar goes to the landing, so the Moon and the skyline show the date picked.
+                    setScenario((current) => ({ ...current, landing }))
+                    setHour(landing)
+                    return true
+                  }}
+                  missionName={presetOf(mission)?.label ?? 'Custom mission'}
+                  mission={missionWords(mission)}
+                  missionOpen={missionHere}
+                  onMission={toggleMission}
+                  missionPanel={<MissionInline mission={mission} onMission={setMission} onAdvanced={() => setDrawer('advanced')} />}
+                />
+              }
               verdict={
                 <>
                 <Verdict
@@ -943,7 +948,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                       : null
                   }
                   onWhy={askWhy}
-                  onMission={() => setDrawer('mission')}
+                  onMission={() => setMissionHere(true)}
                 />
                 {accuracyUsed && odds[active] !== null && (
                   <p className="sl-odds-line">
@@ -1209,13 +1214,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onClose={toggleScoutPanel}
         />
       )}
-      {/* One panel for both: 'advanced' is the Mission panel with its Advanced fold open. */}
+      {/* The mission's Advanced controls; its presets and basic limits are in the column, under the mission's control. */}
       {shown && !planner && (drawer === 'mission' || drawer === 'advanced') && (
         <MissionDrawer
           mission={mission}
           onMission={setMission}
-          advanced={drawer === 'advanced'}
-          onAdvanced={(open) => setDrawer(open ? 'advanced' : 'mission')}
           heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null}
           site={site}
           month={landingAt.month}
@@ -1252,8 +1255,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           scoutOpen={drawer === 'scout'}
           scoutState={now ? riverState(now) : null}
           onScout={toggleScoutPanel}
-          missionOpen={drawer === 'mission' || drawer === 'advanced'}
-          onMission={toggleMission}
           compareOpen={drawer === 'compare'}
           onCompare={() => setDrawer(drawer === 'compare' ? null : 'compare')}
           accuracyOpen={drawer === 'accuracy'}

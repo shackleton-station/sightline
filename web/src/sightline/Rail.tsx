@@ -11,8 +11,6 @@ interface Props {
   /** What is in view at the scenario's landing, for Scout's mark; null while it loads. */
   scoutState: RiverState | null
   onScout: () => void
-  missionOpen: boolean
-  onMission: () => void
   compareOpen: boolean
   onCompare: () => void
   /** Landing accuracy: the ground around the target, and the odds of coming down where the mission fits. */
@@ -42,7 +40,7 @@ interface Props {
  * The rail down the right of the Plan frame: how close the Moon is seen (one grouped control), the
  * tools, and the way out (home, to the opening screen). Nothing here leaves the screen.
  */
-export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome, hype }: Props) {
+export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome, hype }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -87,9 +85,6 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
   )
   const tools = (
     <>
-      <button type="button" aria-pressed={missionOpen} title="What the lander can tolerate" onClick={onMission}>
-        Mission
-      </button>
       <button type="button" data-tour="compare" aria-pressed={compareOpen} title="The scenarios side by side" onClick={onCompare}>
         Compare
       </button>
