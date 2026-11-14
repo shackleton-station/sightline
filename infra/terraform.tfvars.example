@@ -1,0 +1,24 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Only the two personal values belong here.
+# They are not credentials, but they are nobody else's business, so they are never committed.
+billing_account = "XXXXXX-XXXXXX-XXXXXX"
+alert_email     = "you@example.com"
+
+# Every other setting of the live project is tracked in settings.auto.tfvars, which Terraform loads
+# by itself and which wins over this file. Change settings there, in a pull request.
+
+# The plans service and the co-pilot service (docs/ARCHITECTURE_PHASE_2.md, docs/ARCHITECTURE_PHASE_3.md).
+# The applied values are the defaults in variables.tf, so nothing needs setting here:
+#   plans_service = true,   plans_route = "plans",     web_plans_access = false
+#   copilot_service = true, copilot_route = "copilot", web_copilot_access = false
+# The web server has no plans API and no co-pilot of its own any more. Sending a path back to it is
+# two steps, in this order: deploy a web image from before the contract step, then one of these lines in
+# settings.auto.tfvars, in a pull request ("The ways back" in each of the two docs). The line gives the web server's identity its access back.
+# plans_route   = "web"
+# copilot_route = "web"
+
+# Drills, off by default; switch on for minutes in settings.auto.tfvars, then back off (docs/ARCHITECTURE_PHASE_3.md, section 6).
+# copilot_fault_abort_percent = 50      # the load balancer answers half the co-pilot's requests itself...
+# copilot_fault_abort_status  = 503     # ...with this status
+# copilot_fault_delay_percent = 50      # or holds half of them...
+# copilot_fault_delay_seconds = 8       # ...this long first
+# copilot_model_faults        = "503@100"  # the service fails its own model calls: the circuit breaker opens

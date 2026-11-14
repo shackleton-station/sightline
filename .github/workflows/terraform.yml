@@ -1,0 +1,403 @@
+name: Terraform
+
+# Infrastructure changes go through GitHub (docs/decisions/0007-terraform-through-github.md).
+#
+#   A pull request that touches infra/   plan, as an identity that can only read, and one comment
+#                                        on the pull request: a summary, the full plan folded below.
+#   A merge to main that touches infra/  plan to a file, run the destroy guard on that file, apply
+#                                        exactly that file. Nobody clicks approve.
+#
+# There is no key or password here. GitHub proves to Google Cloud which repository, branch, event
+# and workflow file a job runs from (Workload Identity Federation), and Google hands back a
+# short-lived token. The rules are in infra/pipeline.tf:
+#
+#   the planner   this repository's pull requests, and main. Reads; cannot change anything.
+#   the applier   only this file, only as it is on main, only for a push or a run started by hand.
+#                 A pull request cannot become the applier, whatever it changes in this file:
+#                 the claim Google checks says which branch the file was read from.
+#
+# Why `pull_request` and not `pull_request_target`: `pull_request_target` runs the workflow from
+# main with main's access while the code under test comes from the pull request, which is how a
+# stranger's pull request gets to run with a repository's access. With `pull_request`, a pull
+# request from a fork gets a read-only token, no secrets and no identity token, so it cannot reach
+# Google Cloud at all, and a branch of this repository gets the planner and nothing more.
+#
+# The two repository secrets, TF_BILLING_ACCOUNT and TF_ALERT_EMAIL, are not credentials: they are
+# two personal settings Terraform needs (the billing account's id for the budget, the address for
+# alerts). GitHub masks them in logs; infra/scripts/redact.mjs removes them from everything this
+# workflow prints or posts, because the billing account's id is part of the budget's own id.
+
+on:
+  # Every pull request, so that "terraform plan" can be a required check: the first job decides in
+  # a few seconds whether there is anything to plan.
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - infra/**
+      - .github/workflows/terraform.yml
+  # A run started by hand from the Actions tab, on main: plan and apply main as it is now. This is
+  # how to apply again after a failed run, and how to put the project back after drift.
+  workflow_dispatch:
+
+# Nothing by default: each job asks for what it needs.
+permissions: {}
+
+defaults:
+  run:
+    shell: bash # with `-o pipefail`, so a failed terraform is not hidden by the filter after it
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "0"
+  # The version that wrote the state. An older one could not read it.
+  TERRAFORM_VERSION: 1.17.2
+  PROJECT: clps-compute-6z1nc
+  REGION: us-east4
+  PLAN_PROVIDER: projects/919194174067/locations/global/workloadIdentityPools/github-terraform-plan/providers/pull-requests-and-main
+  PLANNER: terraform-planner@clps-compute-6z1nc.iam.gserviceaccount.com
+  APPLY_PROVIDER: projects/919194174067/locations/global/workloadIdentityPools/github-terraform-apply/providers/terraform-workflow-on-main
+  APPLIER: terraform-applier@clps-compute-6z1nc.iam.gserviceaccount.com
+
+jobs:
+  # ---------- Pull requests ----------
+
+  changes:
+    name: what the pull request touches
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      infra: ${{ steps.diff.outputs.infra }}
+      guard: ${{ steps.diff.outputs.guard }}
+    steps:
+      # The merge of the pull request into its base, and the base itself to compare with.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Look for changes under infra/ and to the Terraform workflows
+        id: diff
+        run: |
+          CHANGED="$(git diff --name-only HEAD^1 HEAD -- infra .github/workflows/terraform.yml .github/workflows/terraform-drift.yml)"
+          if [ -n "$CHANGED" ]; then
+            echo "infra=true" >> "$GITHUB_OUTPUT"
+            echo "This pull request touches:"
+            echo "$CHANGED"
+          else
+            echo "infra=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nothing under infra/ and neither Terraform workflow is touched: no plan to make."
+          fi
+          if echo "$CHANGED" | grep -qE '^infra/(scripts/destroy-guard\.mjs|protected-resources\.txt|expected-removals\.txt)$'; then
+            echo "guard=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "guard=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  plan:
+    name: terraform plan
+    needs: changes
+    # Skipped when the pull request touches no infrastructure. GitHub counts a skipped job as
+    # passed, so this can be a required check on every pull request.
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write # lets the job ask GitHub for the identity token Google Cloud checks
+    # A newer push to the same pull request replaces a plan that is still running.
+    concurrency:
+      group: terraform-plan-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    env:
+      TF_VAR_billing_account: ${{ secrets.TF_BILLING_ACCOUNT }}
+      TF_VAR_alert_email: ${{ secrets.TF_ALERT_EMAIL }}
+    steps:
+      # GitHub gives a fork's pull request no identity token and no secrets, so it could not plan
+      # anyway. Failing here, first and plainly, also keeps an unplanned change from looking green.
+      - name: Stop for a pull request from a fork
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "::error::Skipped: a pull request from a fork gets no access to Google Cloud, so there is no plan to show. A maintainer can push this branch to ${{ github.repository }} and open the pull request from there."
+          exit 1
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          # The wrapper swallows exit codes and reprints output; the steps below read both.
+          terraform_wrapper: false
+
+      - name: Format check
+        id: format
+        continue-on-error: true
+        run: terraform fmt -check -diff -recursive infra
+
+      # The destroy guard, the comment builder and the wait rule (infra/scripts/).
+      - name: Test the pipeline's own scripts
+        id: tests
+        continue-on-error: true
+        run: node --test infra/scripts/*.test.mjs
+
+      - name: Check the two personal settings are there
+        run: |
+          if [ -z "$TF_VAR_billing_account" ] || [ -z "$TF_VAR_alert_email" ]; then
+            echo "::error::The repository secrets TF_BILLING_ACCOUNT and TF_ALERT_EMAIL are not both set (docs/ARCHITECTURE_PHASE_5_5.md, section 2). Without them Terraform would plan to change the budget and every alert."
+            exit 1
+          fi
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.PLAN_PROVIDER }}
+          service_account: ${{ env.PLANNER }}
+
+      - name: Init
+        run: terraform -chdir=infra init -no-color
+
+      - name: Validate
+        id: validate
+        continue-on-error: true
+        run: terraform -chdir=infra validate -no-color
+
+      # Read-only. No state lock: the planner cannot write to the state bucket, and the lock is a
+      # file in it. A plan here is advice; the apply on main makes its own with the lock held.
+      - name: Plan
+        id: plan
+        continue-on-error: true
+        run: |
+          terraform -chdir=infra plan -lock=false -no-color -out=tfplan 2>&1 | node infra/scripts/redact.mjs | tee infra/plan.log
+          terraform -chdir=infra show -no-color tfplan > infra/plan.txt
+          terraform -chdir=infra show -json tfplan > infra/tfplan.json
+
+      # --strict: a line in expected-removals.txt that this plan does not use fails the check too.
+      - name: Destroy guard
+        id: guard
+        if: steps.plan.outcome == 'success'
+        continue-on-error: true
+        run: node infra/scripts/destroy-guard.mjs infra/tfplan.json --strict --json infra/guard.json
+
+      - name: Write the comment
+        if: always()
+        env:
+          CHECKS: format=${{ steps.format.outcome }},validate=${{ steps.validate.outcome }},tests=${{ steps.tests.outcome }},plan=${{ steps.plan.outcome }},guard=${{ steps.guard.outcome }}
+          GUARD_FILES_CHANGED: ${{ needs.changes.outputs.guard }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # When the plan did not finish, show the end of what Terraform said (already filtered).
+          if [ ! -s infra/plan.txt ] && [ -s infra/plan.log ]; then tail -n 200 infra/plan.log > infra/plan.txt; fi
+          node infra/scripts/plan-comment.mjs --mode pr \
+            --plan-json infra/tfplan.json --plan-text infra/plan.txt --guard infra/guard.json \
+            --checks "$CHECKS" --guard-files-changed "$GUARD_FILES_CHANGED" \
+            --sha "$HEAD_SHA" --run-url "$RUN_URL" --out infra/plan-comment.md
+          cat infra/plan-comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Only the comment's text, which has been through the filter. The plan file and its JSON hold
+      # every setting in clear and never leave this job.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: terraform-plan-comment
+          path: infra/plan-comment.md
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Remove the plan files
+        if: always()
+        run: rm -f infra/tfplan infra/tfplan.json infra/plan.txt infra/plan.log
+
+      - name: Fail if any check failed
+        if: always()
+        env:
+          RESULTS: ${{ steps.format.outcome }} ${{ steps.validate.outcome }} ${{ steps.tests.outcome }} ${{ steps.plan.outcome }} ${{ steps.guard.outcome }}
+        run: |
+          for RESULT in $RESULTS; do
+            if [ "$RESULT" != "success" ]; then
+              echo "::error::format, validate, tests, plan, guard ended: $RESULTS. The comment on the pull request says which and why."
+              exit 1
+            fi
+          done
+
+  # A job of its own, so that the job that can reach Google Cloud cannot write to the pull request,
+  # and the job that writes to the pull request runs no Terraform and reaches no cloud.
+  comment:
+    name: plan comment
+    needs: [changes, plan]
+    if: always() && needs.changes.outputs.infra == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: terraform-plan-comment
+          path: comment
+
+      # One comment per pull request, found again by its first line and updated in place.
+      - name: Post the comment, or update the one already there
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          MARKER='<!-- terraform-plan-comment -->'
+          BODY=comment/plan-comment.md
+          if [ ! -s "$BODY" ]; then
+            mkdir -p comment
+            printf '%s\n## Terraform plan\n\n**The plan job stopped before it could write a plan.** [The run'"'"'s log](%s) says why.\n' "$MARKER" "$RUN_URL" > "$BODY"
+          fi
+          # GitHub refuses a comment longer than 65,536 characters.
+          if [ "$(wc -c < "$BODY")" -gt 65000 ]; then
+            head -c 64000 "$BODY" > "$BODY.cut"
+            printf '\n\n(cut to fit in a comment: [the run'"'"'s log](%s) has the rest)\n' "$RUN_URL" >> "$BODY.cut"
+            mv "$BODY.cut" "$BODY"
+          fi
+          ID="$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$MARKER\"))) | .id" | tail -n 1)"
+          if [ -n "$ID" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$ID" -F body=@"$BODY" --jq '.html_url'
+          else
+            gh api --method POST "repos/$REPO/issues/$PR/comments" -F body=@"$BODY" --jq '.html_url'
+          fi
+
+  # ---------- main ----------
+
+  apply:
+    name: terraform apply
+    # Never for a pull request, and only on main. Google Cloud checks the same thing again
+    # (infra/pipeline.tf): from anywhere else this job could not become the applier.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      id-token: write # lets the job ask GitHub for the identity token Google Cloud checks
+      actions: read # to see whether a deploy is in the middle of a rollout
+    # One apply at a time, in order. A newer one waits; it never cancels an apply half way.
+    concurrency:
+      group: terraform-apply
+      cancel-in-progress: false
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      TF_VAR_billing_account: ${{ secrets.TF_BILLING_ACCOUNT }}
+      TF_VAR_alert_email: ${{ secrets.TF_ALERT_EMAIL }}
+    steps:
+      # main as it is now, not the commit that started this run. An apply always brings the
+      # project to main's latest commit, so a run that waited, or is run again later, can never
+      # put older settings back over newer ones.
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/heads/main
+
+      - name: Say which commit is being applied
+        run: |
+          echo "Applying main at $(git rev-parse --short HEAD): $(git log -1 --format=%s)"
+          echo "This run was started by ${{ github.event_name }} for ${GITHUB_SHA::7}."
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      # A guard that does not pass its own tests guards nothing.
+      - name: Test the pipeline's own scripts
+        run: node --test infra/scripts/*.test.mjs
+
+      - name: Check the two personal settings are there
+        run: |
+          if [ -z "$TF_VAR_billing_account" ] || [ -z "$TF_VAR_alert_email" ]; then
+            echo "::error::The repository secrets TF_BILLING_ACCOUNT and TF_ALERT_EMAIL are not both set (docs/ARCHITECTURE_PHASE_5_5.md, section 2). Nothing was planned or applied."
+            exit 1
+          fi
+
+      # A deploy that started before this run may be moving visitors to a new version. Changing the
+      # service under it would make a newer version than the one it is testing. Deploys that start
+      # after this run wait for it instead (the first step of each deploy workflow).
+      - name: Wait for deploys that started before this run
+        run: node infra/scripts/wait-for-runs.mjs apply --minutes 45
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.APPLY_PROVIDER }}
+          service_account: ${{ env.APPLIER }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Init
+        run: terraform -chdir=infra init -no-color
+
+      - name: Validate
+        run: terraform -chdir=infra validate -no-color
+
+      # With the state lock, waiting up to five minutes for whoever holds it.
+      # Exit status 0: nothing to do. 2: there are changes. Anything else: the plan failed.
+      - name: Plan to a file
+        id: plan
+        run: |
+          set +e
+          terraform -chdir=infra plan -no-color -lock-timeout=5m -detailed-exitcode -out=tfplan 2>&1 | node infra/scripts/redact.mjs
+          CODE="${PIPESTATUS[0]}"
+          set -e
+          case "$CODE" in
+            0) echo "changes=false" >> "$GITHUB_OUTPUT"; echo "::notice::No changes: the live project already matches main." ;;
+            2) echo "changes=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::terraform plan failed. Nothing was applied."; exit 1 ;;
+          esac
+          terraform -chdir=infra show -no-color tfplan > infra/plan.txt
+          terraform -chdir=infra show -json tfplan > infra/tfplan.json
+
+      # What stands in for a reviewer. It stops the job, before anything is changed, when the plan
+      # deletes or replaces something on infra/protected-resources.txt that this commit does not
+      # name in infra/expected-removals.txt.
+      - name: Destroy guard
+        if: steps.plan.outputs.changes == 'true'
+        run: node infra/scripts/destroy-guard.mjs infra/tfplan.json --json infra/guard.json
+
+      - name: Apply exactly that file
+        if: steps.plan.outputs.changes == 'true'
+        run: terraform -chdir=infra apply -no-color -lock-timeout=5m tfplan 2>&1 | node infra/scripts/redact.mjs
+
+      # A deploy that failed puts every visitor back on the version that worked, by name. From then
+      # on a new version made by Terraform gets no visitors until a deploy succeeds or someone sends
+      # traffic to the latest version. Terraform cannot see this (it leaves traffic to the deploys),
+      # so say it here.
+      - name: Check that visitors reach what was applied
+        if: steps.plan.outputs.changes == 'true'
+        run: |
+          jq -r '.resource_changes[]? | select(.type == "google_cloud_run_v2_service") | select(.change.actions | (index("update") != null or index("create") != null)) | .change.after.name // empty' infra/tfplan.json | sort -u > changed-services.txt
+          if [ ! -s changed-services.txt ]; then echo "This apply changed no Cloud Run service."; exit 0; fi
+          while read -r SERVICE; do
+            TRAFFIC="$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format json | jq -c '.spec.traffic // []')"
+            if echo "$TRAFFIC" | jq -e 'any(.[]; .latestRevision == true and (.percent // 0) == 100)' > /dev/null; then
+              echo "$SERVICE: every visitor is on the latest version, which now has the applied settings."
+            else
+              PINNED="$(echo "$TRAFFIC" | jq -r '[.[] | select((.percent // 0) > 0) | "\(.revisionName // "latest") \(.percent)%"] | join(", ")')"
+              echo "::warning::$SERVICE is pinned to $PINNED (a deploy rolled back, or someone pinned it). The settings just applied are in a newer version that gets no visitors. They take effect at the next successful deploy of $SERVICE, or with: gcloud run services update-traffic $SERVICE --project $PROJECT --region $REGION --to-latest (docs/DEPLOY.md, \"A service pinned to an older version\")."
+            fi
+          done < changed-services.txt
+
+      - name: Summary
+        if: always()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -s infra/tfplan.json ]; then
+            node infra/scripts/plan-comment.mjs --mode apply \
+              --plan-json infra/tfplan.json --plan-text infra/plan.txt --guard infra/guard.json \
+              --sha "$(git rev-parse HEAD)" --run-url "$RUN_URL" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Remove the plan files
+        if: always()
+        run: rm -f infra/tfplan infra/tfplan.json infra/plan.txt

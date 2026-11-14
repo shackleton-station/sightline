@@ -1,0 +1,216 @@
+name: Deploy events worker
+
+# After CI passes on main: build the events worker's image and roll it out, if anything it is built
+# from changed. The site has its own workflow (deploy.yml); the two never wait on each other. Both
+# wait for Terraform: the first step lets an apply that started earlier finish.
+#
+# The worker has no visitors and no public address. It receives messages from a queue (Pub/Sub),
+# so the site's steps ("no visitors, a tenth, everyone") become:
+#
+#   1. Start the new version with no messages, on an address of its own, and test it there as the
+#      deployer: it must refuse a caller with no identity, report this commit and this commit's site
+#      data, refuse a message from anyone but Pub/Sub, and pass its own check of the real write path
+#      (count one made-up event twice in the real database: added once, refused once).
+#   2. There is no "a tenth" step. Cloud Run could send the new version a tenth of the messages, but
+#      this site sees about one question every nine minutes, so a minute of watching would see none,
+#      and the pipeline cannot send its own: a test message on the real topic would also land in the
+#      question log and in the day's counts. Step 1's self-check stands in for it.
+#   3. Send it every message, and check the address that takes them now runs this commit.
+#   If any step fails, every message goes back to the version that was live before.
+#
+# Going straight from none to all is safe for this service in a way it is not for the site: a message
+# the worker fails to handle is not lost. Pub/Sub sends it again, to whichever version is live by
+# then, and the worker counts an event once however often it arrives.
+#
+# Sign-in is the same as deploy.yml: no key anywhere, GitHub proves which repository and branch this
+# run belongs to, and Google hands back a short-lived token for the deployer service account.
+
+on:
+  # A manual run from the Actions tab: always builds and deploys main, changed or not.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # lets the job ask GitHub for the identity token Google Cloud checks
+  actions: read # lets the job see whether a Terraform run is still going
+
+# One deploy of the worker at a time, in order.
+concurrency:
+  group: deploy-events-worker
+  cancel-in-progress: false
+
+env:
+  PROJECT: clps-compute-6z1nc
+  REGION: us-east4
+  SERVICE: clps-events-worker
+  REGISTRY: us-east4-docker.pkg.dev
+  IMAGE_REPO: us-east4-docker.pkg.dev/clps-compute-6z1nc/web
+  IMAGE_NAME: events-worker
+  SITE: https://shackletonstation.dev
+  WORKLOAD_IDENTITY_PROVIDER: projects/919194174067/locations/global/workloadIdentityPools/github/providers/github-oidc
+  DEPLOYER: clps-web-deployer@clps-compute-6z1nc.iam.gserviceaccount.com
+  # Everything the worker's image is built from. A commit that touches none of these does not deploy it.
+  BUILT_FROM: >-
+    web/events-worker web/shared web/public/data web/scripts/data-version.mjs
+    web/package.json web/package-lock.json .github/workflows/deploy-events-worker.yml
+
+jobs:
+  deploy:
+    name: build, test with no messages, roll out
+    # Only after a green CI run for a push to main (never for a pull request's CI run).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      # The exact commit CI tested. The whole history, to compare it with the commit that is live.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
+
+      # Terraform first. If the same merge changed infra/, its apply must finish before this version
+      # goes out, and a deploy must never move visitors while an apply is changing the service under
+      # it. This waits for every Terraform run that started before this one, and stops if the last
+      # of them failed (infra/scripts/wait-for-runs.mjs; docs/DEPLOY.md, "Infrastructure changes").
+      - name: Wait for Terraform
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node infra/scripts/wait-for-runs.mjs deploy --minutes 45
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOYER }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      # If anything below goes wrong, this is the version to go back to. It carries a label with the
+      # commit it was built from, which is how this run knows what has changed since.
+      - name: Note which version is live now
+        id: live
+        run: |
+          if ! gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format json > before.json 2> describe.err; then
+            cat describe.err
+            echo "::warning::The service $SERVICE does not exist yet (infra/worker.tf has not been applied). Nothing to deploy."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+          LIVE="$(jq -r '[.status.traffic[] | select((.percent // 0) > 0)] | max_by(.percent) | .revisionName' before.json)"
+          # The commit the live version was built from: the label every deploy puts on the version
+          # it makes. Not the image's name: Cloud Run records an image by its digest, whatever tag
+          # it was deployed by (every revision in the project shows sha256:..., those made by
+          # gcloud too). A version Terraform makes keeps the label, as it keeps the image. With no
+          # label (a version from before the deploys labelled theirs) the worker is deployed again:
+          # its status address needs an identity token this step does not have yet, and the worker
+          # has no "a tenth" step to skip, so the only cost is one build.
+          LIVE_COMMIT="$(gcloud run revisions describe "$LIVE" --project "$PROJECT" --region "$REGION" --format 'value(metadata.labels.commit)')"
+          echo "LIVE=$LIVE" >> "$GITHUB_ENV"
+          echo "URL=$(jq -r '.status.url' before.json)" >> "$GITHUB_ENV"
+          echo "LIVE_COMMIT=$LIVE_COMMIT" >> "$GITHUB_ENV"
+          echo "Live: $LIVE, built from ${LIVE_COMMIT:-an unknown commit (it carries no commit label)}"
+
+      # Build only when the worker's own files, the shared folder or the site data changed since the
+      # commit that is live. Compared with what is live, not with the previous commit, so a deploy
+      # that was skipped or rolled back is not forgotten.
+      - name: Decide whether there is anything to deploy
+        id: changed
+        if: steps.live.outputs.exists == 'true'
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "A manual run: deploying."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          elif ! git cat-file -e "${LIVE_COMMIT}^{commit}" 2>/dev/null; then
+            echo "The live version carries no commit label this repository knows (${LIVE_COMMIT:-none}): it is the placeholder from the first apply, or it was deployed before versions were labelled. Deploying."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$LIVE_COMMIT" HEAD -- $BUILT_FROM; then
+            echo "Nothing the worker is built from changed since $LIVE_COMMIT: not deploying."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Changed since $LIVE_COMMIT:"
+            git diff --stat "$LIVE_COMMIT" HEAD -- $BUILT_FROM | tail -15
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push the image
+        if: steps.changed.outputs.deploy == 'true'
+        working-directory: web
+        run: |
+          gcloud auth configure-docker "$REGISTRY" --quiet
+          COMMIT="$(git rev-parse --short HEAD)"
+          IMAGE="$IMAGE_REPO/$IMAGE_NAME:$COMMIT"
+          docker build --platform linux/amd64 -f events-worker/Dockerfile --build-arg "VERSION=$COMMIT" -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          echo "COMMIT=$COMMIT" >> "$GITHUB_ENV"
+          # The same hash the image computed for itself, from the same files.
+          echo "DATA_VERSION=$(node scripts/data-version.mjs public/data | jq -r .dataVersion)" >> "$GITHUB_ENV"
+
+      - name: Start the new version with no messages
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          # No --tag here. With --tag, gcloud names the new version itself and leaves that name in the
+          # service's settings, and every `terraform plan` after that wants to clear it, which would
+          # start yet another version. So: make the version, check it is ours, then give it the tag.
+          gcloud run deploy "$SERVICE" --project "$PROJECT" --region "$REGION" --image "$IMAGE" --no-traffic --update-labels "commit=$COMMIT" --quiet
+          NEW="$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format 'value(status.latestCreatedRevisionName)')"
+          NEW_COMMIT="$(gcloud run revisions describe "$NEW" --project "$PROJECT" --region "$REGION" --format 'value(metadata.labels.commit)')"
+          if [ "$NEW" = "$LIVE" ] || [ "$NEW_COMMIT" != "$COMMIT" ]; then
+            echo "::error::The newest version of $SERVICE is $NEW (commit label: ${NEW_COMMIT:-none}), which is not one this run made from $COMMIT. Something else changed the service at the same moment. No messages were sent to it."
+            exit 1
+          fi
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --update-tags "canary=$NEW" --quiet
+          CANARY_URL="$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format json | jq -r '.status.traffic[] | select(.tag == "canary") | .url')"
+          echo "CANARY_URL=$CANARY_URL" >> "$GITHUB_ENV"
+          echo "New version at $CANARY_URL; messages stay on $LIVE"
+
+      # The worker only answers Google identities that may call it. This asks Google for a token that
+      # says "I am the deployer, calling this service". The audience is the service's own address
+      # even for the tagged address: that is what Cloud Run checks.
+      - name: Get an identity token for the worker
+        id: identity
+        if: steps.changed.outputs.deploy == 'true'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOYER }}
+          token_format: id_token
+          id_token_audience: ${{ env.URL }}
+          id_token_include_email: true
+
+      - name: Test the new version on its own address
+        if: steps.changed.outputs.deploy == 'true'
+        env:
+          ID_TOKEN: ${{ steps.identity.outputs.id_token }}
+        run: node web/scripts/worker-check.mjs "$CANARY_URL" --version "$COMMIT" --data-version "$DATA_VERSION"
+
+      - name: Send it every message
+        if: steps.changed.outputs.deploy == 'true'
+        run: gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-latest --quiet
+
+      - name: Check the live address runs the new version
+        if: steps.changed.outputs.deploy == 'true'
+        env:
+          ID_TOKEN: ${{ steps.identity.outputs.id_token }}
+        run: node web/scripts/worker-check.mjs "$URL" --version "$COMMIT" --data-version "$DATA_VERSION" --live
+
+      # Every service reports the data version it was built with. The worker reads no site data, so a
+      # difference cannot make it wrong, and the site's own deploy of this same commit may still be
+      # running: so this says what it sees and does not fail the deploy.
+      - name: Compare the data version with the site's
+        if: steps.changed.outputs.deploy == 'true'
+        run: |
+          SITE_DATA="$(curl -s --max-time 10 "$SITE/api/status" | jq -r '.dataVersion // "none"' || echo unknown)"
+          if [ "$SITE_DATA" = "$DATA_VERSION" ]; then
+            echo "The site and the worker report the same data version: $DATA_VERSION"
+          else
+            echo "::notice::The site reports data version $SITE_DATA and the worker $DATA_VERSION. Expected while the site's own deploy of this commit is still running; check again if it stays."
+          fi
+
+      # The new version stays deployed with no messages, so it can be looked at on its own address.
+      - name: Go back to the version that was live
+        if: failure() && steps.changed.outputs.deploy == 'true' && env.LIVE != ''
+        run: |
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-revisions "$LIVE=100" --quiet
+          echo "::error::The rollout failed. Every message goes to $LIVE again. Messages the new version refused are sent again by Pub/Sub."
