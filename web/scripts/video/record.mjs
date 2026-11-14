@@ -1,17 +1,18 @@
-// Records the narrated tutorial video of Sightline from the real site, in headless Chrome.
+// Records the narrated videos of Sightline from the real site, in headless Chrome.
 //
 // Run it from web/ (README.md in this folder says what it needs and what each file is):
 //
-//   node scripts/video/record.mjs                      the full tutorial, from https://lunarsightline.com
-//   node scripts/video/record.mjs --cut=short          the 30-second cut for the Space Apps submission
+//   node scripts/video/record.mjs                      the tutorial, from https://lunarsightline.com
+//   node scripts/video/record.mjs --cut=pitch          the 30-second demo for the Space Apps submission
 //   node scripts/video/record.mjs --stills             a rehearsal: one picture a second, no video
+//   node scripts/video/record.mjs --words              only speak the words and print how long they take
 //   node scripts/video/record.mjs --check=file.mp4     only measure a finished file
-//   node scripts/video/record.mjs --base=http://localhost:5173 --tour=path/to/tour.json --out=dir
+//   node scripts/video/record.mjs --base=http://localhost:5173 --tour=path/to/tour.json --out=dir --fps=30
 //
-// The words and the order of the steps come from the tour's own file (src/sightline/tour.json), so
-// the video says what the tour on the site says. tutorial.json, beside this file, holds only what
-// the video adds: where the pointer goes during each step, which sentences the short cut keeps, and
-// the line that says the voice is AI-generated.
+// The tutorial's steps and words come from the tour's own file (src/sightline/tour.json), so the
+// video says what the tour on the site says. tutorial.json, beside this file, holds what the videos
+// add: where the pointer and the camera go, the demo's own words, the cards, the pauses, and the
+// line that says the voice is AI-generated.
 //
 // The voice is Google Cloud Text-to-Speech, asked from this machine (never through the site's own
 // voice route, which has a daily allowance for visitors). Each clip is kept in cache/video/voice, so
@@ -31,16 +32,20 @@ const webDir = resolve(here, '../..')
 const args = new Map(process.argv.slice(2).map((arg) => { const [name, ...rest] = arg.replace(/^--/, '').split('='); return [name, rest.join('=')] }))
 const WIDTH = 1920
 const HEIGHT = 1080
-const FPS = 30
-// The site is recorded in the frame above a thin strip, and the strip holds the line saying the voice is
-// AI-generated: it shows for the whole video and never lies over anything on the site.
-const STRIP = 36
-const VIEW = HEIGHT - STRIP
+// The picture is the site above a band. The band holds the words being said, large enough to read on
+// a phone, and under them the line saying the voice is AI-generated, for the whole video. Nothing of
+// the video's own lies over the site except the pointer, the rings and the two cards.
+const BAND = 128
+const VIEW = HEIGHT - BAND
+// The site is drawn at twice its size, as on a laptop's dense screen, so the camera can move in on a
+// control and the picture stays sharp.
+const DENSITY = 2
+const FPS = Number(args.get('fps') || 60)
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms))
 const ffmpeg = process.env.FFMPEG ?? 'ffmpeg'
 
 if (args.has('check')) {
-  const report = measure(resolve(args.get('check')))
+  const report = measure(resolve(args.get('check')), args.get('longest') ? Number(args.get('longest')) : null, null)
   console.log(JSON.stringify(report, null, 1))
   process.exit(report.ok ? 0 : 1)
 }
@@ -51,24 +56,21 @@ const outDir = resolve(args.get('out') || join(webDir, '../cache/video', cutName
 const voiceDir = resolve(join(webDir, '../cache/video/voice'))
 mkdirSync(outDir, { recursive: true })
 mkdirSync(voiceDir, { recursive: true })
-const tour = JSON.parse(readFileSync(resolve(args.get('tour') || join(webDir, 'src/sightline/tour.json')), 'utf8'))
 const directions = JSON.parse(readFileSync(join(here, 'tutorial.json'), 'utf8'))
 const cut = directions.cuts[cutName]
 if (!cut) throw new Error(`No cut called "${cutName}" in tutorial.json.`)
-const voiceName = args.get('voice') || /\(([a-z]{2}-[A-Z]{2}-[^)]+)\)/.exec(tour.voice?.from ?? '')?.[1] || directions.voice
+// The tutorial follows the tour's file; a cut with words of its own (the demo) does not need it.
+const tour = cut.script ? null : JSON.parse(readFileSync(resolve(args.get('tour') || join(webDir, 'src/sightline/tour.json')), 'utf8'))
+const voiceName = args.get('voice') || /\(([a-z]{2}-[A-Z]{2}-[^)]+)\)/.exec(tour?.voice?.from ?? '')?.[1] || directions.voice
 const disclosure = directions.disclosure
 
 // ---- The words ----
 
 const sentences = (words) => words.split(/(?<=[.?!])\s+/)
-/** The steps this cut shows, each with the words it says: all of a step's words, or the sentences the cut keeps. */
-const steps = tour.steps
-  .filter((step) => !cut.keep || cut.keep[step.id])
-  .map((step) => {
-    const all = sentences(step.say)
-    const kept = cut.keep ? cut.keep[step.id].map((index) => { if (!all[index]) throw new Error(`Step "${step.id}" has no sentence ${index}.`); return all[index] }) : all
-    return { id: step.id, title: step.title, targets: step.targets ?? [], state: step.state ?? {}, lines: kept, say: kept.join(' '), acts: (cut.acts?.[step.id] ?? directions.acts[step.id] ?? []) }
-  })
+/** The steps this cut shows, each with the words it says and what the pointer and the camera do meanwhile. */
+const steps = cut.script
+  ? cut.script.map((beat) => ({ id: beat.id, title: beat.title ?? beat.id, targets: beat.targets ?? [], lines: sentences(beat.say), say: beat.say, acts: beat.acts ?? [] }))
+  : tour.steps.map((step) => ({ id: step.id, title: step.title, targets: step.targets ?? [], lines: sentences(step.say), say: step.say, acts: directions.acts[step.id] ?? [] }))
 
 // ---- The voice ----
 
@@ -176,7 +178,7 @@ function sentenceEnds(clip, lines) {
 
 // ---- The timeline ----
 
-const pace = { lead: 1, before: 0.4, after: 0.6, tail: 1.5, ...directions.pace, ...cut.pace }
+const pace = { lead: 1, before: 0.4, after: 0.6, tail: 1.5, fadeIn: 0.4, fadeOut: 0.5, ...directions.pace, ...cut.pace }
 let clock = pace.lead
 for (const step of steps) {
   step.clip = await speak(step.say)
@@ -198,8 +200,21 @@ if (cut.length) {
 }
 const frameCount = Math.round(length * FPS)
 length = frameCount / FPS
-console.log(`${cutName}: ${steps.length} steps, ${length.toFixed(2)} s, ${frameCount} frames; voice ${voiceName}; ${asked} characters asked of Text-to-Speech in this run`)
-for (const step of steps) console.log(`  ${step.start.toFixed(2).padStart(6)}  ${step.id.padEnd(9)} speech ${step.clip.seconds.toFixed(2)} s`)
+const spoken = steps.reduce((sum, step) => sum + step.clip.seconds, 0)
+const wordCount = steps.reduce((sum, step) => sum + step.say.split(/\s+/).length, 0)
+console.log(`${cutName}: ${steps.length} steps, ${length.toFixed(2)} s at ${FPS} frames a second (${frameCount} frames); ${spoken.toFixed(2)} s of speech, ${wordCount} words; voice ${voiceName}${cut.rate ? ` at ${cut.rate} times its pace` : ''}; ${asked} characters asked of Text-to-Speech in this run`)
+for (const step of steps) console.log(`  ${step.start.toFixed(2).padStart(6)}  ${step.id.padEnd(9)} speech ${step.clip.seconds.toFixed(2)} s, to ${step.speechEnd.toFixed(2)}`)
+if (args.has('words')) process.exit(0)
+
+const span = (step) => step.end - step.start
+// What happens with no words being said: before the first step (the tutorial starts the tour there)
+// and after the last. Their acts' "at" is a fraction of that stretch, as in a step.
+const stretches = [{ id: 'intro', start: 0, end: pace.lead, targets: [], acts: cut.intro ?? [] }, ...steps, { id: 'outro', start: clock, end: length, targets: [], acts: cut.outro ?? [] }]
+/** The cards: the one that opens the video, the one that closes it, and any a step's acts put up. */
+const cards = []
+if (cut.opening) cards.push({ ...directions.cards.open, from: -1, to: cut.opening, fadeIn: 0, fadeOut: 0.6 })
+if (cut.closing) cards.push({ ...directions.cards.close, from: length - cut.closing, to: length + 1, fadeIn: 0.6, fadeOut: 0 })
+for (const step of stretches) for (const act of step.acts.filter((one) => one.card)) cards.push({ ...directions.cards[act.card], from: step.start + act.at * span(step), to: length + 1, fadeIn: act.over ?? 0.5, fadeOut: 0 })
 
 // ---- The sound, the captions and the list of steps ----
 
@@ -236,10 +251,11 @@ const waiting = new Map()
 const pageErrors = []
 let nextId = 1
 let reloads = 0
+let recordedPage = null
 socket.onmessage = (event) => {
   const message = JSON.parse(event.data)
   if (message.method === 'Runtime.exceptionThrown') pageErrors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text)
-  if (message.method === 'Page.frameNavigated' && !message.params.frame.parentId) reloads += 1
+  if (message.method === 'Page.frameNavigated' && message.sessionId === recordedPage && !message.params.frame.parentId) reloads += 1
   if (message.id === undefined) return
   const { done, fail } = waiting.get(message.id)
   waiting.delete(message.id)
@@ -254,6 +270,7 @@ const send = (method, params = {}, sessionId = undefined) => {
 const { browserContextId } = await send('Target.createBrowserContext')
 const { targetId } = await send('Target.createTarget', { url: 'about:blank', browserContextId })
 const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
+recordedPage = sessionId
 const page = (method, params) => send(method, params, sessionId)
 async function evaluate(expression) {
   const result = await page('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true })
@@ -266,35 +283,57 @@ let posterAt = 0
 const stillsOnly = args.has('stills')
 const lateBy = []
 try {
-  // The strip under the site: drawn once, by the same browser, so the video needs no font of its own.
-  const stripFile = join(outDir, 'strip.png')
+  // The band under the site, drawn once for each caption by the same browser, so the video needs no
+  // font of its own: the words being said, and under them the line about the voice and the address.
+  const bands = new Map()
   {
     const made = await send('Target.createTarget', { url: 'about:blank', browserContextId })
     const attached = await send('Target.attachToTarget', { targetId: made.targetId, flatten: true })
-    const strip = (method, params) => send(method, params, attached.sessionId)
+    const band = (method, params) => send(method, params, attached.sessionId)
     const safe = (words) => words.replace(/[&<>]/g, (letter) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[letter])
-    await strip('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: STRIP, deviceScaleFactor: 1, mobile: false })
-    await strip('Page.enable')
-    await strip('Page.navigate', { url: `data:text/html;charset=utf-8,${encodeURIComponent(`<body style="margin:0;height:${STRIP}px;background:#05060a;color:rgba(255,255,255,.78);font:500 15px/${STRIP}px system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;letter-spacing:.01em;display:flex;justify-content:space-between;padding:0 16px;box-sizing:border-box;border-top:1px solid rgba(255,255,255,.12)"><span>${safe(disclosure)}</span><span>${safe(directions.strip?.right ?? '')}</span></body>`)}` })
-    await sleep(400)
-    writeFileSync(stripFile, Buffer.from((await strip('Page.captureScreenshot', { format: 'png' })).data, 'base64'))
+    await band('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: BAND, deviceScaleFactor: 1, mobile: false })
+    await band('Page.enable')
+    for (const words of ['', ...new Set(cues.map((cue) => cue.text))]) {
+      const html = `<body style="margin:0;height:${BAND}px;overflow:hidden;background:#05060a;color:#fff;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;box-sizing:border-box;border-top:1px solid rgba(255,255,255,.14)">
+        <div id="words" style="position:absolute;left:40px;right:40px;top:8px;font-weight:600;font-size:34px;line-height:42px;text-align:center;text-wrap:balance">${safe(words)}</div>
+        <div style="position:absolute;left:16px;right:16px;bottom:7px;display:flex;justify-content:space-between;font-weight:500;font-size:15px;line-height:18px;letter-spacing:.01em;color:rgba(255,255,255,.72)"><span>${safe(disclosure)}</span><span>${safe(directions.band.right)}</span></div>
+        <script>const words = document.getElementById('words'); document.title = String(words.offsetHeight); words.style.top = (8 + Math.max(0, (84 - words.offsetHeight) / 2)) + 'px'</script></body>`
+      await band('Page.navigate', { url: `data:text/html;charset=utf-8,${encodeURIComponent(html)}` })
+      await sleep(250)
+      const tall = await send('Runtime.evaluate', { expression: 'Number(document.title)', returnByValue: true }, attached.sessionId)
+      if (!(tall.result.value <= 84)) throw new Error(`These words do not fit the band in two lines: ${words}`)
+      bands.set(words, Buffer.from((await band('Page.captureScreenshot', { format: 'png' })).data, 'base64'))
+    }
     await send('Target.closeTarget', { targetId: made.targetId })
   }
+
   await page('Page.enable')
   await page('Runtime.enable')
   await page('Network.enable')
   if (!args.has('ask')) await page('Network.setBlockedURLs', { urls: ['*/api/chat', '*/api/ask', '*/api/speak*'] })
-  await page('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: VIEW, deviceScaleFactor: 1, mobile: false })
+  await page('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: VIEW, deviceScaleFactor: DENSITY, mobile: false })
   await page('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }, { name: 'prefers-reduced-motion', value: 'no-preference' }] })
   await page('Page.addScriptToEvaluateOnNewDocument', { source: readFileSync(join(here, 'page.js'), 'utf8') })
-  await page('Page.navigate', { url: `${base}${directions.open}` })
+  await page('Page.navigate', { url: `${base}${cut.open ?? directions.open}` })
   // The page as a visitor gets it: wait for the Moon and whatever it loads first, with the clock still real.
   for (let tries = 0; ; tries += 1) {
     if (await evaluate(directions.ready).catch(() => false)) break
     if (tries > 150) throw new Error('The page did not show the Moon within 30 s.')
     await sleep(200)
   }
-  await sleep((directions.settle ?? 4) * 1000)
+  await sleep((cut.settle ?? directions.settle ?? 4) * 1000)
+  // What a cut does before the recording starts (the demo opens a link with four scenarios, then Watch).
+  for (const act of cut.prepare ?? []) {
+    if (act.click) {
+      const box = await evaluate(`window.__video.box(${JSON.stringify(act.click)})`)
+      if (!box) throw new Error(`Before recording: nothing matches ${JSON.stringify(act.click)}.`)
+      const at = { x: box.x + box.w / 2, y: box.y + box.h / 2 }
+      await page('Input.dispatchMouseEvent', { type: 'mouseMoved', ...at })
+      await page('Input.dispatchMouseEvent', { type: 'mousePressed', ...at, button: 'left', buttons: 1, clickCount: 1 })
+      await page('Input.dispatchMouseEvent', { type: 'mouseReleased', ...at, button: 'left', buttons: 0, clickCount: 1 })
+    }
+    await sleep((act.wait ?? 1) * 1000)
+  }
   const firstLoads = reloads
   await evaluate('window.__video.hold()')
 
@@ -303,48 +342,102 @@ try {
   let frame = 0
   let pointer = [...directions.pointerStart]
   let tap = null
-  const rings = steps.flatMap((step) =>
+  const rings = stretches.flatMap((step) =>
     step.acts
       .filter((act) => act.ring)
-      .map((act) => {
-        const span = step.end - step.start
-        return { spec: act.ring === 'targets' ? step.targets : act.ring, from: step.start + act.at * span, to: step.start + (act.until ?? 0.97) * span, pad: act.pad, round: act.round }
-      }),
+      .map((act) => ({ spec: act.ring === 'targets' ? step.targets : act.ring, from: step.start + act.at * span(step), to: step.start + (act.until ?? 0.97) * span(step), pad: act.pad, round: act.round })),
   )
+  // The camera: the part of the site in the picture. Each move starts at its time whatever the pointer is doing.
+  const whole = { x: 0, y: 0, w: WIDTH, h: VIEW }
+  const moves = stretches
+    .flatMap((step) => step.acts.filter((act) => act.zoom).map((act) => ({ ...act, time: step.start + act.at * span(step), step: step.id })))
+    .sort((a, b) => a.time - b.time)
+  // A cut may open with the camera already on a part of the screen (the demo opens on the Moon).
+  let camera = cut.camera ? { x: cut.camera[0] * WIDTH, y: cut.camera[1] * VIEW, w: cut.camera[2] * WIDTH, h: cut.camera[2] * VIEW } : whole
+  let move = null
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
+  /** The part of the site a camera move ends on: the thing it names, with room round it, never closer than `max`. */
+  async function aim(act) {
+    if (act.zoom === 'out') return whole
+    // A part of the screen given outright: its left and top edges and its width, as fractions of the screen.
+    if (act.zoom === 'frame') return { x: act.frame[0] * WIDTH, y: act.frame[1] * VIEW, w: act.frame[2] * WIDTH, h: act.frame[2] * VIEW }
+    const box = await evaluate(`window.__video.box(${JSON.stringify(act.zoom)})`)
+    if (!box) {
+      if (act.optional) return camera
+      throw new Error(`Nothing on the page matches ${JSON.stringify(act.zoom)} (camera, in "${act.step}").`)
+    }
+    const pad = act.pad ?? 40
+    const closeness = Math.max(1, Math.min(act.max ?? 2, WIDTH / (box.w + 2 * pad), VIEW / (box.h + 2 * pad)))
+    const w = WIDTH / closeness
+    const h = VIEW / closeness
+    const place = act.place ?? [0.5, 0.5]
+    return { x: Math.min(WIDTH - w, Math.max(0, box.x + box.w * place[0] - w / 2)), y: Math.min(VIEW - h, Math.max(0, box.y + box.h * place[1] - h / 2)), w, h }
+  }
+  function cameraAt(time) {
+    if (!move) return camera
+    const t = ease(Math.min(1, (time - move.start) / move.seconds))
+    // Closeness moves evenly on a log scale, so moving in and moving out feel the same.
+    const w = Math.exp(Math.log(move.from.w) + (Math.log(move.to.w) - Math.log(move.from.w)) * t)
+    const part = Math.abs(move.from.w - move.to.w) < 1e-6 ? t : (move.from.w - w) / (move.from.w - move.to.w)
+    return { x: move.from.x + (move.to.x - move.from.x) * part, y: move.from.y + (move.to.y - move.from.y) * part, w, h: (w * VIEW) / WIDTH }
+  }
+
   const encoder = stillsOnly
     ? null
     : spawn(
         ffmpeg,
-        ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-i', soundFile, '-i', captionsFile, '-i', stripFile,
-          '-filter_complex', `[0:v]pad=${WIDTH}:${HEIGHT}:0:0:black[site];[site][3:v]overlay=0:${VIEW},scale=in_range=full:out_range=tv:out_color_matrix=bt709,format=yuv420p,fade=t=in:st=0:d=${pace.fadeIn ?? 0.4},fade=t=out:st=${(length - (pace.fadeOut ?? 0.5)).toFixed(3)}:d=${pace.fadeOut ?? 0.5}[picture]`,
-          '-map', '[picture]', '-map', '1:a', '-map', '2:s',
+        ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', 'pipe:0', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'png', '-i', 'pipe:3', '-i', soundFile,
+          '-filter_complex', `[0:v]scale=${WIDTH}:${VIEW}:flags=bicubic,format=rgb24[site];[1:v]format=rgb24[band];[site][band]vstack=inputs=2,scale=in_range=full:out_range=tv:out_color_matrix=bt709,format=yuv420p,fade=t=in:st=0:d=${pace.fadeIn},fade=t=out:st=${(length - pace.fadeOut).toFixed(3)}:d=${pace.fadeOut}[picture]`,
+          '-map', '[picture]', '-map', '2:a',
           '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-profile:v', 'high', '-r', String(FPS), '-g', String(FPS * 2), '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-color_range', 'tv',
-          '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2', '-c:s', 'mov_text', '-metadata:s:s:0', 'language=eng', '-metadata:s:a:0', 'language=eng',
+          '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2', '-metadata:s:a:0', 'language=eng',
           '-metadata', `title=${cut.title}`, '-metadata', `comment=${disclosure}. Recorded from ${base}.`,
           '-t', length.toFixed(3), '-movflags', '+faststart', join(outDir, `${cut.file}.mp4`)],
-        { stdio: ['pipe', 'inherit', 'inherit'] },
+        { stdio: ['pipe', 'inherit', 'inherit', 'pipe'] },
       )
   const encoded = encoder ? new Promise((done, fail) => encoder.on('exit', (code) => (code === 0 ? done() : fail(new Error(`ffmpeg ended with ${code}.`))))) : null
-  posterAt = Math.round((() => { const step = steps.find((one) => one.id === cut.poster?.step) ?? steps[0]; return step.start + (cut.poster?.at ?? 0.5) * (step.end - step.start) })() * FPS)
+  // The band's frames are known before the first picture is taken (which words are up at which
+  // moment), so they are all handed over now. ffmpeg reads ahead on each input before it starts, and
+  // feeding the two in step would leave each waiting for the other.
+  if (encoder) {
+    for (let index = 0; index < frameCount; index += 1) {
+      const cue = cues.find((one) => index / FPS >= one.from && index / FPS < one.to)
+      encoder.stdio[3].write(bands.get(cue?.text ?? ''))
+    }
+    encoder.stdio[3].end()
+  }
+  const put = (stream, bytes) => new Promise((done) => (stream.write(bytes) ? done() : stream.once('drain', done)))
+  posterAt = Math.round((() => { const step = steps.find((one) => one.id === cut.poster?.step) ?? steps[0]; return cut.poster?.time ?? step.start + (cut.poster?.at ?? 0.5) * span(step) })() * FPS)
 
-  /** Takes the next frame of the video: the page's clock moves on one thirtieth of a second. */
+  /** Takes the next frame of the video: the page's clock moves on by one frame's time. */
   async function take() {
     if (frame >= frameCount) return
     const time = frame / FPS
+    while (moves.length && moves[0].time <= time + 1e-9) {
+      const act = moves.shift()
+      const from = cameraAt(time)
+      move = { from, to: await aim(act), start: time, seconds: act.over ?? 1.2 }
+      camera = move.to
+    }
+    const view = cameraAt(time)
+    if (move && time >= move.start + move.seconds) move = null
     const shown = rings.filter((ring) => time >= ring.from && time <= ring.to).map((ring) => ({ spec: ring.spec, pad: ring.pad, round: ring.round, alpha: Math.min(1, (time - ring.from) / 0.25, (ring.to - time) / 0.25).toFixed(3) }))
-    const state = { ms: 1000 / FPS, pointer, rings: shown, tap: tap && time - tap.at < 0.5 ? { x: tap.x, y: tap.y, age: (time - tap.at) / 0.5 } : null }
+    const up = cards.find((card) => time >= card.from && time < card.to)
+    const card = up ? { title: up.title, lines: up.lines, alpha: Math.max(0, Math.min(1, up.fadeIn ? (time - up.from) / up.fadeIn : 1, up.fadeOut ? (up.to - time) / up.fadeOut : 1)).toFixed(3) } : null
+    const state = { ms: 1000 / FPS, pointer, rings: shown, card, tap: tap && time - tap.at < 0.5 ? { x: tap.x, y: tap.y, age: (time - tap.at) / 0.5 } : null }
     await evaluate(`window.__video.frame(${JSON.stringify(state)})`)
     const keep = !stillsOnly || frame % FPS === 0
     if (keep) {
-      const shot = Buffer.from((await page('Page.captureScreenshot', { format: 'jpeg', quality: 95 })).data, 'base64')
-      if (stillsOnly && frame % FPS === 0) writeFileSync(join(outDir, `still-${String(frame / FPS).padStart(3, '0')}.jpg`), shot)
-      if (encoder && !encoder.stdin.write(shot)) await new Promise((drained) => encoder.stdin.once('drain', drained))
+      const shot = Buffer.from((await page('Page.captureScreenshot', { format: 'jpeg', quality: 95, clip: { x: view.x, y: view.y, width: view.w, height: view.h, scale: WIDTH / view.w / DENSITY } })).data, 'base64')
+      if (stillsOnly) writeFileSync(join(outDir, `still-${String(frame / FPS).padStart(3, '0')}.jpg`), shot)
+      if (encoder) {
+        await put(encoder.stdin, shot)
+      }
     }
     frame += 1
     if (frame % (FPS * 10) === 0) console.log(`  ${frame / FPS} s recorded`)
   }
   const until = async (time) => { while (frame / FPS < time - 1e-9 && frame < frameCount) await take() }
-  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
   const moveMouse = (buttons = 0) => page('Input.dispatchMouseEvent', { type: 'mouseMoved', x: pointer[0], y: pointer[1], button: buttons ? 'left' : 'none', buttons })
   /** Glides the pointer to a place over some seconds, as real mouse movement the page can feel. */
   async function glide(to, seconds, buttons = 0) {
@@ -371,6 +464,7 @@ try {
     tap = { x: pointer[0], y: pointer[1], at: frame / FPS }
   }
   const release = () => page('Input.dispatchMouseEvent', { type: 'mouseReleased', x: pointer[0], y: pointer[1], button: 'left', buttons: 0, clickCount: 1 })
+  const hold = async (seconds) => until(frame / FPS + seconds)
 
   /** The address a step's plan has: the tour's own scenario, as the page writes it in its address. */
   const scenarioHash = () => {
@@ -390,33 +484,39 @@ try {
         const again = await placeOf(act.click, act.place, false)
         if (again) pointer = again.at
         await moveMouse()
-        await take()
+        await hold(0.05)
         await press()
-        await take()
-        await take()
+        await hold(0.07)
         await release()
       }
     } else if (act.slide) {
       // A slider: take its handle and carry it to where `to` says, as a fraction of its track.
-      const target = await placeOf(act.slide)
-      const { box } = target
+      const { box } = await placeOf(act.slide)
       const inset = act.inset ?? 8
       const along = (fraction) => [box.x + inset + fraction * (box.w - 2 * inset), box.y + box.h / 2]
-      const range = box.range
-      const start = range ? (range.value - range.min) / (range.max - range.min) : 0.5
+      const start = box.range ? (box.range.value - box.range.min) / (box.range.max - box.range.min) : 0.5
       await glide(along(start), act.reach ?? 0.6)
       await press()
-      await take()
+      await hold(0.07)
       await glide(along(act.to), over, 1)
-      await take()
+      await hold(0.07)
       await release()
+    } else if (act.wheel) {
+      // The wheel, turned over a place for some seconds: the page's own way of moving in on the Moon.
+      const target = await placeOf(act.wheel, act.place)
+      await glide(target.at, act.reach ?? 0.5)
+      const count = Math.max(1, Math.round(over * FPS))
+      for (let index = 0; index < count; index += 1) {
+        await page('Input.dispatchMouseEvent', { type: 'mouseWheel', x: pointer[0], y: pointer[1], deltaX: 0, deltaY: act.by / count })
+        await take()
+      }
     } else if (act.go) {
       await evaluate(`(location.hash = ${JSON.stringify(act.go === 'scenario' ? scenarioHash() : act.go)}, true)`)
     } else if (act.type) {
       const target = await placeOf(act.type)
       await glide(target.at, act.reach ?? 0.5)
       await press()
-      await take()
+      await hold(0.07)
       await release()
       const each = over / act.text.length
       const begun = frame / FPS
@@ -434,17 +534,19 @@ try {
   }
 
   await moveMouse()
-  for (const step of steps) {
-    for (const act of step.acts.filter((one) => !one.ring)) {
-      const due = step.start + act.at * (step.end - step.start)
+  for (const step of stretches) {
+    for (const act of step.acts.filter((one) => !one.ring && !one.zoom && !one.card)) {
+      const due = step.start + act.at * span(step)
       await until(due)
       if (frame / FPS - due > 0.25) lateBy.push(`${step.id}: ${JSON.stringify(act).slice(0, 60)} began ${(frame / FPS - due).toFixed(2)} s late`)
       await perform(act, step)
     }
   }
   await until(length)
-  encoder?.stdin.end()
-  await encoded
+  if (encoder) {
+    encoder.stdin.end()
+    await encoded
+  }
   if (reloads !== firstLoads) throw new Error('The page loaded itself again during the recording, so the video is not one take.')
 } catch (error) {
   failure = error
@@ -469,7 +571,7 @@ if (stillsOnly) {
 
 const video = join(outDir, `${cut.file}.mp4`)
 if (cut.poster) execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-ss', (posterAt / FPS).toFixed(3), '-i', video, '-frames:v', '1', '-q:v', '3', join(outDir, `${cut.file}-poster.jpg`)])
-const report = measure(video, cut.length ? cut.length + (cut.slack ?? 0.5) : null)
+const report = measure(video, cut.length ? cut.length + (cut.slack ?? 0.5) : null, FPS)
 const status = await fetch(`${base}/api/status`).then((response) => (response.ok ? response.json() : null)).catch(() => null)
 writeFileSync(
   join(outDir, `${cut.file}.json`),
@@ -499,7 +601,7 @@ process.exit(report.ok ? 0 : 1)
  * before while the frames either side of the pair are moving is a stall; a change many times the
  * changes round it is a jump (a press that swaps the view is one, and is expected there).
  */
-function measure(file, longest = null) {
+function measure(file, longest, rateWanted) {
   const probe = JSON.parse(execFileSync(process.env.FFPROBE ?? 'ffprobe', ['-v', 'error', '-show_entries', 'format=duration,size:stream=codec_type,codec_name,width,height,avg_frame_rate,nb_frames,duration', '-of', 'json', file], { encoding: 'utf8' }))
   const picture = probe.streams.find((stream) => stream.codec_type === 'video')
   const [up, down] = picture.avg_frame_rate.split('/').map(Number)
@@ -526,6 +628,6 @@ function measure(file, longest = null) {
   }
   const seconds = Number(probe.format.duration)
   const streams = probe.streams.map((stream) => `${stream.codec_type} ${stream.codec_name} ${Number(stream.duration ?? 0).toFixed(3)} s`)
-  const ok = picture.width === WIDTH && picture.height === HEIGHT && Math.abs(up / down - FPS) < 0.01 && stalls.length === 0 && (longest === null || seconds <= longest)
+  const ok = picture.width === WIDTH && picture.height === HEIGHT && (rateWanted === null || Math.abs(up / down - rateWanted) < 0.01) && stalls.length === 0 && (longest === null || seconds <= longest)
   return { file, ok, seconds, megabytes: Number((Number(probe.format.size) / 1e6).toFixed(1)), width: picture.width, height: picture.height, framesASecond: up / down, frames: count, streams, stalledFrames: stalls, jumpsAt: jumps, longestAllowed: longest }
 }

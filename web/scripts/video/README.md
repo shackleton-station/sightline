@@ -1,27 +1,36 @@
-# The tutorial video
+# The videos
 
-Two videos of Sightline are recorded from the real site by `record.mjs`: the narrated tutorial
-(`sightline-tutorial.mp4`, with its poster and WebVTT captions) and a cut of it that runs under
-30 seconds for the Space Apps submission (`sightline-30s.mp4`). Nothing is filmed by hand and nothing
-is edited afterwards, so either can be made again whenever the site or the tour's words change.
+Two videos of Sightline are recorded from the real site by `record.mjs`:
+
+- **The tutorial** (`sightline-tutorial.mp4`, with a poster, WebVTT captions and a list of its steps):
+  Scout's tour as a visitor takes it, its eight steps in 75 to 90 seconds, for How it works.
+- **The demo** (`sightline-demo-30s.mp4`, with a poster): the problem, the answer and one moment of
+  proof in under 30 seconds, for the Space Apps submission. A video over 30 seconds is not eligible
+  for Global Judging, so the recorder refuses to make one.
+
+Nothing is filmed by hand and nothing is edited afterwards, so either can be made again whenever the
+site or the words change.
 
 **The narration is an AI-generated voice**: Google Cloud Text-to-Speech, the voice Scout speaks with
 on the site (`en-US-Chirp3-HD-Leda`). Each video says so in a line under the picture for its whole
 length, in a note at the top of its captions, and in the file's own description. Say the same
-wherever a video is posted. There is no music, and nothing in the picture but the site itself, the
-pointer, and rings round what is being talked about.
+wherever a video is posted. There is no music. The picture is the site itself; what the video adds
+is the pointer, rings round what is being talked about, the words being said, and a card at each end.
 
 ## What is here
 
 | File | What it holds |
 | --- | --- |
-| `record.mjs` | The recorder: asks for the voice, drives the site in headless Chrome, writes the video, its captions, poster and a list of its steps, and measures the finished file. |
-| `page.js` | Runs inside the page while it is recorded: a clock the recorder can hold, and the pointer and rings. |
-| `tutorial.json` | What the video adds to the tour: where the pointer goes in each step, which sentences the short cut keeps, the pauses, and the line about the voice. |
+| `record.mjs` | The recorder: asks for the voice, drives the site in headless Chrome, writes the video, its captions, poster and list of steps, and measures the finished file. |
+| `page.js` | Runs inside the page while it is recorded: a clock the recorder can hold, and the pointer, the rings and the cards. |
+| `tutorial.json` | What the videos add: where the pointer and the camera go in each step, the demo's own words, the cards, the pauses, and the line about the voice. |
 
-The steps and their words are not here. They are the tour's own, in `web/src/sightline/tour.json`,
-which the page reads too, so the video and the tour on the site say the same thing. Change the
-words there, not here.
+The tutorial's steps and words are not here. They are the tour's own, in
+`web/src/sightline/tour.json`, which the page reads too, so the video and the tour on the site say
+the same thing. Change the words there, not here. The tutorial does not set the screen up itself
+either: the pointer takes Scout's offer of the tour, the tour puts the screen in each step's state
+and rings what the step is about, and the pointer presses Next at the end of each step. The demo's
+words are in `tutorial.json` (`cuts.pitch.script`).
 
 ## Making the videos again
 
@@ -33,57 +42,65 @@ node scripts/video/record.mjs --project=clps-compute-6z1nc
 ```
 
 ```bash
-node scripts/video/record.mjs --project=clps-compute-6z1nc --cut=short
+node scripts/video/record.mjs --project=clps-compute-6z1nc --cut=pitch
 ```
 
-Each run takes five to ten minutes and writes into `cache/video/<cut>/` (not committed): the `.mp4`,
-the `.vtt`, a `-poster.jpg` for the full cut, and a `.json` listing each step with the second it
-starts. It ends by printing what it measured and fails if the file is not 1920 by 1080 at 30 frames
-a second, if a frame stalled, or, for the short cut, if the file runs past 29.5 seconds.
+The tutorial takes about ten minutes and the demo about four. Each writes into `cache/video/<cut>/`
+(not committed): the `.mp4`, the `.vtt`, a `-poster.jpg` and a `.json` listing each step with the
+second it starts. A run ends by printing what it measured, and fails if the file is not 1920 by 1080
+at 60 frames a second, if a frame stalled, or, for the demo, if the file runs past 29.5 seconds.
 
 Other ways to run it:
 
-- `--stills` is a rehearsal: one picture a second and no video, to see where the pointer goes.
-- `--check=file.mp4` only measures a file that already exists.
+- `--stills` is a rehearsal: one picture a second and no video, to see where the pointer and the camera go.
+- `--words` only speaks the words and prints how long each step takes.
+- `--check=file.mp4` only measures a file that already exists (`--longest=30` also checks its length).
 - `--base=http://localhost:5173` records a site running on this machine instead of the live one.
-- `--tour=path` reads the tour's steps from another file.
+- `--tour=path` reads the tour's steps from another file. `--fps=30` records at half the frame rate.
 
-The site's copies go in the assets bucket, uploaded without replacing anything that is there (`-n`);
-if a file must be replaced, do that on purpose and say so:
+The site serves the files from the assets bucket under `/media/`, by name (`docs/DEPLOY.md`, "The
+demo video"). Upload without replacing anything that is there (`-n`); to replace a file, leave `-n`
+out on purpose and say so. The CDN keeps a file for up to an hour.
 
 ```bash
-gcloud storage cp -n ../cache/video/full/sightline-tutorial.mp4 ../cache/video/full/sightline-tutorial-poster.jpg ../cache/video/full/sightline-tutorial.vtt ../cache/video/full/sightline-tutorial.json ../cache/video/short/sightline-30s.mp4 gs://<the assets bucket>/video/
+gcloud storage cp -n ../cache/video/full/sightline-tutorial.mp4 ../cache/video/full/sightline-tutorial-poster.jpg ../cache/video/full/sightline-tutorial.vtt ../cache/video/full/sightline-tutorial.json ../cache/video/pitch/sightline-demo-30s.mp4 ../cache/video/pitch/sightline-demo-30s-poster.jpg gs://clps-compute-6z1nc-web-assets/media/
 ```
-
-A visitor can fetch a file from the bucket only if the load balancer has been told its name: it
-serves the tiles' folders and the media files that `infra/assets.tf` lists one by one
-(`media_files`, under `/media/`), and nothing else in the bucket. Before the videos can be played
-from the site, their names and their path have to be added there, through the usual Terraform pull
-request.
 
 ## How it records
 
 - **Steady frames.** `page.js` gives the page a clock that follows real time while the page loads,
-  then moves only when the recorder asks for the next frame: one thirtieth of a second at a time,
+  then moves only when the recorder asks for the next frame: one sixtieth of a second at a time,
   for `performance.now`, `Date`, timers, `requestAnimationFrame` and CSS animations alike. Every
   frame is drawn in full before it is taken, however busy the machine is, so none is dropped or
   repeated. The one thing this changes: what arrives from the network during the recording arrives
   sooner in the video's time than it would for a visitor, because the video's clock runs slower
   than the wall's while frames are being taken.
-- **One take.** The video is a single recording with no cuts, so no sentence is cut across. The
-  short cut is its own take with fewer sentences, not an edit of the long one.
-- **Real use.** The pointer's moves and presses are real mouse events sent to the page, and typing
-  is real typing. The one exception is the plan the tour starts from, which is set through the
-  page's address, as the tour itself sets it.
+- **One take.** Each video is a single recording with no cuts, so no sentence is cut across. The
+  demo is its own take, not an edit of the tutorial.
+- **Real use.** The pointer's moves and presses are real mouse events sent to the page, the wheel is
+  the real wheel, and typing is real typing. One thing is set through the page's address, as a
+  shared link sets it: the four scenarios the demo opens with, so its landing and figures are the
+  same in every take. Every figure in the picture is the site's own.
+- **Scout's offer.** Scout offers the tour in his first line, which stays up for 8 seconds after
+  the page opens. The tutorial therefore waits less before it starts recording than the demo does,
+  and the pointer takes the offer as the opening card clears. If the offer has gone the run stops
+  and says so.
+- **The camera.** The site is drawn at twice its size, as on a dense laptop screen, and each frame
+  is taken from the part of it the camera is on. So when the camera moves in on a control, up to
+  twice as close, the picture is still sharp enough to read on a phone. The camera only glides: it
+  never cuts.
+- **The words on screen.** The band under the site shows the sentence being said, in type large
+  enough for a phone, and under it the line about the voice and the site's address. The band is
+  outside the site's picture, so it never covers a control. The same sentences are in the `.vtt`,
+  one cue each, timed from the voice clips themselves (the quiet between two sentences is found in
+  the clip).
 - **The voice** is asked from this machine, one request for each step's words, and kept in
   `cache/video/voice/`, so a second run with the same words asks for nothing. It never goes through
   the site's own voice route, which has a daily allowance for visitors. Chirp 3: HD voices cost
   US$30 for a million characters after the first million each month (Google's price list, read on
-  2026-11-14); the tutorial's words are about 900 characters, so a full recording costs under
-  three cents at most.
+  2026-11-14); the tutorial's words are about 900 characters and the demo's about 400, so recording
+  both costs under five cents at most. The demo's voice runs at 1.07 times its usual pace, set in
+  `tutorial.json`, to fit its words in 29 seconds.
 - **Nothing is asked of Scout.** While recording, whatever the page sends to `/api/chat`, `/api/ask`
   or `/api/speak` is stopped in the browser, so a recording spends none of the visitors' daily
   questions. `--ask` lets them through, for a take that is meant to show a real answer.
-- **Captions** are WebVTT, one cue for each sentence, timed from the voice clips themselves (the
-  quiet between two sentences is found in the clip). The same captions are inside the `.mp4` as a
-  subtitle track that players can switch on.
