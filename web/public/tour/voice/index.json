@@ -38,9 +38,9 @@
       "say": "Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window."
     },
     "scout": {
-      "hash": "9a38e2df9bfd0b2b",
-      "bytes": 28416,
-      "say": "Ask Scout in plain words: he looks the answer up in the same data. Hide leaves only the Moon."
+      "hash": "b6abb02e954e5e77",
+      "bytes": 26784,
+      "say": "Ask Scout in plain words: he looks the answer up in the same data. Home takes you back to the Moon."
     }
   }
 }

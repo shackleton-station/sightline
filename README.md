@@ -46,7 +46,7 @@ as it was. **Listen** plays each line in Scout's voice (AI-generated; off until 
 5. **What the lander sees.** This is the real skyline around the site, with the Sun and Earth where they stand at that hour. A body below the skyline is out of view.
 6. **The month ahead.** The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press "land here" to try that hour.
 7. **More than one plan.** Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window.
-8. **Ask Scout.** Ask Scout in plain words: he looks the answer up in the same data. Hide leaves only the Moon.
+8. **Ask Scout.** Ask Scout in plain words: he looks the answer up in the same data. Home takes you back to the Moon.
 
 The steps, their words and what each one rings are in one file, `web/src/sightline/tour.json`, which
 the tour, How it works, the voice files (`web/public/tour/voice/`, made by `web/scripts/tour-voice.mjs`)
