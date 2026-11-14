@@ -4,7 +4,7 @@
 //
 // Run it from web/:
 //
-//   node scripts/first-load.mjs https://shackletonstation.dev/sightline/
+//   node scripts/first-load.mjs https://lunarsightline.com/sightline/
 //   node scripts/first-load.mjs <url> --json=before.json        also save the list
 //   node scripts/first-load.mjs <url> --compare=before.json     and say what changed against a saved list
 //   node scripts/first-load.mjs <url> --quiet-ms=4000           how long the network must stay quiet (default 3000)

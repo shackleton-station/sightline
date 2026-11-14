@@ -13,11 +13,11 @@
 // and limits as everyone else, which is harmless.
 //
 // The checks take it as `--canary <service>`:
-//   node scripts/smoke.mjs https://shackletonstation.dev --canary web
-//   node scripts/plans-check.mjs https://shackletonstation.dev --canary plans --cloud
-//   node scripts/copilot-check.mjs https://shackletonstation.dev --canary copilot --cloud
-//   node scripts/chat-eval.mjs https://shackletonstation.dev --canary copilot --quick
-//   curl -H 'x-clps-canary: web' https://shackletonstation.dev/api/status
+//   node scripts/smoke.mjs https://lunarsightline.com --canary web
+//   node scripts/plans-check.mjs https://lunarsightline.com --canary plans --cloud
+//   node scripts/copilot-check.mjs https://lunarsightline.com --canary copilot --cloud
+//   node scripts/chat-eval.mjs https://lunarsightline.com --canary copilot --quick
+//   curl -H 'x-clps-canary: web' https://lunarsightline.com/api/status
 
 export const CANARY_HEADER = 'x-clps-canary'
 export const CANARY_SERVICES = ['web', 'plans', 'copilot']

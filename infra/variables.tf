@@ -148,7 +148,7 @@ variable "alert_email" {
 }
 
 variable "domain" {
-  description = "The site's own address, without www (for example shackletonstation.dev). Empty means run.app only: no DNS zone, load balancer or certificate."
+  description = "The site's own address, without www (for example lunarsightline.com). Empty means run.app only: no DNS zone, load balancer or certificate."
   type        = string
   default     = ""
 }

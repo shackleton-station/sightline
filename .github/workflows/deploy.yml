@@ -58,7 +58,7 @@ env:
   REGISTRY: us-east4-docker.pkg.dev
   IMAGE_REPO: us-east4-docker.pkg.dev/clps-compute-6z1nc/web
   # The address visitors use: the load balancer, which sends each path to its service.
-  SITE: https://shackletonstation.dev
+  SITE: https://lunarsightline.com
 
 jobs:
   deploy:
