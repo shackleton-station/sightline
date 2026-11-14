@@ -1536,3 +1536,34 @@
 .sl-np .np-side .pl-mission-note:not(:has(button)) {
   display: none;
 }
+
+/* A touch more compact. */
+.sl-np .np-side h3 {
+  margin: 0.75rem 0 0.15rem;
+}
+
+.sl-np .np-side .pl-where {
+  --pl-control-h: 1.95rem;
+
+  gap: 0.45rem;
+}
+
+.sl-np .np-side .pl-mission {
+  gap: 0.42rem;
+}
+
+.sl-np .np-side .pl-dial-value input {
+  font-size: 1.12rem;
+}
+
+.sl-np .np-side .pl-slider {
+  height: 17px;
+}
+
+.sl-np .np-side .pl-more-body {
+  gap: 0.42rem;
+}
+
+.sl-np .np-side .pl-segments button {
+  min-height: 1.75rem;
+}
