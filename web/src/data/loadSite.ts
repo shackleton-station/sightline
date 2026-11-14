@@ -152,6 +152,11 @@ export async function loadMastHeights(site: SiteInfo): Promise<MastHeight[]> {
 }
 
 /** How a ridge site's numbers change within reach of a landing; null elsewhere. */
+/** A listed site's summary for one month ("YYYY-MM"): its shares and longest gaps, at 2 m. */
+export function loadSummary(site: SiteInfo, month: string): Promise<Summary> {
+  return getJson<Summary>(`${site.id}/${month}/summary.json`)
+}
+
 export function loadSpread(site: SiteInfo): Promise<SiteSpread | null> {
   return site.nearby_half_m ? getJson<SiteSpread>(`${site.id}/spread.json`) : Promise.resolve(null)
 }

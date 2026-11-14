@@ -23,24 +23,33 @@ export function SlipCheck({ check, landing, onDays, late, onPlan }: Props) {
       <h3 className="pl-label" id="pl-slip-title">
         If the landing slips
       </h3>
-      <label className="pl-slip-ask">
+      <p className="pl-slip-ask">
         by up to
-        <input
-          type="number"
-          inputMode="numeric"
-          min={min}
-          max={max}
-          value={draft ?? check.days}
-          onChange={(event) => {
-            const text = event.target.value
-            setDraft(text)
-            const next = Number(text)
-            if (text !== '' && Number.isInteger(next) && next >= min && next <= max) onDays(next)
-          }}
-          onBlur={() => setDraft(null)}
-        />
+        <span className="pl-stepper">
+          <button type="button" aria-label="One day fewer" disabled={check.days <= min} onClick={() => (setDraft(null), onDays(Math.max(min, check.days - 1)))}>
+            −
+          </button>
+          <input
+            type="number"
+            inputMode="numeric"
+            aria-label="Days the landing may slip"
+            min={min}
+            max={max}
+            value={draft ?? check.days}
+            onChange={(event) => {
+              const text = event.target.value
+              setDraft(text)
+              const next = Number(text)
+              if (text !== '' && Number.isInteger(next) && next >= min && next <= max) onDays(next)
+            }}
+            onBlur={() => setDraft(null)}
+          />
+          <button type="button" aria-label="One day more" disabled={check.days >= max} onClick={() => (setDraft(null), onDays(Math.min(max, check.days + 1)))}>
+            +
+          </button>
+        </span>
         days, is there still a landing?
-      </label>
+      </p>
       <div role="status">
         <p className={`pl-slip-answer ${words.answer}`}>{words.headline}.</p>
         {words.sentences.map((sentence) => (

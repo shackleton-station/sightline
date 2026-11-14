@@ -20,6 +20,11 @@ import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { type KeptPick, PlannerAlternatives } from './PlannerAlternatives'
 import { PlannerLocation } from './PlannerLocation'
 import { PlannerMore } from './PlannerMore'
+import { PlannerNearby } from './PlannerNearby'
+import { PlannerPower } from './PlannerPower'
+import { PlannerSunChart } from './PlannerSunChart'
+import { useMissionTracks } from './useMissionTracks'
+import { isBaseHeights } from '../lib/heights'
 import { siteValue } from './site'
 import '../planner/planner.css'
 import '../planner/planner-brief.css'
@@ -72,7 +77,7 @@ type Chosen = Pick<Plan, 'site' | 'month' | 'index'>
  * kept to compare. The brief is always the scenario on show: choosing a square, a site, a point or
  * a time moves it, and the Moon follows; moving it on the Moon moves the brief.
  */
-export function NewPlanner({ start, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onRemove, onScenario, onBack, scoutOpen, onScout, site, month, year, summary }: Props) {
+export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onRemove, onScenario, onBack, scoutOpen, onScout, site, month, year, summary }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -85,6 +90,15 @@ export function NewPlanner({ start, flagged, scenarios, facts, mission, onMissio
   )
 
   const room = scenarios.length < MAX_SCENARIOS
+  // Each pick's mission, hour by hour, for the Sun's height and the power budget under the cards.
+  const tracks = useMissionTracks(
+    start,
+    hours,
+    scenarios,
+    facts.map((fact) => fact.site),
+    mission.requirements.missionDays,
+  )
+  const heightsNote = isBaseHeights(mission.heights) ? null : "The Sun's height and the sunlight are read at 2 m above the ground; the longest dark is at your panel's height."
 
   // The sites the grid and the dropdown hold: the listed ones, and any custom point a scenario is at, once its flags are in.
   const sites: PlannerSite[] | null = useMemo(() => {
@@ -212,7 +226,10 @@ export function NewPlanner({ start, flagged, scenarios, facts, mission, onMissio
   return (
     <section className="sl-np" aria-label="New Planner">
       <header className="sl-full-head">
-        <h2>New Planner</h2>
+        <div className="np-title">
+          <h2>Where and when can this mission land?</h2>
+          <p>Pick a place and time, or set your mission and let the grid show every site against every month. Whatever you choose here is what the Moon shows.</p>
+        </div>
         <button type="button" className="sl-small sl-rail-scout" aria-pressed={scoutOpen} title="Ask Scout about these scenarios" onClick={onScout}>
           <Mascot state={null} size={16} /> Scout
         </button>
@@ -225,10 +242,6 @@ export function NewPlanner({ start, flagged, scenarios, facts, mission, onMissio
       </header>
       <div className="planner sl-fp">
         <header className="pl-head">
-          <div>
-            <h2 className="sl-fp-title">Where and when can this mission land?</h2>
-            <p className="pl-intro">Pick a place and time, or set your mission and let the grid show every site against every month. Whatever you choose here is what the Moon shows.</p>
-          </div>
           {view && (
             <p className="pl-tally" aria-live="polite">
               <strong className={view.grid.tally.withLanding === 0 ? 'none' : undefined}>{view.grid.tally.withLanding}</strong>
@@ -289,7 +302,22 @@ export function NewPlanner({ start, flagged, scenarios, facts, mission, onMissio
                 }}
               />
             )}
+            <details className="np-detail">
+              <summary>Sun height and power for your picks</summary>
+              <PlannerSunChart rows={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i] }))} missionDays={mission.requirements.missionDays} />
+              <PlannerPower columns={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i], sunGapH: measures[i]?.sunGapH ?? null }))} heightsNote={heightsNote} />
+            </details>
             {view ? <WindowGrid grid={view.grid} siteId={view.row.site.id} month={view.month} listed={listed} onPick={pick} keptWords="kept to compare" /> : <p className="pl-grid sl-quiet">Reading every site and month…</p>}
+            {view && (
+              <PlannerNearby
+                site={view.row.site}
+                month={view.month}
+                onSpot={(lat, lon) => {
+                  const atSite = Math.abs(lat - view.row.site.lat) < 1e-6 && Math.abs(lon - view.row.site.lon) < 1e-6
+                  onScenario({ site: atSite ? siteValue(view.row.site) : siteValue(customSiteInfo(lat, lon)), landing: hourOf(start, view.landing.t) })
+                }}
+              />
+            )}
           </div>
           <div className="pl-answer sl-fp-brief" ref={briefRef}>
             {view && obsHeightM !== null ? (

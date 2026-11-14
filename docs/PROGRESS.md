@@ -329,3 +329,18 @@ Local Lead.
       Compare, which it does not change): a site, coordinates and time bar at the top, one landing shared with
       the Moon both ways, and your picks with suggestions near the date as cards beside the brief
       (`web/src/sightline/NewPlanner.tsx`, `newPlanner.css`)
+- [ ] Offered to Rodrigo, not in this change: the same additions for the front page's Planner (a site, coordinates
+      and time bar at the top; suggestions near the date as cards beside the brief). Kept on branch
+      `feat/planner-intuitive` until he decides how they fit Find and Compare
+
+## The Planner: the Sun's height, power and the ground close by (2026-11-14, Sebastian)
+
+- [x] New Planner, folded under the cards: the Sun's height over each mission, one row per scenario on one scale, lined up on its landing,
+      solid while in view and faint while the terrain hides it, hover to read every row at one hour
+      (`web/src/sightline/PlannerSunChart.tsx`); each mission's hourly track loaded once (`useMissionTracks.ts`)
+- [x] New Planner, same fold: power and battery, roughly (`PlannerPower.tsx`): the average panel power over each mission and the
+      battery for its longest dark spell, from `lib/power.ts` with example panel, efficiency and load to replace
+- [x] New Planner, under the grid, for a ridge site: how much the same month changes within 100 m (the site's spread)
+      and, on request, the map of the ground around it (`PlannerNearby.tsx`, the existing `NearbyMap`); a spot
+      chosen on the map is added as the next scenario at the month's first landing that fits
+- [ ] Not checked: a real phone, and the old map's styles inside the Planner on a narrow window
