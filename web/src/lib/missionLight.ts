@@ -22,18 +22,29 @@ export function lightHours(track: TrackPoint[], earthHorizon: { az: number; el: 
   })
 }
 
-/** The mean of each share over some hours, in percent; zero for no hours. */
-export function lightMeans(hours: LightHour[]): LightHour {
-  if (hours.length === 0) return { sunPct: 0, earthPct: 0 }
-  const sum = hours.reduce((total, hour) => ({ sunPct: total.sunPct + hour.sunPct, earthPct: total.earthPct + hour.earthPct }), { sunPct: 0, earthPct: 0 })
-  return { sunPct: sum.sunPct / hours.length, earthPct: sum.earthPct / hours.length }
+/** A body over a mission, from its hourly up-or-down flags: the hours it is up, the mission's hours, and its longest time down. */
+export interface SpanStats {
+  upHours: number
+  totalHours: number
+  /** The longest unbroken time down: the hour it starts, counted from the landing, and how long it lasts. Null when the body is never down. */
+  gap: { start: number; hours: number } | null
 }
 
-/** The means for each whole or part day of 24 hours, in order from the landing. */
-export function lightDays(hours: LightHour[]): LightHour[] {
-  const days: LightHour[] = []
-  for (let from = 0; from < hours.length; from += 24) days.push(lightMeans(hours.slice(from, from + 24)))
-  return days
+/** The hours up and the longest time down between two hours of the data (the landing, and the mission's end). The earliest of equal gaps. */
+export function spanStats(up: ArrayLike<boolean>, from: number, to: number): SpanStats {
+  let upHours = 0
+  let gap: SpanStats['gap'] = null
+  let run = 0
+  for (let hour = from; hour < to; hour += 1) {
+    if (up[hour]) {
+      upHours += 1
+      run = 0
+    } else {
+      run += 1
+      if (!gap || run > gap.hours) gap = { start: hour - run + 1 - from, hours: run }
+    }
+  }
+  return { upHours, totalHours: to - from, gap }
 }
 
 /**
