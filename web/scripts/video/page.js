@@ -8,8 +8,9 @@
 //    The clock covers performance.now, Date, timers, requestAnimationFrame and CSS animations and
 //    transitions. What comes from the network still arrives in real time.
 //
-// 2. It draws what the video adds on top of the site: the pointer, a ripple where it presses and a
-//    ring round what is being talked about. None of it can be clicked or read by the page.
+// 2. It draws what the video adds on top of the site: the pointer, a ripple where it presses, a
+//    ring round what is being talked about, and the cards that open and close the video. None of it
+//    can be clicked or read by the page.
 (() => {
   if (window.__video) return
   const real = {
@@ -139,9 +140,15 @@
     .ring { position: absolute; box-sizing: border-box; border: 2px solid #fff; border-radius: 12px; box-shadow: 0 0 0 5px rgba(255,255,255,.16), 0 0 22px rgba(255,255,255,.28); }
     .tap { position: absolute; box-sizing: border-box; border: 3px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); }
     .pointer { position: absolute; left: 0; top: 0; width: 34px; height: 34px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.65)); }
+    .card { position: absolute; inset: 0; background: #05060a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; color: #fff; }
+    .card[hidden] { display: none; }
+    .card h1 { margin: 0; font: 700 132px/1 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif; letter-spacing: -.01em; }
+    .card p { margin: 0; font: 400 38px/1.25 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: rgba(255,255,255,.82); }
+    .card p.small { font-size: 28px; color: rgba(255,255,255,.62); margin-top: 14px; }
   </style><div class="rings"></div><div class="tap" hidden></div>
-  <svg class="pointer" viewBox="0 0 24 24" hidden><path d="M3 2 L3 19.5 L7.6 15.4 L10.6 22 L13.4 20.8 L10.5 14.3 L16.6 14.3 Z" fill="#fff" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/></svg>`
-  const parts = { rings: root.querySelector('.rings'), tap: root.querySelector('.tap'), pointer: root.querySelector('.pointer') }
+  <svg class="pointer" viewBox="0 0 24 24" hidden><path d="M3 2 L3 19.5 L7.6 15.4 L10.6 22 L13.4 20.8 L10.5 14.3 L16.6 14.3 Z" fill="#fff" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/></svg>
+  <div class="card" hidden></div>`
+  const parts = { rings: root.querySelector('.rings'), tap: root.querySelector('.tap'), card: root.querySelector('.card'), pointer: root.querySelector('.pointer') }
   const mount = () => document.documentElement.appendChild(host)
   if (document.documentElement) mount()
   else document.addEventListener('readystatechange', mount, { once: true })
@@ -180,8 +187,16 @@
     return { x: b.left, y: b.top, w: b.width, h: b.height, name: labelOf(el).slice(0, 80), range }
   }
 
-  /** Draws the pointer, the ripple and the rings for the frame about to be taken. */
-  function draw({ pointer, tap, rings = [] }) {
+  const safe = (words) => String(words).replace(/[&<>]/g, (letter) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[letter])
+  let cardShown = ''
+  /** Draws the pointer, the ripple, the rings and a card, if one is up, for the frame about to be taken. */
+  function draw({ pointer, tap, rings = [], card = null }) {
+    parts.card.hidden = !card
+    if (card) {
+      const words = `<h1>${safe(card.title)}</h1>${card.lines.map((line, index) => `<p class="${index > 0 ? 'small' : ''}">${safe(line)}</p>`).join('')}`
+      if (words !== cardShown) parts.card.innerHTML = cardShown = words
+      parts.card.style.opacity = card.alpha
+    }
     parts.pointer.hidden = !pointer
     if (pointer) parts.pointer.style.transform = `translate(${pointer[0] - 4.2}px, ${pointer[1] - 2.8}px)`
     parts.tap.hidden = !tap
@@ -219,7 +234,7 @@
           runFrames()
           real.frame(() => {
             takeAnimations(true)
-            real.frame(() => done(true))
+            done(true)
           })
         })
       })
