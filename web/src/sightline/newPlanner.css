@@ -749,3 +749,72 @@
   cursor: pointer;
 }
 
+
+/* ---------- The brief: wider, beside the cards and the grid ---------- */
+.sl-np .pl-body {
+  grid-template-columns: minmax(0, 1.2fr) minmax(24rem, 1fr);
+}
+
+/* Compact controls: the place, time and mission take less height. */
+.sl-np .pl-where {
+  --pl-control-h: 2.2rem;
+
+  gap: 0.6rem 1rem;
+  margin-top: 0.8rem;
+  padding: 0.7rem 0;
+}
+
+.sl-np .pl-where select,
+.sl-np .pl-where input,
+.sl-np .pl-where-row .pl-button {
+  font-size: 0.875rem;
+}
+
+.sl-np .pl-mission {
+  gap: 0.6rem 1.6rem;
+  margin-top: 0;
+  padding: 0.6rem 0 0.55rem;
+}
+
+.sl-np .pl-mission .pl-label {
+  font-size: 0.6875rem;
+}
+
+.sl-np .pl-dial-value input {
+  font-size: 1.5rem;
+}
+
+.sl-np .pl-check {
+  min-height: 1.6rem;
+  font-size: 0.875rem;
+}
+
+.sl-np .pl-earth-rule select {
+  min-height: 2.1rem;
+  font-size: 0.875rem;
+}
+
+/* The brief in the page's own dark style on screen (print keeps the paper sheet). */
+@media screen {
+  .sl-np .pl-brief {
+    --pl-paper: rgb(255 255 255 / 3%);
+    --pl-paper-ink: var(--pl-ink);
+    --pl-paper-muted: var(--muted);
+    --pl-paper-rule: var(--pl-rule);
+    --pl-paper-works: var(--both);
+    --pl-paper-tight: var(--warning);
+    --pl-paper-sun: var(--sun);
+    --pl-paper-earth: var(--earth);
+    --pl-paper-both: var(--both);
+    --pl-paper-ground: #6f6b7a;
+
+    border: 1px solid var(--pl-rule);
+    border-top-width: 4px;
+    border-radius: 10px;
+  }
+
+  .sl-np .pl-brief .pl-days span,
+  .sl-np .pl-brief .pl-day {
+    border-color: var(--pl-rule);
+  }
+}
