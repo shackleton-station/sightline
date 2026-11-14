@@ -47,6 +47,7 @@ export function FitLegend({ on, onToggle, spread, onSpread, detailed, onDetails 
               onChange={(event) => onSpread({ ...spread, accuracyM: Number(event.target.value) })}
             />
           </label>
+          <p>For a landing at the time on the time bar.</p>
           <p>
             {detailed ? 'Near the south pole: the hourly light on the terrain, and the slope, for a lander this accurate.' : 'This site is outside the terrain grid near the south pole.'} Elsewhere: a smooth Moon, with no terrain shadows and no slope.
           </p>
