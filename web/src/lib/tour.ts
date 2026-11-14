@@ -13,8 +13,8 @@ export interface TourState {
   ring?: string
   /** A strip that must be open for the step: the skyline, or the time bar. */
   show?: 'skyline' | 'time'
-  /** Something the step opens to talk about it: the Compare or Layers panel, the form for a custom point, or the Share list. */
-  open?: GuidePanel
+  /** Something the step opens to talk about it: the Compare or Layers panel, the form for a custom point, the Share list, or the Planner on one of its tabs. */
+  open?: GuidePanel | 'planner-find' | 'planner-compare'
   /** The step is about more than one scenario: the app's two nearby sites on one date are put in, once, for it. */
   pair?: boolean
 }
