@@ -13,13 +13,11 @@ import { briefWhy } from '../planner/why'
 import { NothingWorks } from '../planner/NothingWorks'
 import { SlipCheck } from '../planner/SlipCheck'
 import { type Plan, usePlannerView } from '../planner/usePlannerView'
-import { MissionBar } from '../planner/MissionBar'
 import { WindowGrid } from '../planner/WindowGrid'
 import type { PlannerSite } from '../planner/plannerModel'
-import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { type KeptPick, PlannerAlternatives } from './PlannerAlternatives'
 import { PlannerLocation } from './PlannerLocation'
-import { PlannerMore } from './PlannerMore'
+import { AdvancedControls, MissionControls } from './MissionDrawer'
 import { PlannerNearby } from './PlannerNearby'
 import { PlannerPower } from './PlannerPower'
 import { PlannerSunChart } from './PlannerSunChart'
@@ -240,6 +238,34 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           Back to the Moon
         </button>
       </header>
+      <div className="sl-full-body np-body">
+        {/* Down the left, as in the rest of the app: a new pick's place and time, then the mission. */}
+        <aside className="sl-full-mission np-side" aria-label="Where, when and the mission">
+          <h3>Where and when</h3>
+            {sites && view && (
+              <PlannerLocation
+                sites={sites.map((one) => one.site)}
+                siteId={view.row.site.id}
+                landing={view.landing.t}
+                first={view.row.flags.start}
+                last={new Date(Date.parse(view.row.flags.start) + (view.row.flags.sun.length - 1) * 3_600_000).toISOString().replace('.000Z', 'Z')}
+                nextLetter={room ? SCENARIO_LETTERS[scenarios.length] : null}
+                onAdd={(value, iso) => onAdd({ site: value, landing: hourOf(start, iso) })}
+              />
+            )}
+          <h3>Mission</h3>
+          <MissionControls mission={mission} onMission={onMission} />
+          <h3>Advanced</h3>
+          <AdvancedControls
+            mission={mission}
+            onMission={onMission}
+            site={site}
+            month={month}
+            year={year}
+            summary={summary}
+            heightChoice={{ off: isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null }}
+          />
+        </aside>
       <div className="planner sl-fp">
         <header className="pl-head">
           {view && (
@@ -253,29 +279,8 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           )}
         </header>
 
-        {sites && view && (
-          <PlannerLocation
-            sites={sites.map((one) => one.site)}
-            siteId={view.row.site.id}
-            landing={view.landing.t}
-            first={view.row.flags.start}
-            last={new Date(Date.parse(view.row.flags.start) + (view.row.flags.sun.length - 1) * 3_600_000).toISOString().replace('.000Z', 'Z')}
-            nextLetter={room ? SCENARIO_LETTERS[scenarios.length] : null}
-            onAdd={(value, iso) => onAdd({ site: value, landing: hourOf(start, iso) })}
-          />
-        )}
         {shown && facts[active] && isCustomSite(facts[active].site) && !facts[active].flags && <p className="pl-notice" role="status">Working out {facts[active].site.name}…</p>}
 
-        <MissionBar value={mission.requirements} example={EXAMPLE_REQUIREMENTS} onChange={(requirements) => onMission({ ...mission, requirements })} />
-        <PlannerMore
-          mission={mission}
-          onMission={onMission}
-          site={site}
-          month={month}
-          year={year}
-          summary={summary}
-          heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null}
-        />
 
 
         {view && view.grid.tally.withLanding === 0 && sites && <NothingWorks sites={sites} requirements={mission.requirements} onChange={(requirements) => onMission({ ...mission, requirements })} />}
@@ -351,6 +356,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           </div>
 
         </div>
+      </div>
       </div>
     </section>
   )

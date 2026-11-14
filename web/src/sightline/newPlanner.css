@@ -858,3 +858,113 @@
 .sl-np .pl-head {
   justify-content: flex-end;
 }
+
+/* ---------- Down the left, as in the rest of the app: where and when, then the mission ---------- */
+.sl-np .np-body {
+  margin-top: 0.6rem;
+}
+
+.sl-np .np-side {
+  top: 5.5rem;
+  max-height: calc(100vh - 6.5rem);
+}
+
+.sl-np .np-side h3 {
+  margin: 1rem 0 0.25rem;
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+.sl-np .np-side > h3:first-child {
+  margin-top: 0;
+}
+
+.sl-np .np-side p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+}
+
+/* The new pick's place and time, stacked in the column, in the Mission panel's own look. */
+.sl-np .np-side .pl-where {
+  --pl-control-h: 2.1rem;
+
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.sl-np .np-side .pl-where-field {
+  gap: 0.25rem;
+}
+
+.sl-np .np-side .pl-where .pl-label {
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sl-np .np-side .pl-where select,
+.sl-np .np-side .pl-where input {
+  width: 100%;
+  min-width: 0;
+  border-color: var(--line);
+  border-radius: 8px;
+  background-color: #1d1826;
+  color: var(--text);
+}
+
+.sl-np .np-side .pl-where-row {
+  gap: 0.35rem;
+}
+
+.sl-np .np-side .pl-where-point input {
+  flex: 1 1 0;
+  width: auto;
+}
+
+.sl-np .np-side .pl-where-add .pl-label {
+  display: none;
+}
+
+.sl-np .np-side .pl-where-add {
+  grid-template-rows: auto;
+}
+
+.sl-np .np-side .pl-where-row .pl-button {
+  flex: 1 1 auto;
+  border-color: var(--gold);
+  border-radius: 10px;
+  background: var(--gold);
+  color: #17120a;
+}
+
+.sl-np .np-side .pl-where-row .pl-button:disabled {
+  border-color: var(--line);
+  background: none;
+  color: var(--soft);
+}
+
+.sl-np .np-side .pl-where-problem {
+  font-size: 0.8125rem;
+}
+
+/* With the controls in the column, the main side starts straight with the count. */
+.sl-np .np-body .pl-head {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .sl-np .np-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sl-np .np-side {
+    position: static;
+    max-height: none;
+  }
+}
