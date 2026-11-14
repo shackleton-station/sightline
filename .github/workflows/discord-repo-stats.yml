@@ -1,0 +1,40 @@
+name: Discord repo stats
+
+# Posts commit and branch counts for every shackleton-station repo to Discord, hourly.
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Count commits and branches, post to Discord
+        env:
+          # Fine-grained PAT with read-only Contents + Metadata on all org repos
+          # (GITHUB_TOKEN cannot see the org's private repos).
+          GH_TOKEN: ${{ secrets.ORG_READ_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ORG: shackleton-station
+        run: |
+          set -euo pipefail
+          rows=""; total_c=0; total_b=0
+          for repo in $(gh repo list "$ORG" --limit 200 --json name -q '.[].name' | sort); do
+            branches=$(gh api "repos/$ORG/$repo/branches?per_page=100" --paginate -q '.[].name' | wc -l)
+            # Default-branch commit count: with per_page=1 the "last" page number equals the count.
+            link=$(gh api -i "repos/$ORG/$repo/commits?per_page=1" | grep -i '^link:' || true)
+            if [ -n "$link" ]; then
+              commits=$(echo "$link" | sed -E 's/.*[?&]page=([0-9]+)>; rel="last".*/\1/')
+            else
+              commits=$(gh api "repos/$ORG/$repo/commits?per_page=1" -q 'length')
+            fi
+            rows="${rows}**${repo}**: ${commits} commits, ${branches} branches\n"
+            total_c=$((total_c + commits)); total_b=$((total_b + branches))
+          done
+          msg="📊 **Hourly repo update** ($(date -u '+%Y-%m-%d %H:%M UTC'))\n${rows}**Total**: ${total_c} commits, ${total_b} branches"
+          jq -n --arg c "$(printf '%b' "$msg")" '{username: "Shackleton Stats", content: $c}' \
+            | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_WEBHOOK_URL"
