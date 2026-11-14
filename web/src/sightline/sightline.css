@@ -1968,6 +1968,45 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-size: 0.875rem;
 }
 
+/* The Mission panel with its Advanced fold open: set as tight as the Planner's column, the presets
+   side by side with each tag under its name, so the whole panel still fits a laptop's height. */
+.sl-mission.is-advanced > .sl-quiet {
+  display: none;
+}
+
+.sl-mission.is-advanced .sl-presets {
+  flex-direction: row;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.sl-mission.is-advanced .sl-presets button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.3rem 0.3rem;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sl-mission.is-advanced .sl-presets small {
+  display: block;
+  margin: 0;
+  font-size: 0.625rem;
+}
+
+.sl-mission.is-advanced .sl-param {
+  margin-top: 0.55rem;
+}
+
+.sl-mission.is-advanced .sl-advanced-link {
+  margin-top: 0.6rem;
+}
+
+.sl-mission.is-advanced .sl-assume {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}
+
 /* ---------- Plan: the rail ---------- */
 .sl-rail {
   grid-area: rail;
