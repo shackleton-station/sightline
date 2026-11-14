@@ -13,8 +13,8 @@ The live tests ran against `https://shackletonstation.dev` between about 17:15 a
 > in the `view` field. Median answer time is 2.5 s, 5.2 s for the slowest 5%; a streamed answer shows its first step
 > after about 1 s. The server isn't the bottleneck: one local copy handled 400 people asking at once. What limits us
 > is the rate limits, and visitors are counted by IP, so a whole room on venue Wi-Fi gets 15 questions a minute and
-> 100 a day. Also urgent: when I finished, `shackletonstation.dev` was redirecting to `lunarsightline.com`, but the
-> new domain was still serving the old certificate.
+> 100 a day (the fix is in a separate PR). A 30-minute soak showed no memory leak and no slowdown. The new domain's
+> certificate lagged behind the redirect for a while, and has since been fixed.
 
 ## 0. The domain move (seen 17:32 UTC, resolved by 18:45 UTC)
 
