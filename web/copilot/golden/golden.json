@@ -1,0 +1,384 @@
+{
+ "about": "Golden questions for Scout. Each expected value was worked out by scripts/make-scout-golden.mjs straight from public/data, not by the co-pilot's code. copilot/golden.test.ts runs each question's tool and checks the facts against these values; scripts/scout-eval.mjs asks the live Scout the questions. Regenerate after the data changes on purpose, and review the diff.",
+ "questions": [
+  {
+   "id": "G01",
+   "question": "What share of May 2027 is the Sun up at Shackleton Rim?",
+   "tool": "month_summary",
+   "args": {
+    "site": "shackleton-rim",
+    "month": "2027-05"
+   },
+   "expect": {
+    "pct_sun": {
+     "pct": 52
+    }
+   }
+  },
+  {
+   "id": "G02",
+   "question": "What share of May 2027 is Earth in view at Shackleton Rim?",
+   "tool": "month_summary",
+   "args": {
+    "site": "shackleton-rim",
+    "month": "2027-05"
+   },
+   "expect": {
+    "pct_earth": {
+     "pct": 54.7
+    }
+   }
+  },
+  {
+   "id": "G03",
+   "question": "How much of May 2027 are both the Sun and Earth up at Shackleton Rim?",
+   "tool": "month_summary",
+   "args": {
+    "site": "shackleton-rim",
+    "month": "2027-05"
+   },
+   "expect": {
+    "pct_both": {
+     "pct": 28.6
+    }
+   }
+  },
+  {
+   "id": "G04",
+   "question": "What is the longest time without the Sun at Shackleton Rim in May 2027?",
+   "tool": "month_summary",
+   "args": {
+    "site": "shackleton-rim",
+    "month": "2027-05"
+   },
+   "expect": {
+    "longest_without_sun": {
+     "hours": 143
+    }
+   }
+  },
+  {
+   "id": "G05",
+   "question": "What share of May 2027 is the Sun up at Connecting Ridge?",
+   "tool": "month_summary",
+   "args": {
+    "site": "connecting-ridge",
+    "month": "2027-05"
+   },
+   "expect": {
+    "pct_sun": {
+     "pct": 59.5
+    }
+   }
+  },
+  {
+   "id": "G06",
+   "question": "How much of 2027 is the Sun up at Connecting Ridge?",
+   "tool": "year_summary",
+   "args": {
+    "site": "connecting-ridge",
+    "year": 2027
+   },
+   "expect": {
+    "pct_sun": {
+     "pct": 90.5
+    }
+   }
+  },
+  {
+   "id": "G07",
+   "question": "Is Earth always in view from the Apollo 11 site in 2030?",
+   "tool": "year_summary",
+   "args": {
+    "site": "apollo-11",
+    "year": 2030
+   },
+   "expect": {
+    "pct_earth": {
+     "pct": 100
+    }
+   }
+  },
+  {
+   "id": "G08",
+   "question": "Can you see Earth from the Chang'e 4 site in 2028?",
+   "tool": "year_summary",
+   "args": {
+    "site": "change-4",
+    "year": 2028
+   },
+   "expect": {
+    "pct_earth": {
+     "pct": 0
+    }
+   }
+  },
+  {
+   "id": "G09",
+   "question": "At Shackleton Rim on 14 May 2027 at 12:00 UTC, is the Sun up and is Earth in view?",
+   "tool": "conditions_at",
+   "args": {
+    "site": "shackleton-rim",
+    "time": "2027-05-14T12"
+   },
+   "expect": {
+    "sun": {
+     "text": "up"
+    },
+    "earth": {
+     "text": "out of view"
+    }
+   }
+  },
+  {
+   "id": "G10",
+   "question": "At Apollo 11 on 3 September 2031 at 03:00 UTC, is the Sun up and is Earth in view?",
+   "tool": "conditions_at",
+   "args": {
+    "site": "apollo-11",
+    "time": "2031-09-03T03"
+   },
+   "expect": {
+    "sun": {
+     "text": "up"
+    },
+    "earth": {
+     "text": "in view"
+    }
+   }
+  },
+  {
+   "id": "G11",
+   "question": "What share of January 2028 is the Sun up at de Gerlache Rim?",
+   "tool": "month_summary",
+   "args": {
+    "site": "de-gerlache-rim",
+    "month": "2028-01"
+   },
+   "expect": {
+    "pct_sun": {
+     "pct": 92.2
+    }
+   }
+  },
+  {
+   "id": "G12",
+   "question": "What is the longest time without Earth at Peak near Shackleton in March 2029?",
+   "tool": "month_summary",
+   "args": {
+    "site": "peak-near-shackleton",
+    "month": "2029-03"
+   },
+   "expect": {
+    "longest_without_earth": {
+     "hours": 178
+    }
+   }
+  },
+  {
+   "id": "G13",
+   "question": "My landing at Shackleton Rim was planned for 1 May 2027 00:00 UTC. When is the next landing that fits a 14-day mission with at most 3 days without the Sun or Earth, both up at landing?",
+   "tool": "next_landing",
+   "args": {
+    "site": "shackleton-rim",
+    "time": "2027-05-01T00",
+    "mission_days": 14,
+    "max_sun_gap_h": 72,
+    "max_earth_gap_h": 72,
+    "sun_at_landing": true,
+    "earth_at_landing": true,
+    "earth_clearance_deg": 0
+   },
+   "expect": {
+    "next_landing": {
+     "time": "2027-05-26T17:00:00Z"
+    }
+   }
+  },
+  {
+   "id": "G14",
+   "question": "My Connecting Ridge landing slipped to 14 June 2027 00:00 UTC. What is the next hour that fits a 14-day mission with at most 3 days without the Sun or Earth, both up at landing?",
+   "tool": "next_landing",
+   "args": {
+    "site": "connecting-ridge",
+    "time": "2027-06-14T00",
+    "mission_days": 14,
+    "max_sun_gap_h": 72,
+    "max_earth_gap_h": 72,
+    "sun_at_landing": true,
+    "earth_at_landing": true,
+    "earth_clearance_deg": 0
+   },
+   "expect": {
+    "next_landing": {
+     "time": "2027-06-21T17:00:00Z"
+    }
+   }
+  },
+  {
+   "id": "G15",
+   "question": "Compare Shackleton Rim and Connecting Ridge for sunlight in May 2027.",
+   "tool": "compare_sites",
+   "args": {
+    "site_a": "shackleton-rim",
+    "site_b": "connecting-ridge",
+    "month": "2027-05"
+   },
+   "expect": {
+    "sun_up_a": {
+     "pct": 52
+    },
+    "sun_up_b": {
+     "pct": 59.5
+    }
+   }
+  },
+  {
+   "id": "G16",
+   "question": "Which month of 2027 has the Sun and Earth both up the most at Shackleton Rim?",
+   "tool": "best_months",
+   "args": {
+    "site": "shackleton-rim",
+    "measure": "both",
+    "year": 2027,
+    "count": 1
+   },
+   "expect": {
+    "best_1_month": {
+     "text": "December 2027"
+    },
+    "best_1_value": {
+     "pct": 49.7,
+     "places": 0
+    }
+   }
+  },
+  {
+   "id": "G17",
+   "question": "How much of 2027 is Earth in view at IM-2 Athena's site?",
+   "tool": "year_summary",
+   "args": {
+    "site": "im-2-athena",
+    "year": 2027
+   },
+   "expect": {
+    "pct_earth": {
+     "pct": 92.1
+    }
+   }
+  },
+  {
+   "id": "G18",
+   "question": "What share of July 2027 is the Sun up at Blue Ghost 1's site?",
+   "tool": "month_summary",
+   "args": {
+    "site": "blue-ghost-1",
+    "month": "2027-07"
+   },
+   "expect": {
+    "pct_sun": {
+     "pct": 47.8
+    }
+   }
+  },
+  {
+   "id": "G19",
+   "question": "Where exactly is Shackleton Rim? Give its latitude.",
+   "tool": "site_info",
+   "args": {
+    "site": "shackleton-rim"
+   },
+   "expect": {
+    "latitude": {
+     "latitude": -89.76197
+    }
+   }
+  },
+  {
+   "id": "G20",
+   "question": "Which years does your data cover?",
+   "tool": "site_info",
+   "args": {
+    "site": "shackleton-rim"
+   },
+   "expect": {
+    "data_from": {
+     "text": "January 2026"
+    },
+    "data_to": {
+     "text": "December 2049"
+    }
+   }
+  },
+  {
+   "id": "G21",
+   "question": "What share of May 2060 is the Sun up at Shackleton Rim?",
+   "tool": "month_summary",
+   "args": {
+    "site": "shackleton-rim",
+    "month": "2060-05"
+   },
+   "expect": {
+    "error": {
+     "contains": "2049"
+    }
+   }
+  },
+  {
+   "id": "G22",
+   "question": "How much sunlight does Mars Base Alpha get in May 2027?",
+   "tool": "month_summary",
+   "args": {
+    "site": "mars-base-alpha",
+    "month": "2027-05"
+   },
+   "expect": {
+    "error": {
+     "contains": "Unknown site"
+    }
+   }
+  },
+  {
+   "id": "G23",
+   "question": "What share of August 2027 is the Sun up at the Chandrayaan-3 site?",
+   "tool": "month_summary",
+   "args": {
+    "site": "chandrayaan-3",
+    "month": "2027-08"
+   },
+   "expect": {
+    "pct_sun": {
+     "pct": 46.1
+    }
+   }
+  },
+  {
+   "id": "G24",
+   "question": "What is the longest time without the Sun at the SLIM site in February 2027?",
+   "tool": "month_summary",
+   "args": {
+    "site": "slim",
+    "month": "2027-02"
+   },
+   "expect": {
+    "longest_without_sun": {
+     "hours": 269
+    }
+   }
+  },
+  {
+   "id": "G25",
+   "question": "How much of 2027 is the Sun up at Apollo 15?",
+   "tool": "year_summary",
+   "args": {
+    "site": "apollo-15",
+    "year": 2027
+   },
+   "expect": {
+    "pct_sun": {
+     "pct": 46.3
+    }
+   }
+  }
+ ]
+}
