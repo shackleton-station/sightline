@@ -12,6 +12,8 @@ interface Props {
   onClose: () => void
   /** Open the tutorial video; null until the video exists. */
   onVideo: (() => void) | null
+  /** What the step on show offers to try, as a link under its words; null when it offers nothing. */
+  tryIt: { label: string; onPick: () => void } | null
   /** What is in view at the site on show, for Scout's mark. */
   state: RiverState | null
 }
@@ -48,7 +50,7 @@ function moonDisc(): Disc | null {
  * Moon and nothing is dimmed. Arrow keys step, Escape closes. "Listen" plays each line in Scout's
  * voice from a file rendered ahead of time: off until pressed, so there is never sound without a click.
  */
-export function Tour({ tour, at, onStep, onClose, onVideo, state }: Props) {
+export function Tour({ tour, at, onStep, onClose, onVideo, tryIt, state }: Props) {
   const step = tour.steps[at]
   const last = at === tour.steps.length - 1
   const bubble = useRef<HTMLElement>(null)
@@ -141,6 +143,11 @@ export function Tour({ tour, at, onStep, onClose, onVideo, state }: Props) {
         <p className="sl-tour-say" aria-live="polite">
           {step.say}
         </p>
+        {tryIt && (
+          <button type="button" className="sl-link sl-tour-try" onClick={tryIt.onPick}>
+            {tryIt.label} <span aria-hidden="true">›</span>
+          </button>
+        )}
         <footer className="sl-tour-foot">
           <span className="sl-tour-voice">
             <button type="button" className="sl-small sl-tour-listen" aria-pressed={listen} title="Hear Scout say each step. The voice is AI-generated; the words stay on screen." onClick={() => setListen(!listen)}>

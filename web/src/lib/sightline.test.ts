@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteFlags } from './flags'
-import { clockDate, clockTime, fieldAt, hourFromField, isoAt, degWords, elevationWords, tabTitle, monthSpan, riverTicks, riverWindow, skylineCentre, skylineDomain, skylineHorizon, skylineStretch, skylineX, smoothHorizonDeg, stateAt, stateRuns, stretchWords, sunDirection, wholeHour, yearHour } from './sightline'
+import { bandWords, clockDate, clockTime, fieldAt, hourFromField, isoAt, degWords, elevationWords, tabTitle, monthSpan, riverTicks, riverWindow, runAt, skylineCentre, skylineDomain, skylineHorizon, skylineStretch, skylineX, smoothHorizonDeg, stateAt, stateRuns, stretchWords, sunDirection, wholeHour, yearHour } from './sightline'
 
 const START = '2027-01-01T00:00:00Z'
 
@@ -111,6 +111,20 @@ describe('the river', () => {
       { from: 2, to: 3, state: 'none' },
       { from: 3, to: 4, state: 'sun' },
     ])
+  })
+  it('finds the whole band an hour belongs to, beyond the window on screen', () => {
+    const flags: SiteFlags = { start: START, sun: [true, true, false, false, false, true], earth: [true, true, true, true, false, false], earthAbove: {} }
+    expect(runAt(flags, 0)).toEqual({ from: 0, to: 2, state: 'both' })
+    expect(runAt(flags, 3)).toEqual({ from: 2, to: 4, state: 'earth' })
+    expect(runAt(flags, 4)).toEqual({ from: 4, to: 5, state: 'none' })
+    // The last band ends where the data does.
+    expect(runAt(flags, 5)).toEqual({ from: 5, to: 6, state: 'sun' })
+  })
+  it('says a band in words: its name, when it starts and ends, and how long it lasts', () => {
+    // 6 May 2027 13:00 is hour 3013 of the year; 61 hours on is 9 May 02:00.
+    expect(bandWords(START, { from: 3013, to: 3074, state: 'both' }, 'Sun and Earth')).toBe('Sun and Earth · 6 May 13:00 to 9 May 02:00 · 61 h')
+    // A band that crosses a new year says both years.
+    expect(bandWords(START, { from: 8750, to: 8770, state: 'none' }, 'Neither')).toBe('Neither · 31 December 2027 14:00 to 1 January 2028 10:00 · 20 h')
   })
   it('labels days, round dates and months', () => {
     expect(riverTicks(START, 72, 144, 'day')).toEqual([{ at: 0, label: '4 Jan' }, { at: 24, label: '5 Jan' }, { at: 48, label: '6 Jan' }])

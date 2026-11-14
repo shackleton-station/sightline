@@ -79,9 +79,6 @@ export function LandingPick({ landing, landingField, firstField, lastField, onPi
           ))}
         </select>
       </span>
-      <span className="sl-pick-mark" aria-hidden="true">
-        ▾
-      </span>
     </div>
   )
 }

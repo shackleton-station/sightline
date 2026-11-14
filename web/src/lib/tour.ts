@@ -23,6 +23,8 @@ export interface TourStep {
   state: TourState
   /** CSS selectors of what the step is about. Every match that is on screen gets a ring. */
   targets: string[]
+  /** Something ready to try from the step's bubble: two nearby sites on one date, set side by side in Compare. */
+  offers?: 'nearby-pair'
 }
 
 export interface TourFile {

@@ -1,5 +1,5 @@
 import type { RiverState } from '../lib/river'
-import { DEFAULT_SPEED, SPEEDS } from '../lib/sightline'
+import { DEFAULT_SPEED, SPEEDS, TIME_KEYS_MEAN } from '../lib/sightline'
 import { Mascot } from '../scout/Mascot'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { MAX_QUESTION_CHARS } from '../lib/chatClient'
@@ -24,6 +24,8 @@ interface ScoutProps {
   onPlan: (hash: string) => void
   /** How tall the open card is, so the Moon can move aside for it on a narrow screen; 0 when closed. */
   onHeight: (px: number) => void
+  /** One thing to try, offered under the questions: it opens a ready comparison instead of asking anything. Null when it cannot be shown. */
+  idea: { label: string; onPick: () => void } | null
 }
 
 /** How long Scout's line stays beside his mark before it fades to the mark alone. */
@@ -43,7 +45,7 @@ const WATCH_IDEAS = ['What am I looking at?', 'Which site has the most Sun this 
  * it is a sheet across the bottom). A reply that names a place carries "Show me" and "Plan
  * this", the only things in a reply that change the screen, and only when pressed.
  */
-export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight }: ScoutProps) {
+export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, idea }: ScoutProps) {
   const [draft, setDraft] = useState('')
   const [said, setSaid] = useState<string | null>(line)
   const card = useRef<HTMLDivElement>(null)
@@ -149,6 +151,13 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
                     </button>
                   </li>
                 ))}
+                {idea && (
+                  <li>
+                    <button type="button" className="sl-idea is-action" onClick={idea.onPick}>
+                      {idea.label} <span aria-hidden="true">›</span>
+                    </button>
+                  </li>
+                )}
               </ul>
             )}
             {thread.map((message, i) => {
@@ -200,7 +209,7 @@ interface PlayProps {
 /** The small play control at the bottom: play or pause, the date, the speed and a scrub line. Shrinks to a dot. */
 export function PlayControl({ clock, date, span, minimised, onMinimise }: PlayProps) {
   const play = (
-    <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} onClick={() => clock.setPlaying(!clock.playing)}>
+    <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} title={TIME_KEYS_MEAN} onClick={() => clock.setPlaying(!clock.playing)}>
       {clock.playing ? '❚❚' : '▶'}
     </button>
   )

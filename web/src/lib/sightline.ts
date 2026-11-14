@@ -180,6 +180,33 @@ export function riverWindow(startIso: string, hour: number, zoom: RiverZoom, hou
   return { from: Math.max(0, span.from), to: Math.min(hours, span.to) }
 }
 
+/** What the keyboard does to time, for the play button's hover text. */
+export const TIME_KEYS_MEAN = 'Play or pause (Space). The left and right arrows move one hour; with Shift, one day.'
+
+/**
+ * The whole stretch around one hour in which the same things are in view, over all the flags on
+ * hand, not only the window on screen: its state, its first hour, and the hour it ends (the first
+ * hour of the next state).
+ */
+export function runAt(flags: SiteFlags, hour: number): RiverSegment {
+  const state = stateAt(flags, hour)
+  let from = hour
+  while (from > 0 && stateAt(flags, from - 1) === state) from -= 1
+  let to = hour + 1
+  while (to < flags.sun.length && stateAt(flags, to) === state) to += 1
+  return { from, to, state }
+}
+
+/** A band of the time bar in words: "Sun and Earth · 6 May 13:00 to 9 May 02:00 · 61 h". The year is written only when the band crosses one. */
+export function bandWords(startIso: string, run: RiverSegment, name: string): string {
+  const year = (hour: number) => clockTime(startIso, hour).split(' ')[2]
+  const moment = (hour: number) => {
+    const words = clockTime(startIso, hour).replace(/ UTC$/, '').replace(' · ', ' ')
+    return year(run.from) === year(run.to) ? words.replace(` ${year(hour)}`, '') : words
+  }
+  return `${name} · ${moment(run.from)} to ${moment(run.to)} · ${run.to - run.from} h`
+}
+
 /** The river's colours for a window of the flags: runs of hours in the same state, numbered from the window's start. */
 export function stateRuns(flags: SiteFlags, from: number, to: number): RiverSegment[] {
   const runs: RiverSegment[] = []
