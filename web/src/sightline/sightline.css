@@ -1401,12 +1401,27 @@
 }
 
 .sl-moment-heights {
-  /* Wide enough for "Sun −1.5° · Earth −12.3° above the skyline", so a change of sign moves nothing. */
-  min-width: 15rem;
+  /* Wide enough for "Sun −1.5° · Earth −12.3° above the skyline" and its chevron, so a change of sign moves nothing. */
+  min-width: 16.2rem;
   color: var(--soft);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* The same readout as the door to the skyline strip: a plain press, with a small chevron; nothing boxed. */
+button.sl-moment-heights {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.sl-moment-heights:hover,
+button.sl-moment-heights:focus-visible,
+button.sl-moment-heights[aria-expanded='true'] {
+  color: var(--ink);
 }
 
 .sl-rows {

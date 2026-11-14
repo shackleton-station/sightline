@@ -39,6 +39,8 @@ interface Props {
   folded: boolean
   onFold: (folded: boolean) => void
   onSelect: (key: string) => void
+  /** The skyline strip above this bar ("What the lander sees"): whether it is open, and its door, which is this bar's readout of the Sun's and Earth's heights. */
+  sky: { open: boolean; onToggle: () => void }
 }
 
 const ZOOMS: { id: RiverZoom; label: string }[] = [
@@ -78,7 +80,7 @@ function useEarthDay(start: string, from: number, to: number, wanted: boolean): 
  * marker for the landing and the mission's length, and one playhead through them all. Drag anywhere
  * on it to move time.
  */
-export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect }: Props) {
+export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, sky }: Props) {
   const [zoom, setZoom] = useState<RiverZoom>('month')
   const [earthRow, setEarthRow] = useState(false)
   const { from, to } = riverWindow(start, hour, zoom, hours)
@@ -100,6 +102,17 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
   const level = head.level
   const inHead = { earthDay: level >= 6, speed: level >= 5, legend: level >= 4, heights: level >= 3, zooms: level >= 2, roomy: level >= 1 }
   const [more, setMore] = useState(false)
+  // On a phone the styles leave the heights out of the row whatever its level, so there the skyline's door is in "More".
+  const [phone, setPhone] = useState(() => window.matchMedia('(max-width: 760px)').matches)
+  useEffect(() => {
+    const narrow = window.matchMedia('(max-width: 760px)')
+    const follow = () => setPhone(narrow.matches)
+    narrow.addEventListener('change', follow)
+    return () => narrow.removeEventListener('change', follow)
+  }, [])
+  const doorInRow = inHead.heights && !phone
+  // One level down the heights no longer fit the row, but a short door does ("Skyline"), so on a small laptop it is still in plain sight.
+  const shortDoor = !doorInRow && inHead.zooms && !phone
   const menu = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!more) return
@@ -133,7 +146,8 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
       <input type="checkbox" checked={earthRow} onChange={(event) => setEarthRow(event.target.checked)} /> A day on Earth
     </label>
   )
-  const menuHolds = !inHead.speed || (!folded && (!inHead.zooms || !inHead.legend)) || (!inHead.earthDay && earthDayBox !== false)
+  // Where the row has no room for the heights, the skyline's door is in "More" instead, so it is always one press away.
+  const menuHolds = (!doorInRow && !shortDoor) || !inHead.speed || (!folded && (!inHead.zooms || !inHead.legend)) || (!inHead.earthDay && earthDayBox !== false)
   const speed = (
     <select aria-label="Speed" value={SPEEDS.some((one) => one.hoursPerSecond === clock.hoursPerSecond) ? clock.hoursPerSecond : DEFAULT_SPEED} onChange={(event) => clock.setSpeed(Number(event.target.value))}>
       {SPEEDS.map((one) => (
@@ -169,10 +183,16 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
           <span className={`sl-chip${moment.state ? ` is-${moment.state}` : ''}${inHead.roomy ? '' : ' is-tight'}`}>
             <i className={`sl-key${moment.state ? ` is-${moment.state}` : ''}`} aria-hidden="true" /> {moment.words ?? (moment.state ? STATE_CHIP[moment.state] : '…')}
           </span>
-          {inHead.heights && (
-            <span className="sl-moment-heights" title={ABOVE_SKYLINE_MEANS}>
-              Sun {moment.sunAboveDeg === null ? '…' : degWords(moment.sunAboveDeg)} · Earth {moment.earthAboveDeg === null ? '…' : degWords(moment.earthAboveDeg)} above the skyline
-            </span>
+          {/* The heights above the skyline are the door to the skyline itself: a press unfolds the strip above this bar, and folds it again. */}
+          {doorInRow && (
+            <button type="button" className="sl-moment-heights sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`${ABOVE_SKYLINE_MEANS} Press to ${sky.open ? 'fold' : 'see'} the skyline all the way round, with the Sun's and Earth's paths.`} onClick={sky.onToggle}>
+              Sun {moment.sunAboveDeg === null ? '…' : degWords(moment.sunAboveDeg)} · Earth {moment.earthAboveDeg === null ? '…' : degWords(moment.earthAboveDeg)} above the skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
+            </button>
+          )}
+          {shortDoor && (
+            <button type="button" className="sl-small sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`The skyline all the way round, with the Sun's and Earth's paths. Press to ${sky.open ? 'fold' : 'see'} it.`} onClick={sky.onToggle}>
+              Skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
+            </button>
           )}
           {!folded && inHead.zooms && zooms}
           {!folded && inHead.legend && legend}
@@ -190,6 +210,21 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
         </div>
         {more && menuHolds && (
           <div ref={menu} className="sl-menu" role="group" aria-label="More for the time bar">
+            {!doorInRow && !shortDoor && (
+              <button
+                type="button"
+                className="sl-small sl-sky-door"
+                aria-expanded={sky.open}
+                aria-controls="sl-sky"
+                title="The skyline all the way round, with the Sun's and Earth's paths"
+                onClick={() => {
+                  sky.onToggle()
+                  setMore(false)
+                }}
+              >
+                {sky.open ? 'Fold the skyline' : 'Show the skyline'}
+              </button>
+            )}
             {!inHead.speed && <label>Speed {speed}</label>}
             {!folded && !inHead.zooms && zooms}
             {!folded && !inHead.legend && legend}

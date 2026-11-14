@@ -139,7 +139,8 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
             <Row key={row.key} row={row} />
           ))}
           <tr>
-            <th scope="row">Fits the mission</th>            {measures.map((measure, i) => (
+            <th scope="row">Fits the mission</th>
+            {measures.map((measure, i) => (
               <td key={i} className={measure && measure.problems.length === 0 ? 'is-best' : undefined}>
                 {!measure ? '…' : measure.problems.length > 0 ? '✗ No' : marginalOf[i].length > 0 ? '✓ Marginal' : '✓ Yes'}
               </td>

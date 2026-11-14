@@ -87,7 +87,7 @@ export function Skyline({ horizon, track, index, obsHeightM, folded, onFold }: P
     : 'The horizon all the way round.'
 
   return (
-    <section className={folded ? 'sl-sky is-folded' : 'sl-sky'} aria-label="What the lander sees">
+    <section id="sl-sky" className={folded ? 'sl-sky is-folded' : 'sl-sky'} aria-label="What the lander sees">
       {/* One row: the notes give way, the least needed first, when the strip is narrow. */}
       <div ref={head.ref} className="sl-strip-head sl-sky-head">
         <span className="sl-strip-title">What the lander sees</span>
