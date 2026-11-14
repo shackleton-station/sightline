@@ -732,7 +732,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               }
             />
           </PlanColumn>
-          <Skyline horizon={hereOnBar?.horizon ?? null} track={hereOnBar?.track ?? null} index={index} obsHeightM={hereOnBar ? siteHeights.panelM : 0} folded={skyMin} onFold={setSkyMin} />
+          {/* The 3D Surface view shows the horizon better, so the strip is only up for the tour's step about it. */}
+          {tourStep?.state.show === 'skyline' && (
+            <Skyline horizon={hereOnBar?.horizon ?? null} track={hereOnBar?.track ?? null} index={index} obsHeightM={hereOnBar ? siteHeights.panelM : 0} folded={skyMin} onFold={setSkyMin} />
+          )}
           <River
             start={start}
             hours={hours}

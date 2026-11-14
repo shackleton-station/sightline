@@ -42,6 +42,13 @@ function markLabel(el: number, stepDeg: number): string {
   return `${el > 0 ? '+' : '−'}${size}°`
 }
 
+/** "El +1.2° · Az 123.4°": the body's centre as the track gives it, elevation above eye level and azimuth from north. */
+function angleLabel(body: Marked): string {
+  const el = `${body.elDeg < 0 ? '−' : '+'}${Math.abs(body.elDeg).toFixed(1)}°`
+  const az = `${(((body.azDeg % 360) + 360) % 360).toFixed(1)}°`
+  return `El ${el} · Az ${az}`
+}
+
 /**
  * The lines and names drawn over the picture, placed with the same geometry the picture is drawn
  * with: a scale of true elevation down the left side, eye level, a dot for each hour of the Sun's
@@ -89,13 +96,18 @@ export function SkyOverlay({ lens, width, height, sun, earth, hours, clearTopPx 
     const ry = (outline.ry * height) / 2
     const cx = px(outline.x)
     const cy = py(outline.y)
-    // Above the disk; under it when that would run into the menus and compass.
-    const above = cy - ry - 14 > clearTopPx + 18
+    // Above the disk (name, then its angles); under it when that would run into the menus and compass.
+    const above = cy - ry - 30 > clearTopPx + 18
+    const nameY = above ? cy - ry - 30 : cy + ry + 26
+    const anglesY = above ? cy - ry - 13 : cy + ry + 43
     return (
       <g className={`sf-tag ${kind}${body.up ? '' : ' hidden'}`}>
         {!body.up && <ellipse cx={cx} cy={cy} rx={Math.max(rx, 3)} ry={Math.max(ry, 3)} />}
-        <text x={cx} y={above ? cy - ry - 14 : cy + ry + 26} textAnchor="middle">
+        <text x={cx} y={nameY} textAnchor="middle">
           {body.up ? name : `${name}, behind the land`}
+        </text>
+        <text className="sf-tag-angles" x={cx} y={anglesY} textAnchor="middle">
+          {angleLabel(body)}
         </text>
       </g>
     )

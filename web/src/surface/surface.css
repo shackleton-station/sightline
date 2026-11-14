@@ -137,6 +137,14 @@
   fill: currentColor;
 }
 
+/* The angles under each name: white, fixed-width numbers, so they read on the land and the sky alike. */
+.sf-tag text.sf-tag-angles {
+  font: 600 12px var(--sf-mono);
+  letter-spacing: 0;
+  text-transform: none;
+  fill: #fff;
+}
+
 .sf-tag ellipse {
   fill: none;
   stroke: currentColor;
