@@ -10,7 +10,7 @@ import { AdvancedControls, MissionControls } from './MissionDrawer'
 import { PlannerCompare } from './PlannerCompare'
 import { PlannerFind } from './PlannerFind'
 import type { PlannerTab } from './plannerFit'
-import { plannerCsv, plannerRows } from './plannerTable'
+import { landingRows, plannerCsv, plannerRows } from './plannerTable'
 import { ScenarioTabs } from './Scenarios'
 import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
 import './planner.css'
@@ -46,8 +46,10 @@ interface Props {
   month: string
   year: number
   summary: Summary | null
-  /** Each scenario's landing hour, for the Sun's and Earth's elevations; null while its month loads. */
+  /** Each scenario's landing hour, for the Sun's and Earth's angles; null while its month loads. */
   landings: (LandingShares | null)[]
+  /** The average sunlight on a panel over each scenario's mission, in W/m²; undefined while its months load. */
+  sunlightWm2: (number | null | undefined)[]
 }
 
 const TABS: { id: PlannerTab; label: string; title: string }[] = [
@@ -61,7 +63,7 @@ const TABS: { id: PlannerTab; label: string; title: string }[] = [
  * scenarios side by side. The Moon stays as a small live view in the corner (drawn by the screen,
  * not here), and is itself a way back.
  */
-export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings }: Props) {
+export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2 }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -71,7 +73,9 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
     measures,
     facts.map((fact) => fact.flags),
     mission,
+    sunlightWm2,
   )
+  const atLanding = landingRows(landings)
   const spans = useMemo(() => monthSpans(start, hours), [start, hours])
 
   const exportTable = () => {
@@ -79,7 +83,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
       start,
       scenarios,
       facts.map((fact) => fact.site.name),
-      rows,
+      [...rows, ...atLanding],
       measures,
       missionWords(mission),
     )
@@ -139,7 +143,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
           {tab === 'find' ? (
             <PlannerFind start={start} flagged={flagged} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} />
           ) : (
-            <PlannerCompare start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} rows={rows} active={active} onSelect={onSelect} onRemove={onRemove} landings={landings} />
+            <PlannerCompare start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} rows={rows} active={active} onSelect={onSelect} onRemove={onRemove} landingRows={atLanding} />
           )}
         </div>
       </div>

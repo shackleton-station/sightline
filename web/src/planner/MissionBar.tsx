@@ -28,7 +28,7 @@ interface DialProps {
 }
 
 /** One limit: a number to type and a slider to drag. Either one redraws the grid as it changes. */
-function Dial({ id, label, unit, value, bounds: [min, max], stops, onChange }: DialProps) {
+export function Dial({ id, label, unit, value, bounds: [min, max], stops, onChange }: DialProps) {
   // The number can be empty or out of range while typing; only a valid value counts.
   const [draft, setDraft] = useState<string | null>(null)
   return (

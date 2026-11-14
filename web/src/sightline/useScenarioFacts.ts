@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { SiteInfo } from '../data/contract'
+import type { SiteInfo, TrackPoint } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
 import { loadScenarioAt } from '../data/heights'
 import { loadScenario, loadSiteFlags, loadYearPositions } from '../data/loadSite'
@@ -8,6 +8,7 @@ import { horizonAt } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
 import type { MissionHeights } from '../lib/heights'
 import { locateHour } from '../lib/mission'
+import { panelSunlight } from '../lib/power'
 import { spanOfHours, type YearSpan } from '../lib/span'
 import type { SightlineScenario } from '../lib/sightlineMission'
 import { earthShare } from '../lib/sightlineSky'
@@ -78,7 +79,8 @@ export function useScenarioFacts(sites: SiteInfo[], flagged: FlaggedSite[], scen
 
 /**
  * A landing's hour: how much of the Sun's and of Earth's disc is in view (Earth's is null where its
- * size could not be read), and each one's elevation from level, in degrees, from the pipeline's track.
+ * size could not be read), and each one's elevation in degrees, from the pipeline's track: from
+ * level, and above the skyline in its own direction (its centre; negative when the ridge hides it).
  */
 export interface LandingShares {
   sun: number
@@ -86,6 +88,8 @@ export interface LandingShares {
   earthUp: boolean
   sunElDeg: number
   earthElDeg: number
+  sunAboveDeg: number
+  earthAboveDeg: number
 }
 
 const HOUR_MS = 3_600_000
@@ -112,8 +116,10 @@ export function useLandingShares(scenarios: SightlineScenario[], facts: Scenario
         .then(([data, positions]) => {
           const point = data.track[Math.min(index, data.track.length - 1)]
           const hourOfYear = Math.round((Date.parse(point.t) - Date.UTC(year, 0, 1)) / HOUR_MS)
-          const earth = positions ? earthShare(point.earth_el - horizonAt(data.earthHorizon ?? data.horizon, point.earth_az), bodyRadiiDeg(positions, hourOfYear, site.lat, site.lon).earth) : null
-          if (current) setShares((before) => ({ ...before, [key]: { sun: point.sun_frac, earth, earthUp: point.earth_up, sunElDeg: point.sun_el, earthElDeg: point.earth_el } }))
+          const sunAboveDeg = point.sun_el - horizonAt(data.horizon, point.sun_az)
+          const earthAboveDeg = point.earth_el - horizonAt(data.earthHorizon ?? data.horizon, point.earth_az)
+          const earth = positions ? earthShare(earthAboveDeg, bodyRadiiDeg(positions, hourOfYear, site.lat, site.lon).earth) : null
+          if (current) setShares((before) => ({ ...before, [key]: { sun: point.sun_frac, earth, earthUp: point.earth_up, sunElDeg: point.sun_el, earthElDeg: point.earth_el, sunAboveDeg, earthAboveDeg } }))
         })
         // Without the shares a landing that fits is simply not called marginal.
         .catch((reason: unknown) => console.error(reason))
@@ -125,4 +131,55 @@ export function useLandingShares(scenarios: SightlineScenario[], facts: Scenario
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [wanted, start, years.from, years.to])
   return keys.map((key) => shares[key] ?? null)
+}
+
+/**
+ * The pipeline's hourly rows for one mission, from its landing to its end, read a month at a time.
+ * Null when the mission runs past the data.
+ */
+async function missionTrack(site: SiteInfo, start: string, landing: number, missionH: number, years: YearSpan, heights: MissionHeights): Promise<TrackPoint[] | null> {
+  const rows: TrackPoint[] = []
+  while (rows.length < missionH) {
+    const { month, index } = locateHour(start, landing + rows.length)
+    const data = await loadScenarioAt(site, month, years, heights)
+    const part = data.track.slice(index, index + missionH - rows.length)
+    if (part.length === 0) return null
+    rows.push(...part)
+  }
+  return rows
+}
+
+/**
+ * The average sunlight on a Sun-facing panel over each scenario's mission, in W/m² (`panelSunlight`:
+ * the share of the Sun's disc in view each hour, before any panel losses). Undefined while a
+ * scenario's months load; null when its mission runs past the data or a month cannot be read.
+ * Nothing is asked for until `on` is true: only the two Compare tables show it.
+ */
+export function useMissionSunlight(scenarios: SightlineScenario[], facts: ScenarioFacts[], start: string, years: YearSpan, heights: MissionHeights, missionDays: number, on: boolean): (number | null | undefined)[] {
+  const [sunlight, setSunlight] = useState<Record<string, number | null>>({})
+  const { panelM, antennaM } = heights
+  const keys = scenarios.map((scenario, i) => `${facts[i].site.id}@${scenario.landing}+${missionDays}@${panelM}/${antennaM}`)
+  const wanted = keys.join('|')
+  useEffect(() => {
+    if (!on) return
+    let current = true
+    scenarios.forEach((scenario, i) => {
+      const key = keys[i]
+      missionTrack(facts[i].site, start, scenario.landing, missionDays * 24, years, { panelM, antennaM })
+        .then((rows) => (rows ? panelSunlight(rows).vertical : null))
+        .catch((reason: unknown) => {
+          console.error(reason)
+          return null
+        })
+        .then((value) => {
+          if (current) setSunlight((before) => (key in before ? before : { ...before, [key]: value }))
+        })
+    })
+    return () => {
+      current = false
+    }
+    // The keys say everything that matters: each scenario's site, landing hour and mission length, and the two heights.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [wanted, start, years.from, years.to, on])
+  return keys.map((key) => sunlight[key])
 }

@@ -50,6 +50,7 @@ import { type TrekLayerId, trekLayer } from '../lib/trekLayers'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
+import { NewPlanner } from './NewPlanner'
 import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
 import { Tips } from './Tips'
@@ -77,7 +78,7 @@ import { siteValue } from './site'
 import { Skyline } from './Skyline'
 import { Stage } from './Stage'
 import { useHeightFlags } from './useHeights'
-import { useLandingShares, useScenarioFacts } from './useScenarioFacts'
+import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useScenarioFacts'
 import { useTutorialVideo } from './useTutorialVideo'
 import { PlayControl, ScoutLine } from './WatchControls'
 
@@ -175,6 +176,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // A link that names a Planner tab opens the Planner on it.
   const [full, setFull] = useState(() => linked !== null && plannerTabIn(window.location.hash) !== null)
   const [plannerTab, setPlannerTab] = useState<PlannerTab>(() => plannerTabIn(window.location.hash) ?? 'find')
+  // Which Planner the whole window shows: the Find and Compare one, or the New Planner (the Planner page's look on this screen's data).
+  const [newPlanner, setNewPlanner] = useState(false)
   const [how, setHow] = useState(openHow)
   // The written brief for the scenario on show, as a sheet too.
   const [brief, setBrief] = useState(false)
@@ -279,6 +282,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // How much of the Sun's and Earth's discs shows at each scenario's landing. A landing that meets a
   // "in view at landing" limit on a sliver of the Sun, or only the edge of Earth, fits only marginally.
   const shares = useLandingShares(scenarios, facts, start, held, lit.applied)
+  // The average sunlight on a panel over each mission: read only while one of the two Compare tables is open.
+  const sunlightWm2 = useMissionSunlight(scenarios, facts, start, held, lit.applied, mission.requirements.missionDays, full || drawer === 'compare')
   const marginalAt = (i: number) => {
     const at = shares[i]
     return at ? marginalReasons(mission.requirements.sunAtLanding ? at.sun : null, mission.requirements.earthAtLanding ? at.earth : null, at.earthUp) : []
@@ -464,6 +469,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     [plan, hour, setScenario],
   )
   /** Add a scenario and show it, with the time bar on its landing. With four already, nothing is added. */
+  /** The New Planner moved the scenario on show: the Moon, the time bar and the column follow. */
+  const moveScenario = useCallback(
+    (moved: SightlineScenario) => {
+      setScenario(() => moved)
+      setHour(moved.landing)
+    },
+    [setScenario, setHour],
+  )
   const addScenario = useCallback(
     (added: SightlineScenario) => {
       if (scenarios.length >= MAX_SCENARIOS) return
@@ -688,7 +701,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setAccuracyUsed(true)
     setDrawer('accuracy')
   }
-  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', gliding && !plan ? 'is-gliding' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
+  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
     <div className={classes}>
@@ -934,7 +947,31 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {!bare && !plan && !(scoutOpen && room === 'phone') && <PlayControl clock={clock} date={clockDate(start, hour)} span={monthSpan(start, hour)} minimised={pillMin} onMinimise={setPillMin} />}
       </main>
 
-      {planner && (
+      {planner && newPlanner && (
+        <NewPlanner
+          start={start}
+          hours={hours}
+          flagged={lit.flagged}
+          scenarios={scenarios}
+          facts={facts}
+          mission={mission}
+          onMission={setMission}
+          active={active}
+          onSelect={setActive}
+          onAdd={addScenario}
+          onRemove={removeScenario}
+          onScenario={moveScenario}
+          onBack={() => setFull(false)}
+          scoutOpen={drawer === 'scout'}
+          onScout={() => setDrawer(drawer === 'scout' ? null : 'scout')}
+          site={site}
+          month={landingAt.month}
+          year={Number(landingAt.month.slice(0, 4))}
+          summary={here?.summary ?? null}
+          landings={shares}
+        />
+      )}
+      {planner && !newPlanner && (
         <FullPlanner
           start={start}
           hours={hours}
@@ -959,6 +996,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           year={Number(landingAt.month.slice(0, 4))}
           summary={here?.summary ?? null}
           landings={shares}
+          sunlightWm2={sunlightWm2}
         />
       )}
       {brief && (
@@ -1019,7 +1057,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         <AdvancedDrawer mission={mission} onMission={setMission} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} onBack={() => setDrawer('mission')} onClose={() => setDrawer(null)} />
       )}
       {shown && !planner && drawer === 'compare' && (
-        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} />
+        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} />
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={setFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
@@ -1033,6 +1071,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onPlanner={() => {
             // In the Planner the only panel is Scout's.
             if (drawer !== 'scout') setDrawer(null)
+            setNewPlanner(false)
+            setFull(true)
+          }}
+          onNewPlanner={() => {
+            if (drawer !== 'scout') setDrawer(null)
+            setNewPlanner(true)
             setFull(true)
           }}
           scoutOpen={drawer === 'scout'}
