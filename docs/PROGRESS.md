@@ -299,12 +299,13 @@ Local Lead.
 ## A science measure: distance to permanent shadow (2026-11-14)
 
 - [x] `web/public/data/shadow.json`: for each of the 13 sites, the distance to the nearest permanently shadowed pixel and to the nearest shadowed region of at least 10 km², from NASA's LOLA maps (`pipeline/scripts/make_shadow_distance.py`; `docs/VALIDATION.md` §16). Seven sites have numbers; the six outside NASA's maps say so
-- [ ] Show it: a row in Compare and in the Planner (types `ShadowDistances`, `ShadowAnswer` in `web/src/data/contract.ts`)
+- [x] Show it in the Planner: two rows under Science in its Compare tab (`compareGroups` in `web/src/sightline/plannerTable.ts`)
+- [ ] Show it in the main screen's Compare panel
 
 ## The Planner as two tabs, Find and Compare (2026-11-14)
 
 - [x] Find: the header (back, tabs, scenario tray, Brief, Share, Export, Scout), the tab in the link (`&planner=find`), and every site by month with the days a landing fits (`web/src/sightline/plannerFit.ts`, `PlannerFind.tsx`; checks in `sightline-shots.mjs`, scene `planner-find`)
-- [ ] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science row from `shadow.json`, and "Add scenario" as the last column
+- [x] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science rows from `shadow.json`, and "Add scenario" as the last column (`PlannerCompare.tsx`, `plannerTable.ts`, `useShadow.ts`; scene `planner-compare`)
 
 ## Landing accuracy (2026-11-14)
 

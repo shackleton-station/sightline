@@ -1,39 +1,32 @@
-import { clockTime, stateAt, stateRuns } from '../lib/sightline'
-import { type ScenarioMeasure, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
-import type { PlannerRow } from './plannerTable'
-import { BAND, STATE_CHIP } from './states'
+import { type CSSProperties, useMemo, useState } from 'react'
+import type { SiteInfo } from '../data/contract'
+import { isCustomSite } from '../data/customSite'
+import type { FlaggedSite } from '../data/useAllFlags'
+import { clockTime, fieldAt, hourFromField, stateRuns } from '../lib/sightline'
+import { MAX_SCENARIOS, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { LandingPick } from './LandingPick'
+import { fitHours, nextFit } from './plannerFit'
+import type { PlannerGroup } from './plannerTable'
+import { siteValue } from './site'
+import { BAND } from './states'
 import type { ScenarioFacts } from './useScenarioFacts'
 
 interface Props {
   start: string
-  /** How many hours the data holds. */
+  /** How many hours the data on hand holds. */
   hours: number
+  /** Every listed site with its hourly flags, at the mission's heights: the sites a column can be set to. */
+  flagged: FlaggedSite[]
   scenarios: SightlineScenario[]
   facts: ScenarioFacts[]
   mission: SightlineMission
-  measures: (ScenarioMeasure | null)[]
-  rows: PlannerRow[]
+  groups: PlannerGroup[]
   active: number
   onSelect: (index: number) => void
+  /** Change one scenario's site or landing, in place. */
+  onChange: (index: number, scenario: SightlineScenario) => void
+  onAdd: (scenario: SightlineScenario) => void
   onRemove: (index: number) => void
-  /** The Sun's and Earth's angles at each landing, under the "At landing" row. */
-  landingRows: PlannerRow[]
-}
-
-/** The cells of one row with a number in them: the figure, the best mark, and the hours behind a share. */
-function RowCells({ row }: { row: PlannerRow }) {
-  return row.cells.map((cell, i) => (
-    <td key={i} className={row.best[i] ? 'is-best' : undefined}>
-      {cell ?? '…'}
-      {row.best[i] && (
-        <span className="sl-best" title="Best in this row">
-          {' '}
-          ★
-        </span>
-      )}
-      {row.notes[i] && <small> {row.notes[i]}</small>}
-    </td>
-  ))
 }
 
 /** How many days apart the labels under the aligned rows are, so about ten fit. */
@@ -41,31 +34,84 @@ function dayStep(missionDays: number): number {
   return Math.max(1, Math.ceil(missionDays / 10))
 }
 
+/** The listed sites as a list's options, in their groups; a custom point on show is named above them. */
+function SiteOptions({ sites, custom }: { sites: SiteInfo[]; custom: SiteInfo | null }) {
+  const groups = [...new Set(sites.map((site) => site.group))]
+  return (
+    <>
+      {custom && <option value={siteValue(custom)}>{custom.name}</option>}
+      {groups.map((group) => (
+        <optgroup key={group} label={group}>
+          {sites
+            .filter((site) => site.group === group)
+            .map((site) => (
+              <option key={site.id} value={site.id}>
+                {site.name}
+              </option>
+            ))}
+        </optgroup>
+      ))}
+    </>
+  )
+}
+
 /**
- * Compare: "which of my picks is best?" The scenarios side by side with every row the app can
- * measure, then one time row per scenario lined up on its own landing.
+ * Compare: "which of my picks is best?" One column per scenario, its site and date changed in
+ * place in its header; the rows in groups, the verdict first; a last column that adds a scenario;
+ * and under the table each mission from its own landing.
  */
-export function PlannerCompare({ start, hours, scenarios, facts, mission, measures, rows, active, onSelect, onRemove, landingRows }: Props) {
+export function PlannerCompare({ start, hours, flagged, scenarios, facts, mission, groups, active, onSelect, onChange, onAdd, onRemove }: Props) {
   const missionH = mission.requirements.missionDays * 24
   const step = dayStep(mission.requirements.missionDays)
+  const sites = useMemo(() => flagged.map(({ site }) => site), [flagged])
+  const first = fieldAt(start, 0)
+  const last = fieldAt(start, hours - 1)
+  const room = scenarios.length < MAX_SCENARIOS
+  const letter = SCENARIO_LETTERS[scenarios.length]
+
+  // The scenario to add: a site, and a landing. Until one is chosen, the site on show at its next landing that fits.
+  const shownSite = facts[active].site
+  const [addSite, setAddSite] = useState<string | null>(null)
+  const [addLanding, setAddLanding] = useState<number | null>(null)
+  const site = sites.find((one) => one.id === addSite) ?? sites.find((one) => one.id === shownSite.id) ?? sites[0]
+  const next = useMemo(() => {
+    const at = flagged.find((one) => one.site.id === site.id)
+    if (!at) return null
+    return nextFit(fitHours(at.flags, mission, at.site.slope?.deg ?? null), scenarios[active].landing)
+  }, [flagged, site, mission, scenarios, active])
+  const landing = addLanding ?? next ?? scenarios[active].landing
+
   return (
     <div className="pl-compare" role="tabpanel" aria-label="Compare">
-      <h3>Scenarios, over the {mission.requirements.missionDays}-day mission</h3>
+      <h3>Which of my picks is best?</h3>
       <div className="sl-full-scroll">
-        <table className="sl-full-table">
+        <table className="sl-full-table pl-table" style={{ '--pl-columns': scenarios.length + (room ? 1 : 0) } as CSSProperties}>
           <thead>
             <tr>
               <td />
               {scenarios.map((scenario, i) => (
                 <th key={i} scope="col">
-                  {/* The letter at the left, the site, its landing and "remove" stacked beside it: the same shape however narrow the column. */}
+                  {/* The letter at the left; the site, its landing and "remove" stacked beside it: the same shape however narrow the column. */}
                   <div className="sl-full-th">
                     <button type="button" className="sl-small" aria-pressed={i === active} aria-label={`Scenario ${SCENARIO_LETTERS[i]}`} onClick={() => onSelect(i)}>
                       {SCENARIO_LETTERS[i]}
                     </button>
-                    <span>
-                      {facts[i].site.name}
-                      <small>{clockTime(start, scenario.landing)}</small>
+                    <span className="pl-th">
+                      <select aria-label={`Scenario ${SCENARIO_LETTERS[i]}: landing site`} value={siteValue(facts[i].site)} onChange={(event) => onChange(i, { ...scenario, site: event.target.value })}>
+                        <SiteOptions sites={sites} custom={isCustomSite(facts[i].site) ? facts[i].site : null} />
+                      </select>
+                      <LandingPick
+                        landing={clockTime(start, scenario.landing)}
+                        landingField={fieldAt(start, scenario.landing)}
+                        firstField={first}
+                        lastField={last}
+                        onPick={(value) => {
+                          const picked = hourFromField(start, value, hours)
+                          if (picked === null) return false
+                          onChange(i, { ...scenario, landing: picked })
+                          return true
+                        }}
+                      />
                     </span>
                     {scenarios.length > 1 && (
                       <button type="button" className="sl-link" aria-label={`Remove scenario ${SCENARIO_LETTERS[i]}`} onClick={() => onRemove(i)}>
@@ -75,53 +121,91 @@ export function PlannerCompare({ start, hours, scenarios, facts, mission, measur
                   </div>
                 </th>
               ))}
+              {room && (
+                <th scope="col" className="pl-add-col">
+                  <div className="sl-full-th">
+                    <b aria-hidden="true">+</b>
+                    <span className="pl-th">
+                      <select
+                        aria-label="Add scenario: landing site"
+                        value={site.id}
+                        onChange={(event) => {
+                          setAddSite(event.target.value)
+                          setAddLanding(null)
+                        }}
+                      >
+                        <SiteOptions sites={sites} custom={null} />
+                      </select>
+                      <LandingPick
+                        landing={clockTime(start, landing)}
+                        landingField={fieldAt(start, landing)}
+                        firstField={first}
+                        lastField={last}
+                        onPick={(value) => {
+                          const picked = hourFromField(start, value, hours)
+                          if (picked === null) return false
+                          setAddLanding(picked)
+                          return true
+                        }}
+                      />
+                    </span>
+                    <button
+                      type="button"
+                      className="sl-small pl-add-button"
+                      title={addLanding === null && next !== null ? 'This site at its next landing that fits the mission' : undefined}
+                      onClick={() => {
+                        onAdd({ site: site.id, landing })
+                        setAddSite(null)
+                        setAddLanding(null)
+                      }}
+                    >
+                      Add as {letter}
+                    </button>
+                  </div>
+                </th>
+              )}
             </tr>
           </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.key}>
-                <th scope="row" title={row.title}>
-                  {row.label}
-                </th>
-                <RowCells row={row} />
-              </tr>
-            ))}
-            <tr>
-              <th scope="row">At landing</th>
-              {scenarios.map((scenario, i) => {
-                const flags = facts[i].flags
-                const state = flags ? stateAt(flags, scenario.landing) : null
-                return (
-                  <td key={i} data-state={state ?? undefined}>
-                    {state ? (
-                      <>
-                        <i className={`sl-key is-${state}`} aria-hidden="true" /> {STATE_CHIP[state]}
-                      </>
-                    ) : (
-                      '…'
-                    )}
-                  </td>
-                )
-              })}
-            </tr>
-            {/* Each body's angle at landing, both ways: from a level horizon (the conventional figure) and above the skyline. */}
-            {landingRows.map((row) => (
-              <tr key={row.key}>
-                <th scope="row" title={row.title}>
-                  {row.label}
-                </th>
-                <RowCells row={row} />
-              </tr>
-            ))}
-            <tr>
-              <th scope="row">Fits the mission</th>
-              {measures.map((measure, i) => (
-                <td key={i} className={measure && measure.problems.length === 0 ? 'is-best sl-full-fit' : 'sl-full-fit'}>
-                  {!measure ? '…' : measure.problems.length === 0 ? '✓ Yes' : `✗ No: ${measure.problems.join(' ')}`}
-                </td>
+          {groups.map((group) => (
+            <tbody key={group.key} data-group={group.key}>
+              {group.key !== 'verdict' && (
+                <tr className="pl-group">
+                  <th scope="colgroup" colSpan={scenarios.length + 1 + (room ? 1 : 0)}>
+                    {group.name}
+                  </th>
+                </tr>
+              )}
+              {group.rows.map((row) => (
+                <tr key={row.key} data-row={row.key}>
+                  <th scope="row" title={row.title}>
+                    {row.label}
+                  </th>
+                  {row.cells.map((cell, i) => {
+                    const state = row.states?.[i]
+                    const fits = row.fits?.[i]
+                    return (
+                      <td key={i} className={[row.best[i] || fits ? 'is-best' : '', row.fits ? 'sl-full-fit' : ''].filter(Boolean).join(' ') || undefined} data-state={state ?? undefined}>
+                        {state && (
+                          <>
+                            <i className={`sl-key is-${state}`} aria-hidden="true" />{' '}
+                          </>
+                        )}
+                        {cell ?? '…'}
+                        {row.best[i] && (
+                          <span className="sl-best" title="Best in this row">
+                            {' '}
+                            ★
+                          </span>
+                        )}
+                        {row.notes[i] && <small> {row.notes[i]}</small>}
+                      </td>
+                    )
+                  })}
+                  {room && <td className="pl-add-col" />}
+                </tr>
               ))}
-            </tr>
-          </tbody>
+            </tbody>
+          ))}
         </table>
       </div>
       <p className="sl-quiet">★ best in its row</p>
