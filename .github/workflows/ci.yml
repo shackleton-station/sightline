@@ -28,3 +28,23 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pytest
+
+  web:
+    name: web (tsc + vitest + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      # The root tsconfig has no files of its own; `tsc -b` checks the referenced app + node projects.
+      - run: npx tsc -b
+      - run: npx vitest run
+      # No Cesium token in CI: the 3D view must fall back to its placeholder.
+      - run: npm run build
