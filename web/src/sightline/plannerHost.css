@@ -92,9 +92,34 @@
   font-size: 0.75rem;
 }
 
-/* The scenario's detail under Compare's table: the sheet's parts on this screen's dark ground. */
+/* The scenario's detail under Compare's table: the sheet's parts on this screen's dark ground,
+   without the sheet itself (no paper, no thick top edge, no padding of its own). */
 .plh-detail {
   display: block;
+}
+
+.plh-detail.plh-sky {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: inherit;
+  font-size: 0.8125rem;
+}
+
+/* Every scenario's Sun height and power, under the one scenario's detail. */
+.plh-detail.plh-all {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: 1rem 2rem;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.plh-detail.plh-all > * {
+  min-width: 0;
 }
 
 @media (max-width: 760px) {
@@ -140,3 +165,24 @@
 .plh-nearby > div > h5:first-child {
   display: none;
 }
+
+/* A heading inside an imported part keeps its distance from what is above it. */
+.sl-full .plh.planner :is(h3, h4, h5, .pl-label):not(:first-child) {
+  margin-top: 0.8rem;
+}
+
+/* Compare's in-depth section says three things in this screen's own words, so the imported parts'
+   own lines for them are left out: the Sun's height block (led there by the height from a flat
+   horizon), the Sun chart's heading and caption, and the power budget's closing note. */
+.plh-sky .pl-sky-height,
+.plh-sky .pl-sky-sub:has(+ .pl-sky-height),
+.plh-sunchart section > h3,
+.plh-sunchart section > h3 + p,
+.plh-power section > p:last-child {
+  display: none;
+}
+
+.plh-power section > h3 {
+  margin-top: 0;
+}
+
