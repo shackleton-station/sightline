@@ -1,0 +1,71 @@
+# --- Secrets (never commit) ---
+.env*
+!.env.example
+.netrc
+
+# --- Large data / kernels (live in cache/) ---
+cache/
+web/public/tiles/
+*.tif
+*.img
+*.lbl
+*.jp2
+*.bsp
+*.bpc
+*.tls
+*.tf
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+pipeline/notebooks/.ipynb_checkpoints/
+.ipynb_checkpoints/
+
+# --- Node / web ---
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+.vite/
+npm-debug.log*
+
+# --- OS / editors ---
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# --- Bundled server ---
+dist-server/
+dist-worker/
+dist-plans/
+dist-copilot/
+
+# --- Terraform ---
+infra/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+# The one tracked settings file: everything that is not personal. terraform.tfvars stays ignored.
+!infra/settings.auto.tfvars
+*.tfplan
+# What the Terraform workflow and its scripts write while they run.
+infra/tfplan
+infra/tfplan.json
+infra/plan.txt
+infra/plan-comment.md
+# SPICE frame kernels are *.tf too (ignored above); Terraform files in infra/ are code.
+!infra/*.tf
+
+# Left over from the Cloudflare days: local key files and wrangler state must never be committed.
+.dev.vars*
+.wrangler/
