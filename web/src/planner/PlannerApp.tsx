@@ -144,7 +144,7 @@ export function PlannerApp() {
           />
         </div>
         <p className="pl-foot">
-          Practice demo by team Shackleton Station. Every number comes from the same pipeline as the other tabs: NASA LOLA terrain and SPICE ephemeris, hour by hour, {view.grid.months[0].slice(0, 4)} to {view.grid.months[view.grid.months.length - 1].slice(0, 4)}. <a href={`${OLD_HOME}#how`}>How it works</a>
+          By team Shackleton Station. Every number comes from the same pipeline as the other tabs: NASA LOLA terrain and SPICE ephemeris, hour by hour, {view.grid.months[0].slice(0, 4)} to {view.grid.months[view.grid.months.length - 1].slice(0, 4)}. <a href={`${OLD_HOME}#how`}>How it works</a>
         </p>
       </main>
     </div>
