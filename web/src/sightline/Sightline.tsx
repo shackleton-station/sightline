@@ -50,6 +50,7 @@ import { type TrekLayerId, trekLayer } from '../lib/trekLayers'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
+import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
@@ -167,7 +168,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [drawer, setDrawer] = useState<'scout' | 'mission' | 'advanced' | 'compare' | 'layers' | 'rover' | null>(null)
   const chat = useScoutChat()
   // The Planner takes the whole window, with the Moon kept small in a corner; How it works opens as a sheet over the scene.
-  const [full, setFull] = useState(false)
+  // A link that names a Planner tab opens the Planner on it.
+  const [full, setFull] = useState(() => linked !== null && plannerTabIn(window.location.hash) !== null)
+  const [plannerTab, setPlannerTab] = useState<PlannerTab>(() => plannerTabIn(window.location.hash) ?? 'find')
   const [how, setHow] = useState(openHow)
   // The written brief for the scenario on show, as a sheet too.
   const [brief, setBrief] = useState(false)
@@ -382,8 +385,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
   const scoutView = active > 0 ? view : `${view}&sc=0`
   useEffect(() => {
-    setAddressBar(plan ? view : window.location.pathname)
-  }, [plan, view])
+    // With the Planner open the address also says which of its tabs is on show.
+    setAddressBar(plan ? (full ? withPlannerTab(view, plannerTab) : view) : window.location.pathname)
+  }, [plan, view, full, plannerTab])
 
   // A date the data covers but in a year not on hand: ask for the years, and go there once they
   // are here. A date far from the years on hand starts the screen again around it, on this link.
@@ -867,8 +871,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           active={active}
           onSelect={setActive}
           onAdd={addScenario}
+          onAddShown={() => addScenario({ site: scenario.site, landing: hour })}
           onRemove={removeScenario}
           onBack={() => setFull(false)}
+          tab={plannerTab}
+          onTab={setPlannerTab}
+          onBrief={() => setBrief(true)}
           scoutOpen={drawer === 'scout'}
           onScout={() => setDrawer(drawer === 'scout' ? null : 'scout')}
           site={site}
