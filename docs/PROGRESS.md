@@ -290,3 +290,8 @@ Local Lead.
 - [x] Catch-up: a change made on 2026-11-14 in the working copy, Scout's taller chat card and the model's name
       in his tag (pull request 7)
 - [x] Step 7: these documents
+
+## A science measure: distance to permanent shadow (2026-11-14)
+
+- [x] `web/public/data/shadow.json`: for each of the 13 sites, the distance to the nearest permanently shadowed pixel and to the nearest shadowed region of at least 10 km², from NASA's LOLA maps (`pipeline/scripts/make_shadow_distance.py`; `docs/VALIDATION.md` §16). Seven sites have numbers; the six outside NASA's maps say so
+- [ ] Show it: a row in Compare and in the Planner (types `ShadowDistances`, `ShadowAnswer` in `web/src/data/contract.ts`)

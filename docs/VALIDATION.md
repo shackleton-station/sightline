@@ -988,3 +988,123 @@ rounding of the shipped angles, and the same as the 2 m set's sample (§1).
 76 MB a height (each file is the gzip of the JSON the 2 m file of the same name holds). They are under the light grids'
 folder because the load balancer already serves that part of the bucket and the co-pilot can already read it. Computing a
 height takes two minutes on the M4 Max.
+
+## 16. Distance to permanently shadowed ground (2026-11-14)
+
+The app's first science measure: how far each listed site is from ground that direct sunlight never reaches, where
+water ice could survive. `pipeline/scripts/make_shadow_distance.py` writes it to `web/public/data/shadow.json`.
+
+**The map.** NASA GSFC's PGDA publishes LOLA-derived maps of permanently shadowed regions (product 69, the "LPSR"
+files; Mazarico et al. 2011). Each pixel is flagged in permanent shadow or not. Three maps cover the south pole, each
+finer and smaller than the last: 60 m a pixel south of 85° S, 120 m south of 75° S, 240 m south of 65° S (the maps of
+the north pole stop at 65° N). The label reads: "a map of the permanently shadowed regions (PSRs) in the lunar South
+Pole ... The values are binary, indicating whether a pixel is in permanent shadow (1) or not (0)."
+
+**What is measured.** The great-circle distance on the Moon's 1737.4 km sphere from the site to the centre of a
+shadowed pixel: along the reference sphere, not a route over the hills, and good to the pixel's size. Each site is read on
+the finest map that holds it, and an answer counts only if it is nearer than that map's edge is. Two answers:
+
+- **the nearest patch**, a shadowed pixel of any size. Near the pole this is often a speck: one or two 60 m pixels in a
+  small crater. It is real shadow in NASA's map, and too small to plan science around;
+- **the nearest region of at least 10 km²**, the size at which LROC's Permanently Shadowed Regions Atlas starts listing
+  them (its smallest is 10.001 km²). This is the one a science team would name.
+
+| Site | Nearest patch | its size | Nearest region ≥ 10 km² | its size | Map |
+| --- | --- | --- | --- | --- | --- |
+| Connecting Ridge | 0.10 km | 0.004 km² | 11.4 km | 53 km² | 60 m |
+| Shackleton Rim | 0.13 km | 0.007 km² | 2.6 km | 234 km² | 60 m |
+| Peak near Shackleton | 0.72 km | 0.004 km² | 14.2 km | 15 km² | 60 m |
+| de Gerlache Rim | 0.83 km | 0.004 km² | 12.0 km | 241 km² | 60 m |
+| IM-1 Odysseus | 0.63 km | 0.03 km² | 8.9 km | 14 km² | 120 m |
+| IM-2 Athena | 2.19 km | 0.36 km² | 38.1 km | 25 km² | 120 m |
+| Chandrayaan-3 | 39.4 km | 0.11 km² | 59.7 km | 25 km² | 240 m |
+
+**The other six sites get no number.** Apollo 11, 15 and 17, Blue Ghost Mission 1, SLIM and Chang'e 4 lie outside
+NASA's maps, 590 to 1,950 km from the nearest map's edge. The file says that, and how far, and nothing about shadow
+there: the maps do not cover that ground, so "none" would be a claim the data cannot make.
+
+**Hand check at Shackleton Rim, against the map itself.** The map around the site, one character a 60 m pixel,
+1.5 km across (`#` shadow, `.` lit, `S` the site):
+
+```
+.........................
+.........................
+.........................
+............#............
+.........................
+.........................
+.........................
+.........................
+.........................
+.........................
+........#................
+.........................
+............S............
+.........................
+.............#...........
+.............#...........
+.........................
+.........................
+.........................
+.........................
+.........................
+.........................
+.........................
+.........................
+.........................
+```
+
+The nearest `#` is one pixel right and two down: 60 m and 120 m, 134 m away on the flat map, and the map's scale there
+is within 0.001% of true. The file says 0.13 km. A second calculation that uses only the pixel grid and the projection's
+formula, with no great circle, gives 0.132 km for the patch and 2.603 km for the region; the file says 0.13 and 2.6.
+
+The same site 9 km across, one character 300 m (shadow if any pixel in it is). The solid block on the right is the
+shadow inside Shackleton crater, nine characters away: 2.7 km at this picture's grain, 2.6 km in the file.
+
+```
+..................###......####
+.#.#...##.........#........####
+#......#..................#####
+....##....................#####
+##............#..#........#####
+.#.......................######
+.#.......................######
+.###....................#######
+........................#######
+#.#.....#...............#######
+###.#...................#######
+##...........##.........#######
+###.....#.....#.........#######
+##.#.......#...#........#######
+##..#...................#######
+####..##......#S........#######
+...............#........#######
+...#..#.....#...........#######
+..#.##..................#######
+..#.##......#.##........#######
+#...#..#.......#........#######
+.......##...............#######
+#....###..##...#........#######
+...#..........#..........######
+#.....#..##...#..........######
+...#.#..###...###.#.......#####
+##..#..##........#........#####
+#...#..##........#.........####
+#########.....#.#..........####
+...#..###.##.....##.........###
+..#.##....##.##..##.........###
+```
+
+**That region is the one LROC lists.** Its area here is 233.5 km², counted pixel by pixel with each pixel's true ground
+area. LROC's Permanently Shadowed Regions Atlas lists the region of Shackleton crater at 233.698 km². The atlas does not
+say which shadow model it was drawn from, so this confirms the reading of the map and the area sum, not the map itself.
+
+**A point inside a shadow reads zero.** At the IAU's centre of Shackleton crater (89.67° S, 129.78° E) the nearest
+shadowed pixel's centre is 0.02 km away, less than a pixel: the point is inside that pixel, and the region it belongs to
+is the same 233.5 km². At the centre of the pixel nearest Shackleton Rim the answer is 0.00 km.
+
+**What to keep in mind.** The maps come from terrain at their own resolution: shadows smaller than a pixel are not in
+them, and a few show the linear artifacts NASA's README warns of. How "permanent" was decided is in Mazarico et al.
+(2011), which the maps' labels point to; that paper's body was not open to us, so the file repeats NASA's flag and
+does not restate the method. The maps are dated 2016. Distances are to a pixel's centre, so ±30 m on the 60 m map and
+±120 m on the 240 m one.
