@@ -5,6 +5,7 @@
   "settle": 5,
   "voice": "en-US-Chirp3-HD-Leda",
   "disclosure": "Narration: AI-generated voice (Google Cloud Text-to-Speech)",
+  "acknowledgement": "The narration is an AI-generated voice, made with Google Cloud Text-to-Speech (en-US-Chirp3-HD-Leda).",
   "band": { "right": "lunarsightline.com" },
   "cards": {
     "open": {
@@ -112,26 +113,36 @@
       "about": "The demo for the Space Apps submission, where a video over 30 seconds is not eligible for Global Judging: record.mjs refuses to record it if its words and pauses would run past \"length\", and fails if the finished file runs past length plus slack. The page opens a link with four scenarios, so the landing and its figures are the same in every take, and the camera starts on the Moon (\"camera\": left, top and width, as fractions of the screen); everything after that is the pointer at work. The voice runs at \"rate\" times its usual pace so the words fit.",
       "length": 29,
       "slack": 0.5,
-      "rate": 1.07,
+      "rate": 1.12,
       "open": "/sightline/#a=shackleton-rim@2027-05&t=133&mode=plan&list=connecting-ridge@2027-05-06T13~peak-near-shackleton@2027-05-06T13~de-gerlache-rim@2027-05-06T13",
-      "camera": [0.2, 0, 0.74],
+      "scoutShut": true,
+      "opening": 2,
+      "card": { "title": "Shackleton Station", "lines": ["Lunar Landing Site Navigator", "NASA Space Apps Challenge 2026"] },
+      "camera": [0, 0, 1],
       "pace": { "lead": 0.3, "before": 0.05, "after": 0.12, "tail": 0.3, "fadeIn": 0.3, "fadeOut": 0.4 },
-      "poster": {"step": "answer", "at": 0.9},
+      "poster": {"step": "idea", "at": 0.45},
       "script": [
+        {
+          "id": "team",
+          "say": "We're Shackleton Station, answering the Lunar Landing Site Navigator challenge.",
+          "acts": [
+            {"at": 0.42, "zoom": "frame", "frame": [0.2, 0, 0.74], "over": 0.9},
+            {"at": 0.55, "click": "label:Play", "over": 0.6},
+            {"at": 0.8, "rest": [0.82, 0.7], "over": 0.6}
+          ]
+        },
         {
           "id": "problem",
           "say": "At the Moon's south pole the Sun skims the horizon and Earth slips behind ridges, so power and radio come and go.",
           "acts": [
-            {"at": 0.02, "click": "label:Play", "over": 0.6},
-            {"at": 0.12, "rest": [0.82, 0.7], "over": 0.8},
-            {"at": 0.72, "zoom": "out", "over": 1},
-            {"at": 0.76, "click": "label:Pause", "over": 0.6},
-            {"at": 0.9, "click": "label:Back to landing", "over": 0.5}
+            {"at": 0.62, "zoom": "out", "over": 1},
+            {"at": 0.7, "click": "label:Pause", "over": 0.6},
+            {"at": 0.88, "click": "label:Back to landing", "over": 0.5}
           ]
         },
         {
-          "id": "answer",
-          "say": "Sightline shows when a landing site sees both.",
+          "id": "name",
+          "say": "Sightline: where to land on the Moon, and when.",
           "acts": [
             {"at": 0, "zoom": ".sl-river", "max": 1.6, "pad": 24, "over": 1},
             {"at": 0.1, "ring": ".sl-river", "until": 0.95},
@@ -140,45 +151,27 @@
           ]
         },
         {
-          "id": "verdict",
-          "say": "Pick a site, a date and a mission: it says whether the landing fits, and why.",
+          "id": "idea",
+          "say": "Pick a site, a date and a mission; it says whether the landing fits, and why, from NASA's LOLA terrain and SPICE data, checked against JPL Horizons.",
           "acts": [
             {"at": 0, "zoom": ".sl-plan", "max": 2, "pad": 60, "over": 1},
-            {"at": 0.1, "ring": ".sl-plan", "until": 0.45},
-            {"at": 0.08, "point": ".sl-plan", "place": [1.07, 0.5], "over": 0.7},
-            {"at": 0.46, "ring": ".sl-verdict", "until": 0.97},
-            {"at": 0.46, "point": ".sl-verdict", "place": [1.07, 0.35], "over": 0.6}
+            {"at": 0.04, "ring": ".sl-plan", "until": 0.28},
+            {"at": 0.03, "point": ".sl-plan", "place": [1.07, 0.5], "over": 0.6},
+            {"at": 0.3, "ring": ".sl-verdict", "until": 0.58},
+            {"at": 0.3, "point": ".sl-verdict", "place": [1.07, 0.35], "over": 0.5},
+            {"at": 0.56, "zoom": ".sl-horizons", "max": 2, "pad": 150, "over": 0.9},
+            {"at": 0.64, "ring": ".sl-horizons", "until": 0.99, "pad": 6},
+            {"at": 0.62, "point": ".sl-horizons", "place": [0.5, 2.2], "over": 0.6}
           ]
         },
         {
-          "id": "next",
-          "say": "Launch slipped? It finds the next landing that fits.",
+          "id": "future",
+          "say": "Next: every mission planner, student and curious mind choosing a landing in seconds.",
           "acts": [
-            {"at": 0.05, "ring": ".sl-next", "until": 0.3, "pad": 5},
-            {"at": 0.1, "click": ".sl-next", "place": [0.6, 0.6], "over": 0.6},
-            {"at": 0.31, "point": ".sl-verdict", "place": [1.07, 0.35], "over": 0.3},
-            {"at": 0.36, "ring": ".sl-verdict", "until": 0.56},
-            {"at": 0.55, "zoom": "out", "over": 0.7},
-            {"at": 0.62, "click": "label:Compare", "over": 0.5},
-            {"at": 0.8, "ring": ".sl-drawer", "until": 1}
-          ]
-        },
-        {
-          "id": "proof",
-          "say": "Every hour to 2049, from NASA terrain, checked against JPL Horizons.",
-          "acts": [
-            {"at": 0.08, "click": {"css": ".sl-drawer button", "has": "Close"}, "over": 0.4},
-            {"at": 0.2, "click": "label:Site", "over": 0.4},
-            {"at": 0.26, "zoom": "frame", "frame": [0, 0, 0.72], "over": 0.9},
-            {"at": 0.32, "wheel": [{"css": ".sl-dot", "has": "Shackleton Rim"}, ".scout-globe canvas"], "by": -7000, "over": 1.5, "reach": 0.3},
-            {"at": 0.55, "ring": ".sl-horizons", "until": 0.99, "pad": 6}
-          ]
-        },
-        {
-          "id": "close",
-          "say": "Sightline: where to land on the Moon, and when.",
-          "acts": [
-            {"at": 0, "card": "close", "over": 0.5}
+            {"at": 0, "zoom": "out", "over": 0.7},
+            {"at": 0.08, "click": "label:Compare", "over": 0.5},
+            {"at": 0.3, "ring": ".sl-drawer", "until": 0.68},
+            {"at": 0.7, "card": "close", "over": 0.5}
           ]
         }
       ]
