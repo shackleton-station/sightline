@@ -55,7 +55,7 @@
       { "at": 0, "click": ["label:Back to the Moon"], "over": 0.7, "optional": true },
       { "at": 0.12, "click": ["[data-tour='scout']", "label:Scout"], "over": 0.7 },
       { "at": 0.3, "type": "#sl-question", "text": "When can I land at Connecting Ridge?", "over": 1.6, "reach": 0.5 },
-      { "at": 0.72, "click": ["[data-tour='hide']", "label:Hide"], "over": 0.8 },
+      { "at": 0.72, "key": "h" },
       { "at": 0.9, "rest": [0.86, 0.8], "over": 1 }
     ]
   },

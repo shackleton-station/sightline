@@ -25,15 +25,15 @@ interface Props {
   onHow: () => void
   /** Start Scout's tour of the screen. On a phone it is in "More"; on a laptop it is the first thing in How it works. */
   onTour: () => void
-  onWatch: () => void
-  onHide: () => void
+  /** Back to the opening screen: the Moon playing, as a first visit finds it. */
+  onHome: () => void
 }
 
 /**
  * The rail down the right of the Plan frame: how close the Moon is seen (one grouped control), the
- * tools, and the two ways out (back to Watch, or hide everything). Nothing here leaves the screen.
+ * tools, and the way out (home, to the opening screen). Nothing here leaves the screen.
  */
-export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, layersOpen, layerOn, onLayers, onPlanner, onHow, onTour, onWatch, onHide }: Props) {
+export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, layersOpen, layerOn, onLayers, onPlanner, onHow, onTour, onHome }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -94,11 +94,12 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
       <button type="button" title="The data, the checks and the tech stack" onClick={onHow}>
         How it works
       </button>
-      <button type="button" title="Close the planner (P)" onClick={onWatch}>
-        Watch
-      </button>
-      <button type="button" data-tour="hide" title="Hide everything but the Moon (H)" onClick={onHide}>
-        Hide
+      {/* A house, with the word beside it only in a phone's menu, where every other row is a word. */}
+      <button type="button" className="sl-rail-home" title="Home: back to the opening screen" onClick={onHome}>
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path d="M2 7.5 8 2.5l6 5M3.5 6.5v7h3.25v-4h2.5v4h3.25v-7" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span>Home</span>
       </button>
     </>
   )

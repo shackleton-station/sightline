@@ -1902,6 +1902,23 @@
   border-top: 1px solid var(--line);
 }
 
+/* Home is a house alone in the rail; its word is still there for a screen reader. */
+.sl-rail-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sl-rail > .sl-rail-home span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* A name sits clear under its marker's ring or outline. Its box is the height the placing code
    reckons with (lib/sightlineDots.ts), whatever line height the page around it has. */
 .sightline .sl-dot span {
