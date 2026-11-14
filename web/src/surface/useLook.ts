@@ -1,31 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { boundedLook, faceToward, framingPitch, type Look, turnBetween } from '../lib/surfaceView'
-import type { Facing } from './address'
 import type { SkyPair } from './useGlide'
 
 export type Body = 'sun' | 'earth'
 
-/**
- * Where a link says to look. `id` changes each time a link is followed; `look` is null when the
- * link doesn't say which way to face; `site` is the site the link names.
- */
-export interface Aim {
-  id: number
-  look: Look | null
-  site: string | null
-  /** Which views the link opens, when it says. */
-  face?: Facing | null
-}
-
 interface Options {
   /** Where the Sun and Earth are drawn now. */
   sky: SkyPair
-  /** Which of them the track says is up this hour, for choosing what to face on arrival. */
-  up: { sun: boolean; earth: boolean }
-  aim: Aim
+  /** The body this view is for: it turns to it on arriving at a site, and keeps it in the middle. */
+  body: Body
   /** The height of the land's top edge at an azimuth (degrees), for keeping it in view under a body. */
   skylineAt: (azDeg: number) => number
-  /** The site on screen. Arriving at another one turns the view to whichever of the Sun and Earth is up. */
+  /** The site on screen. Arriving at another one turns the view back to its body. */
   siteId: string
   /** How far from the middle of the picture a faced body may sit, as a share of its height. */
   offCenter: number
@@ -33,8 +19,6 @@ interface Options {
   openingFovDeg: number
   /** How many times taller heights are drawn as it opens (1 unless another view is already stretched). */
   openingStretch?: number
-  /** The body this view is for: it turns to that one on arrival, whichever is up. */
-  prefer?: Body | null
   /** Reduced motion: turns happen at once. */
   still: boolean
 }
@@ -59,7 +43,7 @@ const where = (sky: SkyPair, body: Body) => (body === 'sun' ? { az: sky.sunAz, e
  * Which way the visitor looks. Facing the Sun or Earth latches on: the view keeps that body in the
  * middle while time plays, until the visitor steers by hand.
  */
-export function useLook({ sky, up, aim, skylineAt, siteId, offCenter, openingFovDeg, openingStretch = 1, prefer = null, still }: Options): LookControls {
+export function useLook({ sky, body, skylineAt, siteId, offCenter, openingFovDeg, openingStretch = 1, still }: Options): LookControls {
   const [look, setLook] = useState<Look>({ headingDeg: sky.sunAz, pitchDeg: sky.sunEl, fovDeg: openingFovDeg, stretch: openingStretch })
   const [following, setFollowing] = useState<Body | null>(null)
   const turning = useRef(0)
@@ -71,9 +55,9 @@ export function useLook({ sky, up, aim, skylineAt, siteId, offCenter, openingFov
   }
   // While following, the view points at the body wherever it has got to.
   const shown = following ? boundedLook({ ...look, ...toward(following, sky, look) }) : look
-  const latest = useRef({ shown, sky, up, still, following, toward, prefer })
+  const latest = useRef({ shown, sky, still, following, toward })
   useEffect(() => {
-    latest.current = { shown, sky, up, still, following, toward, prefer }
+    latest.current = { shown, sky, still, following, toward }
   })
 
   const stopTurning = useCallback(() => {
@@ -138,29 +122,19 @@ export function useLook({ sky, up, aim, skylineAt, siteId, offCenter, openingFov
     [stopTurning],
   )
 
-  // Arriving: a link that says which way to face is obeyed; otherwise a new site opens facing
-  // whichever of the Sun and Earth is up (the Sun, if neither is), and keeps it in the middle.
-  const arrived = useRef<{ aimId: number; siteId: string | null }>({ aimId: -1, siteId: null })
+  // Arriving at a site: the view turns to its body, and keeps it in the middle.
+  const arrived = useRef<string | null>(null)
   useEffect(() => {
-    const newAim = arrived.current.aimId !== aim.id
-    const newSite = arrived.current.siteId !== siteId
-    arrived.current = { aimId: aim.id, siteId }
-    if (!newAim && !newSite) return
-    if (aim.look && (newAim || aim.site === siteId)) {
-      stopTurning()
-      setLook(aim.look)
-      setFollowing(null)
-    } else if (newSite) {
-      stopTurning()
-      const now = latest.current
-      const body: Body = now.prefer ?? (now.up.sun || !now.up.earth ? 'sun' : 'earth')
-      setLook((current) => {
-        const to = now.toward(body, now.sky, current)
-        return faceToward(current, to.headingDeg, to.pitchDeg)
-      })
-      setFollowing(body)
-    }
-  }, [aim, siteId, stopTurning])
+    if (arrived.current === siteId) return
+    arrived.current = siteId
+    stopTurning()
+    const now = latest.current
+    setLook((current) => {
+      const to = now.toward(body, now.sky, current)
+      return faceToward(current, to.headingDeg, to.pitchDeg)
+    })
+    setFollowing(body)
+  }, [siteId, body, stopTurning])
 
   return { look: shown, following, steer, setLens, face }
 }

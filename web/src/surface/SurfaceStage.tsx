@@ -1,19 +1,12 @@
-import { lazy, type ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, type ReactNode, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import type { HorizonPoint, SiteInfo, TrackPoint } from '../data/contract'
 import type { BodyRadii, Look } from '../lib/surfaceView'
 import type { GroundTint } from '../three/SurfaceViewer'
-import type { Facing } from './address'
 import { StageActions } from './StageActions'
 import { type PaneControls, SurfacePane } from './SurfacePane'
 import { useGlide } from './useGlide'
-import type { Aim, Body } from './useLook'
+import type { Body } from './useLook'
 import { hasTouchPointer, useMotionLook } from './useMotionLook'
-
-/** What the address is told about the views: a free look's direction, or which following views are up. */
-export interface Faced {
-  look: Look | null
-  face: Facing
-}
 
 interface Props {
   site: SiteInfo
@@ -26,10 +19,7 @@ interface Props {
   /** The Sun's and Earth's angular radii for each hour of the track. */
   radii: BodyRadii[]
   obsHeightM: number
-  aim: Aim
-  /** Told what the views show once they stop moving, for the address. */
-  onFaced: (faced: Faced) => void
-  /** The site and month menus, and the answer in words: placed over the picture. */
+  /** The site and month menus, when the page shows them, and the answer in words: placed over the picture. */
   pickers: ReactNode
   answer: ReactNode
 }
@@ -42,27 +32,17 @@ export const STRETCH_BY = 5
 /** The path dots cover the day before the hour on screen and the two days after. */
 const HOURS_BEFORE = 24
 const HOURS_AFTER = 48
-
-/** The views up: one for the Sun, one for Earth, both side by side, or a free look a link asked for. */
-type Views = Facing | 'free'
-const viewsFor = (aim: Aim, otherwise: Views): Views => (aim.look ? 'free' : (aim.face ?? otherwise))
+/** The two views, in the order they sit: side by side, or one above the other on a phone. */
+const VIEWS: Body[] = ['sun', 'earth']
 
 /**
- * The view from the site. It opens as two views side by side, one that keeps the Sun in the middle
- * and one that keeps Earth there; "Face the Sun" and "Face Earth" close and open them. A link that
- * says which way to look opens one free view instead. The site, month and hour come from above.
+ * The view from the site: always two views, one that keeps the Sun in the middle and one that keeps
+ * Earth there, each steered by itself. The site, month and hour come from above.
  */
-export function SurfaceStage({ site, month, horizon, groundTint = null, track, index, radii, obsHeightM, aim, onFaced, pickers, answer }: Props) {
+export function SurfaceStage({ site, month, horizon, groundTint = null, track, index, radii, obsHeightM, pickers, answer }: Props) {
   const [flat, setFlat] = useState(false)
   const still = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
   const offerMotion = useMemo(() => hasTouchPointer(), [])
-  const [views, setViews] = useState<Views>(() => viewsFor(aim, 'both'))
-  // A link followed in the open tab: its free look, or the views it names; one that says neither changes nothing.
-  const [aimSeen, setAimSeen] = useState(aim.id)
-  if (aimSeen !== aim.id) {
-    setAimSeen(aim.id)
-    setViews(viewsFor(aim, views))
-  }
 
   const now = track[Math.min(index, track.length - 1)]
   const discs = radii[Math.min(index, radii.length - 1)]
@@ -78,41 +58,27 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
     }
   }, [track, index])
 
-  // The views up, by name. Zoom and stretch go to all of them; the phone's sensor steers the one there is.
-  const panes = useRef(new Map<string, PaneControls>())
-  const register = useCallback((key: string, controls: PaneControls | null) => {
-    if (controls) panes.current.set(key, controls)
-    else panes.current.delete(key)
+  // Zoom and stretch go to both views, so they stay at one scale. The arrow keys and the phone's
+  // sensor steer one: the view last touched, the Sun's to begin with.
+  const panes = useRef(new Map<Body, PaneControls>())
+  const register = useCallback((body: Body, controls: PaneControls | null) => {
+    if (controls) panes.current.set(body, controls)
+    else panes.current.delete(body)
   }, [])
   const setLensAll = useCallback((change: (look: Look) => Look) => panes.current.forEach((pane) => pane.setLens(change)), [])
-  const steerFirst = useCallback((change: (look: Look) => Look) => {
-    const [first] = panes.current.values()
-    first?.steer(change)
+  const [touched, setTouched] = useState<Body>('sun')
+  const touchedNow = useRef(touched)
+  const onActive = useCallback((body: Body) => {
+    touchedNow.current = body
+    setTouched(body)
   }, [])
-  // The lens the views have, so one opened beside another starts at the same scale.
+  const steerTouched = useCallback((change: (look: Look) => Look) => panes.current.get(touchedNow.current)?.steer(change), [])
+  // The lens the views have, so one drawn again (after the graphics come back) starts at the same scale.
   const [lens, setLens] = useState<{ fovDeg: number; stretch: number } | null>(null)
   const onLens = useCallback((fovDeg: number, stretch: number) => setLens({ fovDeg, stretch }), [])
-  // With two views up the arrow keys steer the one last touched.
-  const [touched, setTouched] = useState<string>('sun')
-  const { status, start, stop } = useMotionLook(steerFirst, setLensAll)
+  const { status, start, stop } = useMotionLook(steerTouched, setLensAll)
   const toggleMotion = () => (status === 'on' || status === 'asking' ? stop() : void start())
-
-  const onLook = useCallback((look: Look) => onFaced({ look, face: 'both' }), [onFaced])
-  useEffect(() => {
-    if (views !== 'free') onFaced({ look: null, face: views })
-  }, [views, onFaced])
   const onLost = useCallback(() => setFlat(true), [])
-
-  // "Face the Sun" opens the Sun's view, or closes it when Earth's is up too. The last one stays, and turns back to its body.
-  const toggle = (body: Body) => {
-    const other: Body = body === 'sun' ? 'earth' : 'sun'
-    if (views === 'both') setViews(other)
-    else if (views === other) {
-      stop()
-      setViews('both')
-    } else if (views === body) panes.current.get(body)?.face(body)
-    else setViews(body)
-  }
 
   if (flat) {
     return (
@@ -129,17 +95,14 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
     )
   }
 
-  const shown: (Body | null)[] = views === 'free' ? [null] : views === 'both' ? ['sun', 'earth'] : [views]
-  const split = shown.length > 1
-  const keyed = shown.some((body) => body === touched) ? touched : (shown[0] ?? 'free')
   return (
     <>
-      <div className={split ? 'sf-view split' : 'sf-view'}>
-        {shown.map((body, at) => (
+      <div className="sf-view split">
+        {VIEWS.map((body, at) => (
           <SurfacePane
-            key={body ?? 'free'}
+            key={body}
             body={body}
-            place={split ? (at === 0 ? 0 : 1) : null}
+            place={at === 0 ? 0 : 1}
             site={site}
             horizon={horizon}
             groundTint={groundTint}
@@ -147,32 +110,22 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
             sky={sky}
             discs={discs}
             hours={hours}
-            aim={aim}
             still={still}
             opening={lens}
-            keys={(body ?? 'free') === keyed}
-            showLens={at === shown.length - 1}
+            keys={body === touched}
+            showLens={at === VIEWS.length - 1}
             stretchBy={STRETCH_BY}
             setLensAll={setLensAll}
             register={register}
-            onActive={setTouched}
+            onActive={onActive}
             onLens={onLens}
-            onLook={body ? undefined : onLook}
             onLost={onLost}
           />
         ))}
         {pickers}
       </div>
       {answer}
-      <StageActions
-        shown={{ sun: shown.includes('sun'), earth: shown.includes('earth') }}
-        onFace={toggle}
-        offerMotion={offerMotion && !split}
-        motion={status}
-        onMotion={toggleMotion}
-        radii={discs}
-        obsHeightM={obsHeightM}
-      />
+      <StageActions offerMotion={offerMotion} motion={status} onMotion={toggleMotion} radii={discs} obsHeightM={obsHeightM} />
     </>
   )
 }

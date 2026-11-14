@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_VIEW, tabLinks } from '../lib/siteTabs'
-import { decodeView } from '../lib/urlState'
-import { atNearestHour, EXAMPLE_LIMITS, readAddress, readFacing, readLook, type SurfaceAddress, viewLink, writeAddress } from './address'
+import { atNearestHour, EXAMPLE_LIMITS, readAddress, type SurfaceAddress, viewLink } from './address'
 
 const LINK = '#a=shackleton-rim@2028-03&t=120&limits=10_48_24_1_0_2&view=3d&mode=plan&list=apollo-11@2028-07-04T05'
 
@@ -11,7 +10,6 @@ describe('the Surface address', () => {
     expect(address).toMatchObject({ site: 'shackleton-rim', month: '2028-03', index: 120 })
     expect(address.kept.requirements).toEqual({ missionDays: 10, maxSunGapH: 48, maxEarthGapH: 24, sunAtLanding: true, earthAtLanding: false, minEarthClearanceDeg: 2 })
     expect(viewLink(address)).toBe(LINK)
-    expect(writeAddress(address, null)).toBe(LINK)
   })
 
   it('opens the default view, and gives a link with no limits the example ones', () => {
@@ -21,59 +19,10 @@ describe('the Surface address', () => {
     expect(readAddress('')).toBeNull()
   })
 
-  it('adds which way the visitor faces, and reads it back', () => {
-    const address = readAddress(LINK) as SurfaceAddress
-    const look = { headingDeg: 226.294, pitchDeg: -1.887, fovDeg: 12, stretch: 1 }
-    const link = writeAddress(address, look)
-    expect(link).toBe(`${LINK}&look=226.29_-1.89_12`)
-    expect(readLook(link)).toEqual({ headingDeg: expect.closeTo(226.29, 9), pitchDeg: -1.89, fovDeg: 12, stretch: 1 })
-    expect(readAddress(link)).toEqual(address)
-
-    const stretched = writeAddress(address, { ...look, stretch: 5 })
-    expect(stretched).toBe(`${LINK}&look=226.29_-1.89_12&tall=5`)
-    expect(readLook(stretched)?.stretch).toBe(5)
-  })
-
-  it('leaves the other tabs able to read a link that says which way to face', () => {
-    const address = readAddress(LINK) as SurfaceAddress
-    const link = writeAddress(address, { headingDeg: 40, pitchDeg: 2, fovDeg: 30, stretch: 5 })
-    // The app's own reader takes the same view from it, ignoring the two extra values.
-    expect(decodeView(link, EXAMPLE_LIMITS)).toEqual(decodeView(LINK, EXAMPLE_LIMITS))
-    // And the tabs are given the plain link, without them.
+  it('reads an old link that says which way to face as the same view, and gives the tabs the plain link', () => {
+    const address = readAddress(`${LINK}&look=40_2_30&tall=5&face=sun`) as SurfaceAddress
+    expect(address).toEqual(readAddress(LINK))
     expect(tabLinks(viewLink(address)).find((tab) => tab.id === 'planner')?.href).toBe(`/planner/${LINK}`)
-  })
-
-  it('ignores a facing it cannot read, and keeps a hand-made one in bounds', () => {
-    expect(readLook(LINK)).toBeNull()
-    expect(readLook(`${LINK}&look=north`)).toBeNull()
-    expect(readLook(`${LINK}&look=10_2`)).toBeNull()
-    expect(readLook(`${LINK}&look=-30_500_0.1&tall=900`)).toEqual({ headingDeg: 330, pitchDeg: expect.closeTo(29.7, 1), fovDeg: 2, stretch: 20 })
-    expect(readLook(`${LINK}&look=10_2_12&tall=nonsense`)?.stretch).toBe(1)
-  })
-})
-
-describe('which views a link opens', () => {
-  const address = readAddress(LINK) as SurfaceAddress
-
-  it('reads the views a link names, and nothing from a link that names none or names them badly', () => {
-    expect(readFacing(`${LINK}&face=sun`)).toBe('sun')
-    expect(readFacing(`${LINK}&face=earth`)).toBe('earth')
-    expect(readFacing(`${LINK}&face=both`)).toBe('both')
-    expect(readFacing(LINK)).toBeNull()
-    expect(readFacing(`${LINK}&face=mars`)).toBeNull()
-  })
-
-  it('writes the views after the view link, and reads them back', () => {
-    const link = writeAddress(address, null, 'earth')
-    expect(link).toBe(`${LINK}&face=earth`)
-    expect(readFacing(link)).toBe('earth')
-    expect(readAddress(link)).toEqual(address)
-  })
-
-  it('writes a free look instead of the views when there is one', () => {
-    const link = writeAddress(address, { headingDeg: 90, pitchDeg: 0, fovDeg: 30, stretch: 1 }, 'both')
-    expect(link).toBe(`${LINK}&look=90_0_30`)
-    expect(readFacing(link)).toBeNull()
   })
 })
 

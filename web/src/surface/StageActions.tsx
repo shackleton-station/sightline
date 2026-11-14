@@ -1,12 +1,7 @@
 import type { BodyRadii } from '../lib/surfaceView'
 import { type MotionStatus, motionWords } from './useMotionLook'
-import type { Body } from './useLook'
 
 interface Props {
-  /** Which of the two following views are up. */
-  shown: { sun: boolean; earth: boolean }
-  /** Opens that body's view, or closes it when the other one is up too. */
-  onFace: (body: Body) => void
   /** Whether to offer looking around with the motion sensor: on phones and tablets only. */
   offerMotion: boolean
   motion: MotionStatus
@@ -18,20 +13,12 @@ interface Props {
 
 const across = (radiusDeg: number) => (2 * radiusDeg).toFixed(2)
 
-/** The buttons under the picture: the views that face the Sun and Earth, steering with the phone, and what is drawn. */
-export function StageActions({ shown, onFace, offerMotion, motion, onMotion, radii, obsHeightM }: Props) {
+/** Under the picture: steering with the phone, and what is drawn. */
+export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM }: Props) {
   const steering = motion === 'on' || motion === 'asking'
   const words = motionWords(motion)
   return (
     <div className="sf-actions">
-      <div className="sf-face" role="group" aria-label="Views open">
-        <button type="button" className="sun" aria-pressed={shown.sun} onClick={() => onFace('sun')}>
-          Face the Sun
-        </button>
-        <button type="button" className="earth" aria-pressed={shown.earth} onClick={() => onFace('earth')}>
-          Face Earth
-        </button>
-      </div>
       {offerMotion && (
         <button type="button" className="sf-motion" aria-pressed={steering} onClick={onMotion}>
           {steering ? 'Stop following the phone' : 'Look around by moving your phone'}
