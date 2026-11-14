@@ -1,0 +1,1 @@
+{"range":{"start":"2039-07-01T00:00:00Z","end":"2039-08-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":46.5,"pct_earth":0.0,"pct_both":0.0,"max_sun_gap_h":314.0,"max_earth_gap_h":744.0,"sun_windows":[{"start":"2039-07-14T02:00:00Z","end":"2039-07-28T12:00:00Z"}],"earth_windows":[]}

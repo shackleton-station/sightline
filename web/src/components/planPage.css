@@ -1,0 +1,65 @@
+/* A shared plan's page. It borrows the How it works page's look (how.css) and adds the brief. */
+.plan-note {
+  max-width: 46rem;
+  margin: 0 0 0.6rem;
+  font-size: 1.25rem;
+}
+
+.plan-brief {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.plan-brief > div {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.plan-brief dt {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.plan-brief dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.plan-open {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.plan-open button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #1a1204;
+}
+
+.plan-open a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.plan-open a:hover {
+  border-color: var(--muted);
+}
+
+.plan-open button.danger {
+  border-color: #f87171;
+  color: #fca5a5;
+}

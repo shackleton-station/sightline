@@ -1,0 +1,244 @@
+/* Follow the presenter: "Present" at the end of the tab bar, the slim line under the tabs while a
+   tab is presenting or following, and the presenter's panel with the code to scan. Dark and plain
+   like the tab bar, so it looks the same on every design. */
+
+.follow-present {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 32px;
+  padding: 0 0.7rem;
+  border: 1px solid #3b3d52;
+  border-radius: 999px;
+  background: transparent;
+  color: #c9c6d6;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.follow-present:hover {
+  border-color: #6b6d86;
+  color: #fff;
+}
+
+.follow-present[aria-pressed='true'] {
+  border-color: #3fd99a;
+  color: #3fd99a;
+}
+
+.follow-present:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.follow-present svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.follow-present:focus-visible,
+.follow-bar button:focus-visible,
+.follow-panel button:focus-visible {
+  outline: 2px solid #a596ff;
+  outline-offset: 2px;
+}
+
+/* ---------- The slim line under the tabs ---------- */
+
+.follow-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.25rem;
+  margin: 0;
+  padding: 0 0.9rem;
+  border-top: 1px solid #1f3a30;
+  background: #0d1a16;
+  color: #dff7ec;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.follow-bar-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.follow-dot {
+  flex: 0 0 auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #7d8296;
+}
+
+.follow-dot.live {
+  background: #3fd99a;
+  box-shadow: 0 0 0 0 rgb(63 217 154 / 60%);
+  animation: follow-pulse 2s ease-out infinite;
+}
+
+@keyframes follow-pulse {
+  to {
+    box-shadow: 0 0 0 0.5rem rgb(63 217 154 / 0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .follow-dot.live {
+    animation: none;
+  }
+}
+
+.follow-bar button {
+  flex: 0 0 auto;
+  min-height: 1.75rem;
+  padding: 0 0.7rem;
+  border: 1px solid #3d6b59;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.follow-bar button:hover {
+  border-color: #8fd9bd;
+  background: #14271f;
+}
+
+/* Until the window is wide enough for every tab and the word, "Present" is its picture alone, so no tab is cut short for it. */
+@media (max-width: 1500px) {
+  .follow-present {
+    padding: 0 0.55rem;
+  }
+
+  .follow-present-word {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .follow-present {
+    min-height: 36px;
+  }
+
+  .follow-wide-only {
+    display: none;
+  }
+
+  .follow-bar {
+    padding: 0 0.6rem;
+  }
+}
+
+@media print {
+  .follow-present,
+  .follow-bar {
+    display: none;
+  }
+}
+
+/* ---------- The presenter's panel ---------- */
+
+.follow-panel {
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 1.5rem;
+  border: 1px solid #3b3d52;
+  border-radius: 16px;
+  background: #11121c;
+  color: #f0eff5;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.follow-panel::backdrop {
+  background: rgb(0 0 0 / 75%);
+}
+
+.follow-panel h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.follow-panel p {
+  margin: 0 0 1rem;
+  color: #c9c6d6;
+}
+
+/* As large as the window allows: the back of the room has to be able to scan it. */
+.follow-qr {
+  display: block;
+  width: min(100%, 32rem, calc(100dvh - 25rem));
+  min-width: 11rem;
+  height: auto;
+  margin: 0 auto 1rem;
+  border-radius: 10px;
+}
+
+.follow-link {
+  display: block;
+  margin: 0 0 0.6rem;
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(0.95rem, 3.6vw, 1.35rem);
+  overflow-wrap: break-word;
+}
+
+.follow-link span {
+  white-space: nowrap;
+}
+
+.follow-panel p.follow-count {
+  color: #3fd99a;
+  font-weight: 600;
+}
+
+.follow-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.follow-panel button {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid #3b3d52;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.follow-panel button.primary {
+  border-color: #a596ff;
+  background: #a596ff;
+  color: #0b0b12;
+}
+
+.follow-panel button.quiet {
+  border-color: #6b3a3a;
+  color: #ffb4a8;
+}
+
+.follow-panel p.follow-note {
+  margin: 0;
+  color: #a3a9bf;
+  font-size: 0.8125rem;
+}

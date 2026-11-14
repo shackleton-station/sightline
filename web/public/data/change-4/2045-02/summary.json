@@ -1,0 +1,1 @@
+{"range":{"start":"2045-02-01T00:00:00Z","end":"2045-03-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":52.4,"pct_earth":0.0,"pct_both":0.0,"max_sun_gap_h":209.0,"max_earth_gap_h":672.0,"sun_windows":[{"start":"2045-02-09T17:00:00Z","end":"2045-02-24T09:00:00Z"}],"earth_windows":[]}

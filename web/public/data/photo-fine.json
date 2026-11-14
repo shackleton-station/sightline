@@ -1,0 +1,35 @@
+{
+ "level": 13,
+ "radius_m": 10000.0,
+ "metres_per_pixel": 1.0452,
+ "discs": [
+  {
+   "site": "connecting-ridge",
+   "x_m": -11287.6,
+   "y_m": -12167.6
+  },
+  {
+   "site": "shackleton-rim",
+   "x_m": -2812.5,
+   "y_m": -6647.4
+  },
+  {
+   "site": "peak-near-shackleton",
+   "x_m": 30062.4,
+   "y_m": -20107.4
+  },
+  {
+   "site": "de-gerlache-rim",
+   "x_m": -37542.4,
+   "y_m": 14882.5
+  }
+ ],
+ "tiles": 15404,
+ "bytes": 175934673,
+ "product": "NAC_POLE_SOUTH_CM_AVG",
+ "title": "LROC Controlled NAC South Pole Average Mosaic, 1 m/pixel",
+ "credit": "NASA/GSFC/Arizona State University",
+ "tone": "matched to Moon Trek's tiles of the same mosaic (level 11)",
+ "source": "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_POLE_SOUTH_CM_AVG",
+ "made": "2026-11-14"
+}

@@ -1,0 +1,1 @@
+{"range":{"start":"2036-05-01T00:00:00Z","end":"2036-06-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":52.8,"pct_earth":0.0,"pct_both":0.0,"max_sun_gap_h":351.0,"max_earth_gap_h":744.0,"sun_windows":[{"start":"2036-05-01T00:00:00Z","end":"2036-05-03T17:00:00Z"},{"start":"2036-05-18T08:00:00Z","end":"2036-06-01T00:00:00Z"}],"earth_windows":[]}

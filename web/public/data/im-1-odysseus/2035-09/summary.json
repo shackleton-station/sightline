@@ -1,0 +1,1 @@
+{"range":{"start":"2035-09-01T00:00:00Z","end":"2035-10-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":37.4,"pct_earth":100.0,"pct_both":37.4,"max_sun_gap_h":272.0,"max_earth_gap_h":0.0,"sun_windows":[{"start":"2035-09-12T08:00:00Z","end":"2035-09-23T13:00:00Z"}],"earth_windows":[{"start":"2035-09-01T00:00:00Z","end":"2035-10-01T00:00:00Z"}]}

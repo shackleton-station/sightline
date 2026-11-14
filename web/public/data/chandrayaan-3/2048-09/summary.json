@@ -1,0 +1,1 @@
+{"range":{"start":"2048-09-01T00:00:00Z","end":"2048-10-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":49.7,"pct_earth":100.0,"pct_both":49.7,"max_sun_gap_h":275.0,"max_earth_gap_h":0.0,"sun_windows":[{"start":"2048-09-12T11:00:00Z","end":"2048-09-27T09:00:00Z"}],"earth_windows":[{"start":"2048-09-01T00:00:00Z","end":"2048-10-01T00:00:00Z"}]}

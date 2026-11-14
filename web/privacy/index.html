@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shackleton Station: privacy</title>
+    <meta name="description" content="What Shackleton Station keeps about visitors, why, and for how long." />
+    <meta name="theme-color" content="#000000" />
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; background: #05060b; color: #e7e9f3; font: 1rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+      h1 { font-size: 1.75rem; line-height: 1.2; margin: 1.5rem 0 0.25rem; }
+      h2 { font-size: 1.125rem; margin: 2rem 0 0.25rem; }
+      p, li { color: #c9cce0; }
+      ul { padding-left: 1.25rem; }
+      a { color: #9db8ff; }
+      .updated { color: #8f93ad; font-size: 0.875rem; }
+      nav { font-size: 0.9375rem; }
+      footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #2a2c3d; font-size: 0.875rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <nav><a href="/">&larr; Shackleton Station</a></nav>
+      <h1>Privacy</h1>
+      <p class="updated">Last updated 12 November 2026</p>
+      <p>Shackleton Station is a student team's project for NASA Space Apps 2026. It shows sunlight and Earth visibility at lunar south pole sites. You can use all of it without an account. This page lists what the site keeps and for how long.</p>
+
+      <h2>If you sign in with Google</h2>
+      <p>Signing in is optional. It lets you see a list of the plans you saved and delete them.</p>
+      <ul>
+        <li>Google tells the site who you are. The site turns that into a one-way fingerprint and stores only the fingerprint, next to plans you save.</li>
+        <li>The site does not store your name, email address or profile picture, and asks Google for nothing beyond basic sign-in.</li>
+        <li>Your name appears on the page while you are signed in. That stays in your browser tab and is gone when you close it.</li>
+      </ul>
+
+      <h2>Plans you save</h2>
+      <p>A saved plan holds its title, your note, the view it opens and the figures shown at the time. Anyone with the link can open it. Plans are deleted automatically after 180 days. If you were signed in when you saved a plan, you can delete it sooner from the share dialog.</p>
+
+      <h2>Questions to the co-pilot</h2>
+      <ul>
+        <li>Your question is sent to Anthropic's Claude model, through the Anthropic API, to write the answer.</li>
+        <li>The site logs the question text, the site and month you were viewing, and how the answer went, to improve the co-pilot. The log holds no account, name or address, and entries are deleted after 90 days. Please don't type personal details into a question.</li>
+        <li>If sound is on, the answer text is sent to Google's text-to-speech service to be read aloud.</li>
+        <li>If you use the microphone, your browser's own speech recognition turns your voice into text. The site receives only the text.</li>
+      </ul>
+
+      <h2>Presenting and following</h2>
+      <p>Anyone can press Present and share the link or QR code it shows. People who open it see the site on their own screen go where the presenter's goes.</p>
+      <ul>
+        <li>While someone presents, the site keeps the address of the page they are on (which tab, and the site, month, hour and limits on it) and passes it to those following. It is deleted when they stop, 10 minutes after their page is closed, and after 3 hours at most.</li>
+        <li>The site counts how many are following and shows that number. It keeps nothing about who they are, and nothing anyone types, taps or says is shared.</li>
+        <li>Your browser tab remembers that it is presenting or following until you stop or close the tab.</li>
+      </ul>
+
+      <h2>Technical records</h2>
+      <ul>
+        <li>Your network address is used briefly to limit how many requests one visitor can make, and appears in Google Cloud's standard request logs.</li>
+        <li>Your browser keeps a few settings for the site, such as your sound choice and the current chat. Nothing in them identifies you.</li>
+      </ul>
+
+      <h2>What the site does not do</h2>
+      <p>No advertising, no analytics or tracking scripts, no cookies for tracking, and no selling or sharing of data with anyone other than the Google Cloud services that run the site.</p>
+
+      <h2>Questions or removal</h2>
+      <p>To ask a question or have a saved plan removed, write to the support address shown on Google's sign-in screen for Shackleton Station.</p>
+      <footer><a href="/privacy/">Privacy</a> &middot; <a href="/terms/">Terms</a> &middot; <a href="/">Home</a></footer>
+    </main>
+  </body>
+</html>
