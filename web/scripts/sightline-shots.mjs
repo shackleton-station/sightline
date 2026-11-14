@@ -38,7 +38,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
 ]
 
 /**
@@ -122,6 +122,55 @@ const VERDICT_LARGEST = `(() => {
 })()`
 /** True on a laptop when nothing in the left column scrolls: not the column, and no area inside it. On a phone the column is a sheet that scrolls by design. */
 const NOTHING_SCROLLS = `(window.innerWidth < 761 || [document.querySelector('.sl-col'), ...document.querySelectorAll('.sl-col *')].every((el) => el.scrollHeight <= el.clientHeight + 1 || !/auto|scroll/.test(getComputedStyle(el).overflowY)))`
+/**
+ * True when Compare's table is laid out cleanly for `count` scenarios: that many columns, of equal
+ * width; every cell's box inside its column; every piece of text inside its own cell, and no two
+ * pieces of text touching; and nothing wider than the panel. Otherwise what is wrong.
+ */
+const COMPARE_CLEAN = (count) => `(() => {
+  const drawer = document.querySelector('.sl-compare')
+  if (!drawer) return 'the Compare panel is not open'
+  const table = drawer.querySelector('table')
+  const heads = [...table.querySelectorAll('thead tr > *')]
+  if (heads.length !== ${count + 1}) return (heads.length - 1) + ' columns, not ${count}'
+  const columns = heads.map((head) => head.getBoundingClientRect())
+  const widths = columns.slice(1).map((column) => column.width)
+  if (Math.max(...widths) - Math.min(...widths) > 1) return 'the columns are not of equal width: ' + widths.map((width) => Math.round(width)).join(', ')
+  for (const row of table.querySelectorAll('tbody tr')) {
+    const cells = [...row.children]
+    if (cells.some((cell) => cell.colSpan > 1)) continue
+    for (const [i, cell] of cells.entries()) {
+      const box = cell.getBoundingClientRect()
+      if (box.left < columns[i].left - 0.5 || box.right > columns[i].right + 0.5) return 'a cell is outside its column: ' + cell.textContent.trim()
+    }
+  }
+  const pieces = []
+  const walker = document.createTreeWalker(table, NodeFilter.SHOW_TEXT)
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.textContent.trim() === '') continue
+    const cell = node.parentElement.closest('th, td, caption')
+    const within = cell.getBoundingClientRect()
+    const range = document.createRange()
+    range.selectNodeContents(node)
+    for (const box of range.getClientRects()) {
+      if (box.width < 0.5 || box.height < 0.5) continue
+      if (box.left < within.left - 0.5 || box.right > within.right + 0.5 || box.top < within.top - 0.5 || box.bottom > within.bottom + 0.5) return 'text runs outside its cell: ' + node.textContent.trim()
+      pieces.push({ node, box, words: node.textContent.trim() })
+    }
+  }
+  for (let a = 0; a < pieces.length; a += 1) for (let b = a + 1; b < pieces.length; b += 1) {
+    if (pieces[a].node === pieces[b].node) continue
+    const across = Math.min(pieces[a].box.right, pieces[b].box.right) - Math.max(pieces[a].box.left, pieces[b].box.left)
+    const down = Math.min(pieces[a].box.bottom, pieces[b].box.bottom) - Math.max(pieces[a].box.top, pieces[b].box.top)
+    if (across > 0.5 && down > 0.5) return 'two pieces of text touch: "' + pieces[a].words + '" and "' + pieces[b].words + '"'
+  }
+  const panel = drawer.getBoundingClientRect()
+  const frame = table.getBoundingClientRect()
+  if (drawer.scrollWidth > drawer.clientWidth || frame.left < panel.left || frame.right > panel.right + 0.5) return 'the table is wider than the panel'
+  return true
+})()`
+/** Removes a scenario by its tab's "−", then waits for the panel to follow. */
+const REMOVE_SCENARIO = (letter) => `(document.querySelector('.sl-tabs .sl-tab-remove[aria-label="Remove scenario ${letter}"]').click(), ${after(700, 'true')})`
 /** Scout's panel answers from a stand-in in these checks, so no model is called: what the page sent is kept in window.__sent. */
 /** An answer of an ordinary length, about what Scout writes for a question with one or two lookups (470 characters). */
 const LONG_REPLY = 'Connecting Ridge has the Sun for 82% of May 2027, and Earth in view for 58% of it. The longest stretch without the Sun is 118 hours, from 1 May, which is longer than your mission can last without power: your limit is 24 hours. Landing on 6 May at 13:00 puts the Sun and Earth both in view at touchdown, but the dark stretch that follows is the problem. The first landing that fits your limits is 21 June at 17:00, when the Sun stays up for the whole mission.'
@@ -898,8 +947,8 @@ const SCENES = [
     checks: [
       ['a landing that fits with under half the Sun\'s disc in view is "Fits, marginal", in the Sun\'s gold, with its reason on one line', `(() => { const verdict = document.querySelector('.sl-verdict'); const reasons = [...verdict.querySelectorAll('.sl-reasons li')].map((li) => li.textContent.trim()); return ${text('.sl-verdict-words')}.trim() === '✓ Fits, marginal' && verdict.classList.contains('is-marginal') && getComputedStyle(verdict.querySelector('.sl-verdict-words')).color === getComputedStyle(document.querySelector('.sl-fact.is-sun .sl-fact-mark')).backgroundColor && reasons.length === 1 && /^(under 1|\\d+)% of the Sun's disc is in view at landing$/.test(reasons[0]) })()`, 2500],
       ['a landing that fits, even marginally, is not offered a next landing; "Why?" is beside its verdict', "document.querySelector('.sl-next') === null && document.querySelector('.sl-verdict .sl-why').textContent.trim() === 'Why?'"],
-      ['Compare calls it marginal too, and says why', `(${click('Compare')}, true) && ${after(900, "(() => { const fits = [...document.querySelectorAll('.sl-compare tbody tr')].at(-1); return /Marginal/.test(fits.querySelector('td').textContent) && /^A fits, marginal: (under 1|\\d+)% of the Sun's disc is in view at landing\\.$/.test(document.querySelector('.sl-compare-why.is-info li').textContent) })()")}`],
-      ['the same site four hours later, added as scenario B, fits without the word marginal, here and in Compare', `(document.querySelector('.sl-tabs button[aria-label="Add a scenario"]').click(), true) && ${after(500, `(() => { const hour = document.querySelector('.sl-pick select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(hour, '22'); hour.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)} && ${after(3000, `${text('.sl-verdict-words')}.trim() === '✓ Fits the mission' && document.querySelector('.sl-reasons') === null && document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length === 2 && [...document.querySelectorAll('.sl-compare tbody tr')].at(-1).querySelectorAll('td')[1].textContent.trim() === '✓ Yes'`)}`],
+      ['Compare calls it marginal too, and says why', `(${click('Compare')}, true) && ${after(900, "(() => { const fits = document.querySelector('.sl-compare .sl-compare-verdict td'); return fits.dataset.verdict === 'marginal' && fits.textContent.trim() === '◇' && /^Fits, marginal: /.test(fits.title) && /^A fits, marginal: (under 1|\\d+)% of the Sun's disc is in view at landing\\.$/.test(document.querySelector('.sl-compare-why.is-info li').textContent) })()")}`],
+      ['the same site four hours later, added as scenario B, fits without the word marginal, here and in Compare', `(document.querySelector('.sl-tabs button[aria-label="Add a scenario"]').click(), true) && ${after(500, `(() => { const hour = document.querySelector('.sl-pick select'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(hour, '22'); hour.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)} && ${after(3000, `${text('.sl-verdict-words')}.trim() === '✓ Fits the mission' && document.querySelector('.sl-reasons') === null && document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length === 2 && document.querySelectorAll('.sl-compare .sl-compare-verdict td')[1].dataset.verdict === 'yes' && document.querySelectorAll('.sl-compare .sl-compare-verdict td')[1].textContent.trim() === '✓'`)}`],
       ['the river\'s two rows, one site on two landings the same day, are told apart by the date and hour', "(() => { const rows = [...document.querySelectorAll('.sl-river .sl-row-name')].map((row) => row.textContent.trim()); const dates = [...document.querySelectorAll('.sl-river .sl-row-date')]; if (rows.join('|') !== 'A · 1 June 2027 18:00|B · 1 June 2027 ' + document.querySelector('.sl-pick select').value + ':00') throw new Error(rows.join('|')); return dates.every((date) => { const box = date.getBoundingClientRect(); const row = date.closest('.sl-row-name').getBoundingClientRect(); return box.width > 20 && box.right <= row.right + 0.5 && date.scrollWidth <= date.clientWidth + 1 }) && document.querySelector('.sl-river .sl-row-site') === null && /^Scenario A: Shackleton Rim · 1 June 2027 · 18:00 UTC$/.test(document.querySelector('.sl-river .sl-row-name').getAttribute('aria-label')) })()"],
     ],
   },
@@ -1104,7 +1153,7 @@ const SCENES = [
       ['the Earth row says how much of its disc shows, on a second small line', "/^(under 1|\\\\d+)% of the disc showing$/.test(document.querySelector('.sl-fact.is-earth .sl-fact-small.is-showing')?.textContent.trim() ?? '') && document.querySelectorAll('.sl-fact.is-earth .sl-fact-small').length === 2"],
       ['the landing otherwise fits, so the verdict is "Fits, marginal", because only the edge of Earth is in view at landing', `(() => { const reasons = [...document.querySelectorAll('.sl-reasons li')].map((li) => li.textContent.trim()); if (${text('.sl-verdict-words')}.trim() !== '✓ Fits, marginal' || !reasons.includes('only the edge of Earth is in view at landing')) throw new Error(${text('.sl-verdict')}); return document.querySelector('.sl-verdict').classList.contains('is-marginal') })()`],
       ['the time bar\'s chip, on the landing, says so too', `/^Sun, part of Earth$/.test(${text('.sl-river .sl-chip')}.trim())`],
-      ['and so does Compare', `(${click('Compare')}, true) && ${after(900, "(() => { const fits = [...document.querySelectorAll('.sl-compare tbody tr')].at(-1); return /Marginal/.test(fits.querySelector('td').textContent) && /only the edge of Earth is in view at landing/.test(document.querySelector('.sl-compare-why.is-info').textContent) })()")}`],
+      ['and so does Compare', `(${click('Compare')}, true) && ${after(900, "(() => { const fits = document.querySelector('.sl-compare .sl-compare-verdict td'); return fits.dataset.verdict === 'marginal' && /^Fits, marginal: /.test(fits.title) && /only the edge of Earth is in view at landing/.test(document.querySelector('.sl-compare-why.is-info').textContent) })()")}`],
     ],
   },
   {
@@ -1419,8 +1468,9 @@ const SCENES = [
       ['a link with two scenarios opens both: two tabs and two river rows', "document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]').length === 2 && document.querySelectorAll('.sl-river .sl-row-name[aria-pressed]').length === 2"],
       ['with the Compare drawer open, the whole disc is inside the stage with a margin on every side', DISC_INSIDE],
       ['a short list says which site and landing each letter is', "(() => { const items = [...document.querySelectorAll('.sl-compare-legend li')].map((item) => item.textContent.replace(/\\s+/g, ' ').trim()); return items.length === 2 && /^A ?Connecting Ridge ?6 May 2027 · 13:00 UTC$/.test(items[0]) && /^B ?Shackleton Rim ?6 May 2027 · 13:00 UTC$/.test(items[1]) })()"],
-      ['the table\'s heads are the letters, its rows carry their units, and its cells are bare numbers with the best marked and the hours under each share', "(() => { const heads = [...document.querySelectorAll('.sl-compare thead th')].map((th) => th.textContent.trim()); const rows = [...document.querySelectorAll('.sl-compare tbody tr')]; const names = rows.map((row) => row.querySelector('th').textContent.trim()); const cells = rows.slice(0, 5).flatMap((row) => [...row.querySelectorAll('td')].map((td) => td.textContent.trim())); return heads.join('') === 'AB' && names.join('|') === \"Sunlit, %|Longest dark spell, h|Earth in view, %|Longest radio silence, h|Sun and Earth together, %|Sunlight on a panel, W/m²|Slope, °|At landing|Sun's elevation, °|Sun above the skyline, °|Earth's elevation, °|Earth above the skyline, °|Fits the mission\" && cells.length === 10 && cells.every((cell) => /^[\\d.]+( ★)?( \\d+ of \\d+ h)?$/.test(cell)) && cells.filter((cell) => / of \\d+ h$/.test(cell)).length === 6 && document.querySelectorAll('.sl-compare td.is-best').length > 0 })()"],
-      ['the next landing that fits is offered when the landing misses the limits, and adds scenario C, which fits', `/^Next landing that fits: /.test(${text('.sl-next')}.trim()) && (document.querySelector('.sl-next').click(), true) && ${after(2500, `document.querySelectorAll('.sl-compare thead th').length === 3 && location.hash.includes('&sc=2') && /✓ (Yes|Marginal)/.test(document.querySelector('.sl-compare tbody tr:last-child td:last-child').textContent) && /^✓ Fits/.test(${text('.sl-verdict-words')}.trim()) && document.querySelector('.sl-next') === null`)}`],
+      ['the table\'s heads are the letters, the verdict comes first as a mark, its rows carry their units, and its cells are bare numbers with the best marked and, with two scenarios, the hours under each share', "(() => { const heads = [...document.querySelectorAll('.sl-compare thead th')].map((th) => th.textContent.trim()); const rows = [...document.querySelectorAll('.sl-compare tbody tr')]; const names = rows.map((row) => row.querySelector('th').textContent.trim()); const marks = [...rows[0].querySelectorAll('td')]; const cells = rows.slice(1, 6).flatMap((row) => [...row.querySelectorAll('td')].map((td) => td.textContent.trim())); return heads.join('') === 'AB' && names.join('|') === 'Fits the mission|Sunlit, %|Longest dark spell, h|Earth in view, %|Longest radio silence, h|Slope, °|MoreAt landing' && marks.length === 2 && marks.every((mark) => /^[✓◇✕]$/.test(mark.textContent.trim()) && /^(Fits|Does not fit)/.test(mark.title)) && cells.length === 10 && cells.every((cell) => /^[\\d.]+( ★)?( \\d+ of \\d+ h)?$/.test(cell)) && cells.filter((cell) => / of \\d+ h$/.test(cell)).length === 4 && document.querySelectorAll('.sl-compare td.is-best').length > 0 })()"],
+      ['"More" and "At landing" are folds, closed at first: opened, they add the Sun and Earth together, the sunlight on a panel and the four angles; closed again, the rows go', `(() => { const folds = [...document.querySelectorAll('.sl-compare .sl-compare-fold')]; const names = () => [...document.querySelectorAll('.sl-compare tbody tr')].map((row) => row.querySelector('th').textContent.trim()).slice(7).join('|'); if (folds.length !== 2 || folds.some((fold) => fold.getAttribute('aria-expanded') !== 'false')) return 'the folds are not both there and closed'; folds[0].click(); folds[1].click(); return ${after(300, `(() => { const names = [...document.querySelectorAll('.sl-compare tbody tr')].map((row) => row.querySelector('th').textContent.trim()).slice(7).join('|'); const open = names === "Sun and Earth together, %|Sunlight on a panel, W/m²|Sun's elevation, °|Sun above the skyline, °|Earth's elevation, °|Earth above the skyline, °"; document.querySelectorAll('.sl-compare .sl-compare-fold').forEach((fold) => fold.click()); return open || names })()`)}.then((open) => (open !== true ? open : ${after(300, "document.querySelectorAll('.sl-compare tbody tr').length === 7")})) })()`],
+      ['the next landing that fits is offered when the landing misses the limits, and adds scenario C, which fits', `/^Next landing that fits: /.test(${text('.sl-next')}.trim()) && (document.querySelector('.sl-next').click(), true) && ${after(2500, `document.querySelectorAll('.sl-compare thead th').length === 3 && location.hash.includes('&sc=2') && /^(yes|marginal)$/.test(document.querySelector('.sl-compare .sl-compare-verdict td:last-child').dataset.verdict ?? '') && /^✓ Fits/.test(${text('.sl-verdict-words')}.trim()) && document.querySelector('.sl-next') === null`)}`],
       ['picking B makes it the scenario on show', "(document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]')[1].click(), true) && new Promise((done) => setTimeout(() => done(document.querySelector('#sl-site').value === 'shackleton-rim' && location.hash.includes('&sc=1')), 300))"],
       ['its tab\'s "−" removes it, leaving two; Compare has no remove button of its own', `(() => { const minus = document.querySelector('.sl-tabs .sl-tab-remove[aria-label="Remove scenario B"]'); return minus !== null && ![...document.querySelectorAll('.sl-compare button')].some((button) => /Remove/.test(button.textContent)) && (minus.click(), true) })() && new Promise((done) => setTimeout(() => done(document.querySelectorAll('.sl-compare thead th').length === 2 && !location.hash.includes('shackleton-rim')), 300))`],
     ],
@@ -1543,6 +1593,27 @@ const SCENES = [
       ['"More" opens the rest as a short menu, inside the window, on an opaque ground', `window.innerWidth > 760 || ((${click('More')}, true) && ${after(300, "(() => { const menu = document.querySelector('.sl-rail-menu.is-open'); if (!menu) return false; const names = [...menu.querySelectorAll('button')].map((button) => button.firstChild.textContent.trim() || button.textContent.trim()); const box = menu.getBoundingClientRect(); return (names.join('|') === 'Layers|Mission|Compare|Accuracy|Planner|New Planner|How it works|Home|Tour' && box.left >= 0 && box.right <= window.innerWidth && box.bottom <= window.innerHeight && /^rgb\\(/.test(getComputedStyle(menu).backgroundColor) && document.querySelector('.sl-rail-more').getAttribute('aria-expanded') === 'true') || names.join('|') + ' ' + JSON.stringify(box) })()")})`],
       ['Escape closes the menu', `window.innerWidth > 760 || ((window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && ${after(300, "document.querySelector('.sl-rail-menu.is-open') === null && document.querySelector('.sl-rail-more').getAttribute('aria-expanded') === 'false'")})`],
       ['a choice from the menu does its work and closes the menu', `window.innerWidth > 760 || ((${click('More')}, true) && ${after(300, `(${click('Mission')}, true)`)} && ${after(900, "document.querySelector('.sl-rail-menu.is-open') === null && document.querySelector('.sl-drawer') !== null")})`],
+    ],
+  },
+  {
+    // The Compare panel's table with four scenarios, then three, two and one: nothing in it may touch
+    // anything else, at any of the sizes. Four are the tightest: the hours behind a share are hover
+    // text there, the verdict is a mark, and two folds hold the rest, so a small laptop need not scroll.
+    name: 'compare-fits',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00~peak-near-shackleton@2027-07-10T12',
+    steps: [click('Compare')],
+    checks: [
+      ['four scenarios: every cell inside its column, no text touching other text, nothing wider than the panel', COMPARE_CLEAN(4)],
+      ['with four, the verdict is the first row: a mark for each scenario, with the words in its hover text', "(() => { const row = document.querySelector('.sl-compare tbody tr'); const marks = [...row.querySelectorAll('td')]; return row.classList.contains('sl-compare-verdict') && marks.length === 4 && marks.every((mark) => /^[✓◇✕]$/.test(mark.textContent.trim()) && /^(Fits the mission|Fits, marginal: .+|Does not fit: .+)$/.test(mark.title) && mark.getAttribute('aria-label') === mark.title) })()"],
+      ['with four, the hours behind each share are the figure\'s hover text, not printed', "(() => { const rows = [...document.querySelectorAll('.sl-compare tbody tr')]; const shares = rows.filter((row) => /^(Sunlit|Earth in view), %$/.test(row.querySelector('th').textContent.trim())).flatMap((row) => [...row.querySelectorAll('td')]); return shares.length === 8 && shares.every((cell) => /^\\d+ of \\d+ h$/.test(cell.title)) && document.querySelectorAll('.sl-compare td small').length === 0 })()"],
+      ['with the folds closed, the panel does not scroll on a laptop, small or large', COLUMN_FITS],
+      ['with both folds open the table is still clean', `(document.querySelectorAll('.sl-compare .sl-compare-fold').forEach((fold) => fold.click()), true) && ${after(300, COMPARE_CLEAN(4))}`],
+      ['the star\'s note is there, and the panel ends with the way to the full comparison', "(() => { const link = document.querySelector('.sl-compare .sl-compare-full'); const last = [...document.querySelector('.sl-compare').children].at(-1); return /^★ best in its row/.test(document.querySelector('.sl-compare .sl-quiet').textContent.trim()) && link !== null && link.textContent.trim() === 'Full comparison ›' && last.contains(link) })()"],
+      ['three scenarios: the table is clean', `(document.querySelectorAll('.sl-compare .sl-compare-fold').forEach((fold) => fold.click()), ${REMOVE_SCENARIO('D')}).then(() => ${COMPARE_CLEAN(3)})`],
+      ['two scenarios: the table is clean, and the hours are printed under each share', `${REMOVE_SCENARIO('C')}.then(() => { const clean = ${COMPARE_CLEAN(2)}; return clean !== true ? clean : document.querySelectorAll('.sl-compare td small').length === 4 || 'the hours are not printed under the shares' })`],
+      ['two scenarios with both folds open: still clean', `(document.querySelectorAll('.sl-compare .sl-compare-fold').forEach((fold) => fold.click()), true) && ${after(300, COMPARE_CLEAN(2))}`],
+      ['one scenario: the table is clean', `${REMOVE_SCENARIO('B')}.then(() => ${COMPARE_CLEAN(1)})`],
+      ['"Full comparison" opens the Planner on its Compare tab, and the address says so', `(document.querySelector('.sl-compare .sl-compare-full').click(), true) && ${after(900, "document.querySelector('.sl-full') !== null && document.querySelector('.sl-compare') === null && [...document.querySelectorAll('.sl-full [role=\"tab\"]')].find((tab) => tab.getAttribute('aria-selected') === 'true')?.textContent.trim() === 'Compare' && /[&#]planner=compare/.test(location.hash)")}`],
     ],
   },
   {

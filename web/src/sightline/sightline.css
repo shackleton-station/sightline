@@ -1911,7 +1911,11 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-weight: 600;
 }
 
-/* Bare numbers under the letters, with the unit in each row's name: four scenarios fit side by side. */
+/*
+ * Bare numbers under the letters, with the unit in each row's name. The columns are fixed: the names'
+ * column is wide enough for two lines of the longest name and wraps, and the scenarios' columns share
+ * the rest equally, one or four of them. Nothing in a cell can reach the cell beside it.
+ */
 .sl-compare table {
   width: 100%;
   margin-top: 0.7rem;
@@ -1919,6 +1923,10 @@ button.sl-moment-heights[aria-expanded='true'] {
   table-layout: fixed;
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
+}
+
+.sl-compare col.sl-compare-names {
+  width: 6.6rem;
 }
 
 .sl-compare caption {
@@ -1930,11 +1938,13 @@ button.sl-moment-heights[aria-expanded='true'] {
 
 .sl-compare th,
 .sl-compare td {
-  padding: 0.3rem 0.2rem;
+  padding: 0.28rem 0.2rem;
   border-top: 1px solid var(--line);
   font-weight: 400;
   text-align: right;
+  vertical-align: top;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .sl-compare thead th,
@@ -1943,11 +1953,15 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-weight: 600;
 }
 
+/* A row's name: left, soft, and on two lines when it needs them. */
 .sl-compare thead td,
 .sl-compare tbody th {
-  width: 7.6rem;
+  padding-left: 0;
   color: var(--soft);
+  line-height: 1.25;
   text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 /* The best value: green, and a star. */
@@ -1956,15 +1970,67 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-weight: 600;
 }
 
-/* A name over the rows that follow it: the angles at landing. */
-.sl-compare .sl-compare-group th {
-  width: auto;
-  padding-top: 0.6rem;
+/* The verdict, first: a mark for each scenario, its words in the hover text and in the lists below. */
+.sl-compare .sl-compare-verdict th {
   color: inherit;
   font-weight: 600;
 }
 
-/* The hours behind a share of the mission, on their own line so four scenarios still fit. */
+.sl-compare .sl-compare-verdict td {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: default;
+}
+
+.sl-compare .sl-compare-verdict td.is-yes {
+  color: var(--sl-both);
+}
+
+.sl-compare .sl-compare-verdict td.is-marginal {
+  color: var(--gold);
+}
+
+.sl-compare .sl-compare-verdict td.is-no {
+  color: #e8915a;
+}
+
+/* A fold over the rows that follow it: the angles at landing, closed until asked for. */
+.sl-compare .sl-compare-group th {
+  padding: 0.35rem 0 0.2rem;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.sl-compare .sl-compare-group .sl-compare-fold + .sl-compare-fold {
+  margin-left: 1.1rem;
+}
+
+.sl-compare-fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sl-compare-fold::after {
+  content: '›';
+  color: var(--soft);
+  transition: transform 0.15s;
+}
+
+.sl-compare-fold[aria-expanded='true']::after {
+  transform: rotate(90deg);
+}
+
+/* The hours behind a share of the mission, on their own line, printed only while the columns are wide enough. */
 .sl-compare td small {
   display: block;
   color: var(--soft);
@@ -1985,7 +2051,19 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-compare-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.8rem;
   margin-top: 0.6rem;
+}
+
+/* The way to the full comparison: at the panel's end, on the right. */
+.sl-compare-full {
+  margin-left: auto;
+  color: var(--gold);
+  font-size: 0.8125rem;
 }
 
 .sl-advanced-link {
