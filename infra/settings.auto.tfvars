@@ -18,8 +18,11 @@ domain = "lunarsightline.com"
 # address keeps its zone, records and certificate, and forwards every link, path and query kept, to the new
 # one with a 301. To go back: swap the two names and set other_domains_redirect = true again, or false to
 # serve the site on both.
-other_domains          = ["shackletonstation.dev"]
-other_domains_redirect = true
+other_domains = ["shackletonstation.dev"]
+# 2026-11-14 17:35 UTC: false for now. The new name's certificate is still being issued by Google, so
+# forwarding visitors to it sent every one of them to an address their browser refused. Both names
+# serve the site until that certificate is active; then this goes back to true.
+other_domains_redirect = false
 
 # The GitHub repositories whose workflows may sign in to this project with no key: the deploys, the
 # Terraform plan and the Terraform apply (github.tf, pipeline.tf). Each by name and by GitHub's own
