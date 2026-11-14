@@ -75,7 +75,7 @@ function Act({ number, title, lede, children }: { number: number; title: string;
 }
 
 const VISIT: Step[] = [
-  { name: 'You', does: 'open shackletonstation.dev', tech: 'Cloud DNS · Cloud Domains' },
+  { name: 'You', does: 'open lunarsightline.com', tech: 'Cloud DNS · Cloud Domains' },
   { name: 'Load balancer', does: 'ends HTTPS and serves cached files from near you', tech: 'Global Application Load Balancer · Cloud CDN · managed certificate' },
   { name: 'Web server', does: 'sends the app, streams terrain and answers questions', tech: 'Cloud Run · Node 22 · Hono · Docker' },
   { name: 'Storage, memory and AI', does: 'hold the terrain, the shared counts and saved plans, and run the language model', tech: 'Cloud Storage · Redis (Memorystore) · Firestore · Claude (Anthropic API)' },

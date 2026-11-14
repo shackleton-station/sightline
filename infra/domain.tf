@@ -9,7 +9,19 @@
 locals {
   with_domain = var.domain != ""
   on_domain   = local.with_domain ? 1 : 0
-  dns_label   = replace(var.domain, ".", "-")
+
+  # Every domain the site owns: `domain` and `other_domains`. Each has its own zone, records and
+  # certificate, keyed by the domain itself, so which one is `domain` can change without touching them.
+  all_domains = local.with_domain ? toset(concat([var.domain], var.other_domains)) : toset([])
+  # The hosts that forward to https://<domain>: www.<domain> always, the other domains' www always,
+  # and the other domains themselves once other_domains_redirect is on.
+  forward_hosts = concat(
+    ["www.${var.domain}"],
+    [for d in var.other_domains : "www.${d}"],
+    var.other_domains_redirect ? var.other_domains : [],
+  )
+  # The hosts that get the site: `domain`, and the other domains while they do not forward.
+  site_hosts = concat([var.domain], var.other_domains_redirect ? [] : var.other_domains)
 
   # A fault-injection drill on the co-pilot's paths (copilot.tf), switched on by either share.
   copilot_faults = local.with_domain && (var.copilot_fault_delay_percent > 0 || var.copilot_fault_abort_percent > 0)
@@ -31,10 +43,11 @@ locals {
 
 # ---------- DNS ----------
 
+# One zone per domain. Each domain's registration in Cloud Domains names its zone's name servers.
 resource "google_dns_managed_zone" "site" {
-  count       = local.on_domain
-  name        = local.dns_label
-  dns_name    = "${var.domain}."
+  for_each    = local.all_domains
+  name        = replace(each.key, ".", "-")
+  dns_name    = "${each.key}."
   description = "Public DNS for the site."
 
   # Signs the zone's answers so they can't be forged on the way to a visitor.
@@ -44,30 +57,51 @@ resource "google_dns_managed_zone" "site" {
 
   # A zone made again gets other name servers and new signing keys, and the domain stops resolving
   # until the registration is pointed at them by hand (infra/README.md, "What cannot be deleted by
-  # accident").
+  # accident"). The description is the console's for a zone it made (lunarsightline.com's), and is
+  # left as it is.
   lifecycle {
     prevent_destroy = true
+    ignore_changes  = [description]
   }
 
   depends_on = [time_sleep.apis_ready]
 }
 
 resource "google_dns_record_set" "apex" {
-  count        = local.on_domain
-  managed_zone = google_dns_managed_zone.site[0].name
-  name         = "${var.domain}."
+  for_each     = local.all_domains
+  managed_zone = google_dns_managed_zone.site[each.key].name
+  name         = "${each.key}."
   type         = "A"
   ttl          = 300
   rrdatas      = [google_compute_global_address.site[0].address]
 }
 
 resource "google_dns_record_set" "www" {
-  count        = local.on_domain
-  managed_zone = google_dns_managed_zone.site[0].name
-  name         = "www.${var.domain}."
+  for_each     = local.all_domains
+  managed_zone = google_dns_managed_zone.site[each.key].name
+  name         = "www.${each.key}."
   type         = "A"
   ttl          = 300
   rrdatas      = [google_compute_global_address.site[0].address]
+}
+
+# These were single resources ([0]) while the site had one domain. Moving them to their domain's key
+# changes nothing in the project.
+moved {
+  from = google_dns_managed_zone.site[0]
+  to   = google_dns_managed_zone.site["shackletonstation.dev"]
+}
+moved {
+  from = google_dns_record_set.apex[0]
+  to   = google_dns_record_set.apex["shackletonstation.dev"]
+}
+moved {
+  from = google_dns_record_set.www[0]
+  to   = google_dns_record_set.www["shackletonstation.dev"]
+}
+moved {
+  from = google_compute_managed_ssl_certificate.site[0]
+  to   = google_compute_managed_ssl_certificate.site["shackletonstation.dev"]
 }
 
 # ---------- Load balancer ----------
@@ -154,9 +188,10 @@ resource "google_compute_url_map" "site" {
   name            = "${var.service_name}-https"
   default_service = google_compute_backend_service.web[0].id
 
-  # www.<domain> forwards to the bare domain, so every link has one form.
+  # www.<domain> forwards to the bare domain, so every link has one form. So do the other domains'
+  # www, and the other domains themselves once other_domains_redirect is on: same path, same query.
   host_rule {
-    hosts        = ["www.${var.domain}"]
+    hosts        = local.forward_hosts
     path_matcher = "www"
   }
   path_matcher {
@@ -192,10 +227,11 @@ resource "google_compute_url_map" "site" {
   # test a service that visitors do not reach. The fault drill is on rule 40 only, so it never touches
   # a deploy's tests of the canary. With every switch off the matcher is not there at all, and the URL
   # map is what it was before the split. Every request for a host with no rule goes to the web server.
+  # The other domains share these rules while they serve the site (other_domains_redirect off).
   dynamic "host_rule" {
     for_each = local.site_matcher ? [1] : []
     content {
-      hosts        = [var.domain]
+      hosts        = local.site_hosts
       path_matcher = "site"
     }
   }
@@ -378,13 +414,14 @@ resource "google_compute_url_map" "site" {
   }
 }
 
-# Google issues and renews this certificate once the DNS records above resolve.
+# Google issues and renews these certificates once the DNS records above resolve. One per domain, so
+# a new domain's certificate can wait for its DNS while the others keep serving.
 resource "google_compute_managed_ssl_certificate" "site" {
-  count = local.on_domain
-  name  = "${local.dns_label}-cert"
+  for_each = local.all_domains
+  name     = "${replace(each.key, ".", "-")}-cert"
 
   managed {
-    domains = [var.domain, "www.${var.domain}"]
+    domains = [each.key, "www.${each.key}"]
   }
 
   lifecycle {
@@ -395,10 +432,15 @@ resource "google_compute_managed_ssl_certificate" "site" {
 }
 
 resource "google_compute_target_https_proxy" "site" {
-  count            = local.on_domain
-  name             = "${var.service_name}-https"
-  url_map          = google_compute_url_map.site[0].id
-  ssl_certificates = [google_compute_managed_ssl_certificate.site[0].id]
+  count   = local.on_domain
+  name    = "${var.service_name}-https"
+  url_map = google_compute_url_map.site[0].id
+  # The visitor's browser names the host it wants (SNI) and gets that domain's certificate. The first
+  # is the one for a browser that names none.
+  ssl_certificates = concat(
+    [google_compute_managed_ssl_certificate.site[var.domain].id],
+    [for d in var.other_domains : google_compute_managed_ssl_certificate.site[d].id],
+  )
 }
 
 resource "google_compute_global_forwarding_rule" "https" {

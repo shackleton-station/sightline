@@ -1,5 +1,5 @@
 // Waits until the load balancer sends the canary header to the version a deploy has just tagged:
-//   node scripts/wait-for-canary.mjs https://shackletonstation.dev --canary web --revision clps-web-00085-abc --status-path /api/status [--seconds 180]
+//   node scripts/wait-for-canary.mjs https://lunarsightline.com --canary web --revision clps-web-00085-abc --status-path /api/status [--seconds 180]
 // A deploy gives its new version the tag `canary` and then runs this, so that its tests never run
 // against the version the tag was on before. It asks the status address, with the header, every 5 s
 // until the answer's `revision` is the one given. Exits non-zero if that does not happen in time.

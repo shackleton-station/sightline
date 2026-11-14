@@ -31,7 +31,7 @@ deploy, the deploy waits for it first ("Infrastructure changes" below).
    and the web server's status twice through the load balancer: as a visitor, and with the header. Any
    server error fails the step.
 3. It gets **everyone**. The smoke test runs once more through the address visitors use
-   (`https://shackletonstation.dev`), with no header and with `--plans-service --copilot-service`: there the
+   (`https://lunarsightline.com`), with no header and with `--plans-service --copilot-service`: there the
    plans service and the co-pilot service must answer their status, refuse another site and refuse a GET.
    So a web server whose pages cannot reach the services fails the deploy. A difference in site data is only
    reported there (`--data-may-differ`): the services' own deploys of the same commit wait for this one and
@@ -70,12 +70,12 @@ reaches the next version, with the same limits as everyone, which is harmless. B
 on the version the last deploy made, normally the live one.
 
 ```sh
-curl -s -H 'x-clps-canary: web' https://shackletonstation.dev/api/status | jq -r .revision
-curl -s -H 'x-clps-canary: plans' https://shackletonstation.dev/api/plans/status | jq -r .revision
-curl -s -H 'x-clps-canary: copilot' https://shackletonstation.dev/api/chat/status | jq -r .revision
-node web/scripts/smoke.mjs https://shackletonstation.dev --canary web --data-may-differ
-node web/scripts/plans-check.mjs https://shackletonstation.dev --canary plans --cloud
-node web/scripts/copilot-check.mjs https://shackletonstation.dev --canary copilot --cloud
+curl -s -H 'x-clps-canary: web' https://lunarsightline.com/api/status | jq -r .revision
+curl -s -H 'x-clps-canary: plans' https://lunarsightline.com/api/plans/status | jq -r .revision
+curl -s -H 'x-clps-canary: copilot' https://lunarsightline.com/api/chat/status | jq -r .revision
+node web/scripts/smoke.mjs https://lunarsightline.com --canary web --data-may-differ
+node web/scripts/plans-check.mjs https://lunarsightline.com --canary plans --cloud
+node web/scripts/copilot-check.mjs https://lunarsightline.com --canary copilot --cloud
 ```
 
 In a browser, a header-changing extension does the same for the pages. To put the tag on another version:
@@ -133,7 +133,7 @@ removes the worker and everything of its own. The counts already kept stay eithe
 **If the counts look wrong**, the question log is the source to check against. Yesterday's count by both:
 
 ```sh
-curl -s https://shackletonstation.dev/api/stats
+curl -s https://lunarsightline.com/api/stats
 bq --project_id clps-compute-6z1nc --location us-east4 query --use_legacy_sql=false \
   'SELECT DATE(`at`) AS day, COUNT(DISTINCT IFNULL(id, CAST(FARM_FINGERPRINT(TO_JSON_STRING(t)) AS STRING))) AS questions
    FROM `clps-compute-6z1nc.site_events.copilot_questions` AS t WHERE DATE(`at`) = CURRENT_DATE() GROUP BY day'
@@ -192,8 +192,8 @@ next one puts the web server back on code with no plans API. All of it:
 **Which one is answering?** Only the plans service has a status address:
 
 ```sh
-curl -s https://shackletonstation.dev/api/plans/status     # the service's status; {"error":"not-found"} means the path reaches only the web server
-node web/scripts/smoke.mjs https://shackletonstation.dev --plans-service   # fails unless it is the plans service
+curl -s https://lunarsightline.com/api/plans/status     # the service's status; {"error":"not-found"} means the path reaches only the web server
+node web/scripts/smoke.mjs https://lunarsightline.com --plans-service   # fails unless it is the plans service
 ```
 
 **If plans fail and the rest of the site works**, in this order: the latest deploy of `clps-plans`; its
@@ -238,7 +238,7 @@ service, the watch is skipped, and the run says so.
 (`chat_all_day`): the two set questions and the streamed one, or four if one is asked again. It was nine or
 ten until 2026-11-14 (five set questions, and three malformed ones that were counted), which with the
 night's deploys and checks used the day's whole allowance. After a change to the co-pilot's instructions,
-tools or model, ask the whole set by hand: `node web/scripts/chat-eval.mjs https://shackletonstation.dev`.
+tools or model, ask the whole set by hand: `node web/scripts/chat-eval.mjs https://lunarsightline.com`.
 Only a question the chat goes on to answer counts against its limits: a malformed one is refused (400)
 before it is counted, even when the day's limit is full, and one that any limit refuses (429) is counted
 against none, so a full limit clears when its oldest answered questions are a day old and not later. The
@@ -276,8 +276,8 @@ All of it: [`ARCHITECTURE_PHASE_3.md`](ARCHITECTURE_PHASE_3.md), "The ways back"
 **Which one is answering?** Only the co-pilot service has a status address:
 
 ```sh
-curl -s https://shackletonstation.dev/api/chat/status       # the service's status; {"error":"not-found"} means the path reaches only the web server
-node web/scripts/smoke.mjs https://shackletonstation.dev --copilot-service   # fails unless it is the co-pilot service
+curl -s https://lunarsightline.com/api/chat/status       # the service's status; {"error":"not-found"} means the path reaches only the web server
+node web/scripts/smoke.mjs https://lunarsightline.com --copilot-service   # fails unless it is the co-pilot service
 ```
 
 **If the co-pilot fails and the rest of the site works**, in this order: is the circuit breaker open (an
@@ -302,10 +302,10 @@ Terraform's (`infra/data.tf`). The deploy workflows did not change for Phase 4.
 `readEndpoint` says whether there is a read endpoint. Each status asks Redis one small read first.
 
 ```sh
-for path in /api/status /api/plans/status /api/chat/status; do curl -s https://shackletonstation.dev$path | jq -c .redis; done
+for path in /api/status /api/plans/status /api/chat/status; do curl -s https://lunarsightline.com$path | jq -c .redis; done
 ```
 
-**Hit rates and memory**, read-only: `node web/scripts/redis-stats.mjs https://shackletonstation.dev`, and
+**Hit rates and memory**, read-only: `node web/scripts/redis-stats.mjs https://lunarsightline.com`, and
 `--monitoring` for Memorystore's own metrics (needs `gcloud` signed in). The counters live in the instance
 and are gone when it is replaced.
 
@@ -332,8 +332,8 @@ and us-east4 on its own. The canary header reaches us-east4 only.
 **Which region answered.** Every status answer has a `region` field. The watch asks all three every second:
 
 ```sh
-for p in /api/status /api/plans/status /api/chat/status; do curl -s https://shackletonstation.dev$p | jq -c '{region, revision}'; done
-node web/scripts/region-watch.mjs https://shackletonstation.dev --seconds 60
+for p in /api/status /api/plans/status /api/chat/status; do curl -s https://lunarsightline.com$p | jq -c '{region, revision}'; done
+node web/scripts/region-watch.mjs https://lunarsightline.com --seconds 60
 ```
 
 **Going back by hand, in us-central1.** The same commands as in us-east4, with `--region us-central1`:
@@ -365,7 +365,7 @@ docker build --platform linux/amd64 -t $REPO/clps-web:$TAG .
 docker push $REPO/clps-web:$TAG
 gcloud run deploy clps-web --project clps-compute-6z1nc --region us-east4 --image $REPO/clps-web:$TAG --update-labels commit=$TAG
 gcloud run services update-traffic clps-web --project clps-compute-6z1nc --region us-east4 --to-latest   # if a rollback left visitors on an older version
-node scripts/smoke.mjs https://shackletonstation.dev --plans-service --copilot-service   # through the load balancer: its own run.app address refuses the internet since Phase 6
+node scripts/smoke.mjs https://lunarsightline.com --plans-service --copilot-service   # through the load balancer: its own run.app address refuses the internet since Phase 6
 ```
 
 Two things to keep when deploying by hand:
@@ -618,7 +618,7 @@ instance again (name it in `infra/expected-removals.txt`).
 
 1. On the laptop that drives the projector, open the site and press **Present**, the screen icon at the end of
    the tab bar (it shows the word on a window wider than 1,500 px). A panel
-   shows a large QR code and the link in words (`https://shackletonstation.dev/?follow=<room>`), with how many
+   shows a large QR code and the link in words (`https://lunarsightline.com/?follow=<room>`), with how many
    people are following. Leave it up while the room scans. "Hide the code" puts it away; "Show code", in the
    line under the tabs, brings it back.
 2. Drive the site as usual. Every phone goes where the laptop goes: the tab, the site, the month, the hour, the
@@ -645,7 +645,7 @@ Before the pitch:
   firewall is Rodrigo's decision.
 - **Try it once on the live site with two phones.** Two copies of the server passing changes through Redis is
   covered by tests with a stand-in for Redis and has never run for real, and no real phone has followed yet.
-  `node web/scripts/follow-check.mjs --base=https://shackletonstation.dev` runs the same three-window check
+  `node web/scripts/follow-check.mjs --base=https://lunarsightline.com` runs the same three-window check
   against the live site (about five minutes; it starts one room and ends it). It has only been run against a
   local server, where all three windows have one address: on the live site the firewall counts them together.
 - **To switch it off**: `follow = false` in `infra/settings.auto.tfvars`, in a pull request. `/api/rooms` then answers 503

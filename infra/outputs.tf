@@ -15,7 +15,12 @@ output "load_balancer_ip" {
 
 output "dns_zone" {
   description = "Cloud DNS zone to name when buying the domain (--cloud-dns-zone)."
-  value       = local.with_domain ? google_dns_managed_zone.site[0].name : null
+  value       = local.with_domain ? google_dns_managed_zone.site[var.domain].name : null
+}
+
+output "dns_zones" {
+  description = "Every domain's Cloud DNS zone, domain and other_domains alike."
+  value       = { for d, z in google_dns_managed_zone.site : d => z.name }
 }
 
 output "image_repository" {

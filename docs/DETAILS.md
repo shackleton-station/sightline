@@ -8,7 +8,7 @@ The long version of the README. Last updated 2026-11-03.
 | --- | --- |
 | Pipeline (kernels, DEM, horizon, ephemeris, visibility, validation, export) | Done for 13 sites, 2027 to 2030 |
 | Web app | Done: answer-first screen, Learn and Plan modes, 1-minute tour, site and date picker, grid of every site and month, slip check, nearby ground map, ranked shortlist, map, comparison, landing-window finder, panorama, 3D, Earth comparison; checked at 390 and 1280 px in Chrome |
-| Deploy | Live at https://shackletonstation.dev; real-phone check pending |
+| Deploy | Live at https://lunarsightline.com; real-phone check pending |
 | 3D view | Done, and rebuilt on Three.js on 2026-11-11 (`web/src/three/TerrainViewer.ts`): our LOLA terrain, lit by the pipeline's Sun with shadow maps. Measured against ray-traced terrain on 2026-11-12: 98.6% of points overall, 93.9% in hours with a real mix of lit and shadowed ground; shadows cast from under 1 km away are the weak spot (`docs/VALIDATION.md` §8). The first version went blank after a while on Rodrigo's phone; the Three.js version hasn't been tried on a phone |
 | Teammate invites | Misha, Pat, Ravi and Jessica are in the org. Sebastian was invited by email on 2026-11-12; not accepted yet |
 
