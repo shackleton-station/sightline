@@ -23,6 +23,17 @@ const ADDRESS_SETTLED_MS = 250
 /** While the view keeps moving (time playing, a long turn), the address is still rewritten this often, so someone following a presenter keeps up. */
 const ADDRESS_AT_LEAST_EVERY_MS = 500
 
+/** True when this page is shown inside another one (Sightline's Surface mode), which has its own tabs. */
+function isEmbedded(): boolean {
+  try {
+    return window.self !== window.top
+  } catch {
+    // A parent on another origin can't be read: still a frame.
+    return true
+  }
+}
+const EMBEDDED = isEmbedded()
+
 /**
  * The Surface tab: the visitor stands at the site, 2 m up, and looks around at the horizon the
  * pipeline computed, with the Sun and Earth where its track puts them for the hour on the time
@@ -111,7 +122,7 @@ export function SurfaceApp() {
 
   return (
     <div className="surface">
-      <SiteTabs current="surface" view={site ? viewLink(shown) : ''} />
+      {!EMBEDDED && <SiteTabs current="surface" view={site ? viewLink(shown) : ''} />}
       {unlisted && site && <Notice site={site} custom={custom} link={arrivedAt} onClose={() => setArrivedAt('')} />}
       <main className="sf-main">
         {sitesFailed ? (
