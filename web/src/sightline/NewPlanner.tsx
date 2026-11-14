@@ -174,16 +174,14 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   // A square chosen with the pointer: bring the brief up if it is out of sight, so the click visibly answers. Keyboard choices stay on the grid.
   const briefRef = useRef<HTMLDivElement>(null)
   const pick = useCallback((siteId: string, month: string, byPointer = false) => {
-    choose({ site: siteId, month, index: null })
-    if (!byPointer) return
-    requestAnimationFrame(() => {
-      const box = briefRef.current
-      if (!box) return
-      const top = box.getBoundingClientRect().top
-      if (top > 0 && top < window.innerHeight * 0.6) return
+    // A bar chosen with the pointer: back to the top, where the brief for it starts. Started before the
+    // choice redraws the page, so the scroll begins at once rather than after the new brief is worked out.
+    if (byPointer) {
+      const page = briefRef.current?.closest('.sl-np')
       const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      box.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
-    })
+      page?.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' })
+    }
+    choose({ site: siteId, month, index: null })
   }, [choose])
   /** A landing at an exact time, at this site or another. */
   const landAt = (siteId: string, iso: string) => {
@@ -269,23 +267,18 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           />
         </aside>
       <div className="planner sl-fp">
-        <div className="np-tabs" role="tablist" aria-label="New Planner">
-          <button type="button" role="tab" aria-selected={tab === 'find'} onClick={() => setTab('find')}>
-            Find
-            <small>where and when could I land?</small>
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'compare'} onClick={() => setTab('compare')}>
-            Compare
-            <small>{scenarios.length > 1 ? `your ${scenarios.length} picks side by side` : 'your picks side by side'}</small>
-          </button>
-        </div>
-        {tab === 'compare' ? (
-          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
-        ) : (
-        <>
-        <header className="pl-head">
+        {/* One line: Find | Compare on the left, how much of the grid this mission can land in on the right. */}
+        <div className="np-topbar">
+          <div className="np-tabs" role="tablist" aria-label="New Planner">
+            <button type="button" role="tab" aria-selected={tab === 'find'} title="Where and when could I land? Every site by month, and the brief" onClick={() => setTab('find')}>
+              Find
+            </button>
+            <button type="button" role="tab" aria-selected={tab === 'compare'} title="Your picks side by side" onClick={() => setTab('compare')}>
+              Compare{scenarios.length > 1 ? <small>{scenarios.length}</small> : null}
+            </button>
+          </div>
           {view && (
-            <p className="pl-tally" aria-live="polite">
+            <p className="pl-tally np-tally" aria-live="polite">
               <strong className={view.grid.tally.withLanding === 0 ? 'none' : undefined}>{view.grid.tally.withLanding}</strong>
               <span>
                 of {view.grid.tally.total} months across {view.grid.rows.length} sites have at least one day this mission can land and get through
@@ -293,7 +286,11 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
               </span>
             </p>
           )}
-        </header>
+        </div>
+        {tab === 'compare' ? (
+          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
+        ) : (
+        <>
 
         {shown && facts[active] && isCustomSite(facts[active].site) && !facts[active].flags && <p className="pl-notice" role="status">Working out {facts[active].site.name}…</p>}
 
