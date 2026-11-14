@@ -1,0 +1,78 @@
+# A Redis Cluster on one machine, for the cluster drill (docs/ARCHITECTURE_PHASE_4.md, sections 3 and 7).
+# Used on top of the main file:
+#
+#   C="docker compose -f docker-compose.yml -f docker-compose.cluster.yml"
+#   $C up --build -d                                   everything, with the co-pilot's answers on the cluster
+#   $C run --rm cluster-drill before                   the slot map, MOVED with a plain client, hash tags
+#   $C run --rm -d cluster-drill watch 60              (optional) watch the keys' old shards while resharding
+#   $C exec cluster-1 redis-cli --cluster add-node cluster-4:6379 cluster-1:6379
+#   sleep 10                                           let every node learn of the new one first (below)
+#   $C exec cluster-1 redis-cli --cluster rebalance cluster-1:6379 --cluster-use-empty-masters
+#   $C run --rm cluster-drill after                    which keys moved, and that their values moved with them
+#   $C down
+#
+# Three shards with no replicas, and a fourth node that starts outside the cluster: adding it and
+# rebalancing is the reshard. On Memorystore the same thing is one number (the shard count).
+#
+# Seen on 2026-11-12: a rebalance started 3 s after add-node stopped on its first slot with
+# "CLUSTERDOWN The cluster is down", because the new node did not know the cluster yet. The slot
+# was left half moved (migrating on one node, importing on the other: the state in which a client
+# gets ASK). `$C exec cluster-1 redis-cli --cluster fix cluster-1:6379` finished moving it, and the
+# rebalance then ran. Waiting a few seconds after add-node avoids it.
+#
+# What differs from Memorystore for Redis Cluster: there the client is given one discovery address
+# and reaches the nodes through Private Service Connect; here the nodes announce their own
+# addresses on Compose's network and `cluster-1` plays the discovery address. Both ways the client
+# asks one node for the slot map and then talks to each shard directly.
+#
+# The cluster holds one thing: the co-pilot's kept answers (CACHE_CLUSTER_HOST). Rate limits, the
+# breaker, the outbox, the single-flight lock and the counters stay on `redis`, as in the cloud.
+
+x-cluster-node: &cluster-node
+  image: redis:7.2-alpine
+  command: ["redis-server", "--cluster-enabled", "yes", "--cluster-node-timeout", "5000", "--save", "", "--appendonly", "no"]
+
+services:
+  cluster-1: *cluster-node
+  cluster-2: *cluster-node
+  cluster-3: *cluster-node
+  # Not in the cluster until it is added by hand: the node the reshard brings in.
+  cluster-4: *cluster-node
+
+  # Joins the first three nodes into one cluster, once, and exits. `redis-cli --cluster` wants
+  # addresses, so each name is looked up first.
+  cluster-init:
+    image: redis:7.2-alpine
+    depends_on:
+      - cluster-1
+      - cluster-2
+      - cluster-3
+    restart: "no"
+    command:
+      - sh
+      - -c
+      - |
+        ip() { getent hosts "$$1" | cut -d' ' -f1; }
+        until redis-cli -h cluster-1 ping >/dev/null 2>&1 && redis-cli -h cluster-2 ping >/dev/null 2>&1 && redis-cli -h cluster-3 ping >/dev/null 2>&1; do sleep 0.2; done
+        if redis-cli -h cluster-1 cluster info | grep -q 'cluster_state:ok'; then echo 'the cluster already exists'; exit 0; fi
+        redis-cli --cluster create "$$(ip cluster-1):6379" "$$(ip cluster-2):6379" "$$(ip cluster-3):6379" --cluster-replicas 0 --cluster-yes
+
+  copilot:
+    environment:
+      CACHE_CLUSTER_HOST: cluster-1
+    depends_on:
+      - cluster-init
+
+  # The drill, from the co-pilot's own image, as the Cloud Run job runs it in the cloud. Only with `run`.
+  cluster-drill:
+    profiles: ["drill"]
+    build:
+      context: web
+      dockerfile: copilot/Dockerfile
+      args:
+        VERSION: compose
+    environment:
+      CACHE_CLUSTER_HOST: cluster-1
+    entrypoint: ["node", "cluster-drill.cjs"]
+    depends_on:
+      - cluster-init
