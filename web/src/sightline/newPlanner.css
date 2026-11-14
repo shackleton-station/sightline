@@ -1602,3 +1602,9 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* The Find | Compare pill keeps its own width inside the top bar's grid cell. */
+.sl-np .np-topbar .np-tabs {
+  justify-self: start;
+  width: max-content;
+}
