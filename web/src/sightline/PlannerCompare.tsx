@@ -169,7 +169,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
           {groups.map((group) => (
             <tbody key={group.key} data-group={group.key}>
               {group.key !== 'verdict' && (
-                <tr className="pl-group">
+                <tr className="pl-group-row">
                   <th scope="colgroup" colSpan={scenarios.length + 1 + (room ? 1 : 0)}>
                     {group.name}
                   </th>
