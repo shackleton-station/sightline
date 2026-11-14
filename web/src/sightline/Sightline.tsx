@@ -1,5 +1,4 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import type { DataRange, SiteInfo } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
 import type { ScenarioData } from '../data/scenarioData'
@@ -96,11 +95,11 @@ const FEATURED = 'connecting-ridge'
 const FADE_AFTER_MS = 3000
 /** Room kept clear under the Moon in Watch for the play control, so the control is never over the Moon's disc. */
 const PLAY_CONTROL_ROOM_PX = 64
-/** How far Scout's block sits above the stage's bottom edge in Watch, with a little air over it. */
-const SCOUT_FOOT_PX = 84
 /** Under this window width Scout's bubble would reach the Moon's disc, so the Moon is fitted above it. */
 const NARROW_UNDER_PX = 1180
 
+/** From this window width a panel of Plan's (Mission, Compare, Layers) and Scout's can both stand beside the Moon. */
+const BOTH_PANELS_FROM_PX = 1600
 /** Under this window width the page is laid out for a phone: Scout's card and panels are sheets. */
 const PHONE_UNDER_PX = 761
 
@@ -206,10 +205,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [brief, setBrief] = useState(false)
   // Scout's chat card in Watch: whether it is open, how tall it is, and how wide the window is. On a
   // window too narrow for the card to sit beside the Moon, the Moon moves aside (up) for it.
-  // Scout is open unless the visitor shuts him: his card in Watch when the page opens, and his panel
-  // in Plan when Plan is opened from Watch. Shutting either is kept for the visit (until the tab is
-  // closed), and opening either undoes it. A phone is the exception: there his card and his panel
-  // are sheets over the Moon, so they open only when asked for.
+  // Scout is open unless the visitor shuts him, and always in one place: down the far right edge of
+  // the window, right of the rail, as his card in Watch and his panel in Plan. Shutting either is
+  // kept for the visit (until the tab is closed), and opening either undoes it. A phone is the
+  // exception: there his card and his panel are sheets over the Moon, so they open only when asked for.
   const [scoutShut, setScoutShut] = useStored('scoutShut', false, 'visit')
   const [scoutOpen, setScoutOpen] = useState(() => !scoutShut && window.innerWidth >= PHONE_UNDER_PX)
   const openScout = useCallback(
@@ -367,7 +366,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // The question "Why?" last sent, and the view it was sent for.
   const whyAsked = useRef<{ question: string; view: string; pending: boolean } | null>(null)
   const askWhy = () => {
-    setDrawer('scout')
+    showScoutPanel()
     const misses = problems ?? []
     const question =
       misses.length > 0 ? "Why doesn't this landing fit the mission, and what would change that?" : marginal.length > 0 ? 'Why is this landing only a marginal fit, and what would make it better?' : 'Why does this landing fit the mission, and how much margin does it have?'
@@ -460,28 +459,22 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     },
     [onNeed],
   )
-  /** Plan opened from Watch has Scout's panel open, unless the visitor has shut him or the screen is a phone's. */
-  const withScout = useCallback(() => {
-    if (!scoutShut && window.innerWidth >= PHONE_UNDER_PX) setDrawer('scout')
-  }, [scoutShut])
-  /**
-   * A change of screen in which Scout's card in Watch becomes his panel in Plan, or the panel the
-   * card: the browser draws the one growing into the other (both are named "scout" in the styles).
-   * Without that in the browser, or with motion reduced, the change is made at once.
-   */
-  const morphScout = useCallback(
-    (change: () => void) => {
-      if (still || typeof document.startViewTransition !== 'function') change()
-      else document.startViewTransition(() => flushSync(change))
-    },
-    [still],
-  )
   /** Scout's panel in Plan, opened or shut by the visitor: which is how he is found again in Watch. */
   const toggleScoutPanel = () => {
-    const open = drawer !== 'scout'
-    setDrawer(open ? 'scout' : null)
-    setScoutShut(!open)
-    setScoutOpen(open && window.innerWidth >= PHONE_UNDER_PX)
+    if (room === 'phone') {
+      setDrawer(drawer === 'scout' ? null : 'scout')
+      return
+    }
+    setScoutOpen(scoutShut)
+    setScoutShut(!scoutShut)
+  }
+  /** Bring Scout's panel up in Plan, for a question asked on the visitor's behalf. */
+  const showScoutPanel = () => {
+    if (room === 'phone') setDrawer('scout')
+    else {
+      setScoutOpen(true)
+      setScoutShut(false)
+    }
   }
   const openLink = useCallback(
     (hash: string) => {
@@ -498,14 +491,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         setSpread(carried)
         setAccuracyUsed(true)
       }
-      morphScout(() => {
-        if (!plan) withScout()
-        setPlan(true)
-        setPlaying(false)
-        setHour(link.scenarios[link.active].landing)
-      })
+      setPlan(true)
+      setPlaying(false)
+      setHour(link.scenarios[link.active].landing)
     },
-    [start, hours, plan, setPlaying, setHour, reach, morphScout, withScout],
+    [start, hours, setPlaying, setHour, reach],
   )
   // The years asked for have arrived: open the link that was waiting for them.
   useEffect(() => {
@@ -524,14 +514,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   /** Open Plan from Watch: at a site if one was chosen, landing at the time on the clock. */
   const openPlan = useCallback(
     (chosen: SiteInfo | null) => {
-      morphScout(() => {
-        setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: plan ? current.landing : hour }))
-        if (!plan) withScout()
-        setPlan(true)
-        setPointed(null)
-      })
+      setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: plan ? current.landing : hour }))
+      setPlan(true)
+      setPointed(null)
     },
-    [plan, hour, setScenario, morphScout, withScout],
+    [plan, hour, setScenario],
   )
   /** Add a scenario and show it, with the time bar on its landing. With four already, nothing is added. */
   /** The New Planner moved the scenario on show: the Moon, the time bar and the column follow. */
@@ -619,15 +606,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
    * as it always does from Watch.
    */
   const goHome = useCallback(() => {
-    morphScout(() => {
-      showControls()
-      setScoutShut(false)
-      setScoutOpen(window.innerWidth >= PHONE_UNDER_PX)
-      setPillMin(false)
-      setHour(opening)
-      setPlaying(!still)
-    })
-  }, [showControls, setScoutShut, setPillMin, setHour, setPlaying, opening, still, morphScout])
+    showControls()
+    setScoutShut(false)
+    setScoutOpen(window.innerWidth >= PHONE_UNDER_PX)
+    setPillMin(false)
+    setHour(opening)
+    setPlaying(!still)
+  }, [showControls, setScoutShut, setPillMin, setHour, setPlaying, opening, still])
   // The word, typed at this screen outside a text box: the button appears and its panel opens, in
   // Plan (where the rail is), whatever was open. Its letters are also keys of the screen (H hides,
   // P opens Plan), so those have fired on the way: this puts the screen where the word leads.
@@ -829,7 +814,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     showFitShade(true)
     setDrawer('accuracy')
   }
-  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
+  // Scout's place down the far right edge, on anything wider than a phone. In Watch it is his open
+  // card; in Plan his panel, there unless he was shut, the tour is on, or another panel is open on a
+  // window with no room for both beside the Moon.
+  const scoutPanel = room === 'phone' ? drawer === 'scout' : !scoutShut && tourAt === null && (planner || drawer === null || drawer === 'scout' || window.innerWidth >= BOTH_PANELS_FROM_PX)
+  const docked = room !== 'phone' && !bare && (plan ? false : scoutOpen && tourAt === null)
+  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', docked ? 'has-dock' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
     <div className={classes}>
@@ -1007,7 +997,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           sun={sun}
           earth={earth}
           bare={bare || planner}
-          reserveBottom={!plan && !bare ? Math.max(PLAY_CONTROL_ROOM_PX, scoutOpen && room !== 'wide' && scoutHeight > 0 ? scoutHeight + (room === 'phone' ? SHEET_AIR_PX : SCOUT_FOOT_PX) : 0) : shown && !planner ? NOTE_ROOM_PX : 0}
+          reserveBottom={!plan && !bare ? Math.max(PLAY_CONTROL_ROOM_PX, scoutOpen && room === 'phone' && scoutHeight > 0 ? scoutHeight + SHEET_AIR_PX : 0) : shown && !planner ? NOTE_ROOM_PX : 0}
           selectedId={shown ? site.id : (tourStep?.state.ring ?? ringed)}
           focus={shown && !planner && mode === 'site' ? site : null}
           onChoose={openPlan}
@@ -1066,7 +1056,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               state={pointedState ?? null}
               open={scoutOpen}
               onOpen={openScout}
-              beside={room === 'wide' ? PLAY_CONTROL_ROOM_PX : null}
               chat={chat}
               view={watchView}
               onShow={(hash) => {
@@ -1123,7 +1112,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onRemove={removeScenario}
           onScenario={moveScenario}
           onBack={() => setFull(false)}
-          scoutOpen={drawer === 'scout'}
+          scoutOpen={scoutPanel}
           onScout={toggleScoutPanel}
           site={site}
           month={landingAt.month}
@@ -1151,7 +1140,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           tab={plannerTab}
           onTab={setPlannerTab}
           onBrief={() => setBrief(true)}
-          scoutOpen={drawer === 'scout'}
+          scoutOpen={scoutPanel}
           onScout={toggleScoutPanel}
           site={site}
           month={landingAt.month}
@@ -1195,7 +1184,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           />
         </div>
       )}
-      {shown && drawer === 'scout' && (
+      {shown && scoutPanel && (
         <ScoutPanel
           chat={chat}
           view={scoutView}
@@ -1258,7 +1247,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             setNewPlanner(true)
             setFull(true)
           }}
-          scoutOpen={drawer === 'scout'}
+          scoutOpen={scoutPanel}
           scoutState={now ? riverState(now) : null}
           onScout={toggleScoutPanel}
           compareOpen={drawer === 'compare'}
