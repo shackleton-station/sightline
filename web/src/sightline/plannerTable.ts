@@ -1,5 +1,4 @@
 import type { SiteFlags } from '../lib/flags'
-import { gridRow, type GridCell, type MonthSpan } from '../lib/grid'
 import { missionEarth } from '../lib/mission'
 import { isoAt } from '../lib/sightline'
 import { bestIn, COMPARE_ROWS, type ScenarioMeasure, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
@@ -63,14 +62,4 @@ export function plannerCsv(start: string, scenarios: SightlineScenario[], siteNa
     ['Mission', missionWords],
   ]
   return `${lines.map((line) => line.map(field).join(',')).join('\n')}\n`
-}
-
-/** The months of one calendar year, from the data's months. */
-export function yearSpans(spans: MonthSpan[], year: number): MonthSpan[] {
-  return spans.filter((span) => span.month.startsWith(`${year}-`))
-}
-
-/** One site's row of the month grid: the share of each month of the year with the Sun in view. */
-export function sunMonths(flags: SiteFlags, spans: MonthSpan[]): GridCell[] {
-  return gridRow(flags.sun, spans, 'sun')
 }
