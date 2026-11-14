@@ -260,9 +260,8 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
             landing={view.landing.t}
             first={view.row.flags.start}
             last={new Date(Date.parse(view.row.flags.start) + (view.row.flags.sun.length - 1) * 3_600_000).toISOString().replace('.000Z', 'Z')}
-            onSite={(siteId) => choose({ site: siteId, month: view.month, index: null })}
-            onPoint={(value) => shown && onScenario({ site: value, landing: shown.landing })}
-            onLanding={(iso) => landAt(view.row.site.id, iso)}
+            nextLetter={room ? SCENARIO_LETTERS[scenarios.length] : null}
+            onAdd={(value, iso) => onAdd({ site: value, landing: hourOf(start, iso) })}
           />
         )}
         {shown && facts[active] && isCustomSite(facts[active].site) && !facts[active].flags && <p className="pl-notice" role="status">Working out {facts[active].site.name}…</p>}
