@@ -56,17 +56,23 @@ export interface SightlineMission {
 
 export const DEFAULT_MISSION: SightlineMission = { requirements: DEFAULT_REQUIREMENTS, maxSlopeDeg: DEFAULT_MAX_SLOPE_DEG, heights: DEFAULT_HEIGHTS }
 
-/** The ranges the mission drawer offers. */
+/**
+ * The ranges the mission drawer offers. The mission's length and the darkness it survives stay near
+ * the default mission (14 days, 24 h), up to a month and a week, so the values a planner is likely
+ * to try take most of each slider's travel. A preset or a link can carry more (the long stay does):
+ * the slider then stretches to that value.
+ */
 export const MISSION_RANGES = {
-  missionDays: { min: 1, max: 90, step: 1 },
-  maxSunGapH: { min: 0, max: 400, step: 4 },
+  missionDays: { min: 1, max: 30, step: 1 },
+  maxSunGapH: { min: 0, max: 168, step: 4 },
   maxSlopeDeg: { min: 5, max: 20, step: 1 },
 }
 /**
- * The longest radio silence is a slider like the longest dark, with one more stop after its last
- * hour: no limit. A link still carries "no limit" as NO_LIMIT_H hours.
+ * The longest radio silence is a slider with the longest dark's steps, with one more stop after its
+ * last hour: no limit. It runs further than the longest dark, because near the south pole Earth is
+ * below the skyline for about two weeks at a time. A link still carries "no limit" as NO_LIMIT_H hours.
  */
-export const SILENCE_RANGE = { min: 0, max: MISSION_RANGES.maxSunGapH.max, step: MISSION_RANGES.maxSunGapH.step }
+export const SILENCE_RANGE = { min: 0, max: 400, step: MISSION_RANGES.maxSunGapH.step }
 export const SILENCE_NO_LIMIT_STOP = SILENCE_RANGE.max + SILENCE_RANGE.step
 
 /** Where the radio-silence slider sits for a limit in hours: its last stop for no limit. */
