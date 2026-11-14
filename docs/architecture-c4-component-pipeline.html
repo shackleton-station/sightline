@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CLPS Demo Pipeline Components</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+  /* C4 level 3 component diagram for the Data pipeline container. Single-theme (standard C4 colors on white). */
+  :root { --page: #eef1f4; --canvas: #ffffff; --ink: #1c2530; --muted: #5f6b78; --line: #cfd5dc; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; }
+  .wrap {
+    max-width: 1720px; margin: 0 auto; padding-block: 24px 32px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 12px;
+  }
+  .scroll { overflow-x: auto; }
+  .canvas {
+    min-width: 1150px; background: var(--canvas); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(28,37,48,.06), 0 8px 24px rgba(28,37,48,.06);
+  }
+  svg { display: block; width: 100%; height: auto; }
+  .src { color: var(--muted); font-size: 13px; margin: 0; }
+  .src a { color: #1168bd; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="scroll">
+    <div class="canvas">
+<svg viewBox="0 0 1900 1140" role="img" aria-labelledby="t d" font-family="IBM Plex Sans, Segoe UI, system-ui, sans-serif">
+  <title id="t">Sightline component diagram: Data pipeline (C4 level 3)</title>
+  <desc id="d">Inside the Data pipeline container: run_all.py orchestrates the site config, kernel loader, ephemeris, terrain reader, horizon mask, observation, visibility, Horizons client, validation, exporter, nearby ground, browser terrain, Sun on Earth, map relief and LROC reader components. A separate script, check_lroc_photos.py, reads dated LROC photos from the PDS Imaging Node. Kernel loader downloads from NAIF, terrain reader from NASA PGDA and PDS Geosciences, Horizons client queries JPL Horizons. The exporter writes the site data JSON and the TypeScript contract used by the web app; browser terrain encodes the terrain tiles.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b6b6b"/>
+    </marker>
+    <style>
+      .h1 { font-size: 26px; font-weight: 600; fill: #1c2530; }
+      .sub { font-size: 14px; fill: #5f6b78; }
+      .cmp { fill: #85bbf0; stroke: #5d82a8; stroke-width: 1.2; }
+      .cn { font-size: 16px; font-weight: 600; fill: #0b2540; }
+      .cf { font-family: IBM Plex Mono, Consolas, monospace; font-size: 12px; fill: #0b2540; }
+      .ct { font-size: 11.5px; fill: #2b4a6b; }
+      .cd { font-size: 13px; fill: #0b2540; }
+      .xn { font-size: 16px; font-weight: 600; fill: #ffffff; }
+      .xt { font-size: 11.5px; fill: #eceef1; }
+      .xd { font-size: 12.5px; fill: #ffffff; }
+      .rel { fill: none; stroke: #6b6b6b; stroke-width: 1.5; stroke-dasharray: 7 5; }
+      .rl { font-size: 12.5px; fill: #333a42; }
+      .rt { font-size: 11.5px; fill: #6b7480; }
+      .leg { font-size: 13px; fill: #333a42; }
+      .fn { font-size: 13px; fill: #5f6b78; }
+    </style>
+  </defs>
+
+  <text x="40" y="52" class="h1">Sightline · Component diagram: Data pipeline</text>
+  <text x="40" y="78" class="sub">C4 model, level 3 · zooms into the Data pipeline container from the container diagram · pipeline/src/clps</text>
+  <text x="1860" y="52" class="sub" text-anchor="end">11 Nov 2026</text>
+
+  <!-- ===== External systems (left) ===== -->
+  <g text-anchor="middle">
+    <rect x="40" y="320" width="220" height="112" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="150" y="352" class="xn">NAIF SPICE archive</text>
+    <text x="150" y="371" class="xt">[Software System]</text>
+    <text x="150" y="396" class="xd">Generic SPICE kernels</text>
+
+    <rect x="40" y="452" width="220" height="92" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="150" y="482" class="xn">NASA PGDA</text>
+    <text x="150" y="500" class="xt">[Software System]</text>
+    <text x="150" y="524" class="xd">20 m and 5 m DEMs, maps</text>
+
+    <rect x="40" y="566" width="220" height="92" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="150" y="596" class="xn">PDS Geosciences</text>
+    <text x="150" y="614" class="xt">[Software System]</text>
+    <text x="150" y="638" class="xd">237 m global DEM</text>
+
+    <rect x="40" y="680" width="220" height="112" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="150" y="712" class="xn">JPL Horizons</text>
+    <text x="150" y="731" class="xt">[Software System]</text>
+    <text x="150" y="756" class="xd">Reference Sun/Earth positions</text>
+
+    <rect x="40" y="860" width="220" height="112" rx="8" fill="#7a7f87" stroke="#62666d"/>
+    <text x="150" y="892" class="xn">PDS Imaging Node</text>
+    <text x="150" y="911" class="xt">[Software System]</text>
+    <text x="150" y="936" class="xd">LROC WAC sunlit map,</text>
+    <text x="150" y="954" class="xd">dated photos</text>
+  </g>
+
+  <!-- ===== Container boundary ===== -->
+  <rect x="335" y="130" width="1245" height="880" rx="6" fill="none" stroke="#444a52" stroke-width="1.5" stroke-dasharray="10 6"/>
+  <text x="355" y="994" font-size="16" font-weight="600" fill="#1c2530">Data pipeline</text>
+  <text x="471" y="994" font-size="13" fill="#5f6b78">[Container: Python 3.12]</text>
+
+  <!-- ===== Components ===== -->
+  <g text-anchor="middle">
+    <!-- Row 0 -->
+    <rect x="360" y="160" width="220" height="112" rx="8" class="cmp"/>
+    <text x="470" y="188" class="cn">Site config</text>
+    <text x="470" y="206" class="cf">config.py</text>
+    <text x="470" y="222" class="ct">[Component: Python module]</text>
+    <text x="470" y="244" class="cd">13 sites, 2027–2030, paths,</text>
+    <text x="470" y="261" class="cd">2 m observer height</text>
+
+    <rect x="680" y="160" width="540" height="112" rx="8" class="cmp"/>
+    <text x="950" y="188" class="cn">Orchestrator</text>
+    <text x="950" y="206" class="cf">scripts/run_all.py</text>
+    <text x="950" y="222" class="ct">[Component: Python script]</text>
+    <text x="950" y="244" class="cd">Entry point. Runs every step for each of the 13 sites</text>
+    <text x="950" y="261" class="cd">and writes all outputs (~27 min on 16 cores after downloads)</text>
+
+    <!-- Row 1 -->
+    <rect x="360" y="320" width="220" height="112" rx="8" class="cmp"/>
+    <text x="470" y="348" class="cn">Kernel loader</text>
+    <text x="470" y="366" class="cf">kernels.py</text>
+    <text x="470" y="382" class="ct">[Component: SpiceyPy, httpx]</text>
+    <text x="470" y="404" class="cd">Downloads and loads SPICE</text>
+    <text x="470" y="421" class="cd">kernels (MOON_ME frame)</text>
+
+    <rect x="680" y="320" width="220" height="112" rx="8" class="cmp"/>
+    <text x="790" y="348" class="cn">Ephemeris</text>
+    <text x="790" y="366" class="cf">ephemeris.py</text>
+    <text x="790" y="382" class="ct">[Component: SpiceyPy]</text>
+    <text x="790" y="404" class="cd">Sun/Earth az/el from a fixed</text>
+    <text x="790" y="421" class="cd">surface point (LT+S)</text>
+
+    <rect x="1000" y="320" width="220" height="112" rx="8" class="cmp"/>
+    <text x="1110" y="348" class="cn">Observation</text>
+    <text x="1110" y="366" class="cf">observation.py</text>
+    <text x="1110" y="382" class="ct">[Component: NumPy]</text>
+    <text x="1110" y="404" class="cd">Hourly tracks and visible</text>
+    <text x="1110" y="421" class="cd">disk fraction per body</text>
+
+    <rect x="1320" y="320" width="220" height="112" rx="8" class="cmp"/>
+    <text x="1430" y="348" class="cn">Exporter</text>
+    <text x="1430" y="366" class="cf">export.py</text>
+    <text x="1430" y="382" class="ct">[Component: Python, JSON]</text>
+    <text x="1430" y="404" class="cd">JSON contract and</text>
+    <text x="1430" y="421" class="cd">TypeScript types</text>
+
+    <!-- Row 2 -->
+    <rect x="360" y="500" width="220" height="112" rx="8" class="cmp"/>
+    <text x="470" y="528" class="cn">Terrain reader</text>
+    <text x="470" y="546" class="cf">dem.py</text>
+    <text x="470" y="562" class="ct">[Component: rasterio, pyproj]</text>
+    <text x="470" y="584" class="cd">Reads LOLA DEM windows,</text>
+    <text x="470" y="601" class="cd">bilinear height lookup</text>
+
+    <rect x="680" y="500" width="220" height="112" rx="8" class="cmp"/>
+    <text x="790" y="528" class="cn">Horizon mask</text>
+    <text x="790" y="546" class="cf">horizon.py</text>
+    <text x="790" y="562" class="ct">[Component: NumPy]</text>
+    <text x="790" y="584" class="cd">720-azimuth skyline,</text>
+    <text x="790" y="601" class="cd">rays out to 150 km</text>
+
+    <rect x="1000" y="500" width="220" height="112" rx="8" class="cmp"/>
+    <text x="1110" y="528" class="cn">Visibility</text>
+    <text x="1110" y="546" class="cf">visibility.py</text>
+    <text x="1110" y="562" class="ct">[Component: NumPy]</text>
+    <text x="1110" y="584" class="cd">Disk fraction, up/down</text>
+    <text x="1110" y="601" class="cd">windows, summary stats</text>
+
+    <!-- Row 3 -->
+    <rect x="360" y="680" width="220" height="112" rx="8" class="cmp"/>
+    <text x="470" y="708" class="cn">Horizons client</text>
+    <text x="470" y="726" class="cf">horizons.py</text>
+    <text x="470" y="742" class="ct">[Component: httpx]</text>
+    <text x="470" y="764" class="cd">JPL Horizons API queries,</text>
+    <text x="470" y="781" class="cd">validation only</text>
+
+    <rect x="680" y="680" width="220" height="112" rx="8" class="cmp"/>
+    <text x="790" y="708" class="cn">Validation</text>
+    <text x="790" y="726" class="cf">validate.py</text>
+    <text x="790" y="742" class="ct">[Component: NumPy]</text>
+    <text x="790" y="764" class="cd">Compares results with</text>
+    <text x="790" y="781" class="cd">Horizons and NASA PGDA</text>
+
+    <!-- Added after 2 Nov: nearby maps, browser terrain, Earth comparison, map, LROC checks -->
+    <rect x="1320" y="500" width="220" height="112" rx="8" class="cmp"/>
+    <text x="1430" y="528" class="cn">Nearby ground</text>
+    <text x="1430" y="546" class="cf">nearby.py</text>
+    <text x="1430" y="562" class="ct">[Component: NumPy]</text>
+    <text x="1430" y="584" class="cd">Sun, Earth, slope maps around</text>
+    <text x="1430" y="601" class="cd">each site; mast heights</text>
+    <rect x="1000" y="680" width="220" height="112" rx="8" class="cmp"/>
+    <text x="1110" y="708" class="cn">Sun on Earth</text>
+    <text x="1110" y="726" class="cf">earth_sun.py</text>
+    <text x="1110" y="742" class="ct">[Component: SpiceyPy]</text>
+    <text x="1110" y="764" class="cd">Subsolar point, for the</text>
+    <text x="1110" y="781" class="cd">Earth vs Moon comparison</text>
+    <rect x="1320" y="680" width="220" height="112" rx="8" class="cmp"/>
+    <text x="1430" y="708" class="cn">Browser terrain</text>
+    <text x="1430" y="726" class="cf">custom.py</text>
+    <text x="1430" y="742" class="ct">[Component: NumPy, SpiceyPy]</text>
+    <text x="1430" y="764" class="cd">Tiles for custom points;</text>
+    <text x="1430" y="781" class="cd">measures their accuracy</text>
+
+    <!-- Row 4 -->
+    <rect x="360" y="860" width="220" height="112" rx="8" class="cmp"/>
+    <text x="470" y="888" class="cn">LROC photo check</text>
+    <text x="470" y="906" class="cf">scripts/check_lroc_photos.py</text>
+    <text x="470" y="922" class="ct">[Component: Python script]</text>
+    <text x="470" y="944" class="cd">Separate run: dated photos,</text>
+    <text x="470" y="961" class="cd">ranged reads, resumable</text>
+    <rect x="680" y="860" width="220" height="112" rx="8" class="cmp"/>
+    <text x="790" y="888" class="cn">LROC reader</text>
+    <text x="790" y="906" class="cf">lroc.py</text>
+    <text x="790" y="922" class="ct">[Component: NumPy]</text>
+    <text x="790" y="944" class="cd">Reads LROC sunlit images;</text>
+    <text x="790" y="961" class="cd">real-light comparison</text>
+    <rect x="1000" y="860" width="220" height="112" rx="8" class="cmp"/>
+    <text x="1110" y="888" class="cn">Map relief</text>
+    <text x="1110" y="906" class="cf">maps.py</text>
+    <text x="1110" y="922" class="ct">[Component: NumPy, zlib]</text>
+    <text x="1110" y="944" class="cd">Shaded-relief images</text>
+    <text x="1110" y="961" class="cd">from LOLA terrain</text>
+  </g>
+
+  <!-- ===== Other containers (right) ===== -->
+  <g text-anchor="middle">
+    <path d="M1670,334 v96 a100,14 0 0 0 200,0 v-96" fill="#1168bd" stroke="#0b4884"/>
+    <ellipse cx="1770" cy="334" rx="100" ry="14" fill="#2f7fcc" stroke="#0b4884"/>
+    <text x="1770" y="374" class="xn">Site data</text>
+    <text x="1770" y="392" class="xt" fill="#dce8f5">[Container: static JSON]</text>
+    <text x="1770" y="416" class="xd">web/public/data/</text>
+
+    <rect x="1670" y="500" width="200" height="112" rx="8" fill="#1168bd" stroke="#0b4884"/>
+    <text x="1770" y="532" class="xn">Web app</text>
+    <text x="1770" y="551" class="xt">[Container: React, TypeScript]</text>
+    <text x="1770" y="576" class="xd">Imports the generated</text>
+    <text x="1770" y="594" class="xd">data types</text>
+
+    <path d="M1670,704 v96 a100,14 0 0 0 200,0 v-96" fill="#1168bd" stroke="#0b4884"/>
+    <ellipse cx="1770" cy="704" rx="100" ry="14" fill="#2f7fcc" stroke="#0b4884"/>
+    <text x="1770" y="744" class="xn">Terrain tiles</text>
+    <text x="1770" y="762" class="xt" fill="#dce8f5">[Container: gzip binary]</text>
+    <text x="1770" y="786" class="xd">web/public/tiles/</text>
+  </g>
+
+  <!-- ===== Relationships ===== -->
+  <!-- Orchestrator -> config -->
+  <path class="rel" d="M680,216 H580" marker-end="url(#a)"/>
+  <text x="630" y="200" class="rl" text-anchor="middle">Reads</text>
+  <text x="630" y="236" class="rt" text-anchor="middle">[import]</text>
+
+  <!-- Orchestrator -> kernel loader -->
+  <path class="rel" d="M720,272 V296 H470 V320" marker-end="url(#a)"/>
+  <text x="600" y="290" class="rl" text-anchor="middle">Loads kernels</text>
+
+  <!-- Orchestrator -> observation -->
+  <path class="rel" d="M1110,272 V320" marker-end="url(#a)"/>
+  <text x="1120" y="300" class="rl">Runs per site</text>
+
+  <!-- Orchestrator -> exporter -->
+  <path class="rel" d="M1220,200 H1430 V320" marker-end="url(#a)"/>
+  <text x="1325" y="190" class="rl" text-anchor="middle">Writes outputs via</text>
+
+  <!-- Orchestrator -> validation -->
+  <path class="rel" d="M1220,250 H1300 V648 H790 V680" marker-end="url(#a)"/>
+  <text x="1030" y="640" class="rl" text-anchor="middle">Runs checks</text>
+
+  <!-- Ephemeris -> kernel loader -->
+  <path class="rel" d="M680,376 H580" marker-end="url(#a)"/>
+  <text x="630" y="366" class="rl" text-anchor="middle">Needs</text>
+  <text x="630" y="394" class="rt" text-anchor="middle">[SPICE pool]</text>
+
+  <!-- Horizon mask -> terrain reader -->
+  <path class="rel" d="M680,556 H580" marker-end="url(#a)"/>
+  <text x="630" y="546" class="rl" text-anchor="middle">Heights</text>
+  <text x="630" y="574" class="rt" text-anchor="middle">[height_at]</text>
+
+  <!-- Observation -> ephemeris -->
+  <path class="rel" d="M1000,376 H900" marker-end="url(#a)"/>
+  <text x="950" y="366" class="rl" text-anchor="middle">Tracks</text>
+  <text x="950" y="394" class="rt" text-anchor="middle">[az/el]</text>
+
+  <!-- Observation -> horizon mask -->
+  <path class="rel" d="M1000,424 L900,508" marker-end="url(#a)"/>
+  <rect x="922" y="452" width="56" height="18" fill="#ffffff"/>
+  <text x="950" y="466" class="rl" text-anchor="middle">Mask</text>
+
+  <!-- Observation -> visibility -->
+  <path class="rel" d="M1110,432 V500" marker-end="url(#a)"/>
+  <text x="1120" y="470" class="rl">Disk fraction</text>
+
+  <!-- Validation -> Horizons client -->
+  <path class="rel" d="M680,736 H580" marker-end="url(#a)"/>
+  <text x="630" y="726" class="rl" text-anchor="middle">Fetches</text>
+  <text x="630" y="754" class="rt" text-anchor="middle">[rows]</text>
+
+  <!-- Components -> external systems -->
+  <path class="rel" d="M360,376 H260" marker-end="url(#a)"/>
+  <text x="297" y="366" class="rl" text-anchor="middle">Downloads</text>
+  <text x="297" y="394" class="rt" text-anchor="middle">[HTTPS]</text>
+
+  <path class="rel" d="M360,530 L260,504" marker-end="url(#a)"/>
+  <path class="rel" d="M360,584 L260,610" marker-end="url(#a)"/>
+  <rect x="257" y="543" width="80" height="26" fill="#ffffff"/>
+  <text x="297" y="553" class="rl" text-anchor="middle">Downloads</text>
+  <text x="297" y="567" class="rt" text-anchor="middle">[HTTPS]</text>
+
+  <path class="rel" d="M360,736 H260" marker-end="url(#a)"/>
+  <text x="297" y="726" class="rl" text-anchor="middle">Queries</text>
+  <text x="297" y="754" class="rt" text-anchor="middle">[HTTPS]</text>
+
+  <!-- Exporter -> other containers -->
+  <path class="rel" d="M1540,376 H1670" marker-end="url(#a)"/>
+  <text x="1625" y="366" class="rl" text-anchor="middle">Writes</text>
+  <text x="1625" y="394" class="rt" text-anchor="middle">[JSON]</text>
+
+  <path class="rel" d="M1540,412 H1610 V556 H1670" marker-end="url(#a)"/>
+  <rect x="1516" y="442" width="90" height="36" fill="#ffffff"/>
+  <text x="1602" y="456" class="rl" text-anchor="end">Writes types</text>
+  <text x="1602" y="472" class="rt" text-anchor="end">[contract.ts]</text>
+
+  <!-- Nearby ground -> visibility -->
+  <path class="rel" d="M1320,556 H1220" marker-end="url(#a)"/>
+  <text x="1258" y="546" class="rl" text-anchor="middle">Uses</text>
+  <text x="1258" y="574" class="rt" text-anchor="middle">[mask, disk]</text>
+
+  <!-- Browser terrain -> terrain tiles -->
+  <path class="rel" d="M1540,736 H1670" marker-end="url(#a)"/>
+  <text x="1625" y="726" class="rl" text-anchor="middle">Encodes</text>
+  <text x="1625" y="754" class="rt" text-anchor="middle">[gzip tiles]</text>
+
+  <!-- LROC photo check -> LROC reader, PDS Imaging -->
+  <path class="rel" d="M580,916 H680" marker-end="url(#a)"/>
+  <text x="630" y="906" class="rl" text-anchor="middle">Uses</text>
+  <path class="rel" d="M360,916 H260" marker-end="url(#a)"/>
+  <text x="310" y="906" class="rl" text-anchor="middle">Reads</text>
+  <text x="310" y="934" class="rt" text-anchor="middle">[HTTPS]</text>
+
+  <!-- ===== Footnotes + legend ===== -->
+  <text x="40" y="1036" class="fn">Not shown: geometry.py (shared math helpers most components use), and the Download cache container, which kernels.py, dem.py, horizons.py and the LROC check read and write.</text>
+  <text x="40" y="1056" class="fn">run_all.py also calls nearby, custom, earth_sun, maps and lroc directly, and itself downloads the PGDA maps, 5 m DEM tiles and LROC map; those arrows are left out.</text>
+  <line x1="40" y1="1074" x2="1860" y2="1074" stroke="#e1e5ea"/>
+  <text x="40" y="1110" font-size="13" font-weight="600" fill="#1c2530">Legend</text>
+  <rect x="110" y="1094" width="30" height="22" rx="4" fill="#85bbf0" stroke="#5d82a8"/>
+  <text x="148" y="1110" class="leg">Component</text>
+  <rect x="250" y="1094" width="30" height="22" rx="4" fill="#1168bd"/>
+  <text x="288" y="1110" class="leg">Container</text>
+  <rect x="380" y="1094" width="30" height="22" rx="4" fill="#7a7f87"/>
+  <text x="418" y="1110" class="leg">External system</text>
+  <path d="M550,1105 H600" class="rel" marker-end="url(#a)"/>
+  <text x="610" y="1110" class="leg">Relationship [technology]</text>
+  <rect x="800" y="1096" width="34" height="18" fill="none" stroke="#444a52" stroke-dasharray="6 4"/>
+  <text x="842" y="1110" class="leg">Container boundary</text>
+</svg>
+    </div>
+  </div>
+  <p class="src">Level 2 view: <a href="architecture-c4-container.html">architecture-c4-container.html</a>. Built from pipeline/src/clps (module docstrings and imports), pipeline/scripts/run_all.py and check_lroc_photos.py; rechecked against main on 11 Nov 2026.</p>
+</div>
+</body>
+</html>
