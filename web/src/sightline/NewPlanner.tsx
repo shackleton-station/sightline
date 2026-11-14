@@ -22,7 +22,10 @@ import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { PlannerMore } from './PlannerMore'
 import { NewPlannerCompare } from './NewPlannerCompare'
 import { PlannerNearby } from './PlannerNearby'
-import { useMissionTracks } from './useMissionTracks'
+import { useHorizons, useMissionTracks } from './useMissionTracks'
+import { AccuracyDrawer } from './AccuracyDrawer'
+import { useMissionGrid } from './useMissionGrid'
+import { DEFAULT_SPREAD, type Spread } from '../lib/landingOdds'
 import { isBaseHeights } from '../lib/heights'
 import { siteValue } from './site'
 import '../planner/planner.css'
@@ -99,6 +102,11 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
     facts.map((fact) => fact.site),
     mission.requirements.missionDays,
   )
+  const horizons = useHorizons(
+    start,
+    scenarios,
+    facts.map((fact) => fact.site),
+  )
   const heightsNote = isBaseHeights(mission.heights) ? null : "The Sun's height and the sunlight are read at 2 m above the ground; the longest dark is at your panel's height."
 
   // The sites the grid and the dropdown hold: the listed ones, and any custom point a scenario is at, once its flags are in.
@@ -127,6 +135,10 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   const plan: Plan = useMemo(() => ({ ...chosen, requirements: mission.requirements, shortlist: [], kept: { b: null, view3d: false } }), [chosen, mission.requirements])
   const fallback = useMemo(() => defaultAddress(mission.requirements), [mission.requirements])
   const view = usePlannerView(sites, plan, fallback, slipDays)
+  // Find: where around the aim point a landing still fits, for the ridge sites the light grid covers.
+  const [spread, setSpread] = useState<Spread>(DEFAULT_SPREAD)
+  const accuracyWanted = tab === 'find' && view !== null && Boolean(view.row.site.nearby_half_m)
+  const missionGrid = useMissionGrid(start, view ? hourOf(start, view.landing.t) : 0, mission.requirements.missionDays, accuracyWanted)
   const why = useMemo(() => (view ? briefWhy(view.row.flags, view.answer.span, view.viable, view.answer.days, mission.requirements) : null), [view, mission.requirements])
   const [obsHeightM, setObsHeightM] = useState<number | null>(null)
   useEffect(() => {
@@ -290,7 +302,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           )}
         </div>
         {tab === 'compare' ? (
-          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
+          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} horizons={horizons} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
         ) : (
         <>
 
@@ -330,7 +342,26 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                   const atSite = Math.abs(lat - view.row.site.lat) < 1e-6 && Math.abs(lon - view.row.site.lon) < 1e-6
                   onScenario({ site: atSite ? siteValue(view.row.site) : siteValue(customSiteInfo(lat, lon)), landing: hourOf(start, view.landing.t) })
                 }}
-              />
+                open
+              >
+                {accuracyWanted && (
+                  <div className="np-accuracy">
+                    <h5>Where the lander may come down</h5>
+                    <AccuracyDrawer
+                      site={view.row.site}
+                      mission={mission}
+                      grid={missionGrid}
+                      spread={spread}
+                      onSpread={setSpread}
+                      fits={view.landing.problems.length === 0}
+                      shade={false}
+                      onShade={() => undefined}
+                      onAim={(lat, lon) => onScenario({ site: `${lat},${lon}`, landing: hourOf(start, view.landing.t) })}
+                      onClose={() => undefined}
+                    />
+                  </div>
+                )}
+              </PlannerNearby>
             )}
           </div>
           <div className="pl-answer sl-fp-brief" ref={briefRef}>

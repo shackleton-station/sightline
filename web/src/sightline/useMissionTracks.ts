@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { SiteInfo, TrackPoint } from '../data/contract'
+import type { HorizonPoint, SiteInfo, TrackPoint } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
-import { loadScenario, loadTrack } from '../data/loadSite'
+import { loadHorizon, loadScenario, loadTrack } from '../data/loadSite'
 import { locateHour } from '../lib/mission'
 import type { SightlineScenario } from '../lib/sightlineMission'
 
@@ -52,6 +52,35 @@ export function useMissionTracks(start: string, dataHours: number, scenarios: Si
       current = false
     }
     // `wanted` stands for the scenarios, sites and mission length together.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wanted, start])
+  return keys.map((key) => (key in loaded ? loaded[key] : undefined))
+}
+
+/**
+ * Each pick's skyline (the terrain's height all the way round), for the mission playback: undefined
+ * while it loads, null if it failed. A custom point's comes from the app's own model for the month.
+ */
+export function useHorizons(start: string, scenarios: SightlineScenario[], sites: SiteInfo[]): (HorizonPoint[] | null | undefined)[] {
+  const keys = sites.map((site) => site?.id ?? '')
+  const [loaded, setLoaded] = useState<Record<string, HorizonPoint[] | null>>({})
+  const wanted = keys.join('|')
+  useEffect(() => {
+    let current = true
+    sites.forEach((site, i) => {
+      if (!site || site.id in loaded) return
+      const request = isCustomSite(site) ? loadScenario(site, locateHour(start, scenarios[i]?.landing ?? 0).month).then((data) => data.horizon) : loadHorizon(site)
+      request
+        .then((horizon) => current && setLoaded((before) => ({ ...before, [site.id]: horizon })))
+        .catch((reason: unknown) => {
+          console.error(reason)
+          if (current) setLoaded((before) => ({ ...before, [site.id]: null }))
+        })
+    })
+    return () => {
+      current = false
+    }
+    // `wanted` stands for the sites together.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wanted, start])
   return keys.map((key) => (key in loaded ? loaded[key] : undefined))
