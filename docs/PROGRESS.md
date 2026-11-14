@@ -281,9 +281,11 @@ Local Lead.
 - [x] Step 2: the pipeline and its tests; CI's pipeline job (pull request 3)
 - [x] Step 3: the web app's core, its data and scripts; CI's web job (pull request 4)
 - [x] Step 4: the four services; CI complete (pull request 5)
-- [ ] Step 5: Terraform (`infra/`) and the deploy workflows (pull request 9). The Terraform state was copied to
-      this repository's own prefix first, and the plan must say "No changes". The deploy workflows start by
-      hand only until each service has been deployed once from here
+- [x] Step 5: Terraform (`infra/`) and the deploy workflows (pull request 9). The Terraform state was copied to
+      this repository's own prefix first, and the plan said "No changes"
+- [x] The first deploys from this repository, started by hand one service at a time (events worker, plans,
+      co-pilot, web), each tested before visitors reached it; then the deploys' automatic start after a green
+      CI run on `main`
 - [x] Step 6: the Sightline screen and front page, Scout, the planner and the other pages (pull request 6)
 - [x] Catch-up: a change made on 2026-11-14 in the working copy, Scout's taller chat card and the model's name
       in his tag (pull request 7)

@@ -31,6 +31,10 @@ name: Deploy
 # repository are accepted; that rule lives in infra/github.tf.
 
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   # A manual run from the Actions tab, to redeploy main without a new commit.
   workflow_dispatch:
 

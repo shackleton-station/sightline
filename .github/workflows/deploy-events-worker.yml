@@ -26,6 +26,10 @@ name: Deploy events worker
 # run belongs to, and Google hands back a short-lived token for the deployer service account.
 
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   # A manual run from the Actions tab: always builds and deploys main, changed or not.
   workflow_dispatch:
 
