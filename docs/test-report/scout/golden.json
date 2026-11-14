@@ -1,0 +1,206 @@
+{
+ "about": "Golden questions for Scout. Expected values computed from web/public/data (see live_scout.py), not from Scout. Data as of main aaeee7e; recompute after data changes.",
+ "questions": [
+  {
+   "id": "G01",
+   "question": "What share of May 2027 is the Sun up at Shackleton Rim?",
+   "expected": {
+    "pct": 52.0
+   }
+  },
+  {
+   "id": "G02",
+   "question": "What share of May 2027 is Earth in view at Shackleton Rim?",
+   "expected": {
+    "pct": 54.7
+   }
+  },
+  {
+   "id": "G03",
+   "question": "How much of May 2027 are both the Sun and Earth up at Shackleton Rim?",
+   "expected": {
+    "pct": 28.6
+   }
+  },
+  {
+   "id": "G04",
+   "question": "What is the longest time without the Sun at Shackleton Rim in May 2027?",
+   "expected": {
+    "hours": 143.0
+   }
+  },
+  {
+   "id": "G05",
+   "question": "What share of May 2027 is the Sun up at Connecting Ridge?",
+   "expected": {
+    "pct": 59.5
+   }
+  },
+  {
+   "id": "G06",
+   "question": "How much of 2027 is the Sun up at Connecting Ridge?",
+   "expected": {
+    "pct": 90.5
+   }
+  },
+  {
+   "id": "G07",
+   "question": "Is Earth always in view from the Apollo 11 site in 2030?",
+   "expected": {
+    "pct": 100.0,
+    "expect_words": [
+     "always",
+     "100"
+    ]
+   }
+  },
+  {
+   "id": "G08",
+   "question": "Can you see Earth from the Chang'e 4 site in 2028?",
+   "expected": {
+    "pct": 0.0,
+    "expect_words": [
+     "never",
+     "not",
+     "0"
+    ]
+   }
+  },
+  {
+   "id": "G09",
+   "question": "At Shackleton Rim on 14 May 2027 at 12:00 UTC, is the Sun up and is Earth in view?",
+   "expected": {
+    "sun_up": true,
+    "earth_up": false
+   }
+  },
+  {
+   "id": "G10",
+   "question": "At Apollo 11 on 3 September 2031 at 03:00 UTC, is the Sun up and is Earth in view?",
+   "expected": {
+    "sun_up": true,
+    "earth_up": true
+   }
+  },
+  {
+   "id": "G11",
+   "question": "What share of January 2028 is the Sun up at de Gerlache Rim?",
+   "expected": {
+    "pct": 92.2
+   }
+  },
+  {
+   "id": "G12",
+   "question": "What is the longest time without Earth at Peak near Shackleton in March 2029?",
+   "expected": {
+    "hours": 178.0
+   }
+  },
+  {
+   "id": "G13",
+   "question": "My landing at Shackleton Rim was planned for 1 May 2027 00:00 UTC. When is the next landing that fits the default mission?",
+   "expected": {
+    "time": "2027-05-26T17:00:00Z",
+    "limits": "14 d, <=72 h without Sun, <=72 h without Earth, Sun+Earth up at landing (Scout defaults)"
+   }
+  },
+  {
+   "id": "G14",
+   "question": "My Connecting Ridge landing slipped to 14 June 2027 00:00 UTC. What is the next hour a landing fits?",
+   "expected": {
+    "time": "2027-06-21T17:00:00Z",
+    "limits": "14 d, <=72 h without Sun, <=72 h without Earth, Sun+Earth up at landing (Scout defaults)"
+   }
+  },
+  {
+   "id": "G15",
+   "question": "Compare Shackleton Rim and Connecting Ridge for sunlight in May 2027.",
+   "expected": {
+    "pct_any": [
+     52.0,
+     59.5
+    ]
+   }
+  },
+  {
+   "id": "G16",
+   "question": "Which month of 2027 has the most sunlight at Shackleton Rim?",
+   "expected": {
+    "month": "2027-09",
+    "pct": 100.0
+   }
+  },
+  {
+   "id": "G17",
+   "question": "How much of 2027 is Earth in view at IM-2 Athena's site?",
+   "expected": {
+    "pct": 92.1
+   }
+  },
+  {
+   "id": "G18",
+   "question": "What share of July 2027 is the Sun up at Blue Ghost 1's site?",
+   "expected": {
+    "pct": 47.8
+   }
+  },
+  {
+   "id": "G19",
+   "question": "Where exactly is Shackleton Rim? Give its latitude.",
+   "expected": {
+    "lat": -89.76
+   }
+  },
+  {
+   "id": "G20",
+   "question": "Which years does your data cover?",
+   "expected": {
+    "expect_words": [
+     "2026",
+     "2049"
+    ]
+   }
+  },
+  {
+   "id": "G21",
+   "question": "What share of May 2060 is the Sun up at Shackleton Rim?",
+   "expected": {
+    "no_number_expected": true,
+    "expect_words": [
+     "2049",
+     "cover",
+     "data",
+     "not"
+    ]
+   }
+  },
+  {
+   "id": "G22",
+   "question": "How much sunlight does Mars Base Alpha get in May 2027?",
+   "expected": {
+    "no_number_expected": true
+   }
+  },
+  {
+   "id": "G23",
+   "question": "What share of August 2027 is the Sun up at the Chandrayaan-3 site?",
+   "expected": {
+    "pct": 46.1
+   }
+  },
+  {
+   "id": "G24",
+   "question": "What is the longest time without the Sun at the SLIM site in February 2027?",
+   "expected": {
+    "hours": 269.0
+   }
+  },
+  {
+   "id": "G25",
+   "question": "How much of 2027 is the Sun up at Apollo 15?",
+   "expected": {
+    "pct": 46.3
+   }
+  }
+ ]
+}

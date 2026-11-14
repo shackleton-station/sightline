@@ -1,0 +1,9 @@
+## A: one copy, limits off
+{"clients":1,"per":3,"ipMode":"distinct","stream":false,"requests":3,"wallS":15.1,"okPerMin":12,"p50":5019,"p95":5113,"p99":5113,"max":5113,"statuses":{"200":3}}
+{"clients":10,"per":3,"ipMode":"distinct","stream":false,"requests":30,"wallS":15.2,"okPerMin":119,"p50":5011,"p95":5071,"p99":5073,"max":5073,"statuses":{"200":30}}
+{"clients":50,"per":3,"ipMode":"distinct","stream":false,"requests":150,"wallS":15.5,"okPerMin":581,"p50":5037,"p95":5273,"p99":5299,"max":5307,"statuses":{"200":150}}
+{"clients":100,"per":3,"ipMode":"distinct","stream":false,"requests":300,"wallS":15.5,"okPerMin":1161,"p50":5004,"p95":5301,"p99":5363,"max":5372,"statuses":{"200":300}}
+{"clients":200,"per":3,"ipMode":"distinct","stream":false,"requests":600,"wallS":16,"okPerMin":2246,"p50":5004,"p95":5719,"p99":5853,"max":5870,"statuses":{"200":600}}
+{"clients":400,"per":3,"ipMode":"distinct","stream":false,"requests":1200,"wallS":16.9,"okPerMin":4266,"p50":5018,"p95":6249,"p99":6505,"max":6566,"statuses":{"200":1200}}
+## A: streamed, 100 clients
+{"clients":100,"per":2,"ipMode":"distinct","stream":true,"requests":200,"wallS":11,"okPerMin":1094,"p50":5159,"p95":5764,"p99":5835,"max":5840,"statuses":{"200":200}}

@@ -1,0 +1,6 @@
+## B: live limits, 10 visitors on different networks, 3 questions each
+{"clients":10,"per":3,"ipMode":"distinct","stream":false,"requests":30,"wallS":15.3,"okPerMin":117,"p50":5053,"p95":5205,"p99":5252,"max":5252,"statuses":{"200":30}}
+## B: 20 people on ONE venue Wi-Fi (same IP), 1 question each
+{"clients":20,"per":1,"ipMode":"same","stream":false,"requests":20,"wallS":5.1,"okPerMin":175,"p50":72,"p95":5071,"p99":5071,"max":5071,"statuses":{"200":15,"429":5,"429 body":"{\"error\":\"busy\",\"retryAfterSeconds\":60}"}}
+## B: 100 visitors at once, different networks (burst over 60/min)
+{"clients":100,"per":1,"ipMode":"distinct","stream":false,"requests":100,"wallS":0.3,"okPerMin":3520,"p50":157,"p95":202,"p99":202,"max":202,"statuses":{"200":15,"429":85,"429 body":"{\"error\":\"busy\",\"retryAfterSeconds\":40}"}}
