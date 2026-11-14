@@ -5,6 +5,7 @@ import type { RiverState } from '../lib/river'
 import { degWords, isoAt, stateAt } from '../lib/sightline'
 import { bestIn, COMPARE_ROWS, type ScenarioMeasure, SCENARIO_LETTERS, shareHours, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { shortReason } from '../lib/sightlineSky'
+import { bestByPair, type ShareQuantity, type ShareTies } from '../lib/starTie'
 import { STATE_CHIP } from './states'
 import type { LandingShares } from './useScenarioFacts'
 
@@ -23,6 +24,8 @@ export interface PlannerRow {
   states?: (RiverState | null)[]
   /** For the verdict: whether each scenario fits; null while it is being worked out. */
   fits?: (boolean | null)[]
+  /** True when a star in this row was shared or withheld because two sites are closer than the model's measured error. */
+  tooClose?: boolean
 }
 
 /** Rows that belong together, under one name: the verdict, then what it rests on. */
@@ -51,24 +54,29 @@ export function bothPct(flags: SiteFlags, landing: number, mission: SightlineMis
  * undefined while its months load, null if it cannot be worked out). `compareGroups` puts them
  * under their headings, with the verdict, the landing hour and the science rows.
  */
-export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioMeasure | null)[], flags: (SiteFlags | null)[], mission: SightlineMission, sunlightWm2?: (number | null | undefined)[]): PlannerRow[] {
+export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioMeasure | null)[], flags: (SiteFlags | null)[], mission: SightlineMission, sunlightWm2?: (number | null | undefined)[], ties?: ShareTies): PlannerRow[] {
+  // The three shares of the mission: between two different sites a lead inside the model's measured error earns no star (lib/starTie.ts).
+  const starFor = (quantity: ShareQuantity, values: (number | null)[], tie: number) => (ties ? bestByPair(values, 'high', (i, j) => ties(quantity, i, j)) : { best: bestIn(values, 'high', tie), tooClose: false })
   const write = (value: number | null, known: boolean, digits: number) => (value === null ? (known ? '?' : null) : value.toFixed(digits))
   const hours = (value: number | null) => (value === null ? null : shareHours(value, mission.requirements.missionDays))
   const rows: PlannerRow[] = COMPARE_ROWS.map((row) => {
     const values = measures.map((measure) => measure?.[row.key] ?? null)
+    const star = row.key === 'sunPct' ? starFor('sun', values, row.tie) : row.key === 'earthPct' ? starFor('earth', values, row.tie) : { best: bestIn(values, row.better, row.tie), tooClose: false }
     return {
       key: row.key,
       label: row.label,
       cells: values.map((value, i) => write(value, measures[i] !== null, row.digits)),
       notes: values.map((value) => (row.share ? hours(value) : null)),
-      best: bestIn(values, row.better, row.tie),
+      best: star.best,
+      tooClose: star.tooClose,
     }
   })
   const both = scenarios.map((scenario, i) => {
     const site = flags[i]
     return site ? bothPct(site, scenario.landing, mission) : null
   })
-  rows.splice(4, 0, { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), notes: both.map(hours), best: bestIn(both, 'high', 0.5) })
+  const bothStar = starFor('both', both, 0.5)
+  rows.splice(4, 0, { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), notes: both.map(hours), best: bothStar.best, tooClose: bothStar.tooClose })
   if (sunlightWm2) {
     const sunlight = sunlightWm2.map((value) => value ?? null)
     rows.splice(5, 0, {
@@ -157,6 +165,8 @@ export interface CompareInput {
   sunlightWm2?: (number | null | undefined)[]
   /** The distances to permanent shadow; null until the file has loaded. */
   shadow: ShadowDistances | null
+  /** How close two scenarios' shares of the mission must be to share the star; without it, half a point for every pair. */
+  ties?: ShareTies
 }
 
 /**
@@ -164,8 +174,8 @@ export interface CompareInput {
  * reasons, in the column's short words), then at landing, power, radio, the ground and science.
  * Every figure is one the app already measures; none is blended into a score.
  */
-export function compareGroups({ scenarios, siteIds, measures, flags, mission, landings, sunlightWm2, shadow }: CompareInput): PlannerGroup[] {
-  const numbers = plannerRows(scenarios, measures, flags, mission, sunlightWm2)
+export function compareGroups({ scenarios, siteIds, measures, flags, mission, landings, sunlightWm2, shadow, ties }: CompareInput): PlannerGroup[] {
+  const numbers = plannerRows(scenarios, measures, flags, mission, sunlightWm2, ties)
   const rows = (...keys: string[]) => keys.flatMap((key) => numbers.filter((one) => one.key === key))
   const none = scenarios.map(() => false)
   const blank = scenarios.map(() => null)

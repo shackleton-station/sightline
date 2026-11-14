@@ -1,3 +1,4 @@
+import { TOO_CLOSE_NOTE } from '../lib/starTie'
 import { type CSSProperties, useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
@@ -209,6 +210,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
         </table>
       </div>
       <p className="sl-quiet">★ best in its row</p>
+      {groups.some((group) => group.rows.some((row) => row.tooClose)) && <p className="sl-quiet sl-too-close">{TOO_CLOSE_NOTE}</p>}
 
       <h3>Each mission from its own landing</h3>
       <p className="sl-quiet">Days since landing. Every row starts at its own landing, so two landings can be compared band for band.</p>
