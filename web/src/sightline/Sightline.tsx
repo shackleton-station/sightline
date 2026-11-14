@@ -73,7 +73,9 @@ import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
 import { LayersDrawer } from './LayersDrawer'
 import { RoverDrawer } from './RoverDrawer'
+import { LightChart } from './LightChart'
 import { MissionDrawer, MissionInline } from './MissionDrawer'
+import { useMissionLight } from './useMissionLight'
 import { useTrekOverlay } from './useTrekOverlay'
 import { Fields, PlanColumn, Verdict } from './PlanColumn'
 import { Rail, type StageMode } from './Rail'
@@ -767,6 +769,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // The mission's limits open in the column, under the mission's own control; the Mission panel is kept for its Advanced controls.
   const [missionHere, setMissionHere] = useState(false)
   const toggleMission = () => setMissionHere((open) => !open)
+  // The Sun and Earth over the mission, charted at the column's foot: read while Plan is on show and the mission's limits are shut (open, they take its room).
+  const missionLight = useMissionLight(site, scenario.landing, start, held, lit.applied, mission.requirements.missionDays, plan && !full && !missionHere)
   const pointedState = pointed ? states.get(pointed.id) : undefined
   const line = pointed && pointedState ? `${pointed.name}: ${STATE_WORDS[pointedState]}.` : 'Pick a site, or just watch.'
   const shown = plan && !bare
@@ -955,6 +959,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                 </>
               }
             />
+            {!missionHere && <LightChart light={missionLight} start={start} landing={scenario.landing} missionDays={mission.requirements.missionDays} />}
           </PlanColumn>
           {/* The skyline in 2D, with the Sun's and Earth's paths: above the time bar in Orbit and Site, folded until it is
               asked for (the time bar's readout is its door), so folded it takes no room at all. The Surface view shows the
