@@ -1,0 +1,222 @@
+{
+ "service": "JPL Horizons API",
+ "url": "https://ssd.jpl.nasa.gov/api/horizons.api",
+ "ephemeris": "DE441",
+ "made": "2026-11-13",
+ "range": {
+  "start": "2026-01-01T00:00:00",
+  "end": "2050-01-01T00:00:00",
+  "step_h": 1
+ },
+ "shipped_rounding_deg": 0.01,
+ "sites": {
+  "connecting-ridge": {
+   "hours": 210384,
+   "max_deg": 0.0071,
+   "typical_deg": 0.004,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "alt_km": 1.958416
+  },
+  "shackleton-rim": {
+   "hours": 210384,
+   "max_deg": 0.0071,
+   "typical_deg": 0.004,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.004
+   },
+   "alt_km": 1.731217
+  },
+  "peak-near-shackleton": {
+   "hours": 210384,
+   "max_deg": 0.0071,
+   "typical_deg": 0.004,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "alt_km": 1.650322
+  },
+  "de-gerlache-rim": {
+   "hours": 210384,
+   "max_deg": 0.0071,
+   "typical_deg": 0.004,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "alt_km": 1.816129
+  },
+  "apollo-11": {
+   "hours": 210384,
+   "max_deg": 0.007,
+   "typical_deg": 0.0031,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.0033
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0056,
+    "typical_deg": 0.0028
+   },
+   "alt_km": -1.932901
+  },
+  "apollo-15": {
+   "hours": 210384,
+   "max_deg": 0.007,
+   "typical_deg": 0.0032,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.0035
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0057,
+    "typical_deg": 0.0029
+   },
+   "alt_km": -1.923189
+  },
+  "apollo-17": {
+   "hours": 210384,
+   "max_deg": 0.007,
+   "typical_deg": 0.0032,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.0034
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0061,
+    "typical_deg": 0.0031
+   },
+   "alt_km": -2.626737
+  },
+  "blue-ghost-1": {
+   "hours": 210384,
+   "max_deg": 0.007,
+   "typical_deg": 0.0036,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.0034
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0069,
+    "typical_deg": 0.0038
+   },
+   "alt_km": -3.648264
+  },
+  "im-1-odysseus": {
+   "hours": 210384,
+   "max_deg": 0.0071,
+   "typical_deg": 0.004,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.004
+   },
+   "alt_km": 2.593966
+  },
+  "im-2-athena": {
+   "hours": 210384,
+   "max_deg": 0.0071,
+   "typical_deg": 0.004,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0071,
+    "typical_deg": 0.004
+   },
+   "alt_km": 5.323906
+  },
+  "chandrayaan-3": {
+   "hours": 210384,
+   "max_deg": 0.007,
+   "typical_deg": 0.0039,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.0039
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.0039
+   },
+   "alt_km": 0.531988
+  },
+  "slim": {
+   "hours": 210384,
+   "max_deg": 0.007,
+   "typical_deg": 0.0031,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.0034
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0058,
+    "typical_deg": 0.0029
+   },
+   "alt_km": -0.914695
+  },
+  "change-4": {
+   "hours": 210384,
+   "max_deg": 0.007,
+   "typical_deg": 0.0035,
+   "sun": {
+    "hours": 210384,
+    "max_deg": 0.007,
+    "typical_deg": 0.0037
+   },
+   "earth": {
+    "hours": 210384,
+    "max_deg": 0.0063,
+    "typical_deg": 0.0034
+   },
+   "alt_km": -5.928878
+  }
+ }
+}

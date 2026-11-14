@@ -1,0 +1,1 @@
+{"range":{"start":"2027-06-01T00:00:00Z","end":"2027-07-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":49.7,"pct_earth":0.0,"pct_both":0.0,"max_sun_gap_h":362.0,"max_earth_gap_h":720.0,"sun_windows":[{"start":"2027-06-01T00:00:00Z","end":"2027-06-12T00:00:00Z"},{"start":"2027-06-27T02:00:00Z","end":"2027-07-01T00:00:00Z"}],"earth_windows":[]}

@@ -1,0 +1,1 @@
+{"range":{"start":"2030-09-01T00:00:00Z","end":"2030-10-01T00:00:00Z","step_h":1},"obs_height_m":2.0,"pct_sun":100.0,"pct_earth":51.5,"pct_both":51.5,"max_sun_gap_h":0.0,"max_earth_gap_h":277.0,"sun_windows":[{"start":"2030-09-01T00:00:00Z","end":"2030-10-01T00:00:00Z"}],"earth_windows":[{"start":"2030-09-04T00:00:00Z","end":"2030-09-19T11:00:00Z"}]}

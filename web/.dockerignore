@@ -1,0 +1,11 @@
+# Keep the image small and secrets out of it.
+node_modules
+dist
+dist-server
+dist-worker
+dist-plans
+dist-copilot
+# 1.5 GB of terrain tiles: they live in Cloud Storage, never in the image.
+public/tiles
+.env*
+*.log
