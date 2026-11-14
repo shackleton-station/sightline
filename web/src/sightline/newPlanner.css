@@ -1384,3 +1384,21 @@
 .sl-np .np-tally strong {
   font-size: 1.75rem;
 }
+
+/* The brief stays in view beside the cards and the grid, with its own scroll. */
+.sl-np .pl-answer.sl-fp-brief {
+  position: sticky;
+  top: 5.5rem;
+  max-height: calc(100vh - 6.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1180px) {
+  .sl-np .pl-answer.sl-fp-brief {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}

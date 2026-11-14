@@ -174,13 +174,9 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   // A square chosen with the pointer: bring the brief up if it is out of sight, so the click visibly answers. Keyboard choices stay on the grid.
   const briefRef = useRef<HTMLDivElement>(null)
   const pick = useCallback((siteId: string, month: string, byPointer = false) => {
-    // A bar chosen with the pointer: back to the top, where the brief for it starts. Started before the
-    // choice redraws the page, so the scroll begins at once rather than after the new brief is worked out.
-    if (byPointer) {
-      const page = briefRef.current?.closest('.sl-np')
-      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      page?.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' })
-    }
+    // A bar chosen with the pointer: the page stays where it is; the brief, which stays in view beside
+    // the grid, goes back to its own top so the new answer reads from the start.
+    if (byPointer) briefRef.current?.scrollTo({ top: 0 })
     choose({ site: siteId, month, index: null })
   }, [choose])
   /** A landing at an exact time, at this site or another. */
