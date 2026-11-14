@@ -1,0 +1,984 @@
+/* Surface: the view from the lander's eye. The picture fills the window, like a camera's
+   viewfinder: hairlines, small capitals and fixed-width numbers over it, one plain sentence for the
+   answer. Sun gold, Earth blue and the violet accent are the site's own (index.css); orange is kept
+   for the one thing that is not true to scale. */
+.surface {
+  --sf-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  --sf-line: rgb(238 241 248 / 26%);
+  --sf-glass: rgb(8 9 15 / 72%);
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  color: var(--text);
+  color-scheme: dark;
+}
+
+.sf-main {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.surface button,
+.surface select {
+  font: inherit;
+  color: var(--text);
+}
+
+.surface button:focus-visible,
+.surface select:focus-visible,
+.surface input:focus-visible,
+.surface summary:focus-visible,
+.sf-stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- The picture ---------- */
+.sf-view {
+  position: absolute;
+  inset: 0;
+}
+
+.sf-stage {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sf-stage:active {
+  cursor: grabbing;
+}
+
+.sf-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sf-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sf-eye-level {
+  fill: none;
+  stroke: rgb(238 241 248 / 20%);
+  stroke-dasharray: 2 7;
+}
+
+.sf-scale line {
+  stroke: var(--sf-line);
+}
+
+.sf-scale text {
+  fill: var(--muted);
+  font: 13px var(--sf-mono);
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 3px;
+}
+
+.sf-scale.zero line {
+  stroke: var(--text);
+}
+
+.sf-scale.zero text {
+  fill: var(--text);
+}
+
+.sf-hour {
+  opacity: 0.75;
+}
+
+.sf-hour.sun {
+  fill: var(--sun);
+  stroke: var(--sun);
+}
+
+.sf-hour.earth {
+  fill: var(--earth);
+  stroke: var(--earth);
+}
+
+.sf-hour.hidden {
+  fill: none;
+  opacity: 0.5;
+}
+
+.sf-tag text {
+  font: 700 13px var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 4px;
+}
+
+.sf-tag.sun {
+  color: var(--sun);
+}
+
+.sf-tag.earth {
+  color: var(--earth);
+}
+
+.sf-tag text {
+  fill: currentColor;
+}
+
+.sf-tag ellipse {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+
+/* ---------- Site and month ---------- */
+.sf-where {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sf-where select {
+  min-height: 40px;
+  max-width: 15rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--sf-glass);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sf-where select:hover {
+  border-color: var(--muted);
+}
+
+/* ---------- Compass ---------- */
+.sf-compass {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  z-index: 1;
+  width: min(560px, 42vw);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.sf-compass-tape {
+  position: relative;
+  height: 40px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--sf-line);
+  /* The far ends are behind the visitor: they fade out, so a mark slipping round the back doesn't jump. */
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+}
+
+.sf-compass-field {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  height: 14px;
+  min-width: 3px;
+  border: 1px solid rgb(238 241 248 / 55%);
+  border-bottom: 0;
+  background: rgb(238 241 248 / 9%);
+  transform: translateX(-50%);
+}
+
+.sf-tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--sf-line);
+}
+
+.sf-tick.major {
+  height: 8px;
+  background: rgb(238 241 248 / 45%);
+}
+
+.sf-tick.cardinal {
+  height: 11px;
+  background: var(--text);
+}
+
+.sf-tick b {
+  position: absolute;
+  bottom: 15px;
+  left: 0;
+  color: var(--muted);
+  font: 13px var(--sf-mono);
+  transform: translateX(-50%);
+}
+
+.sf-tick.cardinal b {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.sf-mark {
+  position: absolute;
+  bottom: -1px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 2px #000;
+}
+
+.sf-mark.sun {
+  color: var(--sun);
+}
+
+.sf-mark.earth {
+  color: var(--earth);
+}
+
+.sf-mark.hidden {
+  background: #000;
+}
+
+.sf-compass-needle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(#fff 0 30%, transparent 30% 62%, #fff 62%);
+}
+
+.sf-compass-facing {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font: 13px var(--sf-mono);
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px #000;
+}
+
+.sf-compass-facing strong {
+  color: var(--text);
+}
+
+/* ---------- Lens: zoom and stretch ---------- */
+.sf-lens {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+  display: grid;
+  justify-items: end;
+  gap: 0.45rem;
+}
+
+.sf-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sf-zoom button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--sf-glass);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sf-zoom button:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.sf-zoom button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sf-zoom input {
+  width: 132px;
+  accent-color: var(--text);
+}
+
+.sf-lens-says {
+  margin: 0;
+  color: var(--muted);
+  font: 13px var(--sf-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 0 6px #000;
+}
+
+.sf-stretch {
+  min-height: 40px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--sf-glass);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sf-stretch:hover {
+  border-color: var(--muted);
+}
+
+.sf-stretch[aria-pressed='true'] {
+  border-color: var(--warning);
+  background: var(--warning);
+  color: #1a0d05;
+}
+
+.sf-lens-says strong {
+  color: var(--warning);
+}
+
+/* Said on the picture whenever heights are stretched: impossible to miss, and one tap from true scale. */
+.sf-stretched {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0.3rem 0.35rem 0.3rem 0.9rem;
+  border: 1px solid var(--warning);
+  border-radius: 999px;
+  background: rgb(38 17 6 / 92%);
+  color: var(--warning);
+  font: 700 14px var(--sf-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.sf-stretched button {
+  min-height: 32px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--warning);
+  color: #1a0d05;
+  font: 700 13px var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+
+/* ---------- The answer ---------- */
+.sf-answer {
+  position: absolute;
+  bottom: 20px;
+  /* Clear of the scale of elevations down the left edge. */
+  left: 96px;
+  z-index: 1;
+  max-width: min(36rem, 52vw);
+  pointer-events: none;
+  text-shadow: 0 1px 10px #000, 0 0 2px #000;
+}
+
+.sf-answer-where {
+  margin: 0 0 0.3rem;
+  color: var(--muted);
+  font: 13px var(--sf-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sf-answer h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+
+.sf-answer-next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.4rem;
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.sf-answer-next span {
+  color: var(--text);
+}
+
+.sf-answer-next span::before,
+.sf-face button::before {
+  content: '';
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sf-answer-next .sun::before,
+.sf-face .sun::before {
+  background: var(--sun);
+}
+
+.sf-answer-next .earth::before,
+.sf-face .earth::before {
+  background: var(--earth);
+}
+
+.sf-answer-detail {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0.8rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--sf-line);
+  font-size: 0.9375rem;
+}
+
+.sf-answer-detail div {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.sf-answer-detail dt {
+  color: var(--muted);
+  font: 13px var(--sf-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sf-answer-detail dt.sun {
+  color: var(--sun);
+}
+
+.sf-answer-detail dt.earth {
+  color: var(--earth);
+}
+
+.sf-answer-detail dd {
+  margin: 0;
+  color: #d3d7e6;
+}
+
+/* ---------- Turning to face, the phone, and what is drawn ---------- */
+.sf-actions {
+  position: absolute;
+  right: 16px;
+  bottom: 20px;
+  z-index: 2;
+  display: grid;
+  justify-items: end;
+  gap: 0.55rem;
+  max-width: 26rem;
+}
+
+.sf-face {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sf-face button,
+.sf-motion {
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--sf-glass);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sf-face button:hover,
+.sf-motion:hover {
+  border-color: var(--muted);
+}
+
+.sf-face button[aria-pressed='true'],
+.sf-motion[aria-pressed='true'] {
+  border-color: var(--text);
+}
+
+.sf-face .sun[aria-pressed='true'] {
+  border-color: var(--sun);
+}
+
+.sf-face .earth[aria-pressed='true'] {
+  border-color: var(--earth);
+}
+
+.sf-motion-says {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: right;
+  text-shadow: 0 0 6px #000;
+}
+
+.sf-motion-says.problem {
+  color: var(--warning);
+}
+
+.sf-about {
+  justify-self: end;
+  font-size: 0.875rem;
+}
+
+.sf-about summary {
+  display: inline-block;
+  padding: 0.25rem 0;
+  color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--sf-line);
+  text-underline-offset: 3px;
+  list-style: none;
+  cursor: pointer;
+  text-align: right;
+  text-shadow: 0 0 6px #000;
+}
+
+.sf-about summary::-webkit-details-marker {
+  display: none;
+}
+
+.sf-about summary:hover {
+  color: var(--text);
+}
+
+.sf-about[open] summary {
+  color: var(--text);
+}
+
+/* Opens above the buttons, which stay where they are. */
+.sf-about ul {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  display: grid;
+  gap: 0.5rem;
+  width: min(27rem, calc(100vw - 2rem));
+  max-height: 60vh;
+  margin: 0 0 0.6rem;
+  overflow-y: auto;
+  padding: 0.85rem 1rem 0.85rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0a0b12;
+  color: #d3d7e6;
+  line-height: 1.45;
+}
+
+/* ---------- Loading, problems, notes ---------- */
+.sf-wait {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  color: var(--muted);
+  font-size: 1.0625rem;
+  text-align: center;
+}
+
+.sf-wait p {
+  margin: 0;
+  max-width: 34rem;
+}
+
+.sf-wait.problem p {
+  color: var(--text);
+}
+
+/* A bare horizon with a light crossing it, where the picture will be. */
+.sf-wait-line {
+  position: relative;
+  width: min(60vw, 28rem);
+  height: 1px;
+  overflow: hidden;
+  background: var(--sf-line);
+}
+
+.sf-wait-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--sun), transparent);
+  transform: translateX(-100%);
+  animation: sf-crossing 1.6s ease-in-out infinite;
+}
+
+.sf-wait.problem .sf-wait-line::after {
+  display: none;
+}
+
+@keyframes sf-crossing {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.sf-wait button {
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border: 1px solid var(--muted);
+  border-radius: 999px;
+  background: transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Said under the tabs when a link names a place this tab can't stand on. */
+.sf-notice {
+  position: relative;
+  margin: 0;
+  padding: 0.6rem 3.2rem 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: #0a0b13;
+  font-size: 0.9375rem;
+}
+
+.sf-notice a {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sf-notice button {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.sf-pending {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgb(8 9 15 / 94%);
+  color: var(--muted);
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+/* No graphics: the same horizon, unrolled flat, with the answer under it. */
+.sf-main:has(.sf-flat) {
+  overflow-y: auto;
+}
+
+.sf-flat {
+  position: relative;
+  inset: auto;
+  display: grid;
+  gap: 0.8rem;
+  padding: 70px 20px 12px;
+}
+
+.sf-flat p {
+  max-width: 46rem;
+  margin: 0;
+  color: var(--muted);
+}
+
+.sf-flat ~ .sf-answer {
+  position: static;
+  max-width: 46rem;
+  padding: 8px 20px 20px;
+}
+
+/* ---------- Time ---------- */
+.sf-river {
+  padding: 0.6rem 1rem 0.45rem;
+  border-top: 1px solid var(--border);
+  background: #0a0b13;
+}
+
+/* ---------- Narrower windows: the compass drops under the menus ---------- */
+@media (max-width: 1100px) {
+  .sf-compass {
+    top: 62px;
+    width: min(560px, calc(100% - 2rem));
+  }
+
+  .sf-stretched {
+    top: 132px;
+  }
+
+}
+
+/* ---------- Phones: the picture on top, the answer and buttons under it, time at the bottom ---------- */
+@media (max-width: 700px) {
+  .sf-main:not(:has(.sf-flat)) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+
+  .sf-view {
+    position: relative;
+    inset: auto;
+    min-height: 0;
+  }
+
+  .sf-where {
+    top: 8px;
+    right: 8px;
+    left: 8px;
+  }
+
+  .sf-where select {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .sf-compass {
+    top: 54px;
+    width: calc(100% - 16px);
+  }
+
+  .sf-tick:not(.cardinal) b {
+    display: none;
+  }
+
+  .sf-stretched {
+    top: 116px;
+    right: 8px;
+    left: 8px;
+    justify-content: space-between;
+    padding-left: 0.8rem;
+    font: 700 0.9375rem var(--sans);
+    letter-spacing: 0;
+    text-transform: none;
+    transform: none;
+  }
+
+  .sf-lens {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    grid-template-columns: auto auto;
+    align-items: center;
+    justify-items: end;
+    gap: 0.4rem 0.5rem;
+  }
+
+  .sf-zoom input {
+    display: none;
+  }
+
+  .sf-lens-says {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .sf-stretch {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .sf-zoom {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .sf-answer,
+  .sf-actions {
+    position: static;
+    inset: auto;
+    max-width: none;
+  }
+
+  .sf-answer {
+    padding: 0.6rem 0.9rem 0;
+    pointer-events: auto;
+    text-shadow: none;
+  }
+
+  .sf-answer-where,
+  .sf-answer-detail {
+    display: none;
+  }
+
+  .sf-answer h1 {
+    font-size: 1.25rem;
+  }
+
+  .sf-answer-next {
+    margin-top: 0.3rem;
+    font-size: 0.9375rem;
+  }
+
+  .sf-actions {
+    position: relative;
+    inset: auto;
+    justify-items: stretch;
+    gap: 0.45rem;
+    padding: 0.6rem 0.9rem 0.5rem;
+  }
+
+  .sf-about ul {
+    right: 0.5rem;
+    left: 0.5rem;
+    width: auto;
+    max-height: 46vh;
+  }
+
+  .sf-face button {
+    flex: 1 1 0;
+    padding: 0 0.5rem;
+  }
+
+  .sf-motion-says,
+  .sf-about summary {
+    text-align: left;
+  }
+
+  .sf-about {
+    justify-self: start;
+  }
+
+  .sf-river {
+    padding: 0.5rem 0.75rem calc(0.4rem + env(safe-area-inset-bottom));
+  }
+
+  .sf-flat {
+    padding: 60px 12px 8px;
+  }
+}
+
+/* ---------- Short and wide (a phone on its side): one row of controls, the answer in one line ---------- */
+@media (max-height: 520px) and (min-width: 701px) {
+  .sf-where {
+    top: 8px;
+    left: 8px;
+  }
+
+  .sf-where select {
+    min-height: 36px;
+    max-width: 9.5rem;
+  }
+
+  .sf-compass {
+    top: 6px;
+    width: min(300px, 34vw);
+  }
+
+  .sf-tick:not(.cardinal) b {
+    display: none;
+  }
+
+  .sf-stretched {
+    top: 72px;
+  }
+
+  .sf-lens {
+    top: 8px;
+    right: 8px;
+    gap: 0.3rem;
+  }
+
+  .sf-zoom input {
+    display: none;
+  }
+
+  .sf-zoom button,
+  .sf-stretch {
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .sf-zoom button {
+    width: 36px;
+  }
+
+  .sf-answer {
+    bottom: 8px;
+    left: 84px;
+    max-width: 46vw;
+  }
+
+  .sf-answer-where,
+  .sf-answer-detail {
+    display: none;
+  }
+
+  .sf-answer h1 {
+    font-size: 1.15rem;
+  }
+
+  .sf-answer-next {
+    margin-top: 0.2rem;
+    font-size: 0.9375rem;
+  }
+
+  .sf-actions {
+    right: 8px;
+    bottom: 8px;
+    gap: 0.3rem;
+  }
+
+  .sf-face button,
+  .sf-motion {
+    min-height: 38px;
+  }
+
+  .sf-about summary {
+    padding: 0;
+  }
+
+  .sf-river {
+    padding: 0.35rem 0.75rem 0.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-wait-line::after {
+    animation: none;
+    transform: none;
+    opacity: 0.5;
+  }
+}

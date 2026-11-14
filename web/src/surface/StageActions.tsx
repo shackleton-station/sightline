@@ -1,0 +1,65 @@
+import type { BodyRadii } from '../lib/surfaceView'
+import { type MotionStatus, motionWords } from './useMotionLook'
+import type { Body } from './useLook'
+
+interface Props {
+  following: Body | null
+  onFace: (body: Body) => void
+  /** Whether to offer looking around with the motion sensor: on phones and tablets only. */
+  offerMotion: boolean
+  motion: MotionStatus
+  onMotion: () => void
+  /** The Sun's and Earth's radii this hour (degrees), for saying how big they are drawn. */
+  radii: BodyRadii
+  obsHeightM: number
+}
+
+const across = (radiusDeg: number) => (2 * radiusDeg).toFixed(2)
+
+/** The buttons under the picture: face the Sun or Earth, steer with the phone, and what is drawn. */
+export function StageActions({ following, onFace, offerMotion, motion, onMotion, radii, obsHeightM }: Props) {
+  const steering = motion === 'on' || motion === 'asking'
+  const words = motionWords(motion)
+  return (
+    <div className="sf-actions">
+      <div className="sf-face" role="group" aria-label="Turn to face">
+        <button type="button" className="sun" aria-pressed={following === 'sun'} onClick={() => onFace('sun')}>
+          Face the Sun
+        </button>
+        <button type="button" className="earth" aria-pressed={following === 'earth'} onClick={() => onFace('earth')}>
+          Face Earth
+        </button>
+      </div>
+      {offerMotion && (
+        <button type="button" className="sf-motion" aria-pressed={steering} onClick={onMotion}>
+          {steering ? 'Stop following the phone' : 'Look around by moving your phone'}
+        </button>
+      )}
+      {words && (
+        <p className={motion === 'on' || motion === 'asking' ? 'sf-motion-says' : 'sf-motion-says problem'} role="status">
+          {words}
+        </p>
+      )}
+      <details className="sf-about">
+        <summary>What this picture is</summary>
+        <ul>
+          <li>
+            The land is this site’s horizon, computed from NASA’s LOLA terrain for a point {obsHeightM} m above the ground: 720 directions, joined by
+            straight lines. It is a flat shape. Nothing on it is lit or modelled.
+          </li>
+          <li>
+            The Sun and Earth are where the ephemeris puts them this hour, at the size they have from here: {across(radii.sun)}° and{' '}
+            {across(radii.earth)}° across. One the model counts as hidden is outlined, not drawn.
+          </li>
+          <li>Earth’s lit part is its true phase. Its face is NASA’s Blue Marble picture, for looks: which side faces the Moon is not modelled.</li>
+          <li>The glow round the Sun is camera glare, to help find it. The stars are decoration, not a star map.</li>
+          <li>
+            The data is hourly. The dots are where the Sun and Earth are on the hour, from a day before to two days after (every few hours where they
+            would run together): filled where the model has them up.
+            Between two hours the disks slide in a straight line, and come to rest on the hour’s own position.
+          </li>
+        </ul>
+      </details>
+    </div>
+  )
+}
