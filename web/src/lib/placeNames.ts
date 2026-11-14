@@ -40,6 +40,15 @@ export interface NamedMarker {
 
 /** Names are not printed this near the rim, where the ground turns away and they would crowd. */
 export const MIN_FACING = 0.25
+/** The Moon's mean radius in km, for how many pixels a feature spans at a zoom. */
+const MOON_RADIUS_KM = 1737.4
+/**
+ * Features this wide or wider (km), and every sea, are named at any zoom: they are the whole Moon's
+ * landmarks. A smaller one (the craters and mountains round the south pole) is named only when the
+ * view is close enough for it to have room: when it spans at least `ROOM_PX` on the screen.
+ */
+export const ALWAYS_NAMED_KM = 280
+export const ROOM_PX = 26
 /** The size the names are printed at (placeNames.css), for working out the room one takes. */
 const CHAR_PX = 5.8
 const HEIGHT_PX = 13
@@ -86,7 +95,8 @@ export function fitNames(candidates: PlacedName[], sizePx: number, taken: NameBo
  * Every place that faces the viewer, as candidates in the order they are given room: the earlier
  * landings first, then the named features, widest first. `place` is the globe's own camera: where
  * a latitude and longitude lies on the disc (-1 to 1 each way, y up) and how squarely it faces us;
- * `zoom` and `sizePx` are the globe's.
+ * `zoom` and `sizePx` are the globe's. A smaller feature is a candidate only when the view is close
+ * enough for it to have room (`ROOM_PX`).
  */
 export function nameCandidates(features: MoonFeatures, place: (lat: number, lon: number) => { x: number; y: number; facing: number }, zoom: number, sizePx: number): PlacedName[] {
   const at = (key: string, text: string, kind: string, lat: number, lon: number): PlacedName[] => {
@@ -94,6 +104,9 @@ export function nameCandidates(features: MoonFeatures, place: (lat: number, lon:
     if (p.facing < MIN_FACING) return []
     return [{ key, text, kind, x: ((p.x * zoom + 1) / 2) * sizePx, y: ((1 - p.y * zoom) / 2) * sizePx }]
   }
-  const widest = [...features.names].sort((a, b) => b.diameter_km - a.diameter_km)
+  // How many pixels one km of ground at the middle of the disc takes at this zoom.
+  const pxPerKm = (zoom * sizePx) / (2 * MOON_RADIUS_KM)
+  const hasRoom = (name: MoonFeatures['names'][number]) => name.kind === 'mare' || name.diameter_km >= ALWAYS_NAMED_KM || name.diameter_km * pxPerKm >= ROOM_PX
+  const widest = features.names.filter(hasRoom).sort((a, b) => b.diameter_km - a.diameter_km)
   return [...features.landings.flatMap((landing) => at(`l:${landing.name}`, landing.name, 'landing', landing.lat, landing.lon)), ...widest.flatMap((name) => at(`n:${name.name}`, name.name, name.kind, name.lat, name.lon))]
 }

@@ -1,4 +1,5 @@
-"""Named places on the Moon for the globe: big IAU features, plus past landings for orientation.
+"""Named places on the Moon for the globe: big IAU features, the smaller ones round the south pole
+where the app's own sites are, and past landings for orientation.
 
 Names and centers come from the IAU Gazetteer of Planetary Nomenclature (USGS points shapefile).
 Its longitudes run 0–360° east; ours run -180–180°. Nothing here is used in any calculation.
@@ -29,6 +30,14 @@ KIND_BY_CODE: dict[str, str] = {
 }
 #: Only features at least this wide (km), so the globe isn't crowded. Maria are always kept.
 MIN_DIAMETER_KM = 300.0
+#: Round the south pole smaller features are kept too: every adopted crater and mountain whose
+#: centre is at or south of this latitude (degrees) and that is at least this wide (km). The cut
+#: keeps Shackleton (21 km), de Gerlache, Haworth, Shoemaker, Faustini, Sverdrup, Nobile and
+#: Malapert, down to Spudis (13 km), and leaves out the craters of a few km named for one landing.
+#: The page prints one of these only when the view is close enough for it to have room.
+POLAR_MAX_LAT_DEG = -80.0
+POLAR_MIN_DIAMETER_KM = 10.0
+POLAR_KINDS = ("crater", "mountains")
 
 #: Landing sites the IAU has named, shown under the mission's name. Sites the app can already
 #: analyze (Apollo 11, Chang'e 4, Chandrayaan-3) are left out so they don't appear twice.
@@ -94,11 +103,17 @@ def select_names(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
         if kind is None or not row["approval"].startswith("Adopted"):
             continue
         diameter_km = float(row["diameter"])
-        if kind != "mare" and diameter_km < MIN_DIAMETER_KM:
+        polar = (
+            kind in POLAR_KINDS
+            and float(row["center_lat"]) <= POLAR_MAX_LAT_DEG
+            and diameter_km >= POLAR_MIN_DIAMETER_KM
+        )
+        if kind != "mare" and diameter_km < MIN_DIAMETER_KM and not polar:
             continue
         names.append(
             {
-                "name": row["clean_name"],
+                # The IAU's own spelling ("Schrödinger", "Idel'son") where the table has it.
+                "name": row.get("name") or row["clean_name"],
                 "kind": kind,
                 "lat": round(float(row["center_lat"]), 3),
                 "lon": round(east_lon(float(row["center_lon"])), 3),

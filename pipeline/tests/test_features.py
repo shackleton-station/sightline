@@ -75,6 +75,29 @@ def test_select_names_keeps_big_adopted_features_widest_first() -> None:
     assert names[0]["source_url"].startswith("https://")
 
 
+def test_select_names_keeps_smaller_craters_and_mountains_round_the_south_pole() -> None:
+    rows = [
+        row("Shackleton", "AA", 20.9, 129.78, -89.67),
+        row("Mons Mouton", "MO", 130, 31, -84.6),
+        row("Spudis", "AA", 13, 275.39, -89.51),
+        row("Marvin", "AA", 4.6, 272.22, -89.13),  # under the polar cut
+        row("Moretus", "AA", 114, 354.1, -70.6),  # not far enough south
+        row("Rupes Polar", "RU", 80, 10, -85),  # kind not shown
+        row("Polar North", "AA", 50, 10, 88),  # the north pole is not ours
+    ]
+    names = features.select_names(rows)
+    assert [n["name"] for n in names] == ["Mons Mouton", "Shackleton", "Spudis"]
+    assert [n["kind"] for n in names] == ["mountains", "crater", "crater"]
+    assert names[2]["lon"] == pytest.approx(-84.61)
+
+
+def test_select_names_uses_the_iau_spelling_when_the_table_has_it() -> None:
+    plain = row("Schrodinger", "AA", 316, 132.9, -74.7)
+    spelled = {**plain, "name": "Schrödinger"}
+    assert features.select_names([plain])[0]["name"] == "Schrodinger"
+    assert features.select_names([spelled])[0]["name"] == "Schrödinger"
+
+
 def test_select_landings_uses_mission_names_and_fails_loudly_when_missing() -> None:
     rows = [row(iau, "ST", 0.01, 340.5, 44.1) for iau in features.IAU_LANDINGS]
     landings = features.select_landings(rows)
