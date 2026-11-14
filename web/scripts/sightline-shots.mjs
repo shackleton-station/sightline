@@ -293,6 +293,58 @@ const MOON_STILL = (ms) => `(${MOON_FRAMES(ms)}).then((frames) => { const pictur
 const MOON_SMOOTH = (ms, { mean = 1.5, points = 12, least = 20 } = {}) => `(${MOON_FRAMES(ms)}).then((all) => { const first = all.findIndex((f) => f.mean > 0); const frames = first < 0 ? [] : all.slice(first); const pictures = new Set(frames.map((f) => f.sum)).size; if (pictures < ${least}) return 'only ' + pictures + ' different pictures in ' + frames.length + ' frames: the picture did not change as expected'; const bad = []; let resized = -9; for (let i = 1; i < frames.length; i += 1) { if (frames[i].w !== frames[i - 1].w) resized = i; if (i - resized < 4) continue; const step = Math.abs(frames[i].mean - frames[i - 1].mean); let moved = 0; for (let k = 0; k < frames[i].points.length; k += 1) if (Math.abs(frames[i].points[k] - frames[i - 1].points[k]) > 60) moved += 1; if (step > ${mean} || moved > ${points}) bad.push(Math.round(frames[i].t) + ' ms: mean ' + frames[i - 1].mean.toFixed(1) + ' to ' + frames[i].mean.toFixed(1) + ', ' + moved + ' points') } return bad.length === 0 || bad.length + ' frames jumped: ' + bad.slice(0, 4).join('; ') })`
 
 /**
+ * The wheel turned over the Moon, a little at every screen refresh, as a browser hands wheel events
+ * to a page: `steps` frames in, then as many out. True when the picture followed smoothly: it moved
+ * frame by frame (few frames repeating the one before), no frame changed its brightness far more
+ * than the frames either side of it (a jump), and, on a machine that is keeping up, no frame was
+ * longer than 34 ms. Whether the machine is keeping
+ * up is measured first, with the Moon untouched for a second and read the same way: if a frame runs
+ * past 34 ms even then, frame times are not judged, and the note says so. What was measured is kept
+ * in window.__wheel for the scene's note. Needs `frames: true`.
+ */
+const WHEEL_ZOOM = (steps = 45) => `(async () => {
+  const box = document.querySelector('.scout-globe canvas').getBoundingClientRect()
+  // A quarter of the disc up and to the left of its middle: on the Moon, and clear of the site's marker.
+  const disc = Number(document.querySelector('.scout-globe').dataset.discPx)
+  const x = box.left + box.width / 2 - disc / 4
+  const y = box.top + box.height / 2 - disc / 4
+  const under = document.elementFromPoint(x, y)
+  const gapsOf = (frames) => frames.slice(1).map((frame, i) => frame.t - frames[i].t)
+  const before = await ${MOON_FRAMES(1000)}
+  const slowestBefore = Math.max(0, ...gapsOf(before))
+  let turned = 0
+  const turn = () => {
+    if (turned >= ${2 * steps}) return
+    under.dispatchEvent(new WheelEvent('wheel', { deltaY: turned < ${steps} ? -30 : 30, clientX: x, clientY: y, bubbles: true, cancelable: true }))
+    turned += 1
+    requestAnimationFrame(turn)
+  }
+  requestAnimationFrame(turn)
+  const all = await ${MOON_FRAMES(Math.round(((2 * steps) / 60) * 1000) + 400)}
+  const first = all.findIndex((frame) => frame.mean > 0)
+  const frames = first < 0 ? [] : all.slice(first)
+  if (frames.length < ${steps}) return 'only ' + frames.length + ' frames were read while the wheel turned'
+  const gaps = gapsOf(frames)
+  const slowest = Math.max(...gaps)
+  const rate = Math.round((gaps.length * 1000) / (frames.at(-1).t - frames[0].t))
+  const keepingUp = slowestBefore <= 34
+  window.__wheel = rate + ' frames a second while the wheel turned, slowest frame ' + Math.round(slowest) + ' ms' + (keepingUp ? '' : ' (not judged: before the wheel turned, with nothing moving, the slowest frame was already ' + Math.round(slowestBefore) + ' ms, so this machine was not keeping up)')
+  // Only the frames while the picture was moving are judged: from its first change to its last.
+  const changed = frames.map((frame, i) => i > 0 && frame.sum !== frames[i - 1].sum)
+  const moving = frames.slice(Math.max(0, changed.indexOf(true) - 1), changed.lastIndexOf(true) + 1)
+  const repeats = moving.slice(1).filter((frame, i) => frame.sum === moving[i].sum).length
+  window.__wheel += '; ' + (moving.length - 1) + ' frames of movement, ' + repeats + ' of them repeating the frame before'
+  if (moving.length - 1 < ${Math.round(1.4 * steps)}) return 'the picture moved for only ' + (moving.length - 1) + ' frames while the wheel turned ' + ${2 * steps} + ' times: the zoom did not follow the wheel frame by frame (the wheel was turned over ' + under.tagName.toLowerCase() + ')'
+  if (repeats > (moving.length - 1) / 5) return repeats + ' of ' + (moving.length - 1) + ' frames repeated the frame before while the wheel turned: the zoom stutters'
+  // A jump is a frame whose change in brightness is over three times the change in the frame before and the frame after it.
+  const change = moving.slice(1).map((frame, i) => Math.abs(frame.mean - moving[i].mean))
+  const jumps = change.map((step, i) => (i > 0 && i < change.length - 1 && step > 8 && step > 3 * Math.max(1, change[i - 1], change[i + 1]) ? Math.round(moving[i + 1].t) + ' ms: ' + step.toFixed(1) + ' after ' + change[i - 1].toFixed(1) + ' and before ' + change[i + 1].toFixed(1) : null)).filter(Boolean)
+  if (jumps.length > 0) return jumps.length + ' frame(s) changed the picture far more than the frames either side (brightness of 765): ' + jumps.slice(0, 4).join('; ')
+  if (keepingUp && slowest > 34) return 'a frame took ' + Math.round(slowest) + ' ms while the wheel turned (34 ms at most on a machine that is keeping up; before the wheel, the slowest was ' + Math.round(slowestBefore) + ' ms)'
+  return true
+})()`
+
+/**
  * Earth's picture against the app's own Sun and Earth positions for an hour of 2027: true when,
  * with room all round the Moon, Earth is drawn on the bearing the ephemeris file gives it (within
  * 1°), its lit share is the file's (within 2 points), and its bright side faces the way the file
@@ -510,6 +562,8 @@ const SCENES = [
       ['Orbit, paused and untouched: every frame of the Moon is the same picture', MOON_STILL(2000), 5000],
       ['Orbit, time playing: the Moon\'s light moves smoothly, with no frame that jumps', `(${click('Play')}, true) && ${MOON_SMOOTH(8000)}`],
       ['one step of the zoom button glides: the picture changes over several frames, not in one', `(${click('Pause')}, true) && ${after(800, 'true')}.then(() => { [...document.querySelectorAll('.zoom-buttons button')].find((b) => b.getAttribute('aria-label') === 'Zoom in').click(); return ${MOON_FRAMES(1200)} }).then((frames) => { const pictures = new Set(frames.map((f) => f.sum)).size; return pictures >= 8 || 'the zoom step took ' + pictures + ' pictures' })`],
+      // After the button's glide has ended. The wheel turns in and then out by the same amount, so the view is back where it was.
+      ['the wheel zooms smoothly: a new picture nearly every frame, no jump, and no frame over 34 ms on a machine that is keeping up', `${after(900, 'true')}.then(() => ${WHEEL_ZOOM(45)})`],
       ['Site, paused and untouched (six seconds after arriving): every frame is the same picture', `(${click('Site')}, true) && ${after(6000, 'true')}.then(() => ${MOON_STILL(2000)})`],
       ['Site, time playing on the Moon\'s own picture: no frame jumps', `(${click('Play')}, true) && ${MOON_SMOOTH(4000)}`],
       ['"Light and shadow" switched on fades in: the shadow arrives with no frame that jumps', `(${click('Pause')}, ${click('Layers')}, true) && ${after(1200, 'true')}.then(() => { document.querySelector('.sl-layer-own input').click(); return ${MOON_SMOOTH(7000, { mean: 4, least: 5 })} })`],
@@ -517,6 +571,7 @@ const SCENES = [
       ['playing on into the next month: the light grid changes month with no frame that jumps', MOON_SMOOTH(8000)],
       ['paused again, the picture holds still', `(${click('Pause')}, true) && ${after(2500, 'true')}.then(() => ${MOON_STILL(1500)})`],
     ],
+    notes: [['wheel zoom over the Moon', "window.__wheel ?? 'not measured'"]],
   },
   {
     // Layers come and go by fading, and a close-up comes into focus: nothing is swapped in one frame.
