@@ -12,7 +12,7 @@ import { buildActions, DEFAULT_LIMITS, viewFrom } from './actions'
 import { LAST_ROUND, REFUSAL_TEXT, runChat, viewFacts } from './chat'
 import { siteData } from '../../shared/tools/data'
 import { buildPrompt, systemPrompt } from './prompt'
-import { renderAnswer } from './render'
+import { cleanFollowup, renderAnswer } from './render'
 import { optionalParameters, runTool } from '../../shared/tools/tools'
 
 // The tools run against the pipeline's real output, so these tests also pin the numbers they report.
@@ -103,6 +103,53 @@ describe('the co-pilot', () => {
     expect(renderAnswer('Apollo 11 and IM-1 Odysseus are far from the pole. Try the 3D view in 2028.', book, names).ok).toBe(true)
     expect(renderAnswer('Apollo 12 is not listed.', book, names).ok).toBe(false)
     expect(renderAnswer('That is outside the data, which ends before 2035.', book, names).ok).toBe(false)
+  })
+
+  it.each([
+    ['a number in words', 'The Sun is up ninety-nine percent of the time at Connecting Ridge.'],
+    ['a duration in words', 'You get sunlight for about fourteen days straight.'],
+    ['a small number with a unit', 'Earth is gone for five days at a time.'],
+    ['a fraction with a unit', 'The Sun is up about half the month.'],
+    ['a share in words', 'Earth is in view three quarters of the time, or one quarter of the year.'],
+    ['fullwidth digits', 'The Sun is up ９９% of the time.'],
+    ['Arabic-Indic digits', 'The Sun is up ٩٩% of the time.'],
+    ['superscript digits', 'Earth is up for ²⁴ hours.'],
+    ['a vulgar fraction', 'The Sun is up ½ of the time.'],
+    ['Roman numerals', 'Land on day XIV of the window.'],
+  ])('refuses a number the model wrote another way: %s', (_, draft) => {
+    const book = new Map([['r1', [{ key: 'pct_sun', label: 'Sun up', value: '59.5%' }]]])
+    const rendered = renderAnswer(draft, book, ['Connecting Ridge', '2027'])
+    expect(rendered.ok).toBe(false)
+    expect(rendered.ok ? '' : rendered.problem).toMatch(/number/)
+  })
+
+  it.each([
+    ['two sites', 'Compare the two sites side by side, or ask about one of them.'],
+    ['the first one', 'The first one is at Connecting Ridge.'],
+    ['half of the sites', 'Half of the sites are on the near side.'],
+    ['words that hold number words', 'Someone landing at Connecting Ridge has to wait behalf of nothing; often it is done.'],
+    ['initials', 'NASA, JPL, LOLA, CLPS and UTC are fine; so is the 3D view in 2027.'],
+    ['a reference with a unit after it', 'The longest stretch without the Sun is {{r1.gap}} hours.'],
+  ])('lets ordinary wording through: %s', (_, draft) => {
+    const book = new Map([['r1', [{ key: 'gap', label: 'Gap', value: '143' }]]])
+    expect(renderAnswer(draft, book, ['Connecting Ridge', '3D', '2027']).ok).toBe(true)
+  })
+
+  it('refuses a web address with or without a scheme, but not a site name', () => {
+    const book = new Map()
+    for (const draft of ['Read more at evil-example.com.', 'See www.example.org', 'Go to https://example.com', 'Visit nasa.gov for details.']) {
+      expect(renderAnswer(draft, book, []).ok, draft).toBe(false)
+    }
+    expect(renderAnswer("Chang'e 4 is on the far side.", book, ["Chang'e 4"]).ok).toBe(true)
+  })
+
+  it('drops follow-ups that write a number another way or hold an address', () => {
+    const allowed = ['Apollo 11', '2027']
+    expect(cleanFollowup('What about ninety days later?', allowed)).toBeNull()
+    expect(cleanFollowup('What about day ９?', allowed)).toBeNull()
+    expect(cleanFollowup('Visit evil-example.com', allowed)).toBeNull()
+    expect(cleanFollowup('Is Apollo 11 sunnier in 2027?', allowed)).toBe('Is Apollo 11 sunnier in 2027?')
+    expect(cleanFollowup('Compare the two sites?', allowed)).toBe('Compare the two sites?')
   })
 
   it('tells the model when a tool cannot answer, so it can correct itself', async () => {
