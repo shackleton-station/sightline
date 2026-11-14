@@ -20,6 +20,15 @@ describe.each(PROGRAMS)('shared mission plans, answered by $name', ({ site }) =>
     expect(brief['Checked against']).toContain('14-day mission')
   })
 
+  it('keeps what the Sightline screen adds to a view: the slope limit, the heights, the scenario on show, landing accuracy, the skyline, the Planner\'s tab and the open panel', async () => {
+    const app = site()
+    const whole = `${VIEW}&slope=8&hp=5&ha=10&sc=1&acc=250&accs=1.5&accd=40&sky=1&planner=compare&panel=compare`
+    const saved = await app.request(save({ title: 'The whole screen', view: `${whole}&evil=<script>&hp=7` }))
+    expect(saved.status).toBe(201)
+    const { id } = (await saved.json()) as { id: string }
+    expect(((await (await app.request(`${ORIGIN}/api/plans/${id}`)).json()) as { plan: { view: string } }).plan.view).toBe(whole)
+  })
+
   it('stores only views the app can open, rewritten by the server', async () => {
     const app = site()
     const junk = await app.request(save({ title: 'x', view: `${VIEW}&evil=<script>` }))
