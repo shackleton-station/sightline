@@ -1,5 +1,6 @@
 import { hourOf } from '../src/lib/mission'
-import { decodeView, encodeView, parseCustomSite, type ViewState } from '../src/lib/urlState'
+import { cleanPlanView } from '../src/lib/planView'
+import { parseCustomSite, type ViewState } from '../src/lib/urlState'
 import { originAllowed, reply, visitorOf } from '../shared/http'
 import { ID_LETTERS, newId } from '../shared/ids'
 import { type Identity, whoIs } from '../shared/identity'
@@ -137,18 +138,20 @@ async function savePlan(request: Request, deps: PlansDeps, limits: PlanLimits, d
   }
   const title = line(body?.title, MAX_TITLE)
   const note = line(body?.note ?? '', MAX_NOTE)
-  // The view is decoded and written out again, so only what the app itself can open is stored.
-  const view = typeof body?.view === 'string' && body.view.length <= 1500 ? decodeView(body.view, DEFAULT_LIMITS) : null
+  // The view is read and written out again, so only what the app itself can open is stored: the
+  // app's own link, and the values the Sightline screen adds to it (src/lib/planView.ts).
+  const cleaned = typeof body?.view === 'string' && body.view.length <= 1500 ? cleanPlanView(body.view, DEFAULT_LIMITS) : null
+  const view = cleaned?.state ?? null
   const sites = await data.sites()
   const known = view && (parseCustomSite(view.a.site) !== null || sites.some((site) => site.id === view.a.site))
-  if (!title || note === null || !view || !known) return reply({ error: 'bad-plan' }, 400)
+  if (!title || note === null || !view || !cleaned || !known) return reply({ error: 'bad-plan' }, 400)
   // An idempotency key is optional (idempotency.ts). One that is sent has to be a key.
   const key = keyOf(request)
   if (key.kind === 'bad') return reply({ error: 'bad-key' }, 400)
 
   const now = deps.now?.() ?? Date.now()
   const owner = who.kind === 'owner' ? { owner: who.owner } : {}
-  const asked = { title, note, view: encodeView(view), ...owner }
+  const asked = { title, note, view: cleaned.view, ...owner }
   const fingerprint = fingerprintOf(asked)
   /** The answer for a key that is already on record: the first answer again, or a refusal if this is a different save. */
   const again = (kept: KeptKey) => (kept.fingerprint === fingerprint ? reply({ id: kept.plan }, 201, { [REPLAYED_HEADER]: 'true' }) : reply({ error: 'key-reused' }, 422))
