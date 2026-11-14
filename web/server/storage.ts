@@ -28,6 +28,13 @@ const MEDIA_TYPES: Record<string, string> = {
   'sightline-tutorial.json': 'application/json',
   'sightline-demo-30s.mp4': 'video/mp4',
   'sightline-demo-30s-poster.jpg': 'image/jpeg',
+  'sightline-demo-30s.vtt': 'text/vtt; charset=utf-8',
+  // The walkthrough video with its poster, captions, chapter marks and list of chapters.
+  'sightline-walkthrough.mp4': 'video/mp4',
+  'sightline-walkthrough-poster.jpg': 'image/jpeg',
+  'sightline-walkthrough.vtt': 'text/vtt; charset=utf-8',
+  'sightline-walkthrough-chapters.vtt': 'text/vtt; charset=utf-8',
+  'sightline-walkthrough.json': 'application/json',
 }
 
 function readOnly(request: Request): boolean {

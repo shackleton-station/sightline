@@ -551,7 +551,8 @@ gcloud storage cp demo.mp4 demo.vtt demo-poster.jpg gs://clps-compute-6z1nc-web-
 
 Only the names on the list are served: `demo.mp4`, `demo.vtt`, `demo-poster.jpg`, `hype.mp4`, `hype-poster.jpg`, the
 tutorial video's `sightline-tutorial.mp4`, `sightline-tutorial-poster.jpg`, `sightline-tutorial.vtt` and
-`sightline-tutorial.json`, and the 30-second demo's `sightline-demo-30s.mp4` and `sightline-demo-30s-poster.jpg`
+`sightline-tutorial.json`, the walkthrough's `sightline-walkthrough.mp4`, `-poster.jpg`, `.vtt`, `-chapters.vtt` and `.json`,
+and the 30-second demo's `sightline-demo-30s.mp4`, `sightline-demo-30s-poster.jpg` and `sightline-demo-30s.vtt`
 (`web/scripts/video/README.md` says how those are recorded). A file with a new name needs it added in three places:
 `media_files` in `infra/assets.tf` (the route rule and the load balancer's grant), and `MEDIA_TYPES` in
 `web/server/storage.ts` (the way back). The grant's condition may hold 12 "or"s at most (Google refuses a longer one at
