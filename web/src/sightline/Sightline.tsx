@@ -78,7 +78,7 @@ import { LayersDrawer } from './LayersDrawer'
 import { RoverDrawer } from './RoverDrawer'
 import { MissionDrawer, MissionInline } from './MissionDrawer'
 import { useTrekOverlay } from './useTrekOverlay'
-import { Fields, PlanColumn, Verdict } from './PlanColumn'
+import { OpenIn, Fields, PlanColumn, Verdict } from './PlanColumn'
 import { Rail, type StageMode } from './Rail'
 import { River } from './River'
 import {RemovedNotice, ScenarioTabs } from './Scenarios'
@@ -996,6 +996,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                 </>
               }
             />
+            {/* NASA's own tools on this place and hour, in plain sight: the same links the site's list holds under "More". */}
+            <OpenIn foot site={site} landingField={fieldAt(start, scenario.landing)} />
           </PlanColumn>
           {/* The skyline in 2D, with the Sun's and Earth's paths: above the time bar in Orbit and Site, folded until it is
               asked for (the time bar's readout is its door), so folded it takes no room at all. The Surface view shows the

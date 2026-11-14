@@ -774,6 +774,24 @@
   display: none;
 }
 
+/* The same links at the foot of the column, one quiet line: NASA's tools are not hidden under a fold. */
+.sl-open-foot {
+  margin: 0.45rem 0 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.sl-open-foot a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sl-open-foot a:hover,
+.sl-open-foot a:focus-visible {
+  color: var(--ink);
+}
+
 .sl-open-in a {
   color: var(--gold);
   text-underline-offset: 2px;

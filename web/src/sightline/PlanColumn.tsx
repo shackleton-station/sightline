@@ -42,7 +42,7 @@ interface FieldsProps {
  * Sun's position there at the landing hour. A tool is left out where its link was not seen to land
  * on the place (lib/openIn.ts), and Horizons for a custom point, whose height was never worked out.
  */
-function OpenIn({ site, landingField }: { site: SiteInfo; landingField: string }) {
+export function OpenIn({ site, landingField, foot = false }: { site: SiteInfo; landingField: string; /** The quiet line at the foot of the column, always on show, with the same links as the one under the site's list. */ foot?: boolean }) {
   const horizons = useHorizonsCheck(site.id)
   const links = [
     { name: 'Quickmap', href: quickmapUrl(site.lat, site.lon), title: 'Open in Quickmap: the LRO camera team’s map, on this place' },
@@ -51,8 +51,8 @@ function OpenIn({ site, landingField }: { site: SiteInfo; landingField: string }
   ].filter((link): link is { name: string; href: string; title: string } => link.href !== null)
   if (links.length === 0) return null
   return (
-    <p className="sl-open-in">
-      Open in{' '}
+    <p className={foot ? 'sl-open-foot' : 'sl-open-in'}>
+      {foot ? 'Open in: ' : 'Open in '}
       {links.map((link, i) => (
         <span key={link.name}>
           {i > 0 && ' · '}

@@ -42,7 +42,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['your-time', 'two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['open-in-foot', 'your-time', 'two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
 ]
 
 /**
@@ -1320,6 +1320,19 @@ const SCENES = [
       ['the next landing that fits says its own hour in the visitor\'s time', "(() => { const next = document.querySelector('.sl-next:not(.sl-elsewhere)'); const tip = next.getAttribute('title') ?? next.dataset.tip ?? ''; const hour = /(\\d\\d:00)$/.exec(next.textContent.replace(/\\s+/g, ' ').trim().replace(/ ›$/, ''))?.[1]; return (hour !== undefined && tip.startsWith(hour + ' UTC · ') && /your time \\(EDT\\)\\. (Adds that landing|Four scenarios)/.test(tip)) || next.textContent + ' // ' + tip })()"],
       ['when the date there is not the UTC date, the hover text says so: a landing at 02:00 UTC is 10:00 pm the day before', `${pickDate('2027-05-06T02:00')} && ${after(900, "(() => { const pick = document.querySelector('.sl-plan .sl-pick'); const tip = pick.getAttribute('title') ?? pick.dataset.tip ?? ''; return /^02:00 UTC · 5 May, 10:00 pm your time \\(EDT\\)\\. /.test(tip) || tip })()")}`],
       ['on a phone a tap on the time shows it, and a tap elsewhere puts it away; with a mouse, hovering does', `(() => { const pick = document.querySelector('.sl-plan .sl-pick'); const touch = window.innerWidth < 761; pick.dispatchEvent(new PointerEvent(touch ? 'pointerdown' : 'pointerover', { bubbles: true, pointerType: touch ? 'touch' : 'mouse' })); return true })() && ${after(500, `(/^02:00 UTC · 5 May, 10:00 pm your time \\(EDT\\)\\. /.test(${text('.sl-tip')}) || ${text('.sl-tip')}) && (document.querySelector('.sl-brand, .sl-col-head, .sl-stage').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: window.innerWidth < 761 ? 'touch' : 'mouse' })), true)`)} && ${after(1000, "document.querySelector('.sl-tip') === null || document.querySelector('.sl-tip').textContent")}`],
+    ],
+  },
+  {
+    // NASA's tools in plain sight: one quiet line at the foot of the column, with the fold's own links. The fullest column: two scenarios, a landing that does not fit, both lines under the verdict.
+    name: 'open-in-foot',
+    hash: '#a=connecting-ridge@2027-05&t=0&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-05-01T00&sc=0',
+    still: true,
+    noChat: true,
+    checks: [
+      ['the foot of the column reads "Open in: Quickmap · Moon Trek · Horizons", as plain links that open in a new tab, under the Horizons line', "(() => { const line = document.querySelector('.sl-col .sl-open-foot'); if (!line) return 'no line'; const words = line.textContent.replace(/\\s+/g, ' ').trim(); const links = [...line.querySelectorAll('a')]; const above = document.querySelector('.sl-col .sl-horizons').getBoundingClientRect(); return (words === 'Open in: Quickmap · Moon Trek · Horizons' && links.length === 3 && links.every((link) => link.target === '_blank' && /^https:\\/\\//.test(link.href)) && line.querySelector('button, svg') === null && (window.innerWidth < 761 || line.getBoundingClientRect().top >= above.bottom - 1)) || words + ' at ' + Math.round(line.getBoundingClientRect().top) + ' under ' + Math.round(above.bottom) })()", 2500],
+      ['with two scenarios and both lines under the verdict, the column still fits at this size with nothing to scroll', `/Does not fit the mission/.test(${text('.sl-verdict-words')}) && document.querySelector('.sl-elsewhere') !== null && document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length === 2 && ${COLUMN_FITS} && ${NOTHING_SCROLLS}`],
+      ['they are the links the site\'s list holds under "More", for this site and landing hour', `(() => { window.__foot = [...document.querySelectorAll('.sl-open-foot a')].map((link) => link.href).join(' '); return true })() && ${siteMore('__tools')} && ${after(1500, "(() => { const fold = [...document.querySelectorAll('.sl-open-in a')].map((link) => link.href).join(' '); return (fold.length > 0 && fold === window.__foot) || fold + ' // ' + window.__foot })()")}`],
+      ['the other scenario has its own', `(document.querySelector('.sl-tabs button[aria-label="Scenario B"]').click(), true) && ${after(1500, "(() => { const now = [...document.querySelectorAll('.sl-open-foot a')].map((link) => link.href).join(' '); return (now !== window.__foot && now.length > 0) || 'unchanged' })()")}`],
     ],
   },
   {
