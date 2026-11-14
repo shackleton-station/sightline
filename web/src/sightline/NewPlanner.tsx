@@ -265,6 +265,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
             year={year}
             summary={summary}
             heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null}
+            bare
           />
         </aside>
       <div className="planner sl-fp">

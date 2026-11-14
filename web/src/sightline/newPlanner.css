@@ -1414,3 +1414,135 @@
   font-size: 0.8125rem;
   line-height: 1.35;
 }
+
+/* ---------- The left column, tighter: everything fits without scrolling sideways, less height ---------- */
+.sl-np .np-side {
+  overflow-x: hidden;
+}
+
+.sl-np .np-side h3 {
+  margin: 0.7rem 0 0.15rem;
+  font-size: 0.9375rem;
+}
+
+.sl-np .np-side .pl-where {
+  --pl-control-h: 1.9rem;
+
+  gap: 0.4rem;
+}
+
+.sl-np .np-side .pl-where-field {
+  gap: 0.15rem;
+}
+
+.sl-np .np-side .pl-where select,
+.sl-np .np-side .pl-where input {
+  font-size: 0.8125rem;
+}
+
+/* Dials: the label and the number on one line, the slider under them. */
+.sl-np .np-side .pl-dial {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 0.5rem;
+}
+
+.sl-np .np-side .pl-dial .pl-label {
+  display: block;
+  grid-column: 1;
+}
+
+.sl-np .np-side .pl-dial-value {
+  grid-column: 2;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.sl-np .np-side .pl-dial-value input {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  text-align: right;
+}
+
+.sl-np .np-side .pl-dial-unit {
+  font-size: 0.75rem;
+}
+
+.sl-np .np-side .pl-slider {
+  grid-column: 1 / -1;
+  height: 16px;
+  margin: 0;
+}
+
+.sl-np .np-side .pl-mission {
+  gap: 0.35rem;
+}
+
+.sl-np .np-side .pl-check {
+  min-height: 1.35rem;
+  margin-top: 0;
+  font-size: 0.8125rem;
+}
+
+.sl-np .np-side .pl-at-landing .pl-label {
+  margin-bottom: 0.1rem;
+}
+
+.sl-np .np-side .pl-earth-rule select {
+  min-height: 1.85rem;
+  margin-top: 0.2rem;
+  font-size: 0.8125rem;
+}
+
+.sl-np .np-side .pl-mission-note {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+}
+
+/* More settings, always open: each choice a label on the left and its buttons on the right. */
+.sl-np .np-side .pl-more {
+  margin-top: 0.5rem;
+  padding-top: 0.45rem;
+  border-bottom: 0;
+}
+
+.sl-np .np-side .pl-more-body {
+  gap: 0.4rem;
+  padding: 0;
+}
+
+.sl-np .np-side .pl-more-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sl-np .np-side .pl-segments {
+  flex: 0 0 auto;
+  border-color: var(--line);
+}
+
+.sl-np .np-side .pl-segments button {
+  min-height: 1.7rem;
+  padding: 0 0.6rem;
+  font-size: 0.75rem;
+}
+
+.sl-np .np-side .pl-segments button + button {
+  border-left-color: var(--line);
+}
+
+.sl-np .np-side .pl-more-notes {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.sl-np .np-side .pl-segments {
+  border-color: rgb(255 255 255 / 22%);
+}
+
+.sl-np .np-side .pl-segments button + button {
+  border-left-color: rgb(255 255 255 / 22%);
+}
