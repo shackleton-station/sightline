@@ -393,7 +393,20 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
       </div>
       {!bare && (
         <div ref={tools} className="sl-view-tools">
-          {/* Only while the view is away from the default: nothing extra on screen until it is needed. */}
+          {/* The camera stops a rounding error short of its limit at some stage sizes: "at the limit" allows for it. */}
+          <ZoomButtons zoom={zoom} onZoom={zoomTo} min={farZoom * (1 + ZOOM_SLACK)} max={closestAt(center) * (1 - ZOOM_SLACK)} />
+          {earthDeg !== null && (
+            <p className="sl-to-earth" role="img" aria-label="The way to Earth across the ground, at the moment on the time bar" title="The way to Earth across the ground, at the moment on the time bar">
+              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <g transform={`rotate(${earthDeg.toFixed(1)} 12 12)`}>
+                  <path d="M12 2.5 L17 11 L13.2 11 L13.2 21 L10.8 21 L10.8 11 L7 11 Z" fill="#5aa9ff" />
+                </g>
+              </svg>
+              <span>Earth</span>
+            </p>
+          )}
+          {/* The compass, only while the view is away from the default. It comes last, under the zoom buttons and the
+              arrow to Earth, so neither moves when it appears: a second press meant for "zoom in" still lands on it. */}
           {moved && (
             <button
               type="button"
@@ -414,18 +427,6 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
                 </g>
               </svg>
             </button>
-          )}
-          {/* The camera stops a rounding error short of its limit at some stage sizes: "at the limit" allows for it. */}
-          <ZoomButtons zoom={zoom} onZoom={zoomTo} min={farZoom * (1 + ZOOM_SLACK)} max={closestAt(center) * (1 - ZOOM_SLACK)} />
-          {earthDeg !== null && (
-            <p className="sl-to-earth" role="img" aria-label="The way to Earth across the ground, at the moment on the time bar" title="The way to Earth across the ground, at the moment on the time bar">
-              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                <g transform={`rotate(${earthDeg.toFixed(1)} 12 12)`}>
-                  <path d="M12 2.5 L17 11 L13.2 11 L13.2 21 L10.8 21 L10.8 11 L7 11 Z" fill="#5aa9ff" />
-                </g>
-              </svg>
-              <span>Earth</span>
-            </p>
           )}
         </div>
       )}

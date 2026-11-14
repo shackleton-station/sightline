@@ -38,7 +38,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['compass-below', 'compass-below-watch', 'compare-science', ...GUIDE_IDS.map((id) => `guide-${id}`), 'guide-ways', 'tour-video', 'nearby-pair', 'nearby-pair-tour', 'explains-itself', 'mission-advanced', 'mission-advanced-custom', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'planner-compare', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
 ]
 
 /**
@@ -140,6 +140,10 @@ const MOON_FILLS = `(() => {
   const drawn = [...document.querySelectorAll('.sl-dot, .sl-group-dot'), ...[...document.querySelectorAll('.sl-dot > span, .sl-group-label')].filter((el) => getComputedStyle(el).visibility !== 'hidden')]
   return disc >= 0.8 * Math.min(stage.width, stage.height) && disc <= Math.min(stage.width, stage.height) && drawn.every(inside)
 })()`
+/** Remembers where the zoom buttons are, before something is done to the view. */
+const ZOOM_AT = `(() => { const box = document.querySelector('.sl-view-tools .zoom-buttons').getBoundingClientRect(); window.__zoomAt = [box.left, box.top, box.width, box.height].map((n) => Math.round(n * 10) / 10).join(); return document.querySelector('.sl-recentre') === null && box.width > 0 })()`
+/** True when the compass is on show under the zoom buttons (and under the arrow to Earth, where there is one), and the zoom buttons are exactly where ZOOM_AT found them. */
+const COMPASS_BELOW = `(() => { const compass = document.querySelector('.sl-view-tools .sl-recentre'); if (!compass) return 'no compass'; const zoom = document.querySelector('.sl-view-tools .zoom-buttons').getBoundingClientRect(); const now = [zoom.left, zoom.top, zoom.width, zoom.height].map((n) => Math.round(n * 10) / 10).join(); const box = compass.getBoundingClientRect(); const earth = document.querySelector('.sl-view-tools .sl-to-earth')?.getBoundingClientRect(); const stage = document.querySelector('.sl-stage').getBoundingClientRect(); const globe = document.querySelector('.scout-globe'); const g = globe.getBoundingClientRect(); const reach = Math.hypot((box.left + box.right) / 2 - (g.left + g.right) / 2, (box.top + box.bottom) / 2 - (g.top + g.bottom) / 2); if (now !== window.__zoomAt) return 'the zoom buttons moved: ' + window.__zoomAt + ' to ' + now; if (box.top < zoom.bottom - 0.5) return 'the compass is not below the zoom buttons'; if (earth && box.top < earth.bottom - 0.5) return 'the compass is not below the arrow to Earth'; if (box.bottom > stage.bottom + 0.5 || box.right > stage.right + 0.5) return 'the compass leaves the stage'; return true })()`
 /**
  * True when the Moon's whole disc is inside the stage with a margin on every side: its bounding
  * circle (centred on the globe's square, as wide as the disc is drawn) clears each edge by 8 px.
@@ -994,6 +998,33 @@ const SCENES = [
       ['nothing in the column scrolls, and no area inside it', NOTHING_SCROLLS],
       ['the rows\' figures are of one width and never wrap', "[...document.querySelectorAll('.sl-fact-main')].every((value) => getComputedStyle(value).fontVariantNumeric.includes('tabular-nums') && getComputedStyle(value).whiteSpace === 'nowrap')"],
       ['neither the column nor a panel scrolls', COLUMN_FITS],
+    ],
+  },
+  {
+    // Rodrigo: the compass goes below the zoom, so pressing zoom again and again never lands on the compass.
+    name: 'compass-below',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
+    still: true,
+    checks: [
+      ['in Orbit, before the view is moved, the zoom buttons are there and the compass is not (a phone zooms with two fingers in Plan: its turn is in the next scene)', `window.innerWidth < 761 || ${ZOOM_AT}`, 1200],
+      { drag: true },
+      ['after a drag the compass appears below the zoom buttons, which have not moved', `window.innerWidth < 761 || ${COMPASS_BELOW}`],
+      ['a press on "zoom in" where it was still zooms in, and the buttons stay put', `window.innerWidth < 761 || ((() => { window.__px = Number(document.querySelector('.scout-globe').dataset.discPx); const box = document.querySelector('.sl-view-tools .zoom-buttons button').getBoundingClientRect(); document.elementFromPoint((box.left + box.right) / 2, (box.top + box.bottom) / 2).click(); return true })() && ${after(900, `(Number(document.querySelector('.scout-globe').dataset.discPx) > window.__px || 'the Moon did not grow') && ${COMPASS_BELOW}`)})`],
+      ['the compass still recentres, and goes', `window.innerWidth < 761 || ((document.querySelector('.sl-recentre').click(), true) && ${after(1300, "document.querySelector('.sl-recentre') === null")})`],
+      ['in Site the zoom buttons are where they were in Orbit, above the arrow to Earth; the compass, on show there because the view has left the default, is below both', `window.innerWidth < 761 || ((${click('Site')}, true) && ${after(2500, `(document.querySelector('.sl-view-tools .sl-to-earth') !== null || 'no arrow to Earth') && ${COMPASS_BELOW}`)})`],
+      { drag: true },
+      ['after a drag in Site it is the same: the zoom buttons have not moved, and the compass is below them and the arrow to Earth', `window.innerWidth < 761 || ${COMPASS_BELOW}`],
+    ],
+  },
+  {
+    // The same in Watch, where a phone has the zoom buttons too.
+    name: 'compass-below-watch',
+    hash: '',
+    still: true,
+    checks: [
+      ['in Watch, before the view is moved, the zoom buttons are there and the compass is not', ZOOM_AT, 1200],
+      { drag: true },
+      ['after a drag the compass appears below the zoom buttons, which have not moved', COMPASS_BELOW],
     ],
   },
   {
