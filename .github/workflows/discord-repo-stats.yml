@@ -9,12 +9,30 @@ on:
 permissions:
   contents: read
   checks: read
+  actions: write  # lets the bot disable itself at the shut-off time
 
 jobs:
   discord-stats:
     runs-on: ubuntu-latest
     steps:
+      # Shut-off: 9 PM Eastern on Sunday, 2026-11-15 (02:00 UTC Monday).
+      # The 9 PM run still posts; anything later disables the workflow without posting.
+      - name: Skip and disable if past the shut-off time
+        id: shutoff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          now=$(date -u +%s)
+          stop=$(date -u -d '2026-11-16T02:00:00Z' +%s)
+          if [ "$now" -ge $((stop + 3600)) ]; then
+            gh workflow disable discord-repo-stats.yml --repo "$REPO"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif [ "$now" -ge "$stop" ]; then
+            echo "last=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Gather stats and post to Discord
+        if: steps.shutoff.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -43,3 +61,8 @@ jobs:
             "$(date -u '+%Y-%m-%d %H:%M UTC')" "$commits" "$branches" "${sha:0:7}" "$title" "$ci")
           jq -n --arg c "$msg" '{username: "Shackleton Stats", content: $c}' \
             | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_WEBHOOK_URL"
+      - name: Disable after the final post
+        if: steps.shutoff.outputs.last == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow disable discord-repo-stats.yml --repo "${{ github.repository }}"
