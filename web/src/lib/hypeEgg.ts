@@ -1,8 +1,13 @@
 /**
- * The easter egg: the Hype page (the landing party, at /hype/) is linked from nowhere. It opens when
- * someone types its name on any page of the site, outside a text box.
+ * The easter egg: the team's hype video is linked from nowhere. Typing its name on the Sightline
+ * screen, outside a text box, makes a "Hype" button appear in the rail and opens its panel. On any
+ * other page of the site the same word opens Sightline with that panel open. The old page at /hype/
+ * still answers for links that were shared, but nothing sends anyone there.
  */
 export const HYPE_PATH = '/hype/'
+/** The address that opens Sightline with the Hype panel open: where the word leads from the other pages. */
+export const HYPE_HASH = '#hype'
+export const HYPE_IN_SIGHTLINE = `/${HYPE_HASH}`
 export const HYPE_WORD = 'hype'
 
 /**
