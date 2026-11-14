@@ -47,6 +47,18 @@ describe('scenarioScene', () => {
     expect(scene?.view.shortlist).toEqual([])
   })
 
+  it('for the scenario on show that does not fit, names the other site the screen offers for the same date', async () => {
+    const first = '#a=connecting-ridge@2027-05&t=0&limits=14_24_99999_1_1&mode=plan&sc=0'
+    const scene = await scenarioScene(first, viewFrom(first), data)
+    const value = (key: string) => scene?.facts.find((item) => item.key === key)?.value
+    expect(value('scenario_a_verdict')).toMatch(/^does not meet the mission limits/)
+    expect(value('scenario_a_fits_at_another_site')).toBe('Peak near Shackleton, 42 km away')
+    // On a date that fits at no ridge site it says so, and only for the scenario on show.
+    const none = await scenarioScene(TWO, viewFrom(TWO), data)
+    expect(none?.facts.find((item) => item.key === 'scenario_b_fits_at_another_site')?.value).toBe('none: on this date no other site of the group meets them')
+    expect(none?.facts.find((item) => item.key === 'scenario_a_fits_at_another_site')).toBeUndefined()
+  })
+
   it("leaves another page's link alone", async () => {
     const other = '#a=connecting-ridge@2027-05&t=0&limits=14_72_72_1_1&mode=learn'
     expect(await scenarioScene(other, viewFrom(other), data)).toBeNull()
