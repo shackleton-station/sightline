@@ -1,0 +1,1013 @@
+/* The Planner: the decision first, with no globe. The page is the site's black; type is set like a
+   timetable (hairlines, small capitals, numbers in a fixed-width face); and the one thing that is
+   not black is the answer, a sheet of paper (planner-brief.css). Green, orange and violet keep the
+   meanings they have on the other tabs: works, take care, the interface. */
+.planner {
+  --pl-ink: #f3efe6;
+  --pl-rule: #262a3d;
+  --pl-rule-faint: #161927;
+  --pl-works: var(--both);
+  --pl-tight: var(--warning);
+  --pl-paper: #f1ede3;
+  --pl-paper-ink: #16151b;
+  --pl-paper-muted: #55525e;
+  --pl-paper-rule: rgb(22 21 27 / 20%);
+  --pl-paper-works: #0a6a42;
+  --pl-paper-tight: #9a4500;
+  --pl-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.planner button,
+.planner input,
+.planner select {
+  font: inherit;
+  color: inherit;
+}
+
+.planner button {
+  cursor: pointer;
+}
+
+.planner button:disabled {
+  cursor: default;
+}
+
+.planner :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pl-page {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 1.25rem clamp(1rem, 2.5vw, 2.25rem) 3rem;
+}
+
+/* Small capitals in the fixed-width face: every label on the page. */
+.pl-label {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pl-fine {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.pl-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* ---------- Title and tally ---------- */
+.pl-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 2.5rem;
+}
+
+.pl-head h1 {
+  margin: 0.15rem 0 0;
+  color: var(--pl-ink);
+  font-size: clamp(1.5rem, 2.2vw, 1.875rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.pl-tally {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 25rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.pl-tally strong {
+  color: var(--pl-works);
+  font-family: var(--pl-mono);
+  font-size: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-tally strong.none {
+  color: var(--pl-tight);
+}
+
+/* ---------- The mission: the main control ---------- */
+.pl-mission {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(8rem, 1fr)) auto minmax(19rem, 1.25fr);
+  gap: 1rem 2rem;
+  margin-top: 1rem;
+  padding: 0.8rem 0 0.75rem;
+  border-top: 1px solid var(--pl-rule);
+  border-bottom: 1px solid var(--pl-rule);
+}
+
+/* A label that wraps takes more height; the numbers under the labels still line up. */
+.pl-dial {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pl-dial .pl-label {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+}
+
+.pl-dial-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.pl-dial-value input {
+  min-width: 1.4ch;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 2px solid var(--pl-rule);
+  border-radius: 0;
+  background: none;
+  color: var(--pl-ink);
+  font-family: var(--pl-mono);
+  font-size: 2.125rem;
+  font-weight: 600;
+  line-height: 1.12;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+
+.pl-dial-value input::-webkit-inner-spin-button,
+.pl-dial-value input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.pl-dial-value input:hover,
+.pl-dial-value input:focus {
+  border-bottom-color: var(--accent);
+}
+
+.pl-dial-value input:focus-visible {
+  outline: none;
+}
+
+.pl-dial-unit {
+  color: var(--muted);
+}
+
+.pl-slider {
+  display: block;
+  width: 100%;
+  height: 22px;
+  margin: 0.25rem 0 0;
+  background: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.pl-slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--pl-rule);
+}
+
+.pl-slider::-moz-range-track {
+  height: 2px;
+  background: var(--pl-rule);
+}
+
+.pl-slider::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pl-ink);
+  appearance: none;
+}
+
+.pl-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pl-ink);
+}
+
+.pl-slider:hover::-webkit-slider-thumb,
+.pl-slider:focus-visible::-webkit-slider-thumb {
+  background: var(--accent);
+}
+
+.pl-at-landing {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pl-at-landing legend {
+  padding: 0;
+}
+
+.pl-check {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.1rem;
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pl-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--pl-ink);
+}
+
+.pl-earth-rule select {
+  display: block;
+  width: 100%;
+  min-height: 2.5rem;
+  margin-top: 0.45rem;
+  padding: 0 0.6rem;
+  font-size: 0.9375rem;
+  border: 1px solid var(--pl-rule);
+  border-radius: 4px;
+  background: var(--panel);
+}
+
+.pl-mission-note {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* ---------- Notices and the states with no grid ---------- */
+.pl-notice,
+.pl-nothing,
+.pl-problem,
+.pl-loading {
+  margin: 1.25rem 0 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--pl-rule);
+  border-left: 3px solid var(--pl-tight);
+  background: var(--panel);
+}
+
+.pl-notice a {
+  color: var(--accent);
+}
+
+.pl-nothing h2,
+.pl-problem h2 {
+  margin: 0 0 0.4rem;
+  color: var(--pl-ink);
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.pl-nothing p,
+.pl-problem p {
+  margin: 0 0 0.6rem;
+  color: var(--muted);
+}
+
+.pl-nothing ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.pl-nothing li {
+  margin: 0.2rem 0;
+}
+
+.pl-loading {
+  border-left-color: var(--pl-rule);
+  color: var(--muted);
+}
+
+.pl-loading p {
+  margin: 0 0 1rem;
+}
+
+.pl-loading-rows {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.pl-loading-rows span {
+  height: 1.6rem;
+  background: linear-gradient(90deg, var(--pl-rule-faint) 0%, var(--pl-rule) 50%, var(--pl-rule-faint) 100%);
+  background-size: 200% 100%;
+  animation: pl-sweep 1.6s linear infinite;
+}
+
+.pl-loading-rows span:nth-child(odd) {
+  width: 92%;
+}
+
+@keyframes pl-sweep {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-loading-rows span {
+    animation: none;
+  }
+}
+
+/* ---------- Layout: the grid, the brief beside it, the short list under the grid ---------- */
+.pl-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(21rem, clamp(22rem, 30vw, 27rem));
+  grid-template-areas:
+    'grid answer'
+    'list answer';
+  /* The brief is the tallest thing here; the spare height goes under the short list, not above it. */
+  grid-template-rows: auto 1fr;
+  gap: 1.75rem 2.25rem;
+  align-items: start;
+  margin-top: 1.1rem;
+}
+
+.pl-grid {
+  grid-area: grid;
+  min-width: 0;
+}
+
+.pl-answer {
+  grid-area: answer;
+  min-width: 0;
+}
+
+.pl-list {
+  grid-area: list;
+  min-width: 0;
+}
+
+.pl-grid h2,
+.pl-list h2 {
+  margin: 0;
+  color: var(--pl-ink);
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- The grid ---------- */
+.pl-grid-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2rem;
+}
+
+/* The year buttons only matter where the table scrolls sideways (phones). */
+.pl-years {
+  display: none;
+  gap: 0.25rem;
+}
+
+.pl-years button {
+  min-height: 2rem;
+  padding: 0 0.55rem;
+  border: 1px solid var(--pl-rule);
+  border-radius: 999px;
+  background: none;
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+}
+
+.pl-grid-scroll {
+  /* Also the frame for the hidden screen-reader text in its cells, so that can't widen the page. */
+  position: relative;
+  margin-top: 0.4rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.pl-grid table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.pl-grid thead th:first-child,
+.pl-grid th[scope='row'] {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: clamp(13.5rem, 18vw, 16.25rem);
+  padding: 0 0.9rem 0 0;
+  background: var(--bg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pl-grid thead th:first-child {
+  vertical-align: bottom;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--pl-rule);
+  color: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pl-site {
+  display: inline-block;
+  max-width: calc(100% - 3.6rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.pl-count {
+  float: right;
+  color: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-grid th[scope='row'] {
+  border-bottom: 1px solid var(--pl-rule-faint);
+}
+
+.pl-year {
+  padding: 0 0 0.1rem 0.3rem;
+  border-left: 1px solid var(--pl-rule);
+  color: var(--pl-ink);
+  font-family: var(--pl-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.pl-grid thead tr:last-child th {
+  padding: 0 0 0.3rem;
+  border-bottom: 1px solid var(--pl-rule);
+  color: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-align: center;
+}
+
+.pl-grid thead tr:last-child th.is-col {
+  color: var(--pl-ink);
+  font-weight: 700;
+}
+
+.pl-group th {
+  padding: 0.4rem 0 0.15rem;
+  border-bottom: 1px solid var(--pl-rule);
+  text-align: left;
+}
+
+.pl-group span {
+  position: sticky;
+  left: 0;
+  color: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pl-grid td {
+  height: 28px;
+  padding: 0;
+  border-bottom: 1px solid var(--pl-rule-faint);
+}
+
+.pl-grid .jan {
+  border-left: 1px solid var(--pl-rule);
+}
+
+.pl-grid td.is-col,
+.pl-grid tr.is-row td {
+  background: rgb(255 255 255 / 5%);
+}
+
+.pl-grid tr.is-row th {
+  color: var(--pl-ink);
+  font-weight: 700;
+}
+
+/* One month at one site. The bar is the share of the month's days with a landing; none has no bar. */
+.pl-cell {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.pl-bar {
+  position: absolute;
+  right: 12%;
+  bottom: 0;
+  left: 12%;
+  height: calc(var(--fill) * 100%);
+  border-radius: 1px 1px 0 0;
+  background: var(--pl-works);
+  /* Changing a limit redraws every bar; a short move shows which ones changed. */
+  transition: height 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-bar {
+    transition: none;
+  }
+}
+
+.pl-cell.none .pl-bar {
+  display: none;
+}
+
+.pl-cell.tight .pl-bar {
+  background: var(--pl-tight);
+}
+
+/* Tight is a ring above the bar as well as a color, so it reads without telling orange from green. */
+.pl-cell.tight::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border: 1.5px solid var(--pl-tight);
+  border-radius: 50%;
+}
+
+/* A month with an option on the short list carries a violet tick along its top. */
+.pl-cell.listed::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 12%;
+  left: 12%;
+  height: 3px;
+  background: var(--accent);
+}
+
+.pl-cell:hover {
+  background: rgb(255 255 255 / 12%);
+}
+
+.pl-cell[aria-pressed='true'] {
+  z-index: 1;
+  background: rgb(255 255 255 / 14%);
+  outline: 2px solid var(--pl-ink);
+  outline-offset: -1px;
+}
+
+.pl-cell:focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.pl-readout {
+  min-height: 1.5rem;
+  margin: 0.5rem 0 0;
+  color: var(--pl-ink);
+  font-size: 0.9375rem;
+}
+
+.pl-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  list-style: none;
+}
+
+.pl-key li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pl-swatch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 10px;
+  height: 18px;
+  border-bottom: 1px solid var(--pl-rule);
+}
+
+.pl-swatch::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.pl-swatch.none {
+  border-bottom-color: var(--muted);
+}
+
+.pl-swatch.works::after {
+  height: 11px;
+  background: var(--pl-works);
+}
+
+.pl-swatch.tight::after {
+  height: 3px;
+  background: var(--pl-tight);
+}
+
+.pl-swatch.tight::before {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 1.5px;
+  width: 4px;
+  height: 4px;
+  border: 1.5px solid var(--pl-tight);
+  border-radius: 50%;
+}
+
+/* ---------- Buttons under the brief ---------- */
+.pl-take {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.pl-button {
+  min-height: 40px;
+  padding: 0 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  font-weight: 600;
+}
+
+.pl-button:hover {
+  border-color: var(--pl-ink);
+}
+
+.pl-button.primary {
+  border-color: var(--pl-ink);
+  background: var(--pl-ink);
+  color: #000;
+}
+
+.pl-button:disabled {
+  border-color: var(--pl-rule);
+  background: none;
+  color: var(--muted);
+}
+
+/* ---------- The short list ---------- */
+.pl-list {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--pl-rule);
+}
+
+.pl-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+}
+
+.pl-list-head .pl-fine {
+  flex: 1 1 auto;
+  margin: 0;
+}
+
+.pl-list-empty {
+  max-width: 44rem;
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+}
+
+.pl-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
+  gap: 0.9rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pl-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.85rem 1rem 0.8rem;
+  border: 1px solid var(--pl-rule);
+  border-top: 3px solid var(--pl-works);
+  background: var(--panel);
+}
+
+.pl-card.misses {
+  border-top-style: dashed;
+  border-top-color: var(--pl-tight);
+}
+
+.pl-card.is-current {
+  border-right-color: var(--pl-ink);
+  border-bottom-color: var(--pl-ink);
+  border-left-color: var(--pl-ink);
+}
+
+.pl-card-place {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--pl-works);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.pl-card.misses .pl-card-place {
+  color: var(--pl-tight);
+}
+
+.pl-card-rank {
+  color: var(--pl-ink);
+  font-family: var(--pl-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.pl-card h3 {
+  margin: 0.45rem 0 0;
+  color: var(--pl-ink);
+  font-size: 1.0625rem;
+  line-height: 1.2;
+}
+
+.pl-card-when {
+  margin: 0.15rem 0 0;
+  font-family: var(--pl-mono);
+  font-size: 0.8125rem;
+}
+
+.pl-card dl {
+  margin: 0.7rem 0 0;
+  border-top: 1px solid var(--pl-rule);
+}
+
+.pl-card dl div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--pl-rule-faint);
+}
+
+.pl-card dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.pl-card dd {
+  margin: 0;
+  color: var(--pl-ink);
+  font-family: var(--pl-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pl-card-why {
+  flex: 1 1 auto;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  list-style: none;
+}
+
+.pl-card-why li {
+  margin: 0.15rem 0;
+}
+
+.pl-card-why .problem {
+  color: var(--pl-tight);
+}
+
+.pl-card-actions {
+  display: flex;
+  gap: 1rem;
+  margin: 0.7rem 0 0;
+  font-size: 0.875rem;
+}
+
+.pl-card-actions .pl-link {
+  min-height: 1.75rem;
+}
+
+.pl-foot {
+  margin: 2.5rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pl-rule);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.pl-foot a {
+  color: var(--accent);
+}
+
+/* On a wide window the heading sits in the empty corner above the site names. */
+@media (min-width: 721px) {
+  .pl-grid-head {
+    position: relative;
+    z-index: 3;
+    width: 15rem;
+    margin-bottom: -2.1rem;
+  }
+}
+
+/* ---------- Narrower windows ---------- */
+@media (max-width: 1180px) {
+  .pl-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'grid' 'answer' 'list';
+  }
+
+  .pl-mission {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pl-at-landing {
+    grid-column: 1;
+  }
+
+  .pl-earth-rule {
+    grid-column: 2 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .pl-page {
+    padding-top: 1rem;
+  }
+
+  .pl-head {
+    display: block;
+  }
+
+  .pl-tally {
+    margin-top: 0.75rem;
+  }
+
+  .pl-tally strong {
+    font-size: 1.75rem;
+  }
+
+  .pl-mission {
+    gap: 0.9rem 0.9rem;
+  }
+
+  .pl-mission .pl-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+
+  .pl-dial-value {
+    flex-wrap: wrap;
+    gap: 0 0.35rem;
+  }
+
+  .pl-dial-value input {
+    font-size: 1.75rem;
+  }
+
+  .pl-dial-unit {
+    font-size: 0.875rem;
+  }
+
+  .pl-at-landing,
+  .pl-earth-rule {
+    grid-column: 1 / -1;
+  }
+
+  .pl-at-landing {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 1.1rem;
+  }
+
+  .pl-at-landing legend {
+    float: left;
+    width: 100%;
+  }
+
+  /* The table keeps every month and scrolls sideways in its own box; the site names stay put. */
+  .pl-years {
+    display: flex;
+  }
+
+  .pl-grid table {
+    width: max-content;
+  }
+
+  .pl-grid thead th:first-child,
+  .pl-grid th[scope='row'] {
+    width: 7.5rem;
+    padding-right: 0.5rem;
+    font-size: 0.8125rem;
+    white-space: normal;
+  }
+
+  .pl-grid thead tr:last-child th,
+  .pl-grid td {
+    width: 24px;
+  }
+
+  .pl-grid td,
+  .pl-cell {
+    height: 38px;
+  }
+
+  .pl-site {
+    display: inline;
+    max-width: none;
+  }
+
+  .pl-count,
+  .pl-key-keys {
+    display: none;
+  }
+
+  .pl-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .pl-card {
+    padding: 0.7rem 0.7rem 0.65rem;
+  }
+
+  .pl-card dl div {
+    display: block;
+  }
+
+  .pl-take .pl-button,
+  .pl-take .share-plan-open {
+    flex: 1 1 calc(50% - 0.25rem);
+  }
+}

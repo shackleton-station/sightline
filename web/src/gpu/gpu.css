@@ -1,0 +1,78 @@
+/* The comparison page at /gpu/: two globes side by side, stacked on a phone, with numbers under each. */
+.gpu {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.gpu a {
+  color: var(--accent);
+}
+
+.gpu .actions button[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.gpu-sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 1rem;
+}
+
+/* One side alone keeps the size it has next to the other, so its numbers are for the same canvas. */
+.gpu-sides[data-count='1'] {
+  grid-template-columns: minmax(0, calc(50% - 8px));
+}
+
+.gpu-sides h2 {
+  margin-top: 0;
+}
+
+.gpu-sides canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.gpu-readout {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 0.25rem 0.75rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+.gpu-readout dt {
+  color: var(--muted);
+}
+
+.gpu-readout dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.gpu-readout dd[data-fallback='true'] {
+  color: var(--warning);
+}
+
+.gpu-difference {
+  margin: 1rem 0 0;
+}
+
+@media (max-width: 760px) {
+  .gpu-sides,
+  .gpu-sides[data-count='1'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gpu-readout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gpu-readout dd {
+    margin-bottom: 0.4rem;
+  }
+}
