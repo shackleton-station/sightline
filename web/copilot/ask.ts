@@ -1,5 +1,5 @@
 import { ASK_MAX_CHARS, type AskMonths, askMonths, askSchema, buildAskPrompt, sanitizeAsk, type AskSite } from '../src/lib/ask'
-import { originAllowed, reply, visitorOf } from '../shared/http'
+import { originAllowed, reply, visitorKeys } from '../shared/http'
 import type { Limiter } from '../shared/store'
 import type { SiteData } from '../shared/tools/data'
 import { busyReply, countIfAllowed, MODEL_BUSY_WAIT_MS, saysLongerThan } from './busy'
@@ -67,6 +67,9 @@ export interface AskLimits {
   each: Limiter
   /** Per visitor, per day. */
   eachDay: Limiter
+  /** Everyone at one network address together, per minute and per day (limits.ts). */
+  address: Limiter
+  addressDay: Limiter
   /** Everyone together, per minute and per day, so one busy room can't run up the bill. */
   all: Limiter
   allDay: Limiter
@@ -92,10 +95,12 @@ export async function handleAsk(request: Request, deps: CopilotDeps, limits: Ask
   if (!deps.model) return reply({ error: 'not-configured' }, 503)
 
   // Counted only if all four allow it, so a refused call (429) spends nothing.
-  const visitor = visitorOf(request, deps.trustedProxies)
+  const { address, visitor } = visitorKeys(request, deps.trustedProxies)
   const refused = await countIfAllowed([
     [limits.each, visitor],
     [limits.eachDay, visitor],
+    [limits.address, address],
+    [limits.addressDay, address],
     [limits.all, 'all'],
     [limits.allDay, 'all'],
   ])

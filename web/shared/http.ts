@@ -34,6 +34,33 @@ export function visitorOf(request: Request, proxies: string[] = []): string {
   return hops.at(-1) || 'unknown'
 }
 
+/**
+ * The header a page sends with a random id for its browser (src/lib/browserId.ts). It is not a
+ * secret and not personal: the page makes it up, keeps it in localStorage, and anyone can send any
+ * value. It only splits one address among the browsers behind it.
+ */
+export const BROWSER_HEADER = 'x-sightline-browser'
+const BROWSER_ID = /^[A-Za-z0-9_-]{16,64}$/
+
+/** The page's browser id, or null when the header is missing or isn't shaped as a page makes it. */
+export function browserOf(request: Request): string | null {
+  const id = request.headers.get(BROWSER_HEADER)?.trim() ?? ''
+  return BROWSER_ID.test(id) ? id : null
+}
+
+/**
+ * Who a request counts against, for rate limits. `address` is the visitor's network address, as
+ * `visitorOf` reads it. `visitor` is that address and the page's browser id together, so people who
+ * share one address (a venue's Wi-Fi, an office, a phone carrier's NAT) each get their own allowance;
+ * without an id it is the address alone, as before the header existed. The id is the visitor's own
+ * claim, so whatever is counted per `visitor` must also be capped per `address`.
+ */
+export function visitorKeys(request: Request, proxies: string[] = []): { address: string; visitor: string } {
+  const address = visitorOf(request, proxies)
+  const browser = browserOf(request)
+  return { address, visitor: browser ? `${address}~${browser}` : address }
+}
+
 /** The addresses in X-Forwarded-For, in the order the proxies added them. */
 export function forwardedHops(request: Request): string[] {
   const forwarded = request.headers.get('x-forwarded-for') ?? ''
