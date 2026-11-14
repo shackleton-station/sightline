@@ -49,6 +49,119 @@ const LAND_COLOR = 0x090a0e
 const LAND_RIM_COLOR = 0x1d202c
 const LAND_RIM_DEG = 3
 const SKYLINE_COLOR = 0x6d7591
+/** The eye's height above the ground in metres, which sets how big the drawn ground's craters look. */
+const EYE_HEIGHT_M = 2
+
+// The land's points are directions from the eye. `vDir` is that direction before heights are
+// stretched, so the ground's pattern and light do not change with the stretch.
+const LAND_VERTEX = /* glsl */ `
+attribute vec3 tint;
+attribute float skyline;
+varying vec3 vDir;
+varying vec3 vTint;
+varying float vSkyline;
+void main() {
+  vDir = position;
+  vTint = tint;
+  vSkyline = skyline;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`
+
+// The ground under the skyline, drawn to look like the Moon's: an illustration, not data. Below eye
+// level each pixel's ray meets a level plain `eye` metres under the eye; a made-up surface of swells
+// and craters on it (the same every time) is lit from the Sun's true direction, by the share of its
+// disk in view. Out toward the skyline the plain gives way to far slopes facing the eye. The Sun here
+// is low, so the picture is exposed for it, as a camera would be. With the Sun down the land is the
+// dark shape it was, a touch bluer while Earth is up.
+const LAND_FRAGMENT = /* glsl */ `
+uniform vec3 toSun;
+uniform float share;
+uniform float earthUp;
+uniform float tintAmount;
+uniform float eye;
+uniform float rimDeg;
+uniform vec3 deepColor;
+uniform vec3 rimColor;
+varying vec3 vDir;
+varying vec3 vTint;
+varying float vSkyline;
+
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+// One crater at most in each square of side "cell" metres: a bowl with a raised rim. Height in metres.
+float crater(vec2 p, float cell, float footprint) {
+  vec2 q = p / cell;
+  vec2 c = floor(q);
+  if (hash(c + 5.1) < 0.6) return 0.0;
+  vec2 centre = 0.3 + 0.4 * vec2(hash(c + 7.3), hash(c + 19.1));
+  float radius = (0.1 + 0.18 * hash(c + 3.7)) * cell;
+  float r = length(fract(q) - centre) * cell / radius;
+  float bowl = r < 1.0 ? r * r - 1.0 : 0.0;
+  float rim = exp(-pow((r - 1.0) * 3.2, 2.0));
+  // A crater smaller than a pixel is left out, so the far ground does not shimmer.
+  float seen = 1.0 - smoothstep(0.12, 0.5, footprint / radius);
+  return (0.2 * bowl + 0.05 * rim) * radius * seen;
+}
+float height(vec2 p, float footprint) {
+  float h = 0.0;
+  float amplitude = 0.42;
+  float frequency = 0.11;
+  for (int i = 0; i < 5; i += 1) {
+    h += amplitude * (1.0 - smoothstep(0.2, 0.8, footprint * frequency)) * noise(p * frequency);
+    frequency *= 2.3;
+    amplitude *= 0.42;
+  }
+  return h + crater(p, 11.0, footprint) + crater(p + 37.0, 3.1, footprint) + crater(p + 91.0, 0.9, footprint);
+}
+
+void main() {
+  vec3 dir = normalize(vDir);
+  float below = vSkyline - degrees(asin(clamp(dir.z, -1.0, 1.0)));
+  // The land as it was: dark, a little lighter in the few degrees under its top edge.
+  vec3 color = mix(rimColor, deepColor, clamp(below / rimDeg, 0.0, 1.0));
+
+  vec2 level = normalize(dir.xy + vec2(1e-6, 0.0));
+  vec2 sunLevel = normalize(toSun.xy + vec2(1e-6, 0.0));
+  // Moon dust throws light back the way it came: the ground is brightest looking away from the Sun.
+  float away = 0.5 - 0.5 * dot(level, sunLevel);
+  // A Sun on the skyline still grazes the ground: the light is never taken from lower than 2 degrees.
+  vec3 light3 = normalize(vec3(toSun.xy, max(toSun.z, 0.035)));
+  float exposure = 0.6 / (light3.z + 0.08);
+
+  // The plain under the eye, in metres east and north.
+  float down = max(-dir.z, 1e-4);
+  vec2 p = dir.xy * (eye / down);
+  float footprint = max(length(dFdx(p)), length(dFdy(p)));
+  float span = clamp(footprint, 0.02, 4.0);
+  float h = height(p, footprint);
+  vec2 slope = vec2(height(p + vec2(span, 0.0), footprint) - h, height(p + vec2(0.0, span), footprint) - h) / span;
+  float nearLight = max(dot(normalize(vec3(-slope, 1.0)), light3), 0.0);
+  float patches = 0.86 + 0.28 * noise(p * 0.7) * (1.0 - smoothstep(0.3, 1.4, footprint));
+  // Grain: the dust and small stones, until they are smaller than a pixel.
+  patches *= 1.0 + (0.5 * noise(p * 9.0) + 0.5 * noise(p * 31.0) - 0.5) * 0.5 * (1.0 - smoothstep(0.01, 0.07, footprint));
+
+  // Far ground: slopes that face the eye, steeper the higher they stand, with ridges for texture.
+  float ridges = noise(level * 26.0 + below * 0.45) * 0.6 + noise(level * 71.0 - below * 1.3) * 0.4;
+  float tilt = 0.08 + 0.5 * smoothstep(-0.01, 0.09, dir.z) + 0.3 * (ridges - 0.5);
+  float farLight = max(dot(normalize(vec3(-level * tilt, 1.0)), light3), 0.0) * (0.75 + 0.5 * ridges);
+
+  float far = smoothstep(-0.035, -0.004, dir.z);
+  float light = mix(nearLight * patches, farLight, far) * exposure * (0.7 + 0.5 * away) * share;
+  color += vec3(0.56, 0.54, 0.5) * (1.0 - exp(-1.3 * light)) * 0.8;
+  // Earthshine: faint and blue, there whenever Earth is up.
+  color += vec3(0.007, 0.01, 0.016) * earthUp * (0.7 + 0.6 * patches * (1.0 - far));
+
+  color = mix(color, vTint, tintAmount);
+  gl_FragColor = vec4(min(color, vec3(1.0)), 1.0);
+  #include <colorspace_fragment>
+}`
 
 // A flat square facing the eye. `vDisk` is the place on it in the body's own radii: the disk is
 // where its length is under 1.
@@ -137,8 +250,9 @@ const OVERLAY = {
 } as const
 
 /**
- * The view from the lander's eye: no terrain mesh, only what the pipeline computed. The land is a
- * dark shape whose top edge is the site's horizon file, point for point; the Sun and Earth are flat
+ * The view from the lander's eye: no terrain mesh, only what the pipeline computed. The land's
+ * top edge is the site's horizon file, point for point; the ground under it is an illustration, lit
+ * from the Sun's true direction (see LAND_FRAGMENT); the Sun and Earth are flat
  * disks at the track's azimuth and elevation, at their true angular sizes, and the land in front
  * hides whatever of them is below it. Stars are decoration. Draws only when asked, at most once
  * per screen refresh.
@@ -169,6 +283,16 @@ export class SurfaceViewer {
     pole: { value: new THREE.Vector3(0, 0, -1) },
   }
   private readonly starUniforms = { pixelRatio: { value: 1 }, dim: { value: 1 } }
+  private readonly landUniforms = {
+    toSun: { value: new THREE.Vector3(0, 1, 0) },
+    share: { value: 0 },
+    earthUp: { value: 0 },
+    tintAmount: { value: 0 },
+    eye: { value: EYE_HEIGHT_M },
+    rimDeg: { value: LAND_RIM_DEG },
+    deepColor: { value: new THREE.Color(LAND_COLOR) },
+    rimColor: { value: new THREE.Color(LAND_RIM_COLOR) },
+  }
   private readonly disposables: { dispose: () => void }[] = []
   private frame: SurfaceFrame | null = null
   private request: number | null = null
@@ -249,33 +373,36 @@ export class SurfaceViewer {
 
   /**
    * The land, from a site's horizon. Its top edge is the horizon file's points joined by straight
-   * lines, which is how the pipeline reads between them; below that it is a plain dark shape that
-   * reaches straight down under the eye. It is a little lighter just under the top edge, so the
-   * edge reads against a black sky: a way of drawing, not light worked out from anything.
+   * lines, which is how the pipeline reads between them; below that it reaches straight down under
+   * the eye. What is drawn on it is an illustration (LAND_FRAGMENT): the edge is the only data.
+   * With a tint, the land takes some of its color: toward the skyline the color of the ground out that way.
    */
   setHorizon(horizon: { az: number; el: number }[], tint: GroundTint | null = null): void {
     this.releaseLand()
     const count = horizon.length
     // Three rings of points: the top edge, the same edge a few degrees lower, and the point below the eye.
     const positions = new Float32Array((2 * count + 1) * 3)
-    const colors = new Float32Array((2 * count + 1) * 3)
-    // With a tint, the land takes some of its color: toward the skyline the color of the ground out that way.
-    const tinted = (base: number, color: readonly [number, number, number] | undefined) => {
-      const own = new THREE.Color(base)
-      return tint && color ? own.lerp(new THREE.Color().setRGB(color[0] / 255, color[1] / 255, color[2] / 255, THREE.SRGBColorSpace), tint.amount) : own
-    }
-    const deep = tinted(LAND_COLOR, tint?.under)
+    const tints = new Float32Array((2 * count + 1) * 3)
+    // The skyline's height in degrees above each point, for the shading just under the edge.
+    const skylines = new Float32Array(2 * count + 1)
+    const linear = (color: readonly [number, number, number] | undefined) => (color ? new THREE.Color().setRGB(color[0] / 255, color[1] / 255, color[2] / 255, THREE.SRGBColorSpace) : new THREE.Color(0))
+    const under = linear(tint?.under)
+    let mean = 0
     horizon.forEach((point, i) => {
-      const rim = tinted(LAND_RIM_COLOR, tint?.rim[i])
+      const rim = linear(tint?.rim[i])
       const top = skyVector(point.az, point.el)
       const lower = skyVector(point.az, Math.max(point.el - LAND_RIM_DEG, -89))
       positions.set([top[0] * LAND_RADIUS, top[1] * LAND_RADIUS, top[2] * LAND_RADIUS], i * 3)
       positions.set([lower[0] * LAND_RADIUS, lower[1] * LAND_RADIUS, lower[2] * LAND_RADIUS], (count + i) * 3)
-      colors.set([rim.r, rim.g, rim.b], i * 3)
-      colors.set([deep.r, deep.g, deep.b], (count + i) * 3)
+      tints.set([rim.r, rim.g, rim.b], i * 3)
+      tints.set([under.r, under.g, under.b], (count + i) * 3)
+      skylines[i] = point.el
+      skylines[count + i] = point.el
+      mean += point.el / count
     })
     positions.set([0, 0, -LAND_RADIUS], 2 * count * 3)
-    colors.set([deep.r, deep.g, deep.b], 2 * count * 3)
+    tints.set([under.r, under.g, under.b], 2 * count * 3)
+    skylines[2 * count] = mean
     const indices: number[] = []
     for (let i = 0; i < count; i += 1) {
       const next = (i + 1) % count
@@ -283,9 +410,11 @@ export class SurfaceViewer {
     }
     const ground = new THREE.BufferGeometry()
     ground.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    ground.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    ground.setAttribute('tint', new THREE.BufferAttribute(tints, 3))
+    ground.setAttribute('skyline', new THREE.BufferAttribute(skylines, 1))
     ground.setIndex(indices)
-    const groundMaterial = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })
+    this.landUniforms.tintAmount.value = tint ? tint.amount : 0
+    const groundMaterial = new THREE.ShaderMaterial({ uniforms: this.landUniforms, vertexShader: LAND_VERTEX, fragmentShader: LAND_FRAGMENT, side: THREE.DoubleSide })
 
     // A hairline along the top edge, a touch nearer than the land so it is never behind it.
     const edge = new THREE.BufferGeometry()
@@ -362,6 +491,10 @@ export class SurfaceViewer {
     this.earthUniforms.axisUp.value.copy(axes.up)
     this.earthUniforms.axisNear.value.copy(axes.near)
     this.earthUniforms.toSun.value.set(...skyVector(frame.sun.azDeg, frame.sun.elDeg))
+    // The ground is lit by as much of the Sun's disk as the track has in view, from where the track puts it.
+    this.landUniforms.toSun.value.set(...skyVector(frame.sun.azDeg, frame.sun.elDeg))
+    this.landUniforms.share.value = frame.sun.up ? frame.sun.share : 0
+    this.landUniforms.earthUp.value = frame.earth.up ? 1 : 0
     // A camera set for sunlit ground would show few stars; they fade as the Sun comes into view.
     this.starUniforms.dim.value = 1 - 0.7 * frame.sun.share
 
