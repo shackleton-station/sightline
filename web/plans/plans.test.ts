@@ -29,6 +29,29 @@ describe.each(PROGRAMS)('shared mission plans, answered by $name', ({ site }) =>
     expect(((await (await app.request(`${ORIGIN}/api/plans/${id}`)).json()) as { plan: { view: string } }).plan.view).toBe(whole)
   })
 
+  it('keeps the mark of a plan saved from the Sightline screen, and adds none to a plan from an older page', async () => {
+    const app = site()
+    const marked = await app.request(save({ title: 'From the Sightline screen', view: `${VIEW}&panel=compare&sl=1` }))
+    const older = await app.request(save({ title: 'From an older page', view: `${VIEW}&b=shackleton-rim@2027-06&sl=yes` }))
+    const view = async (response: Response) => ((await (await app.request(`${ORIGIN}/api/plans/${((await response.json()) as { id: string }).id}`)).json()) as { plan: { view: string } }).plan.view
+    expect(await view(marked)).toBe(`${VIEW}&panel=compare&sl=1`)
+    const kept = await view(older)
+    expect(kept).toContain('b=shackleton-rim@2027-06')
+    expect(kept).toContain('view=3d')
+    expect(kept).not.toContain('sl=')
+  })
+
+  it('returns a plan stored before today as it was stored: nothing is rewritten on read', async () => {
+    const plans = memoryPlans()
+    // As the service stored views before it kept the Sightline screen's values: a panel that is no panel now, and no mark.
+    const stored = { id: 'abcdefgh', title: 'An older plan', note: '', view: `${VIEW}&panel=mission`, brief: [{ label: 'Site', value: 'Connecting Ridge' }], created: '2026-11-01T00:00:00.000Z', expires: '2027-04-30T00:00:00.000Z' }
+    await plans.create(stored)
+    const app = site({ plans, now: () => Date.parse('2026-11-14T00:00:00Z') })
+    const opened = await app.request(`${ORIGIN}/api/plans/abcdefgh`)
+    expect(opened.status).toBe(200)
+    expect(((await opened.json()) as { plan: typeof stored }).plan).toMatchObject(stored)
+  })
+
   it('stores only views the app can open, rewritten by the server', async () => {
     const app = site()
     const junk = await app.request(save({ title: 'x', view: `${VIEW}&evil=<script>` }))
