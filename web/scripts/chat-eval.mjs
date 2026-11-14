@@ -1,5 +1,5 @@
 // Asks the co-pilot a fixed set of questions on a running site and checks each reply:
-//   node scripts/chat-eval.mjs https://shackletonstation.dev
+//   node scripts/chat-eval.mjs https://lunarsightline.com
 // Any address that reaches the co-pilot service works: the site, or the site with --canary copilot,
 // which sends every question with the header x-clps-canary: copilot to the version tagged canary
 // (scripts/canary-header.mjs). Its deploy runs the quick set that way before any visitor reaches the

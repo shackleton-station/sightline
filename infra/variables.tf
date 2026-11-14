@@ -148,9 +148,30 @@ variable "alert_email" {
 }
 
 variable "domain" {
-  description = "The site's own address, without www (for example shackletonstation.dev). Empty means run.app only: no DNS zone, load balancer or certificate."
+  description = "The site's own address, without www (for example lunarsightline.com). Empty means run.app only: no DNS zone, load balancer or certificate."
   type        = string
   default     = ""
+}
+
+variable "other_domains" {
+  description = "More domains the site owns, without www (for example an old address kept after a move). Each gets its own DNS zone, apex and www records, and certificate on the same load balancer. What a visitor gets there is other_domains_redirect. Needs a domain."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.other_domains) == 0 || var.domain != ""
+    error_message = "other_domains needs a domain: they share its load balancer."
+  }
+  validation {
+    condition     = !contains(var.other_domains, var.domain)
+    error_message = "other_domains must not repeat domain."
+  }
+}
+
+variable "other_domains_redirect" {
+  description = "What other_domains answer. false: the site itself, exactly as on domain (their www still forwards to domain). true: every request forwards, with a 301, to the same path and query on https://<domain>. Turn it on only once the certificate for domain is ACTIVE, or the forward lands on a certificate error (infra/README.md, \"Moving to another domain\")."
+  type        = bool
+  default     = false
 }
 
 variable "shared_store" {

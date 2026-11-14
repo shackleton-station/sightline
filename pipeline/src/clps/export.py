@@ -203,6 +203,44 @@ export interface Overview {
 // [from, to, ...]. A run that carries on past New Year ends at the year's last hour here.
 export type OverviewYear = Overview
 
+// How far a site is from permanently shadowed ground, in NASA's maps of it. `found` carries the
+// distance (km, great circle on the 1737.4 km sphere, to the centre of a map pixel), that pixel's
+// position, the area of the shadowed region it belongs to, and the map read. `none_within`: the
+// site is inside the map and no such ground lies within that many km. `outside_map`: the site is
+// that many km outside every map, so there is no number to give.
+export type ShadowAnswer =
+  | {
+      status: 'found'
+      distance_km: number
+      lat: number
+      lon: number
+      region_km2: number
+      map: string
+      pixel_m: number
+    }
+  | { status: 'none_within'; within_km: number; map: string }
+  | { status: 'outside_map'; map_edge_km: number }
+
+// `shadow.json`: each listed site's distance to permanent shadow. Small, and loaded only by the
+// views that show it.
+export interface ShadowDistances {
+  // What "permanently shadowed" means, in a sentence a page can show.
+  what: string
+  unit: 'km'
+  // How the distance is measured, in a sentence.
+  measure: string
+  source: { name: string; url: string; cite: string }
+  // What each of a site's two answers is: the nearest shadowed pixel of any size, and the
+  // nearest of a region of at least `region_min_km2`.
+  patch: string
+  region: string
+  region_min_km2: number
+  maps: { file: string; pixel_m: number; south_of_lat: number }[]
+  // The maps of both poles stop at this latitude, north and south.
+  covered_from_lat: number
+  sites: Record<string, { patch: ShadowAnswer; region: ShadowAnswer }>
+}
+
 // One site's headline numbers per calendar year, at each height above the ground.
 export interface MastHeight {
   obs_height_m: number

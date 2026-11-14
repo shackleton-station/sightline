@@ -3,7 +3,7 @@
 // Run it from web/, with the dev server (or any copy of the site) already running and nothing else busy:
 //
 //   node scripts/atlas-frames.mjs                         http://localhost:5173
-//   node scripts/atlas-frames.mjs https://shackletonstation.dev
+//   node scripts/atlas-frames.mjs https://lunarsightline.com
 //
 // It opens the Atlas in headless Chrome at 1440 x 900 with two device pixels per CSS pixel, and wraps
 // requestAnimationFrame so that every frame's work is timed up to the moment the graphics card has

@@ -1,0 +1,113 @@
+{
+  "about": "What the tutorial video adds to the tour (src/sightline/tour.json holds the steps and their words): where the pointer goes during each step, which sentences the 30-second cut keeps, and the line that says the voice is AI-generated. record.mjs, beside this file, reads both. In an act, \"at\" and \"until\" are fractions of the step's time (0 is its start, 1 its end), and \"over\" is seconds.",
+  "open": "/sightline/",
+  "ready": "document.querySelector('.scout-globe canvas') !== null && Number(document.querySelector('.scout-globe')?.dataset.discPx) > 0",
+  "settle": 5,
+  "voice": "en-US-Chirp3-HD-Leda",
+  "disclosure": "Narration: AI-generated voice (Google Cloud Text-to-Speech)",
+  "strip": { "right": "shackletonstation.dev/sightline" },
+  "pointerStart": [1560, 900],
+  "pace": { "lead": 1.2, "before": 0.6, "after": 1.1, "tail": 2.2 },
+  "acts": {
+    "watch": [
+      { "at": 0.3, "point": ["label:Pause", "label:Play"], "over": 1.1 },
+      { "at": 0.42, "ring": "targets" },
+      { "at": 0.6, "point": "label:Speed", "over": 1.2 },
+      { "at": 0.86, "point": "label:Move through the month", "over": 0.9, "optional": true }
+    ],
+    "markers": [
+      { "at": 0.02, "point": ["label~:sites close together", "label~:Connecting Ridge"], "over": 1 },
+      { "at": 0.1, "ring": ["label~:sites close together", "label~:Connecting Ridge"], "until": 0.5, "round": true, "pad": 8 },
+      { "at": 0.52, "point": ".sl-watch-key", "over": 1 },
+      { "at": 0.56, "ring": "targets" }
+    ],
+    "plan": [
+      { "at": 0, "click": ["[data-tour='plan']", "label:Plan a landing"], "over": 0.8 },
+      { "at": 0.16, "go": "scenario" },
+      { "at": 0.2, "ring": "targets" },
+      { "at": 0.22, "point": "#sl-site", "place": [0.35, 0.5], "over": 0.8 },
+      { "at": 0.46, "point": ".sl-pick", "place": [0.35, 0.5], "over": 0.6 },
+      { "at": 0.66, "point": ".sl-mission-open", "place": [0.35, 0.5], "over": 0.6 }
+    ],
+    "verdict": [
+      { "at": 0.02, "ring": "targets" },
+      { "at": 0.04, "point": ".sl-verdict-words", "place": [0.5, 0.6], "over": 0.8 },
+      { "at": 0.56, "point": ".sl-next", "place": [0.6, 0.6], "over": 0.8 }
+    ],
+    "skyline": [
+      { "at": 0.02, "ring": "targets" },
+      { "at": 0.05, "point": { "css": ".sl-sky-name", "has": "Sun" }, "place": [0.5, 1.6], "over": 1.2 },
+      { "at": 0.42, "point": { "css": ".sl-sky-name", "has": "Earth" }, "place": [0.5, -1.2], "over": 1.4 }
+    ],
+    "time": [
+      { "at": 0.02, "ring": "targets" },
+      { "at": 0.08, "slide": "label:Time", "to": 0.56, "over": 3.2, "reach": 0.9 },
+      { "at": 0.66, "point": ["[data-tour='land']", "label:Land here"], "over": 0.9, "optional": true },
+      { "at": 0.72, "ring": ["[data-tour='land']", "label:Land here"], "pad": 5 }
+    ],
+    "compare": [
+      { "at": 0, "click": ["[data-tour='add']", "label:Add a scenario"], "over": 0.9 },
+      { "at": 0.02, "ring": ".sl-tabs", "until": 0.3 },
+      { "at": 0.34, "click": ["[data-tour='compare']", "label:Compare"], "over": 0.9 },
+      { "at": 0.7, "click": ["[data-tour='planner']", "label:Planner"], "over": 0.8 }
+    ],
+    "scout": [
+      { "at": 0, "click": ["label:Back to the Moon"], "over": 0.7, "optional": true },
+      { "at": 0.12, "click": ["[data-tour='scout']", "label:Scout"], "over": 0.7 },
+      { "at": 0.3, "type": "#sl-question", "text": "When can I land at Connecting Ridge?", "over": 1.6, "reach": 0.5 },
+      { "at": 0.72, "click": ["[data-tour='hide']", "label:Hide"], "over": 0.8 },
+      { "at": 0.9, "rest": [0.86, 0.8], "over": 1 }
+    ]
+  },
+  "cuts": {
+    "full": {
+      "file": "sightline-tutorial",
+      "title": "Sightline: the one-minute tour",
+      "poster": { "step": "skyline", "at": 0.5 }
+    },
+    "short": {
+      "file": "sightline-30s",
+      "title": "Sightline in 30 seconds",
+      "about": "For the Space Apps submission, where a video over 30 seconds is not eligible for Global Judging: record.mjs refuses to record this cut if its words and pauses would run past \"length\", and checks the finished file against it.",
+      "length": 29,
+      "slack": 0.5,
+      "pace": { "lead": 0.35, "before": 0.1, "after": 0.25, "tail": 0.5, "fadeIn": 0.3, "fadeOut": 0.4 },
+      "keep": {
+        "watch": [0],
+        "plan": [0],
+        "verdict": [0],
+        "skyline": [0],
+        "time": [0],
+        "scout": [0]
+      },
+      "acts": {
+        "watch": [
+          { "at": 0.4, "point": ["label:Pause", "label:Play"], "over": 0.9 }
+        ],
+        "plan": [
+          { "at": 0, "click": ["[data-tour='plan']", "label:Plan a landing"], "over": 0.6 },
+          { "at": 0.22, "go": "scenario" },
+          { "at": 0.3, "ring": "targets" },
+          { "at": 0.3, "point": ".sl-pick", "place": [0.35, 0.5], "over": 0.7 }
+        ],
+        "verdict": [
+          { "at": 0, "ring": "targets" },
+          { "at": 0.02, "point": ".sl-verdict-words", "place": [0.5, 0.6], "over": 0.6 }
+        ],
+        "skyline": [
+          { "at": 0, "ring": "targets" },
+          { "at": 0.05, "point": { "css": ".sl-sky-name", "has": "Sun" }, "place": [0.5, 1.6], "over": 1 },
+          { "at": 0.5, "point": { "css": ".sl-sky-name", "has": "Earth" }, "place": [0.5, -1.2], "over": 1.2 }
+        ],
+        "time": [
+          { "at": 0, "ring": "targets" },
+          { "at": 0.04, "slide": "label:Time", "to": 0.56, "over": 2.6, "reach": 0.6 }
+        ],
+        "scout": [
+          { "at": 0, "click": ["[data-tour='scout']", "label:Scout"], "over": 0.7 },
+          { "at": 0.3, "type": "#sl-question", "text": "When can I land at Connecting Ridge?", "over": 1.5, "reach": 0.4 }
+        ]
+      }
+    }
+  }
+}

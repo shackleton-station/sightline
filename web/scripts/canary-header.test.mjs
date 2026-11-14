@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { CANARY_HEADER, canaryFrom, canaryHeaders, waitForRevision, watchTargets, withCanary } from './canary-header.mjs'
 
-const SITE = 'https://shackletonstation.dev'
+const SITE = 'https://lunarsightline.com'
 
 /** A fetch that records what it was asked and answers with `answer(url, init)`. */
 function recorder(answer = () => new Response('{}')) {

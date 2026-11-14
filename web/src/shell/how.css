@@ -335,3 +335,48 @@
     gap: 0.3rem;
   }
 }
+
+/* ---------- How to use Sightline: the first thing on the page, the same steps Scout's tour walks through ---------- */
+.how-use {
+  padding: 1.25rem 0 0.5rem;
+}
+
+.how-use h2 {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  line-height: 1.15;
+}
+
+.how-use-steps {
+  max-width: 46rem;
+  margin: 0;
+  padding-left: 1.4rem;
+}
+
+.how-use-steps li {
+  margin: 0.3rem 0;
+}
+
+.how-use-tour {
+  max-width: 46rem;
+  margin: 1rem 0 0;
+  color: var(--muted);
+}
+
+.how .how-tour-button {
+  margin-right: 0.5rem;
+  border-color: var(--accent);
+}
+
+.how-video {
+  max-width: 46rem;
+  margin-top: 1.25rem;
+}
+
+.how-video video {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #000;
+}

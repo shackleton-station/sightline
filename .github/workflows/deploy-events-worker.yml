@@ -50,7 +50,7 @@ env:
   REGISTRY: us-east4-docker.pkg.dev
   IMAGE_REPO: us-east4-docker.pkg.dev/clps-compute-6z1nc/web
   IMAGE_NAME: events-worker
-  SITE: https://shackletonstation.dev
+  SITE: https://lunarsightline.com
   WORKLOAD_IDENTITY_PROVIDER: projects/919194174067/locations/global/workloadIdentityPools/github/providers/github-oidc
   DEPLOYER: clps-web-deployer@clps-compute-6z1nc.iam.gserviceaccount.com
   # Everything the worker's image is built from. A commit that touches none of these does not deploy it.

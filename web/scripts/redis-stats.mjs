@@ -1,10 +1,10 @@
 // Prints the cache's hit rate per kind of key, what single flight did, and the memory Redis uses.
 // Read-only: it changes nothing, and asks no question of the model.
 //
-//   node scripts/redis-stats.mjs https://shackletonstation.dev                  hit rates, flights, memory
-//   node scripts/redis-stats.mjs https://shackletonstation.dev --monitoring     and Google's own numbers
+//   node scripts/redis-stats.mjs https://lunarsightline.com                  hit rates, flights, memory
+//   node scripts/redis-stats.mjs https://lunarsightline.com --monitoring     and Google's own numbers
 //   node scripts/redis-stats.mjs http://localhost:8083                          on a laptop (Compose)
-//   node scripts/redis-stats.mjs https://shackletonstation.dev --json           the raw answer
+//   node scripts/redis-stats.mjs https://lunarsightline.com --json           the raw answer
 //
 // Two sources, because each sees what the other cannot:
 //

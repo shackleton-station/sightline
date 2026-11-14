@@ -157,7 +157,8 @@ Cloud Run --Google API-------> Firestore, database "plans"            shared mis
 
 ## The site's own domain
 
-`shackletonstation.dev` is the team's address.
+`lunarsightline.com` is the team's address since 2026-11-14. `shackletonstation.dev`, the address before it, forwards every
+request there with a 301 (`other_domains`, below).
 
 ```
 visitor -> 34.128.184.151 (global IP) -> load balancer: HTTPS + CDN -> Cloud Run (us-east4)
@@ -195,6 +196,35 @@ is active.
 
 To point the domain at another Cloud Run service, change the `cloud_run` service in `domain.tf`'s endpoint
 group and apply.
+
+### Moving to another domain
+
+`other_domains` lists the other domains the site owns. Each gets its own zone, apex and `www` records, and
+certificate on the same load balancer; the zones, records and certificates are keyed by the domain itself,
+so swapping which one is `domain` changes none of them. `other_domains_redirect` decides what they answer:
+off, the site itself; on, a 301 to the same path and query on `https://<domain>`. Their `www` always
+forwards to `domain`.
+
+The move to `lunarsightline.com` (bought 2026-11-14) takes two pull requests, because a redirect to a domain
+whose certificate is still provisioning lands every visitor on a certificate error:
+
+1. Add the new domain to `other_domains` and apply. The new domain serves the site; nothing changes for
+   `shackletonstation.dev`. Wait until its certificate is `ACTIVE`:
+
+   ```sh
+   gcloud compute ssl-certificates describe lunarsightline-com-cert --global \
+     --project clps-compute-6z1nc --format 'value(managed.status, managed.domainStatus)'
+   ```
+
+   Also add `https://lunarsightline.com` to the sign-in client's authorized JavaScript origins (below).
+2. Swap them: `domain = "lunarsightline.com"`, `other_domains = ["shackletonstation.dev"]`,
+   `other_domains_redirect = true`. In the same pull request, every hard-coded `https://shackletonstation.dev`
+   (the deploy workflows' `SITE`, `web/scripts/*`, the pages' canonical and share tags) becomes the new
+   domain: the deploys' checks do not follow redirects.
+
+Keep the old domain registered and in `other_domains` for as long as links to it matter. Taking it out
+deletes its zone, which `prevent_destroy` and the destroy guard both refuse until asked
+(`expected-removals.txt`).
 
 ## Where this came from, and reusing it
 
