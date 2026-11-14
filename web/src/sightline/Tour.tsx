@@ -89,13 +89,16 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onVideo, tryIt, 
     return () => window.clearInterval(timer)
   }, [step])
 
-  // On a phone what a step is about may be further down the sheet: bring it to the sheet's top, clear of the bubble at the foot.
+  // On a phone what a step is about may be further down whatever holds it (the sheet, a panel, the
+  // Planner's page): bring it to the top of the nearest thing that scrolls, clear of the bubble at the foot.
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const target = step.targets.flatMap((selector) => [...document.querySelectorAll(selector)]).find((el) => !el.closest('[hidden]'))
-      const sheet = target?.closest('.sl-wrap')
-      if (!target || !sheet || window.innerWidth >= PHONE_UNDER_PX) return
-      sheet.scrollTop += target.getBoundingClientRect().top - sheet.getBoundingClientRect().top - 12
+      if (!target || window.innerWidth >= PHONE_UNDER_PX) return
+      let holder = target.parentElement
+      while (holder && !(holder.scrollHeight > holder.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(holder).overflowY))) holder = holder.parentElement
+      if (!holder) return
+      holder.scrollTop += target.getBoundingClientRect().top - Math.max(holder.getBoundingClientRect().top, 0) - 12
     }, 80)
     return () => window.clearTimeout(timer)
   }, [step])

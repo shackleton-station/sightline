@@ -30,6 +30,41 @@
       ]
     },
     {
+      "id": "planner",
+      "name": "The Planner",
+      "about": "Find when a landing fits, and compare plans in full.",
+      "steps": [
+        {
+          "id": "planner-tabs",
+          "title": "The whole window",
+          "say": "The Planner gives your plans the whole window. It has two tabs: Find and Compare.",
+          "state": { "view": "plan", "open": "planner-find" },
+          "targets": [".pl-tabs"]
+        },
+        {
+          "id": "planner-find",
+          "title": "Find",
+          "say": "Find shows, for every site and month, on how many days a landing fits your mission. Press a cell to open that month.",
+          "state": { "view": "plan", "open": "planner-find" },
+          "targets": [".pl-measures", ".pl-legend"]
+        },
+        {
+          "id": "planner-compare",
+          "title": "Compare",
+          "say": "Compare sets your scenarios in one table, a column each. Export saves it as a file.",
+          "state": { "view": "plan", "open": "planner-compare", "pair": true },
+          "targets": [".sl-full-table thead"]
+        },
+        {
+          "id": "planner-back",
+          "title": "Back to the Moon",
+          "say": "\"‹ Moon\" takes you back, with your scenarios as you left them.",
+          "state": { "view": "plan", "open": "planner-compare", "pair": true },
+          "targets": [".pl-back"]
+        }
+      ]
+    },
+    {
       "id": "views",
       "name": "Views and layers",
       "about": "Come in close, and lay NASA's maps over the ground.",
