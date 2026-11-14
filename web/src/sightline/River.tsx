@@ -1,28 +1,17 @@
 import { type CSSProperties, type PointerEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { loadEarthSun } from '../data/loadSite'
 import { earthPath, EVERYDAY_LAT_DEG } from '../lib/earthSun'
-import type { SiteFlags } from '../lib/flags'
 import { locateHour } from '../lib/mission'
 import type { RiverSegment, RiverState } from '../lib/river'
-import { ABOVE_SKYLINE_MEANS, bandWords, clockTime, DEFAULT_SPEED, degWords, type RiverZoom, riverTicks, riverWindow, runAt, SPEEDS, stateRuns, TIME_KEYS_MEAN } from '../lib/sightline'
-import type { RowLabel } from '../lib/sightlineMission'
-import { type Clock, useFitLevel } from './hooks'
+import { ABOVE_SKYLINE_MEANS, bandWords, clockTime, DEFAULT_SPEED, degWords, type RiverZoom, riverTicks, riverWindow, runAt, SPEEDS, stateAt, stateRuns, TIME_KEYS_MEAN } from '../lib/sightline'
+import type { Clock } from './hooks'
+import { HourlyProblem } from './hourlyExport'
+import { axisName, flagPlaces, labelSide, missionLabel, type RiverScenario, siteRows } from './riverRows'
 import { BAND, STATE_CHIP } from './states'
+import './river.css'
 
-export interface RiverRow {
-  key: string
-  /** The scenario's letter, "A". */
-  letter: string
-  /** What the row shows beside its letter: only what differs between the rows (lib/sightlineMission.ts, rowLabels). */
-  label: RowLabel
-  /** The whole of it, "Connecting Ridge · 6 May 2027 · 13:00 UTC", for the tooltip and the accessible name. */
-  full: string
-  /** The site's hourly flags; null while they load (a custom point is worked out in the browser). */
-  flags: SiteFlags | null
-  /** The landing, in clock hours. */
-  landing: number
-  active: boolean
-}
+/** One scenario on the time bar (`riverRows.ts`). The name is the one the screen has always passed. */
+export type RiverRow = RiverScenario
 
 interface Props {
   start: string
@@ -41,6 +30,8 @@ interface Props {
   onSelect: (key: string) => void
   /** The skyline strip above this bar ("What the lander sees"): whether it is open, and its door, which is this bar's readout of the Sun's and Earth's heights. */
   sky: { open: boolean; onToggle: () => void }
+  /** Make and save the hour-by-hour file of the scenario on show, offered under "More"; rejects when it cannot be made. */
+  onHourly: () => Promise<void>
 }
 
 const ZOOMS: { id: RiverZoom; label: string }[] = [
@@ -75,12 +66,24 @@ function useEarthDay(start: string, from: number, to: number, wanted: boolean): 
   return wanted && loaded && loaded.from === from && loaded.to === to ? loaded.up : null
 }
 
+
+/** A flag's width and the room the selected mission's label needs, in rem; the styles use the same numbers. */
+const FLAG_REM = 1.1
+const LABEL_REM = 7.6
+/** The header's width, in rem, from which the chip, the heights in full and the tools fit one line. */
+const DOOR_ROOM_REM = 46
+/** The header's widths, in rem, under which the key does not fit beside the name, and under which the short door does not fit beside the chip and the tools. */
+const KEY_ROOM_REM = 32
+const SHORT_DOOR_ROOM_REM = 33.5
+
 /**
- * The time river: one row per scenario on one time axis, coloured by what is up at its site, with a
- * marker for the landing and the mission's length, and one playhead through them all. Drag anywhere
- * on it to move time.
+ * The time bar, "When the Sun and Earth are in view": one row per site on one time axis, coloured
+ * by what is in view there. Each scenario is a lettered flag standing on its site's row at its
+ * landing hour; the selected scenario's mission is the lit stretch of its row. One line through
+ * every row is the hour on show, with a handle at its top and its date under it. Drag anywhere on
+ * the rows to move time, or press a flag to choose that scenario.
  */
-export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, sky }: Props) {
+export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, sky, onHourly }: Props) {
   const [zoom, setZoom] = useState<RiverZoom>('month')
   const [earthRow, setEarthRow] = useState(false)
   const { from, to } = riverWindow(start, hour, zoom, hours)
@@ -89,20 +92,30 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
   // At a year's width an Earth day is narrower than a pixel, so the row is offered up to a month.
   const earthDay = useEarthDay(start, from, to, earthRow && zoom !== 'year' && !folded)
   const at = (sample: number) => `${(100 * sample) / count}%`
-  // The label column is as wide as its longest label needs, up to a limit (set in the styles); only then is a site shortened.
-  // (On a phone a row with a date leaves its site out, so there the shorter of the two sets the width.)
-  const wide = (row: RiverRow, site: boolean) => `${row.letter}${row.label.date ? ` · ${row.label.date}` : ''}${site && row.label.site ? ` · ${row.label.site}` : ''}`.length
-  const longest = Math.max(...rows.map((row) => wide(row, true)))
-  const longestDate = Math.max(...rows.map((row) => wide(row, row.label.date === null)))
+  const sites = siteRows(rows)
+  // The label column is as wide as its longest site's name needs, up to a limit (set in the styles); past it a name is shortened.
+  const longest = Math.max(...sites.map((site) => site.name.length))
 
-  // The header is one row. 6 is everything in it, and each level down moves one thing to "More", or
-  // drops it: "A day on Earth", the speed, the legend, the heights (dropped), the zoom, and last the
-  // date's "UTC" and the chip's spare room. Nothing is shown twice: what is in the row is not in "More".
-  const head = useFitLevel<HTMLDivElement>(6)
-  const level = head.level
-  const inHead = { earthDay: level >= 6, speed: level >= 5, legend: level >= 4, heights: level >= 3, zooms: level >= 2, roomy: level >= 1 }
-  const [more, setMore] = useState(false)
-  // On a phone the styles leave the heights out of the row whatever its level, so there the skyline's door is in "More".
+  // The rows' and the header's widths in pixels and the size of 1rem: to stand flags side by side where
+  // their landings are close, and to know whether the header has room for the heights in full.
+  const seekBox = useRef<HTMLDivElement>(null)
+  const headBox = useRef<HTMLDivElement>(null)
+  const [track, setTrack] = useState({ width: 0, head: 0, rem: 16 })
+  useEffect(() => {
+    const measure = () =>
+      setTrack({
+        width: seekBox.current?.getBoundingClientRect().width ?? 0,
+        head: headBox.current?.getBoundingClientRect().width ?? 0,
+        rem: Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16,
+      })
+    measure()
+    const watcher = new ResizeObserver(measure)
+    if (seekBox.current) watcher.observe(seekBox.current)
+    if (headBox.current) watcher.observe(headBox.current)
+    return () => watcher.disconnect()
+  }, [folded])
+  const flagWidth = FLAG_REM * track.rem
+  // On a phone the styles leave the heights out of the header, so there the skyline's door is in "More".
   const [phone, setPhone] = useState(() => window.matchMedia('(max-width: 760px)').matches)
   useEffect(() => {
     const narrow = window.matchMedia('(max-width: 760px)')
@@ -110,14 +123,28 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
     narrow.addEventListener('change', follow)
     return () => narrow.removeEventListener('change', follow)
   }, [])
-  const doorInRow = inHead.heights && !phone
-  // One level down the heights no longer fit the row, but a short door does ("Skyline"), so on a small laptop it is still in plain sight.
-  const shortDoor = !doorInRow && inHead.zooms && !phone
-  const menu = useRef<HTMLDivElement>(null)
+  // The heights in full are the skyline's door where the header's second line has room for them beside
+  // the chip and the tools; where it does not, a short door ("Skyline") stays in plain sight.
+  const doorInRow = !phone && (track.head === 0 || track.head >= DOOR_ROOM_REM * track.rem)
+  // Narrower than that the header tightens. Narrower still (a small laptop with a panel open) its key and
+  // the skyline's door go into "More", as the door does on a phone, so the header stays two lines.
+  const tight = track.head > 0 && track.head < DOOR_ROOM_REM * track.rem
+  const keyInMenu = !phone && track.head > 0 && track.head < KEY_ROOM_REM * track.rem
+  const doorInMenu = phone || (track.head > 0 && track.head < SHORT_DOOR_ROOM_REM * track.rem)
+  const shortDoor = !doorInRow && !doorInMenu
+  const key = (
+    <span className="sl-legend">
+      <i className="sl-key is-sun" /> Sun <i className="sl-key is-earth" /> Earth <i className="sl-key is-both" /> Both <i className="sl-key is-none" /> Neither
+    </span>
+  )
+
+  // Two small menus open upward from the header: the speeds, from the play button, and "More".
+  const [menu, setMenu] = useState<'speed' | 'more' | null>(null)
+  const menuBox = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (!more) return
+    if (!menu) return
     const close = (event: Event) => {
-      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !(event.target instanceof Element && (menu.current?.contains(event.target) || event.target.closest('.sl-more')))) setMore(false)
+      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !(event.target instanceof Element && (menuBox.current?.contains(event.target) || event.target.closest('.sl-more, .sl-speed')))) setMenu(null)
     }
     window.addEventListener('pointerdown', close)
     window.addEventListener('keydown', close)
@@ -125,57 +152,46 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
       window.removeEventListener('pointerdown', close)
       window.removeEventListener('keydown', close)
     }
-  }, [more])
-  const zooms = (
-    <span className="sl-zooms" role="group" aria-label="How much time the river shows">
-      {ZOOMS.map((option) => (
-        <button key={option.id} type="button" aria-pressed={zoom === option.id} onClick={() => setZoom(option.id)}>
-          {option.label}
-        </button>
-      ))}
-    </span>
-  )
-  const legend = (
-    <span className="sl-legend">
-      <i className="sl-key is-sun" /> Sun <i className="sl-key is-earth" /> Earth <i className="sl-key is-both" /> Both <i className="sl-key is-none" /> Neither
-    </span>
-  )
+  }, [menu])
+  // The hourly file may have a month or two to read first; its line under "More" says so, and says why if it cannot be made.
+  const [hourly, setHourly] = useState<{ kind: 'idle' } | { kind: 'working' } | { kind: 'failed'; message: string }>({ kind: 'idle' })
+  const saveHourly = () => {
+    if (hourly.kind === 'working') return
+    setHourly({ kind: 'working' })
+    onHourly().then(
+      () => {
+        setHourly({ kind: 'idle' })
+        setMenu(null)
+      },
+      (reason: unknown) => {
+        if (!(reason instanceof HourlyProblem)) console.error(reason)
+        setHourly({ kind: 'failed', message: reason instanceof HourlyProblem ? reason.message : 'The file could not be made just now. Try again in a moment.' })
+      },
+    )
+  }
+  const speed = SPEEDS.find((one) => one.hoursPerSecond === clock.hoursPerSecond) ?? SPEEDS.find((one) => one.hoursPerSecond === DEFAULT_SPEED) ?? SPEEDS[0]
   // At a year's width an Earth day is narrower than a pixel, so the row is offered up to a month, and only while the rows are open.
-  const earthDayBox = zoom !== 'year' && !folded && (
-    <label className="sl-check">
-      <input type="checkbox" checked={earthRow} onChange={(event) => setEarthRow(event.target.checked)} /> A day on Earth
-    </label>
-  )
-  // Where the row has no room for the heights, the skyline's door is in "More" instead, so it is always one press away.
-  const menuHolds = (!doorInRow && !shortDoor) || !inHead.speed || (!folded && (!inHead.zooms || !inHead.legend)) || (!inHead.earthDay && earthDayBox !== false)
-  const speed = (
-    <select aria-label="Speed" value={SPEEDS.some((one) => one.hoursPerSecond === clock.hoursPerSecond) ? clock.hoursPerSecond : DEFAULT_SPEED} onChange={(event) => clock.setSpeed(Number(event.target.value))}>
-      {SPEEDS.map((one) => (
-        <option key={one.hoursPerSecond} value={one.hoursPerSecond} title={one.label}>
-          {one.label.replace(' a second', '/s')}
-        </option>
-      ))}
-    </select>
-  )
+  const earthDayOffered = zoom !== 'year' && !folded
 
   const dragging = useRef(false)
-  // The band under the pointer, or, with the keyboard on the time bar, the band the bar is in on the
-  // scenario on show: which row, and the whole stretch it belongs to. Its line shows over its own row.
+  // The band under the pointer, or, with the keyboard on the time bar, the band the line is in on the
+  // row of the scenario on show: which row, and the whole stretch it belongs to. Its words show over its own row.
   const [pointed, setPointed] = useState<({ row: number } & RiverSegment) | null>(null)
   const [focused, setFocused] = useState(false)
   const point = (event: PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect()
-    const tracks = [...(event.currentTarget.parentElement?.querySelectorAll('.sl-row .sl-track') ?? [])].slice(0, rows.length)
-    const row = tracks.findIndex((track) => event.clientY >= track.getBoundingClientRect().top - 3 && event.clientY <= track.getBoundingClientRect().bottom + 3)
-    const flags = row >= 0 ? rows[row].flags : null
+    const tracks = [...(event.currentTarget.parentElement?.querySelectorAll('.sl-site-row .sl-track') ?? [])]
+    const row = tracks.findIndex((one) => event.clientY >= one.getBoundingClientRect().top - 3 && event.clientY <= one.getBoundingClientRect().bottom + 3)
+    const flags = row >= 0 ? sites[row].flags : null
     if (!flags) return setPointed(null)
     const fraction = Math.min(Math.max((event.clientX - box.left) / box.width, 0), 1)
     const run = runAt(flags, Math.min(from + Math.floor(fraction * count), to - 1))
-    // Moving along the same band changes nothing: the line is drawn again only for another band.
+    // Moving along the same band changes nothing: the words are drawn again only for another band.
     setPointed((before) => (before && before.row === row && before.from === run.from ? before : { row, ...run }))
   }
-  const onShow = rows.findIndex((row) => row.active)
-  const band = pointed ?? (focused && onShow >= 0 && rows[onShow].flags ? { row: onShow, ...runAt(rows[onShow].flags, Math.floor(hour)) } : null)
+  const onShow = sites.findIndex((site) => site.scenarios.some((one) => one.active))
+  const shownFlags = onShow >= 0 ? sites[onShow].flags : null
+  const band = pointed ?? (focused && shownFlags ? { row: onShow, ...runAt(shownFlags, Math.floor(hour)) } : null)
   const seek = (event: PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect()
     const fraction = Math.min(Math.max((event.clientX - box.left) / box.width, 0), 1)
@@ -184,50 +200,95 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
   }
 
   return (
-    <section className={folded ? 'sl-river is-folded' : 'sl-river'} aria-label="Time" style={{ '--sl-label-chars': longest, '--sl-date-chars': longestDate } as CSSProperties}>
-      {/* One row. The moment on the time bar comes first: its date, what is up at the scenario's site
-          then, how far the Sun and Earth are above the skyline. Then how the rows are shown. What does not
-          fit the row's width is left out or goes into "More"; "Fold" stays at the right end. */}
+    <section className={folded ? 'sl-river is-folded' : 'sl-river'} aria-label="When the Sun and Earth are in view" style={{ '--sl-label-chars': longest, '--sl-date-chars': longest } as CSSProperties}>
+      {/* The header. Open: play, the section's name and its key, then what is in view at the hour on
+          show, then how much time the rows cover and "Fold". The hour's date is under the line in the
+          rows, so it is not written here; folded, there is no line, and the date takes the name's place. */}
       <div className="sl-river-top">
-        <div ref={head.ref} className="sl-strip-head sl-river-head">
-          <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} title={TIME_KEYS_MEAN} onClick={() => clock.setPlaying(!clock.playing)}>
-            {clock.playing ? '❚❚' : '▶'}
-          </button>
-          {/* At the narrowest the date drops "UTC" and the chip is only as wide as its words. */}
-          <output className={inHead.roomy ? 'sl-now' : 'sl-now is-tight'} title={inHead.roomy ? undefined : 'UTC'}>
-            {inHead.roomy ? clockTime(start, hour) : clockTime(start, hour).replace(/ UTC$/, '')}
-          </output>
-          <span className={`sl-chip${moment.state ? ` is-${moment.state}` : ''}${inHead.roomy ? '' : ' is-tight'}`}>
-            <i className={`sl-key${moment.state ? ` is-${moment.state}` : ''}`} aria-hidden="true" /> {moment.words ?? (moment.state ? STATE_CHIP[moment.state] : '…')}
+        <div ref={headBox} className={tight ? 'sl-strip-head sl-river-head is-tight' : 'sl-strip-head sl-river-head'}>
+          <span className="sl-play">
+            <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} title={TIME_KEYS_MEAN} onClick={() => clock.setPlaying(!clock.playing)}>
+              {clock.playing ? '❚❚' : '▶'}
+            </button>
+            <button type="button" className="sl-small sl-speed" aria-label={`Speed: ${speed.label}`} aria-haspopup="true" aria-expanded={menu === 'speed'} title={`Speed: ${speed.label}`} onClick={() => setMenu(menu === 'speed' ? null : 'speed')}>
+              ▾
+            </button>
           </span>
-          {/* The heights above the skyline are the door to the skyline itself: a press unfolds the strip above this bar, and folds it again. */}
-          {doorInRow && (
-            <button type="button" className="sl-moment-heights sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`${ABOVE_SKYLINE_MEANS} Press to ${sky.open ? 'fold' : 'see'} the skyline all the way round, with the Sun's and Earth's paths.`} onClick={sky.onToggle}>
-              Sun {moment.sunAboveDeg === null ? '…' : degWords(moment.sunAboveDeg)} · Earth {moment.earthAboveDeg === null ? '…' : degWords(moment.earthAboveDeg)} above the skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
-            </button>
+          {folded ? (
+            <output className="sl-now">{clockTime(start, hour)}</output>
+          ) : (
+            <>
+              <h2 className="sl-river-name">When the Sun and Earth are in view</h2>
+              {!keyInMenu && key}
+            </>
           )}
-          {shortDoor && (
-            <button type="button" className="sl-small sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`The skyline all the way round, with the Sun's and Earth's paths. Press to ${sky.open ? 'fold' : 'see'} it.`} onClick={sky.onToggle}>
-              Skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
-            </button>
-          )}
-          {!folded && inHead.zooms && zooms}
-          {!folded && inHead.legend && legend}
-          {inHead.speed && speed}
-          {inHead.earthDay && earthDayBox}
-          {/* "More" is there only when something did not fit the row. */}
-          {menuHolds && (
-            <button type="button" className="sl-small sl-more" aria-label="More for the time bar" aria-haspopup="true" aria-expanded={more} title="More for the time bar" onClick={() => setMore(!more)}>
+          <span className="sl-moment">
+            <span className={`sl-chip${moment.state ? ` is-${moment.state}` : ''}`}>
+              <i className={`sl-key${moment.state ? ` is-${moment.state}` : ''}`} aria-hidden="true" /> {moment.words ?? (moment.state ? STATE_CHIP[moment.state] : '…')}
+            </span>
+            {/* The heights above the skyline are the door to the skyline itself: a press unfolds the strip above this bar, and folds it again. */}
+            {doorInRow && (
+              <button type="button" className="sl-moment-heights sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`${ABOVE_SKYLINE_MEANS} Press to ${sky.open ? 'fold' : 'see'} the skyline all the way round, with the Sun's and Earth's paths.`} onClick={sky.onToggle}>
+                Sun {moment.sunAboveDeg === null ? '…' : degWords(moment.sunAboveDeg)} · Earth {moment.earthAboveDeg === null ? '…' : degWords(moment.earthAboveDeg)} above the skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
+              </button>
+            )}
+            {shortDoor && (
+              <button type="button" className="sl-small sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`The skyline all the way round, with the Sun's and Earth's paths. Press to ${sky.open ? 'fold' : 'see'} it.`} onClick={sky.onToggle}>
+                Skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
+              </button>
+            )}
+          </span>
+          <span className="sl-river-tools">
+            {!folded && (
+              <span className="sl-zooms" role="group" aria-label="How much time the rows show">
+                {ZOOMS.map((option) => (
+                  <button key={option.id} type="button" aria-pressed={zoom === option.id} onClick={() => setZoom(option.id)}>
+                    {option.label}
+                  </button>
+                ))}
+              </span>
+            )}
+            {/* "More" holds what is rarely needed (the hourly file, "A day on Earth") and what a narrow header has no room for: the skyline's door, and the key. */}
+            <button
+              type="button"
+              className="sl-small sl-more"
+              aria-label="More for the time bar"
+              aria-haspopup="true"
+              aria-expanded={menu === 'more'}
+              title="More for the time bar"
+              onClick={() => {
+                setMenu(menu === 'more' ? null : 'more')
+                if (hourly.kind === 'failed') setHourly({ kind: 'idle' })
+              }}
+            >
               ⋯
             </button>
-          )}
-          <button type="button" className="sl-small sl-fold" aria-expanded={!folded} onClick={() => onFold(!folded)}>
-            {folded ? 'Open' : 'Fold'}
-          </button>
+            <button type="button" className="sl-small sl-fold" aria-expanded={!folded} onClick={() => onFold(!folded)}>
+              {folded ? 'Open' : 'Fold'}
+            </button>
+          </span>
         </div>
-        {more && menuHolds && (
-          <div ref={menu} className="sl-menu" role="group" aria-label="More for the time bar">
-            {!doorInRow && !shortDoor && (
+        {menu === 'speed' && (
+          <div ref={menuBox} className="sl-menu sl-speed-menu" role="group" aria-label="Speed">
+            {SPEEDS.map((one) => (
+              <button
+                key={one.hoursPerSecond}
+                type="button"
+                className="sl-small"
+                aria-pressed={one === speed}
+                onClick={() => {
+                  clock.setSpeed(one.hoursPerSecond)
+                  setMenu(null)
+                }}
+              >
+                {one.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {menu === 'more' && (
+          <div ref={menuBox} className="sl-menu" role="group" aria-label="More for the time bar">
+            {doorInMenu && (
               <button
                 type="button"
                 className="sl-small sl-sky-door"
@@ -236,56 +297,112 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                 title="The skyline all the way round, with the Sun's and Earth's paths"
                 onClick={() => {
                   sky.onToggle()
-                  setMore(false)
+                  setMenu(null)
                 }}
               >
                 {sky.open ? 'Fold the skyline' : 'Show the skyline'}
               </button>
             )}
-            {!inHead.speed && <label>Speed {speed}</label>}
-            {!folded && !inHead.zooms && zooms}
-            {!folded && !inHead.legend && legend}
-            {!inHead.earthDay && earthDayBox}
+            {keyInMenu && !folded && key}
+            {earthDayOffered && (
+              <label className="sl-check">
+                <input type="checkbox" checked={earthRow} onChange={(event) => setEarthRow(event.target.checked)} /> A day on Earth
+              </label>
+            )}
+            {/* The same file as the Planner's Export: the scenario on show over its mission, one row for each hour. */}
+            <button type="button" className="sl-small sl-hourly" aria-busy={hourly.kind === 'working'} title="The scenario on show over its mission, one row for each hour, as a CSV file" onClick={saveHourly}>
+              {hourly.kind === 'working' ? 'Reading the hours…' : 'Hourly Sun and Earth (CSV)'}
+            </button>
+            {hourly.kind === 'failed' && (
+              <span className="sl-hourly-problem" role="alert">
+                {hourly.message}
+              </span>
+            )}
           </div>
         )}
       </div>
       {!folded && (
         <div className="sl-rows">
-          {rows.map((row, i) => (
-            <div key={row.key} className="sl-row">
-              {/* The letter and the date always show in full. The site comes after them, only when the
-                  scenarios are at different sites, and is what is shortened if the label does not fit. */}
-              <button type="button" className={row.label.date ? 'sl-row-name has-date' : 'sl-row-name'} aria-pressed={row.active} title={`${row.letter} · ${row.full}`} aria-label={`Scenario ${row.letter}: ${row.full}`} onClick={() => onSelect(row.key)}>
-                <span className="sl-row-date">
-                  {row.letter}
-                  {row.label.date && ` · ${row.label.date}`}
+          {/* Room above the first row for the line's handle, clear of the flags. */}
+          <div className="sl-row sl-lane" aria-hidden="true">
+            <span />
+            <span />
+          </div>
+          {sites.map((site, s) => {
+            // Each flag is centred on its landing; one that lands outside the hours on show stands at that edge.
+            const centres = site.scenarios.map((one) => ((one.landing + 0.5 - from) / count) * track.width)
+            const places = track.width > 0 ? flagPlaces(centres, track.width, flagWidth) : null
+            const selected = site.scenarios.findIndex((one) => one.active)
+            const side = places && selected >= 0 ? labelSide(places, selected, track.width, flagWidth, LABEL_REM * track.rem) : 'right'
+            return (
+              <div key={site.site} className={band && band.row === s ? 'sl-row sl-site-row is-pointed' : 'sl-row sl-site-row'} data-site={site.site}>
+                <span className="sl-site-name" title={site.name}>
+                  {site.name}
                 </span>
-                {row.label.site && <span className="sl-row-site"> · {row.label.site}</span>}
-              </button>
-              <div className="sl-track">
-                <svg viewBox={`0 0 ${count} 12`} preserveAspectRatio="none" aria-hidden="true">
-                  {row.flags &&
-                    stateRuns(row.flags, from, to).map((run) => (
-                      <rect key={run.from} className={`sl-run is-${run.state}`} x={run.from} y={BAND[run.state].y} width={run.to - run.from} height={BAND[run.state].height} />
-                    ))}
-                  {/* How long the mission runs from its landing. */}
-                  {row.landing < to && row.landing + missionHours > from && (
-                    <rect className="sl-mission" x={Math.max(row.landing - from, 0)} y={0} width={Math.min(row.landing + missionHours, to) - Math.max(row.landing, from)} height={1.6} />
-                  )}
-                </svg>
-                {row.landing >= from && row.landing < to && <span className="sl-landing" style={{ left: at(row.landing - from) }} />}
-                {/* What the band under the pointer is, and for how long: over the middle of what shows of it. */}
-                {band && band.row === i && (
-                  <span className="sl-band-tip" role="tooltip" style={{ '--at': at((Math.max(band.from, from) + Math.min(band.to, to)) / 2 - from) } as CSSProperties}>
-                    {bandWords(start, band, STATE_CHIP[band.state])}
-                  </span>
-                )}
+                <div className="sl-site-track">
+                  <div className="sl-flags">
+                    {site.scenarios.map((one, i) => {
+                      const where = one.landing < from ? 'before' : one.landing >= to ? 'after' : null
+                      const state = one.flags ? stateAt(one.flags, one.landing) : null
+                      return (
+                        <button
+                          key={one.key}
+                          type="button"
+                          className={`sl-flag${state ? ` is-${state}` : ''}${where ? ` is-${where}` : ''}`}
+                          aria-pressed={one.active}
+                          aria-label={`Scenario ${one.letter}: ${one.full}`}
+                          title={`${one.letter} · ${one.full}${where ? `, ${where} the days shown` : ''}`}
+                          data-hour={one.landing}
+                          style={{ left: places ? `${places[i]}px` : `calc(${at(Math.min(Math.max(one.landing + 0.5 - from, 0), count))} - ${FLAG_REM / 2}rem)` }}
+                          onClick={() => onSelect(one.key)}
+                        >
+                          {where === 'before' && '‹'}
+                          {one.letter}
+                          {where === 'after' && '›'}
+                        </button>
+                      )
+                    })}
+                    {/* The selected mission, named beside its flag. */}
+                    {selected >= 0 && places && (
+                      <span className={`sl-span-label is-${side}`} style={{ left: `${side === 'right' ? places[selected] + flagWidth : places[selected]}px` }}>
+                        {missionLabel(site.scenarios[selected].letter, missionHours)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="sl-track">
+                    <svg viewBox={`0 0 ${count} 12`} preserveAspectRatio="none" aria-hidden="true">
+                      {site.flags &&
+                        stateRuns(site.flags, from, to).map((run) => (
+                          <rect key={run.from} className={`sl-run is-${run.state}`} x={run.from} y={BAND[run.state].y} width={run.to - run.from} height={BAND[run.state].height} />
+                        ))}
+                    </svg>
+                    {/* Each mission from its landing to its end: the selected one lit, with the row dimmed on either side of it; the others a thin outline. */}
+                    {site.scenarios.map((one) => {
+                      const first = Math.max(one.landing, from)
+                      const end = Math.min(one.landing + missionHours, to)
+                      if (end <= first) return null
+                      return (
+                        <span
+                          key={one.key}
+                          className={`sl-span${one.active ? ' is-lit' : ''}${one.landing >= from ? ' has-start' : ''}${one.landing + missionHours <= to ? ' has-end' : ''}`}
+                          data-scenario={one.letter}
+                          data-hours={end - first}
+                          style={{ left: at(first - from), width: at(end - first) }}
+                        />
+                      )
+                    })}
+                    {selected >= 0 && site.scenarios[selected].landing > from && <span className="sl-dim" style={{ left: 0, width: at(Math.min(site.scenarios[selected].landing, to) - from) }} />}
+                    {selected >= 0 && site.scenarios[selected].landing + missionHours < to && (
+                      <span className="sl-dim" style={{ left: at(Math.max(site.scenarios[selected].landing + missionHours, from) - from), right: 0 }} />
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
           {earthRow && zoom !== 'year' && (
             <div className="sl-row">
-              <span className="sl-row-name is-plain">A day on Earth, at {EVERYDAY_LAT_DEG}°N</span>
+              <span className="sl-site-name">A day on Earth, at {EVERYDAY_LAT_DEG}°N</span>
               <div className="sl-track">
                 <svg viewBox={`0 0 ${count} 12`} preserveAspectRatio="none" aria-hidden="true">
                   {earthDay?.map((up, sample) => up && <rect key={sample} className="sl-run is-sun" x={sample} y={0} width={1} height={8} />)}
@@ -293,21 +410,33 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
               </div>
             </div>
           )}
-          <div className="sl-row sl-axis" aria-hidden="true">
-            <span />
+          {/* The axis says what it is an axis of, at its left; under its labels, the date of the hour on show, at the foot of the line. */}
+          <div className="sl-row sl-axis">
+            <span className="sl-axis-name">{axisName(start, from, zoom)}</span>
             <div className="sl-track">
               {ticks.map((tick) => (
-                <span key={tick.at} style={{ left: at(tick.at) }}>
+                <span key={tick.at} aria-hidden="true" style={{ left: at(tick.at) }}>
                   {tick.label}
                 </span>
               ))}
+              {/* The line runs on down past the axis's labels to its date, which sits under them and covers none. */}
+              <i className="sl-line-foot" aria-hidden="true" style={{ left: at(hour - from + 0.5) }} />
+              <output className="sl-now" style={{ '--at': at(hour - from + 0.5) } as CSSProperties}>
+                {clockTime(start, hour)}
+              </output>
             </div>
           </div>
-          {/* One playhead through every row; drag anywhere to move time, or use the arrow keys on it. */}
+          {/* One line through every row for the hour on show; drag its handle or anywhere on the rows to move time, or use the arrow keys. */}
           <div
+            ref={seekBox}
             className="sl-seek"
             onPointerDown={(event) => {
-              event.currentTarget.setPointerCapture(event.pointerId)
+              // Keeping the pointer is a help, not a need: a pointer the browser does not know (a test's) still drags.
+              try {
+                event.currentTarget.setPointerCapture(event.pointerId)
+              } catch {
+                // Drag on without it.
+              }
               dragging.current = true
               setPointed(null)
               seek(event)
@@ -324,7 +453,16 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
               dragging.current = false
             }}
           >
-            <span className="sl-playhead" style={{ left: at(hour - from + 0.5) }} />
+            <span className="sl-playhead" style={{ left: at(hour - from + 0.5) }}>
+              <span className="sl-line-handle" />
+            </span>
+            {/* What the band under the pointer is, and for how long: above the rows, over the middle of what shows of it,
+                so it never lies on a flag or on the selected mission's label. Its row's name is marked meanwhile. */}
+            {band && (
+              <span className="sl-band-tip" role="tooltip" style={{ '--at': at((Math.max(band.from, from) + Math.min(band.to, to)) / 2 - from) } as CSSProperties}>
+                {bandWords(start, band, STATE_CHIP[band.state])}
+              </span>
+            )}
             <input type="range" aria-label="Time" aria-valuetext={clockTime(start, hour)} min={from} max={to - 1} step={1} value={hour} onChange={(event) => clock.setHour(Number(event.target.value))} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
           </div>
         </div>

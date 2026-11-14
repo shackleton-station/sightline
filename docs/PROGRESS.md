@@ -315,7 +315,7 @@ Local Lead.
 
 - [x] Find: the header (back, tabs, scenario tray, Brief, Share, Export, Scout), the tab in the link (`&planner=find`), and every site by month with the days a landing fits (`web/src/sightline/plannerFit.ts`, `PlannerFind.tsx`; checks in `sightline-shots.mjs`, scene `planner-find`)
 - [x] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science rows from `shadow.json`, and "Add scenario" as the last column (`PlannerCompare.tsx`, `plannerTable.ts`, `useShadow.ts`; scene `planner-compare`)
-- [x] The header links to the detailed planner page (`/planner/`), opened on the scenario on show (`FullPlanner.tsx`)
+- [x] The header's link to the detailed planner page was taken out again (2026-11-14): two planners, "Planner" and "New Planner" in the rail; the `/planner/` page still answers
 
 ## Landing accuracy (2026-11-14)
 
@@ -361,3 +361,11 @@ Local Lead.
 - [x] The default mission is written once, `DEFAULT_REQUIREMENTS` in `web/src/lib/mission.ts` (14 days, 24 h of dark, no limit on radio silence, the Sun and Earth up at landing), and read by the front page, the co-pilot's tools (`web/shared/tools/defaults.ts`), saved plans, Scout's page, Atlas, Briefing, Surface, Classic and the Planner page; the tabs' default view carries the same limits and a test holds the two together. Before, everything but the front page fell back to 72 h / 72 h
 - [x] Scout's page keeps the limits its link came with, where it used to write the 72 h ones over them
 - [ ] Not done: Classic and the Planner page have no "no limit" control, so the default radio silence shows there as a number of hours (99999 on Classic, 8760 on the Planner page; the verdicts are the same). Atlas still writes the default limits over a link's. Links that carry `limits=14_72_72_1_1` (the pitch's, the check scripts') still mean 72 h, as written
+
+## The time bar, "When the Sun and Earth are in view" (2026-11-14)
+
+- [x] One row per site; each scenario a lettered flag on its site's row at its landing hour, pressed to select it (`web/src/sightline/River.tsx`, `riverRows.ts`, `river.css`)
+- [x] The selected mission lit from landing to end with a short label, the rest of its row dimmed; other missions outlined
+- [x] One line for the hour on show, with a handle at its top and its date under it, written once; the note beside the Moon says only "Not the landing"
+- [x] The header: play with the speeds in its menu, the name and its key, what is in view and the skyline's door, Day, Month, Year and Fold
+- [x] Checks: scenes `time-bar` and `time-bar-sites` in `web/scripts/sightline-shots.mjs`, at three sizes

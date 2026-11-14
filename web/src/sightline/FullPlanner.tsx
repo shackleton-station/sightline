@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import type { SiteInfo, Summary } from '../data/contract'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { monthSpans } from '../lib/grid'
-import { measureScenario, missionWords, SCENARIO_LETTERS, scenarioLink, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { measureScenario, missionWords, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { spanOfHours } from '../lib/span'
 import { Mascot } from '../scout/Mascot'
 import { ExportMenu } from './ExportMenu'
@@ -87,9 +87,6 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
     shadow,
   })
   const spans = useMemo(() => monthSpans(start, hours), [start, hours])
-  // The detailed planner is a page of its own that reads the app's view link: it opens on the scenario
-  // on show, with the mission's limits, and keeps the other scenarios in its shortlist.
-  const detailed = `/planner/${scenarioLink([scenarios[active], ...scenarios.filter((_, i) => i !== active)], 0, start, mission)}`
 
   const exportTable = () => {
     const csv = plannerCsv(
@@ -122,9 +119,6 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
         </div>
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
         <span className="pl-tools">
-          <a className="sl-link pl-detailed" href={detailed} title="The detailed planner, a page of its own, opened on the scenario on show">
-            Detailed planner
-          </a>
           <button type="button" className="sl-small" title="The written brief for the scenario on show" onClick={onBrief}>
             Brief
           </button>

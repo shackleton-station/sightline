@@ -55,13 +55,6 @@
   margin-left: auto;
 }
 
-/* A plain link out to the detailed planner page, quieter than the buttons beside it. */
-.pl-detailed {
-  margin-right: 0.3rem;
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
 /* ---------- Find ---------- */
 .pl-find-bar {
   display: flex;
