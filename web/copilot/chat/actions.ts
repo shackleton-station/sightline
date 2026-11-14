@@ -6,6 +6,7 @@ import { decodeView, encodeView, type ViewState } from '../../src/lib/urlState'
 import { type Args, monthArg, timeArg } from '../../shared/tools/args'
 import { DEFAULT_LIMITS } from '../../shared/tools/defaults'
 import { limitWords, monthWords, whenLabel } from '../../shared/tools/facts'
+import type { Tie } from '../../shared/tools/ties'
 
 /** A button under the answer. `hash` is an ordinary link to a view of the app, like any shared link. */
 export interface ChatAction {
@@ -38,13 +39,13 @@ const MAX_ACTIONS = 3
  * button is rebuilt here from checked parts (a listed site, a month or hour inside the data, limits
  * inside their bounds), and its label is written here too. Anything that doesn't check out is dropped.
  */
-export function buildActions(raw: unknown, base: ViewState, sites: SiteInfo[], flags: SiteFlags): ChatAction[] {
+export function buildActions(raw: unknown, base: ViewState, sites: SiteInfo[], flags: SiteFlags, ties: Tie[] = []): ChatAction[] {
   if (!Array.isArray(raw)) return []
   const actions: ChatAction[] = []
   for (const item of raw) {
     if (actions.length === MAX_ACTIONS) break
     try {
-      const action = buildAction((item ?? {}) as Args, base, sites, flags)
+      const action = buildAction((item ?? {}) as Args, base, sites, flags, ties)
       if (action && !actions.some((made) => made.hash === action.hash)) actions.push(action)
     } catch {
       // A bad month, hour or site: leave this button out.
@@ -53,7 +54,7 @@ export function buildActions(raw: unknown, base: ViewState, sites: SiteInfo[], f
   return actions
 }
 
-function buildAction(args: Args, base: ViewState, sites: SiteInfo[], flags: SiteFlags): ChatAction | null {
+function buildAction(args: Args, base: ViewState, sites: SiteInfo[], flags: SiteFlags, ties: Tie[]): ChatAction | null {
   const named = (id: unknown) => sites.find((site) => site.id === id) ?? null
 
   if (args.type === 'open') {
@@ -68,6 +69,25 @@ function buildAction(args: Args, base: ViewState, sites: SiteInfo[], flags: Site
       }
     }
     const month = args.month === undefined ? base.a.month : monthArg(args.month, flags)
+    // A button for one of several months (or sites) a tool found tied for best opens the first of
+    // them and says there are others, so a tie never reads as one winner. Buttons for the others
+    // become the same button, and only one is kept.
+    const monthsTie = ties.find((tie) => tie.kind === 'months' && tie.site === site.id && tie.months.includes(month))
+    if (monthsTie?.kind === 'months') {
+      const first = monthsTie.months[0]
+      return {
+        label: `Open ${site.name}, ${monthWords(first)} (first of ${monthsTie.months.length} tied months)`,
+        hash: encodeView({ ...base, a: { site: site.id, month: first }, b: null, index: 0 }),
+      }
+    }
+    const sitesTie = ties.find((tie) => tie.kind === 'sites' && tie.month === month && tie.sites.includes(site.id))
+    const firstSite = sitesTie?.kind === 'sites' ? named(sitesTie.sites[0]) : null
+    if (sitesTie?.kind === 'sites' && firstSite) {
+      return {
+        label: `Open ${firstSite.name}, ${monthWords(month)} (first of ${sitesTie.sites.length} tied sites)`,
+        hash: encodeView({ ...base, a: { site: firstSite.id, month }, b: null, index: 0 }),
+      }
+    }
     return {
       label: `Open ${site.name}, ${monthWords(month)}`,
       hash: encodeView({ ...base, a: { site: site.id, month }, b: null, index: 0 }),
