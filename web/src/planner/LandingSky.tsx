@@ -7,10 +7,10 @@ import { sunHeightWords } from '../lib/answer'
 import { horizonAt } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
 import { hourOf, locateHour, longestDown, missionEarth, type Requirements } from '../lib/mission'
-import { formatDuration, hoursUntilChange } from '../lib/nextChange'
+import { hoursUntilChange } from '../lib/nextChange'
 import { splitAtWrap } from '../lib/panorama'
 import { skylineCentre, skylineDomain, skylineHorizon, skylineX } from '../lib/sightline'
-import { nextWords, skylineFigure } from '../lib/sightlineSky'
+import { skylineFigure } from '../lib/sightlineSky'
 import { useWidth } from '../lib/useWidth'
 
 interface Props {
@@ -47,6 +47,21 @@ function sunHeights(during: TrackPoint[], horizon: HorizonPoint[], t: string): S
     atLanding: now ? { elDeg: now.sun_el, up: now.sun_up, aboveSkylineDeg: now.sun_el - horizonAt(horizon, now.sun_az) } : null,
     whileUp: up.length > 0 ? { lowDeg: Math.min(...up), highDeg: Math.max(...up) } : null,
   }
+}
+
+/** A span in the brief's own short form: "12d 7h", "36h". */
+function compact(hours: number): string {
+  if (hours < 48) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  const rest = hours % 24
+  return rest === 0 ? `${days}d` : `${days}d ${rest}h`
+}
+
+/** When a body next sets or rises, from the landing: "in 12d 7h", or that it doesn't in our data. */
+function nextIn(up: boolean, hours: number | null, body: 'Sun' | 'Earth'): string {
+  if (hours !== null) return `in ${compact(hours)}`
+  if (body === 'Sun') return up ? 'stays up' : 'stays down'
+  return up ? 'stays in view' : 'stays hidden'
 }
 
 /** "during the mission" or "after it ends", so a planner sees at once whether the change matters. */
@@ -238,12 +253,12 @@ export function LandingSky({ site, flags, t, requirements }: Props) {
       <dl className="pl-sky-facts">
         <div className={`pl-sky-fact is-sun ${sunUp ? '' : 'is-down'}`}>
           <dt>{sunUp ? 'Sunset' : 'Sunrise'}</dt>
-          <dd className="pl-sky-main">{nextWords('Sun', sunUp, sunHours).replace(/^(sets|rises) /, '')}</dd>
+          <dd className="pl-sky-main">{nextIn(sunUp, sunHours, 'Sun')}</dd>
           <dd className="pl-sky-small">{whenWords(sunHours, missionHours)}</dd>
         </div>
         <div className={`pl-sky-fact is-earth ${earthUp ? '' : 'is-down'}`}>
           <dt>{earthUp ? 'Earthset' : 'Earthrise'}</dt>
-          <dd className="pl-sky-main">{nextWords('Earth', earthUp, earthHours).replace(/^(sets|rises) /, '')}</dd>
+          <dd className="pl-sky-main">{nextIn(earthUp, earthHours, 'Earth')}</dd>
           <dd className="pl-sky-small">{whenWords(earthHours, missionHours)}</dd>
         </div>
       </dl>
@@ -257,7 +272,7 @@ export function LandingSky({ site, flags, t, requirements }: Props) {
         </div>
         <div title={`Longest stretch with no Sun, which batteries must carry. Your limit is ${requirements.maxSunGapH} h.`} className={figures.dark > requirements.maxSunGapH ? 'is-over' : undefined}>
           <dt>Longest dark</dt>
-          <dd>{formatDuration(figures.dark)}</dd>
+          <dd>{compact(figures.dark)}</dd>
         </div>
         <div title="Share of the mission's hours with Earth in view, by your rule for Earth: a direct radio link.">
           <dt>Earth in view</dt>
@@ -265,7 +280,7 @@ export function LandingSky({ site, flags, t, requirements }: Props) {
         </div>
         <div title={`Longest stretch with no Earth: no direct radio link. Your limit is ${requirements.maxEarthGapH} h.`} className={figures.silence > requirements.maxEarthGapH ? 'is-over' : undefined}>
           <dt>Longest silence</dt>
-          <dd>{formatDuration(figures.silence)}</dd>
+          <dd>{compact(figures.silence)}</dd>
         </div>
       </dl>
 
