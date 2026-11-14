@@ -1,3 +1,4 @@
+import { withYourTime } from './yourTime'
 import type { SiteFlags } from './flags'
 import type { RiverSegment, RiverState } from './river'
 import { riverTime } from './river'
@@ -92,6 +93,19 @@ export function hourFromField(startIso: string, value: string, hours: number): n
 /** "13 May 2027 · 12:00 UTC" for a clock hour. */
 export function clockTime(startIso: string, hour: number): string {
   return riverTime(isoAt(startIso, hour))
+}
+
+/** The moment of a clock hour, in milliseconds since 1970: what a time zone is applied to. */
+export function clockMs(startIso: string, hour: number): number {
+  return Date.parse(isoAt(startIso, hour))
+}
+
+/**
+ * A clock hour's time as the screen shows it, then the same moment in the visitor's own time, for
+ * the hover text of a time: "13:00 UTC · 9:00 am your time (EDT)". The screen itself stays in UTC.
+ */
+export function inYourTime(startIso: string, hour: number, timeZone?: string): string {
+  return withYourTime(clockTime(startIso, hour).split(' · ')[1], clockMs(startIso, hour), timeZone)
 }
 
 /** "13 May 2027" for a clock hour. */

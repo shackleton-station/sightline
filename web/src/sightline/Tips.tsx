@@ -54,7 +54,14 @@ export function Tips() {
     }
     // A focus that follows a press of the pointer is that press; any other came from the keyboard.
     let pressedAt = 0
-    const onPress = () => {
+    const onPress = (event: PointerEvent) => {
+      // On a phone there is no hover: a tap on a time shows its text (the same moment in the visitor's own time), and a tap anywhere else puts it away.
+      const tapped = event.pointerType === 'touch' ? explained(event.target) : null
+      if (tapped?.hasAttribute('data-tip-tap') && tapped !== about) {
+        pressedAt = performance.now()
+        show(tapped, 0)
+        return
+      }
       pressedAt = performance.now()
       hide()
     }

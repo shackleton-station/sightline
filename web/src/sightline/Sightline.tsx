@@ -19,6 +19,7 @@ import { spanOfHours, yearsInHash } from '../lib/span'
 import {
   clockDate,
   clockTime,
+  inYourTime,
   DEFAULT_SPEED,
   fieldAt,
   hourFromField,
@@ -1028,6 +1029,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                     better && problems && problems.length > 0
                       ? {
                           when: shortWhen(clockTime(start, better.landing), landingAt.month.slice(0, 4)),
+                          yourTime: inYourTime(start, better.landing),
                           adds: scenarios.length < MAX_SCENARIOS,
                           onTake: () => {
                             // As another scenario while there is room; with four already, this landing moves there.
@@ -1045,6 +1047,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                       ? {
                           name: elsewhere.site.name,
                           km: elsewhere.km,
+                          yourTime: inYourTime(start, scenario.landing),
                           adds: scenarios.length < MAX_SCENARIOS,
                           onTake: () => {
                             // As the date line does: another scenario while there is room; with four already, this one moves there.

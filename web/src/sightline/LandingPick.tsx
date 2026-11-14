@@ -1,3 +1,4 @@
+import { withYourTime } from '../lib/yourTime'
 import { useRef, useState } from 'react'
 
 interface Props {
@@ -37,7 +38,7 @@ export function LandingPick({ landing, landingField, firstField, lastField, onPi
   const [draft, setDraft] = useState<string | null>(null)
 
   return (
-    <div className="sl-pick" title="Choose the landing's date and hour (UTC)">
+    <div className="sl-pick" data-tip-tap title={`${withYourTime(time, Date.parse(`${landingField}:00Z`))}. Choose the landing's date and hour (UTC).`}>
       <span className="sl-pick-part">
         <span className="sl-value">{date}</span>
         <input
