@@ -39,13 +39,17 @@ export function useClock(hours: number, startHour: number, startPlaying: boolean
   return { hour, playing, hoursPerSecond, setHour, setPlaying, setSpeed }
 }
 
-/** A switch remembered in this browser, under `sightline.<key>`. Works without storage, just not remembered. */
-export function useStored(key: string, initial: boolean): [boolean, (value: boolean) => void] {
+/**
+ * A switch remembered in this browser, under `sightline.<key>`: for good, or (`'visit'`) only until
+ * the tab is closed. Works without storage, just not remembered.
+ */
+export function useStored(key: string, initial: boolean, kept: 'always' | 'visit' = 'always'): [boolean, (value: boolean) => void] {
   const name = `sightline.${key}`
+  const store = () => (kept === 'visit' ? window.sessionStorage : window.localStorage)
   const [value, setValue] = useState(() => {
     try {
-      const kept = window.localStorage.getItem(name)
-      return kept === null ? initial : kept === '1'
+      const was = store().getItem(name)
+      return was === null ? initial : was === '1'
     } catch {
       return initial
     }
@@ -54,7 +58,7 @@ export function useStored(key: string, initial: boolean): [boolean, (value: bool
     (next: boolean) => {
       setValue(next)
       try {
-        window.localStorage.setItem(name, next ? '1' : '0')
+        store().setItem(name, next ? '1' : '0')
       } catch {
         // Private windows may refuse; the switch still works for this visit.
       }
