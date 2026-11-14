@@ -104,7 +104,7 @@ export function LandingPage({ sites, track, onEnter, onDemo, onTour, onHow }: Pr
   return (
     <section className="landing" aria-label="Lunar Landing Site Navigator">
       <div className="landing-copy">
-        <p className="landing-kicker">NASA Space Apps 2026 · practice demo</p>
+        <p className="landing-kicker">NASA Space Apps 2026</p>
         <h1>Where on the Moon can we land, and when?</h1>
         <p className="landing-lede">
           Near the south pole, sunlight for power and Earth in view for radio come and go with the terrain.

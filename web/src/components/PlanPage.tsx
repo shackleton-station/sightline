@@ -144,7 +144,7 @@ export function PlanPage({ id, onOpen, onLoaded }: Props) {
 
       <footer className="how-foot">
         <p>
-          A practice demo by team Shackleton Station for the NASA Space Apps Challenge 2026. Results are a first pass
+          By team Shackleton Station for the NASA Space Apps Challenge 2026. Results are a first pass
           for learning and comparison, not mission planning advice.
         </p>
       </footer>

@@ -282,7 +282,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack }: Props) {
       <footer className="how-foot">
         <p>Sightline is a hackathon project. Do not use it for real mission decisions.</p>
         <p>
-          Built by team Shackleton Station as a practice demo for the NASA Space Apps Challenge 2026. Not affiliated
+          Built by team Shackleton Station for the NASA Space Apps Challenge 2026. Not affiliated
           with or endorsed by NASA. Results are a first pass for learning and comparison, not mission planning advice.
         </p>
         <button type="button" onClick={onBack}>

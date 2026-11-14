@@ -128,7 +128,7 @@ function App() {
     <header className="app-header">
       <div>
         <h1>Lunar Landing Site Navigator</h1>
-        <p className="tag">Practice demo · all times UTC</p>
+        <p className="tag">All times UTC</p>
       </div>
       <div className="header-actions">
         {!tour && (
