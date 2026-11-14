@@ -1,0 +1,169 @@
+name: Deploy
+
+# After CI passes on main: build the web server's image and roll it out in steps.
+#
+#   1. Start the new version with no visitors, tag it `canary`, and test it through the load balancer
+#      with the header `x-clps-canary: web`: pages, site data, tiles, video, its own API and status.
+#   2. Send it a tenth of the visitors and watch both versions for a minute.
+#   3. Send it everyone, and test it once more through the address visitors use, where the plans
+#      service and the co-pilot service must answer too.
+#   Phase 8: while a second region is on, everyone in us-east4 goes first, then the copy in the second
+#   region gets the same image in one step, before the last tests (web/scripts/second-region.sh).
+#   If any step fails, every visitor goes back to the version that was live before, in both regions.
+#
+# Since Phase 6 every test goes through the load balancer and its edge firewall. The canary header is
+# plain and documented, not a secret: it only picks which version answers (infra/canary.tf,
+# web/scripts/canary-header.mjs). The version's own run.app address is not used: from Phase 6's last
+# step it refuses requests from the internet, which is where this runner is.
+#
+# The web server has no co-pilot and no plans API: those are their own services with their own
+# deploys (deploy-copilot.yml, deploy-plans.yml), and the load balancer sends them their paths. So
+# nothing here calls the model. The two set questions (chat-eval.mjs --quick) are asked by the
+# co-pilot's deploy, of each new version of the co-pilot. What this deploy still checks, through the
+# public address, is that a page served by the new web server can reach both services.
+#
+# Before any of that it waits for Terraform: if the same merge changed infra/, the apply finishes
+# first, and a rollout never runs while an apply is changing the service (.github/workflows/terraform.yml).
+#
+# There is no key or password in this repository or its settings. GitHub proves to Google Cloud
+# which repository and branch this run belongs to (Workload Identity Federation), and Google
+# hands back a short-lived token for the deployer service account. Only runs for `main` of this
+# repository are accepted; that rule lives in infra/github.tf.
+
+on:
+  # A manual run from the Actions tab, to redeploy main without a new commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # lets the job ask GitHub for the identity token Google Cloud checks
+  actions: read # lets the job see whether a Terraform run is still going
+
+# One deploy at a time, in order. A newer one waits instead of cancelling a deploy half way.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  PROJECT: clps-compute-6z1nc
+  REGION: us-east4
+  # Phase 8: where the copy of this service runs while the second region is on (infra/second-region.tf).
+  # With no copy there, the step that rolls it out says so and does nothing.
+  SECOND_REGION: us-central1
+  SERVICE: clps-web
+  REGISTRY: us-east4-docker.pkg.dev
+  IMAGE_REPO: us-east4-docker.pkg.dev/clps-compute-6z1nc/web
+  # The address visitors use: the load balancer, which sends each path to its service.
+  SITE: https://shackletonstation.dev
+
+jobs:
+  deploy:
+    name: build, canary, roll out
+    # Only after a green CI run for a push to main (never for a pull request's CI run).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      # The exact commit CI tested, which may be older than the tip of main by now.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # Terraform first. If the same merge changed infra/, its apply must finish before this version
+      # goes out, and a deploy must never move visitors while an apply is changing the service under
+      # it. This waits for every Terraform run that started before this one, and stops if the last
+      # of them failed (infra/scripts/wait-for-runs.mjs; docs/DEPLOY.md, "Infrastructure changes").
+      - name: Wait for Terraform
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node infra/scripts/wait-for-runs.mjs deploy --minutes 45
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/919194174067/locations/global/workloadIdentityPools/github/providers/github-oidc
+          service_account: clps-web-deployer@clps-compute-6z1nc.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Build and push the image
+        working-directory: web
+        run: |
+          gcloud auth configure-docker "$REGISTRY" --quiet
+          COMMIT="$(git rev-parse --short HEAD)"
+          IMAGE="$IMAGE_REPO/$SERVICE:$COMMIT"
+          docker build --platform linux/amd64 -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          echo "COMMIT=$COMMIT" >> "$GITHUB_ENV"
+
+      # If anything below goes wrong, this is the version to go back to.
+      - name: Note which version is live now
+        run: |
+          gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format json > before.json
+          echo "LIVE=$(jq -r '[.status.traffic[] | select((.percent // 0) > 0)] | max_by(.percent) | .revisionName' before.json)" >> "$GITHUB_ENV"
+
+      - name: Start the new version with no visitors
+        run: |
+          # No --tag here. With --tag, gcloud names the new version itself and leaves that name in the
+          # service's settings, and every `terraform plan` after that wants to clear it, which would
+          # start yet another version. So: make the version, check it is ours, then give it the tag.
+          gcloud run deploy "$SERVICE" --project "$PROJECT" --region "$REGION" --image "$IMAGE" --no-traffic --update-labels "commit=$COMMIT" --quiet
+          NEW="$(gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format 'value(status.latestCreatedRevisionName)')"
+          NEW_COMMIT="$(gcloud run revisions describe "$NEW" --project "$PROJECT" --region "$REGION" --format 'value(metadata.labels.commit)')"
+          if [ "$NEW" = "$LIVE" ] || [ "$NEW_COMMIT" != "$COMMIT" ]; then
+            echo "::error::The newest version of $SERVICE is $NEW (commit label: ${NEW_COMMIT:-none}), which is not one this run made from $COMMIT. Something else changed the service at the same moment. No visitors were sent to it."
+            exit 1
+          fi
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --update-tags "canary=$NEW" --quiet
+          echo "NEW=$NEW" >> "$GITHUB_ENV"
+          echo "New version $NEW tagged canary; visitors stay on $LIVE"
+
+      # The load balancer sends a request with `x-clps-canary: web` to the revision tagged canary.
+      # Cloud Run looks the tag up when the request arrives; this waits until the status says the
+      # new version answers, so the test below never runs against the version the tag was on before.
+      - name: Wait for the load balancer to reach the new version
+        run: node web/scripts/wait-for-canary.mjs "$SITE" --canary web --revision "$NEW" --status-path /api/status --seconds 180
+
+      # Through the load balancer, with the header: cache rules, a terrain tile, video ranges, its own
+      # API's origin check, today's counts and its status. The header only changes where the web
+      # server's own paths go, so the plans and co-pilot paths reach the live services and their
+      # read-only checks run too; their deploys of this commit may not have run yet, so a difference
+      # in site data is reported, not failed on. No model call.
+      - name: Test the new version through the load balancer
+        run: node web/scripts/smoke.mjs "$SITE" --canary web --data-may-differ
+
+      - name: Send it a tenth of the visitors
+        run: gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-tags canary=10 --quiet
+
+      # Both through the load balancer: as a visitor (the live split, a tenth of it the new version),
+      # and with the header (the new version alone).
+      - name: Watch both versions for a minute
+        run: node web/scripts/canary.mjs "$SITE" "$SITE" --canary web --seconds 60
+
+      - name: Send it everyone
+        run: gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-latest --quiet
+
+      # Phase 8: the same image to this service's copy in the second region, if there is one
+      # (web/scripts/second-region.sh). After everyone in us-east4 is on it, and before the tests as a
+      # visitor below, which may be answered by either region.
+      - name: Roll the same version out in the second region
+        run: bash web/scripts/second-region.sh follow
+
+      # The same test through the load balancer as a visitor, with no header. Here the plans service
+      # and the co-pilot service must answer their paths (their status, another site refused, a
+      # wrong method refused): a page from this web server that cannot reach them fails the deploy.
+      # No model call and nothing saved. The services' own deploys of this commit may still be
+      # running, and they wait for this one before they carry new site data, so a difference in the
+      # data version is reported here and not failed on; their deploys require it to match.
+      - name: Test the address visitors use
+        run: node web/scripts/smoke.mjs "$SITE" --plans-service --copilot-service --data-may-differ
+
+      # The new version stays deployed with no visitors, and keeps the canary tag, so it can be looked
+      # at through the load balancer with `x-clps-canary: web` (docs/DEPLOY.md).
+      - name: Go back to the version that was live
+        if: failure() && env.LIVE != ''
+        run: |
+          bash web/scripts/second-region.sh back || echo "::error::Could not put the copy in $SECOND_REGION back; do it by hand (docs/DEPLOY.md)."
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --to-revisions "$LIVE=100" --quiet
+          echo "::error::The rollout failed. Every visitor is back on $LIVE."
