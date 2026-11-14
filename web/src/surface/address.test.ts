@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_VIEW, tabLinks } from '../lib/siteTabs'
-import { atNearestHour, EXAMPLE_LIMITS, readAddress, type SurfaceAddress, viewLink } from './address'
+import { atNearestHour, EXAMPLE_LIMITS, readAddress, readSurfaceMoved, SURFACE_MOVED, type SurfaceAddress, viewLink } from './address'
 
 const LINK = '#a=shackleton-rim@2028-03&t=120&limits=10_48_24_1_0_2&view=3d&mode=plan&list=apollo-11@2028-07-04T05'
 
@@ -37,5 +37,15 @@ describe('opening on the nearest hour', () => {
 
   it('rolls into the next month when the nearest hour is there', () => {
     expect(atNearestHour(base, '2026-11-30T23:45:00Z')).toMatchObject({ month: '2026-12', index: 0 })
+  })
+})
+
+describe('the message Sightline is sent when the hour settles', () => {
+  it('is read when it is one, and anything else a page may be sent is not', () => {
+    const moved = { type: SURFACE_MOVED, site: 'connecting-ridge', month: '2027-05', index: 133 }
+    expect(readSurfaceMoved(moved)).toEqual(moved)
+    for (const other of [null, 'text', 42, { ...moved, type: 'other' }, { ...moved, month: 'May' }, { ...moved, index: -1 }, { ...moved, index: 1.5 }, { ...moved, site: 3 }]) {
+      expect(readSurfaceMoved(other)).toBeNull()
+    }
   })
 })

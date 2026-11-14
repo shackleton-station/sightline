@@ -13,7 +13,7 @@ import { TimeRiver } from '../shell/TimeRiver'
 import { AnswerLine } from './AnswerLine'
 import { useRange } from '../data/useRange'
 import { nowIso } from '../sightline/hooks'
-import { atNearestHour, readAddress, type SurfaceAddress, viewLink } from './address'
+import { atNearestHour, readAddress, SURFACE_MOVED, type SurfaceAddress, type SurfaceMoved, viewLink } from './address'
 import { Pickers } from './Pickers'
 import { Notice, Waiting } from './SurfaceStates'
 import { SurfaceStage } from './SurfaceStage'
@@ -111,6 +111,8 @@ export function SurfaceApp() {
     const timer = setTimeout(() => {
       movedAt.current = null
       setAddressBar(link)
+      // Inside Sightline, its side panel follows the month and hour chosen here.
+      if (EMBEDDED) window.parent.postMessage({ type: SURFACE_MOVED, site: shown.site, month: shown.month, index: shown.index } satisfies SurfaceMoved, window.location.origin)
     }, wait)
     return () => clearTimeout(timer)
   }, [link])
@@ -133,7 +135,7 @@ export function SurfaceApp() {
   const unlisted = site !== null && listed === null && arrivedAt !== ''
 
   return (
-    <div className="surface">
+    <div className={EMBEDDED ? 'surface is-embedded' : 'surface'}>
       {!EMBEDDED && <SiteTabs current="surface" view={site ? viewLink(shown) : ''} />}
       {unlisted && site && <Notice site={site} custom={custom} link={arrivedAt} onClose={() => setArrivedAt('')} />}
       <main className="sf-main">
