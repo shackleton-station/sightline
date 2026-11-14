@@ -1,4 +1,4 @@
-import { FIT_COLOR, MISS_COLOR, type Ring } from '../lib/landingOdds'
+import { FIT_COLOR, type Ring } from '../lib/landingOdds'
 
 interface Props {
   rings: Ring[]
@@ -13,7 +13,7 @@ const FLOOR = HEIGHT - 16
 /**
  * How far off a landing is likely to be, and how it fares there: one bar for each ring around the
  * target. A bar's height is the chance of missing by that much, so together the bars are the
- * distribution of the miss; its green part is the share of that ring's ground where a landing fits.
+ * distribution of the miss; its green part is the share of that ring's ground where a landing fits, and the gray the share where it does not.
  */
 export function AccuracyCurve({ rings, accuracyM }: Props) {
   const most = Math.max(...rings.map((ring) => ring.chance))
@@ -28,7 +28,7 @@ export function AccuracyCurve({ rings, accuracyM }: Props) {
         return (
           <g key={ring.fromM}>
             <title>{`${Math.round(ring.fromM)} to ${Math.round(ring.toM)} m off: ${(100 * ring.chance).toFixed(ring.chance < 0.1 ? 1 : 0)}% of landings${ring.fitShare === null ? '' : `, ${Math.round(100 * ring.fitShare)}% of that ground fits`}`}</title>
-            <rect x={i * bar + 0.5} y={FLOOR - height} width={bar - 1} height={height - fit} fill={ring.fitShare === null ? 'var(--sl-none)' : MISS_COLOR} />
+            <rect x={i * bar + 0.5} y={FLOOR - height} width={bar - 1} height={height - fit} fill="var(--sl-none)" />
             <rect x={i * bar + 0.5} y={FLOOR - fit} width={bar - 1} height={fit} fill={FIT_COLOR} />
           </g>
         )

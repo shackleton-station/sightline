@@ -182,22 +182,24 @@ describe('the map around a target', () => {
 })
 
 describe('the whole grid as a picture', () => {
-  it('is one color where a landing fits and another where it does not', () => {
+  it('is each verdict’s own color, and says which verdicts are in it', () => {
     const gaps = startGaps(2)
     gaps.sunAt.set([1, 0, 1, 1])
     gaps.earthAt.fill(1)
     const slope = new Float32Array(16).fill(3)
     slope[15] = 20 // the last pixel of the last cell
-    const pixels = fitPixels(gaps, REQ, 10, 2, slope, [10, 200, 30], [200, 40, 20])
+    // One color per code: fits, too steep, Sun down at landing, and the rest unused here.
+    const colors = [[10, 200, 30], [90, 60, 220], [200, 40, 20], [1, 1, 1], [2, 2, 2], [3, 3, 3]] as const
+    const { pixels, seen } = fitPixels(gaps, REQ, 10, 2, slope, colors)
     const at = (pixel: number) => Array.from(pixels.slice(4 * pixel, 4 * pixel + 4))
     expect(pixels.length).toBe(4 * 16)
     expect(at(0)).toEqual([10, 200, 30, 255])
     expect(at(2)).toEqual([200, 40, 20, 255])
     expect(at(10)).toEqual([10, 200, 30, 255])
-    expect(at(15)).toEqual([200, 40, 20, 255])
+    expect(at(15)).toEqual([90, 60, 220, 255])
+    expect(seen).toEqual([true, true, true, false, false, false])
   })
 })
-
 describe('slope from the slope images', () => {
   it('reads level, a known slope, and the steepest stored', () => {
     const slope = slopeDegFrom(new Uint8Array([128, 255, 128, 150]), new Uint8Array([128, 128, 1, 128]), 1)
