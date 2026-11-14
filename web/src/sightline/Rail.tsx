@@ -30,6 +30,8 @@ interface Props {
   onNewPlanner: () => void
   /** Open How it works, as a sheet over the scene. */
   onHow: () => void
+  /** The easter egg: its button is in the rail only once the word has been typed. Null until then. */
+  hype: { open: boolean; onOpen: () => void } | null
   /** Start Scout's tour of the screen. On a phone it is in "More"; on a laptop it is the first thing in How it works. */
   onTour: () => void
   /** Back to the opening screen: the Moon playing, as a first visit finds it. */
@@ -40,7 +42,7 @@ interface Props {
  * The rail down the right of the Plan frame: how close the Moon is seen (one grouped control), the
  * tools, and the way out (home, to the opening screen). Nothing here leaves the screen.
  */
-export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome }: Props) {
+export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen, onMission, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome, hype }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -102,6 +104,11 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, missionOpen
       <button type="button" title="The Planner page's look on these scenarios: where and when at the top, every site by month, and the brief beside it" onClick={onNewPlanner}>
         New Planner
       </button>
+      {hype && (
+        <button type="button" className="sl-rail-hype" aria-pressed={hype.open} title="The landing party" onClick={hype.onOpen}>
+          Hype
+        </button>
+      )}
     </>
   )
   const ways = (

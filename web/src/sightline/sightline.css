@@ -3501,6 +3501,21 @@
   }
 }
 
+/* ---------- The easter egg's panel: the video and one line, nothing else ---------- */
+.sl-hype-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-top: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #000;
+}
+
+.sl-hype .sl-hype-note {
+  margin: 0.5rem 0 0;
+}
+
 /* ---------- Scout's tour: a ring round what a step is about, and his bubble. Nothing is dimmed,
    and neither is ever drawn over the Moon's disc (the bubble's place is worked out: lib/tour.ts). ---------- */
 .sl-tour-ring {
