@@ -323,6 +323,7 @@ Local Lead.
 - [x] "Why" under a tight or empty month's verdict (`web/src/planner/why.ts`, `why.test.ts`)
 - [x] Planner page: instruction line, the key above the grid, striped tight months, the click brings the brief up
 - [ ] Not checked: a real phone, print, and the skyline's look with Scout's panel open
-- [ ] Offered to Rodrigo, not in this change: the same additions for the front page's Planner (a site, coordinates
-      and time bar at the top; suggestions near the date as cards beside the brief). Kept on branch
-      `feat/planner-intuitive` until he decides how they fit Find and Compare
+- [x] The same additions for the front page, as a separate **New Planner** (its own rail button, beside Find and
+      Compare, which it does not change): a site, coordinates and time bar at the top, one landing shared with
+      the Moon both ways, and your picks with suggestions near the date as cards beside the brief
+      (`web/src/sightline/NewPlanner.tsx`, `newPlanner.css`)
