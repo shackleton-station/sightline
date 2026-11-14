@@ -22,10 +22,10 @@ export const ANTENNA_HEIGHTS_M = [2, 4, 10]
 
 /** What stands at each height, with where the figure is from, for the choice's hover text. */
 export const HEIGHT_MEANS: Record<number, string> = {
-  2: "A small lander's deck and panels: NASA describes Blue Ghost Mission 1 as about two metres tall. This is the app's own data.",
-  4: 'The top of a Nova-C class lander, where its antennas are: NASA describes the IM-1 lander as about 14 feet (4.3 m) tall.',
-  5: "The middle of NASA's vertical solar array, which stands on a mast up to 32 feet (9.8 m) high.",
-  10: "The top of NASA's vertical solar array, which deploys up to 32 feet (9.8 m) high.",
+  2: "The height of a small lander's deck and panels: NASA gives Blue Ghost Mission 1 as about 2 m tall. The height this screen uses unless you change it.",
+  4: 'The top of a Nova-C lander, where its antennas are. NASA gives the IM-1 lander as about 4.3 m tall.',
+  5: "Halfway up NASA's vertical solar array, whose mast reaches 9.8 m.",
+  10: "The top of NASA's vertical solar array, which reaches 9.8 m.",
 }
 
 /** True when both heights are the app's own 2 m: nothing more is loaded and nothing more is said. */

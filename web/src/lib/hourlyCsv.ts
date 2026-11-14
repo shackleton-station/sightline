@@ -105,7 +105,7 @@ export function hourlyCsv(about: HourlyAbout, rows: HourlyRow[]): string {
     `Sun seen from: ${heights.panelM} m above the ground`,
     `Earth seen from: ${heights.antennaM} m above the ground`,
     `Data version: ${about.dataVersion ?? 'not known'}`,
-    'Times are UTC. Angles are in degrees. Elevation is above level ground; "above the skyline" is the elevation of the centre of the Sun or Earth less the height of the skyline in its direction, and is negative when the centre is below the skyline.',
+    'Times are UTC. Angles are in degrees. Elevation is above level ground; "above the skyline" is the elevation of the center of the Sun or Earth less the height of the skyline in its direction, and is negative when the centre is below the skyline.',
     '"In view" is yes when any part of the disc shows above the skyline.',
     ...(about.link ? [`This plan: ${about.link}`] : []),
   ]

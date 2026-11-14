@@ -90,7 +90,7 @@ export function ExportMenu({ onTable, onHourly, hourlyOf }: Props) {
         className="sl-small"
         aria-haspopup="true"
         aria-expanded={open}
-        title="Save the Compare table, or the hour-by-hour Sun and Earth, as a CSV file"
+        title="Saves a CSV file: the Compare table, or the scenario on show hour by hour."
         onClick={() => {
           setOpen(!open)
           if (state.kind === 'failed') setState({ kind: 'idle' })

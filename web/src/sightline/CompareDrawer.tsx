@@ -59,7 +59,7 @@ function Row({ row, hoursPrinted }: { row: PlannerRow; hoursPrinted: boolean }) 
         <td key={i} className={row.best[i] ? 'is-best' : undefined} title={!hoursPrinted && row.notes[i] ? row.notes[i] : undefined}>
           {cell ?? '…'}
           {row.best[i] && (
-            <span className="sl-best" title="Best in this row">
+            <span className="sl-best" title="The best of the scenarios in this row.">
               {' '}
               ★
             </span>
@@ -196,7 +196,7 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
                   <td key={i} className={best[i] ? 'is-best' : undefined}>
                     {one === null ? '–' : one > 0.99 && one < 1 ? '>99' : one < 0.01 && one > 0 ? '<1' : Math.round(100 * one)}
                     {best[i] && (
-                      <span className="sl-best" title="Best in this row">
+                      <span className="sl-best" title="The best of the scenarios in this row.">
                         {' '}
                         ★
                       </span>
@@ -208,13 +208,13 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
           )}
           <tr className="sl-compare-group">
             <th scope="row" colSpan={scenarios.length + 1}>
-              <button type="button" className="sl-compare-fold" aria-expanded={more} title="Sun and Earth together, and the sunlight on a panel" onClick={() => setMore(!more)}>
+              <button type="button" className="sl-compare-fold" aria-expanded={more} title="Shows two more rows: the Sun and Earth together, and the sunlight on a panel." onClick={() => setMore(!more)}>
                 More
               </button>
-              <button type="button" className="sl-compare-fold" aria-expanded={atLanding} title="The Sun's and Earth's angles at each landing" onClick={() => setAtLanding(!atLanding)}>
+              <button type="button" className="sl-compare-fold" aria-expanded={atLanding} title="Shows how high the Sun and Earth are at each landing." onClick={() => setAtLanding(!atLanding)}>
                 At landing
               </button>
-              <button type="button" className="sl-compare-fold" aria-expanded={science} title="What a science team asks of a site: how far it is from permanently shadowed ground" onClick={() => setScience(!science)}>
+              <button type="button" className="sl-compare-fold" aria-expanded={science} title="Shows how far each site is from ground the Sun never reaches, where ice may survive." onClick={() => setScience(!science)}>
                 Science
               </button>
             </th>
@@ -270,7 +270,7 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
             Add this view as scenario {SCENARIO_LETTERS[scenarios.length]}
           </button>
         )}
-        <button type="button" className="sl-link sl-compare-full" title="Open the Planner on its Compare tab: every row, with the hours behind each share" onClick={onFull}>
+        <button type="button" className="sl-link sl-compare-full" title="Opens the Planner's Compare tab: every row, with the hours behind each percentage." onClick={onFull}>
           Full comparison ›
         </button>
       </div>

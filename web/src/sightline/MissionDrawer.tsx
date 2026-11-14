@@ -116,7 +116,7 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
             {option.label} <small>example</small>
           </button>
         ))}
-        <button type="button" aria-pressed={preset === null} disabled={preset !== null} title="Change any value below to make the mission your own">
+        <button type="button" aria-pressed={preset === null} disabled={preset !== null} title="Lit when the mission is your own. Change any limit below to make it so.">
           Custom
         </button>
       </div>
@@ -124,7 +124,7 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
       <Slider id="sl-m-days" label="Mission length" value={requirements.missionDays} unit=" days" range={MISSION_RANGES.missionDays} onChange={(missionDays) => limit({ missionDays })} />
       <Slider id="sl-m-dark" label="Longest darkness it survives" value={requirements.maxSunGapH} unit=" h" range={MISSION_RANGES.maxSunGapH} onChange={(maxSunGapH) => limit({ maxSunGapH })} />
       <label className="sl-check sl-param">
-        <input type="checkbox" checked={requirements.sunAtLanding} onChange={(event) => limit({ sunAtLanding: event.target.checked })} /> The Sun is up at landing
+        <input type="checkbox" checked={requirements.sunAtLanding} onChange={(event) => limit({ sunAtLanding: event.target.checked })} /> The Sun is in view at landing
       </label>
       <label className="sl-check sl-param">
         <input type="checkbox" checked={requirements.earthAtLanding} onChange={(event) => limit({ earthAtLanding: event.target.checked })} /> Earth is in view at landing
@@ -185,7 +185,7 @@ export function AdvancedControls({ mission, onMission, site, month, year, summar
         <select id="sl-m-clear" value={requirements.minEarthClearanceDeg} onChange={(event) => limit({ minEarthClearanceDeg: Number(event.target.value) })}>
           {CLEARANCE_CHOICES_DEG.map((degrees) => (
             <option key={degrees} value={degrees}>
-              {degrees === 0 ? '0° (any part of Earth showing)' : `${degrees}° (its centre that far above the skyline)`}
+              {degrees === 0 ? '0° (any part of Earth showing)' : `${degrees}° (its center that far above the skyline)`}
             </option>
           ))}
         </select>

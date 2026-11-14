@@ -86,9 +86,9 @@ describe('the mission', () => {
     expect(presetOf({ ...rover, maxSlopeDeg: 14 })).toBeNull()
   })
   it('is said in a few words', () => {
-    expect(missionWords(DEFAULT_MISSION)).toBe('14 days on the surface, survives 24 h of darkness, the Sun and Earth up at landing, ground up to 10°')
+    expect(missionWords(DEFAULT_MISSION)).toBe('14 days on the surface, survives 24 h of darkness, the Sun and Earth in view at landing, ground up to 10°')
     // The Long stay sets no limit on radio silence, so it has nothing to say about it.
-    expect(missionWords(rover)).toBe('60 days on the surface, survives 336 h of darkness, the Sun and Earth up at landing, ground up to 15°')
+    expect(missionWords(rover)).toBe('60 days on the surface, survives 336 h of darkness, the Sun and Earth in view at landing, ground up to 15°')
     expect(missionWords({ ...rover, requirements: { ...rover.requirements, maxEarthGapH: 48 } })).toContain('at most 48 h of radio silence')
     expect(PRESETS.find((preset) => preset.id === 'long')?.mission.requirements.maxEarthGapH).toBe(NO_LIMIT_H)
   })

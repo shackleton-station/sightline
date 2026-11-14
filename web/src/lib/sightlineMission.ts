@@ -207,7 +207,7 @@ export function missionWords({ requirements, maxSlopeDeg, heights }: SightlineMi
   return [
     `${requirements.missionDays} days on the surface`,
     `survives ${requirements.maxSunGapH} h of darkness`,
-    ...(atLanding.length > 0 ? [`${atLanding.join(' and ')} up at landing`] : []),
+    ...(atLanding.length > 0 ? [`${atLanding.join(' and ')} in view at landing`] : []),
     ...(requirements.maxEarthGapH < NO_LIMIT_H ? [`at most ${requirements.maxEarthGapH} h of radio silence`] : []),
     `ground up to ${maxSlopeDeg}°`,
     ...(isBaseHeights(heights) ? [] : [heightsWords(heights) as string]),

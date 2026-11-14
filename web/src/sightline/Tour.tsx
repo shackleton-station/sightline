@@ -171,7 +171,7 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onVideo, tryIt, 
         <footer className="sl-tour-foot">
           {voice && (
             <span className="sl-tour-voice">
-              <button type="button" className="sl-small sl-tour-listen" aria-pressed={listen} title="Hear Scout say each step. The voice is AI-generated; the words stay on screen." onClick={() => setListen(!listen)}>
+              <button type="button" className="sl-small sl-tour-listen" aria-pressed={listen} title="Plays Scout's voice for each step. The voice is AI-generated; the words stay on screen." onClick={() => setListen(!listen)}>
                 Listen
               </button>
               <small>{voice.voice.disclosure}</small>

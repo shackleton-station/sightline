@@ -67,6 +67,9 @@ function useEarthDay(start: string, from: number, to: number, wanted: boolean): 
 }
 
 
+/** What the skyline's short door does, where the heights in full have no room. */
+const SKYLINE_DOOR_MEANS = "Shows the skyline all round the site, with the Sun's and Earth's paths."
+
 /** A flag's width and the room the selected mission's label needs, in rem; the styles use the same numbers. */
 const FLAG_REM = 1.1
 const LABEL_REM = 7.6
@@ -210,7 +213,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} title={TIME_KEYS_MEAN} onClick={() => clock.setPlaying(!clock.playing)}>
               {clock.playing ? '❚❚' : '▶'}
             </button>
-            <button type="button" className="sl-small sl-speed" aria-label={`Speed: ${speed.label}`} aria-haspopup="true" aria-expanded={menu === 'speed'} title={`Speed: ${speed.label}`} onClick={() => setMenu(menu === 'speed' ? null : 'speed')}>
+            <button type="button" className="sl-small sl-speed" aria-label={`Speed: ${speed.label}`} aria-haspopup="true" aria-expanded={menu === 'speed'} title={`Changes how fast time plays. Now ${speed.label}.`} onClick={() => setMenu(menu === 'speed' ? null : 'speed')}>
               ▾
             </button>
           </span>
@@ -228,12 +231,12 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             </span>
             {/* The heights above the skyline are the door to the skyline itself: a press unfolds the strip above this bar, and folds it again. */}
             {doorInRow && (
-              <button type="button" className="sl-moment-heights sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`${ABOVE_SKYLINE_MEANS} Press to ${sky.open ? 'fold' : 'see'} the skyline all the way round, with the Sun's and Earth's paths.`} onClick={sky.onToggle}>
+              <button type="button" className="sl-moment-heights sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`${ABOVE_SKYLINE_MEANS} ${sky.open ? 'Press to fold the skyline away.' : 'Press to see the skyline all round.'}`} onClick={sky.onToggle}>
                 Sun {moment.sunAboveDeg === null ? '…' : degWords(moment.sunAboveDeg)} · Earth {moment.earthAboveDeg === null ? '…' : degWords(moment.earthAboveDeg)} above the skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
               </button>
             )}
             {shortDoor && (
-              <button type="button" className="sl-small sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`The skyline all the way round, with the Sun's and Earth's paths. Press to ${sky.open ? 'fold' : 'see'} it.`} onClick={sky.onToggle}>
+              <button type="button" className="sl-small sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={sky.open ? 'Folds the skyline away.' : SKYLINE_DOOR_MEANS} onClick={sky.onToggle}>
                 Skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
               </button>
             )}
@@ -255,7 +258,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
               aria-label="More for the time bar"
               aria-haspopup="true"
               aria-expanded={menu === 'more'}
-              title="More for the time bar"
+              title="Opens more for the time bar: the hourly file and “A day on Earth”."
               onClick={() => {
                 setMenu(menu === 'more' ? null : 'more')
                 if (hourly.kind === 'failed') setHourly({ kind: 'idle' })
@@ -294,7 +297,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                 className="sl-small sl-sky-door"
                 aria-expanded={sky.open}
                 aria-controls="sl-sky"
-                title="The skyline all the way round, with the Sun's and Earth's paths"
+                title={sky.open ? 'Folds the skyline away.' : SKYLINE_DOOR_MEANS}
                 onClick={() => {
                   sky.onToggle()
                   setMenu(null)
@@ -310,7 +313,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
               </label>
             )}
             {/* The same file as the Planner's Export: the scenario on show over its mission, one row for each hour. */}
-            <button type="button" className="sl-small sl-hourly" aria-busy={hourly.kind === 'working'} title="The scenario on show over its mission, one row for each hour, as a CSV file" onClick={saveHourly}>
+            <button type="button" className="sl-small sl-hourly" aria-busy={hourly.kind === 'working'} title="Saves a CSV file of the scenario on show: one row for each hour of its mission." onClick={saveHourly}>
               {hourly.kind === 'working' ? 'Reading the hours…' : 'Hourly Sun and Earth (CSV)'}
             </button>
             {hourly.kind === 'failed' && (
@@ -336,7 +339,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             const side = places && selected >= 0 ? labelSide(places, selected, track.width, flagWidth, LABEL_REM * track.rem) : 'right'
             return (
               <div key={site.site} className={band && band.row === s ? 'sl-row sl-site-row is-pointed' : 'sl-row sl-site-row'} data-site={site.site}>
-                <span className="sl-site-name" title={site.name}>
+                <span className="sl-site-name" title={`${site.name}: what is in view there, hour by hour.`}>
                   {site.name}
                 </span>
                 <div className="sl-site-track">
@@ -351,7 +354,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                           className={`sl-flag${state ? ` is-${state}` : ''}${where ? ` is-${where}` : ''}`}
                           aria-pressed={one.active}
                           aria-label={`Scenario ${one.letter}: ${one.full}`}
-                          title={`${one.letter} · ${one.full}${where ? `, ${where} the days shown` : ''}`}
+                          title={`Scenario ${one.letter}: lands at ${one.siteName} on ${one.full.replace(`${one.siteName} · `, '')}${where ? `, ${where} the days shown` : ''}. Press to select it.`}
                           data-hour={one.landing}
                           style={{ left: places ? `${places[i]}px` : `calc(${at(Math.min(Math.max(one.landing + 0.5 - from, 0), count))} - ${FLAG_REM / 2}rem)` }}
                           onClick={() => onSelect(one.key)}

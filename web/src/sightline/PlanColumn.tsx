@@ -45,9 +45,9 @@ interface FieldsProps {
 function OpenIn({ site, landingField }: { site: SiteInfo; landingField: string }) {
   const horizons = useHorizonsCheck(site.id)
   const links = [
-    { name: 'Quickmap', href: quickmapUrl(site.lat, site.lon), title: 'Open in Quickmap: the LRO camera team’s map, on this place' },
-    { name: 'Moon Trek', href: moonTrekUrl(site.lat, site.lon), title: 'Open in Moon Trek: NASA’s map of the Moon, on this place' },
-    { name: 'Horizons', href: horizons ? horizonsQueryUrl('sun', site.lat, site.lon, horizons.alt_km, `${landingField}:00Z`) : null, title: 'Open in Horizons: NASA JPL’s answer for the Sun at this place and the landing hour' },
+    { name: 'Quickmap', href: quickmapUrl(site.lat, site.lon), title: 'Opens the LRO camera team’s map at this place.' },
+    { name: 'Moon Trek', href: moonTrekUrl(site.lat, site.lon), title: 'Opens NASA’s map of the Moon at this place.' },
+    { name: 'Horizons', href: horizons ? horizonsQueryUrl('sun', site.lat, site.lon, horizons.alt_km, `${landingField}:00Z`) : null, title: 'Opens NASA JPL’s answer for the Sun at this place and the landing hour.' },
   ].filter((link): link is { name: string; href: string; title: string } => link.href !== null)
   if (links.length === 0) return null
   return (
@@ -145,7 +145,7 @@ export function Fields({ held = false, onShowHow, sites, site, onSite, landing, 
           id="sl-site"
           aria-label="Landing site"
           value={site ? siteValue(site) : ''}
-          title={target ? `Approximate region: the centre of ${target.feature} in the IAU Gazetteer. NASA names the place and gives no coordinates: “${target.says}” (NASA, ${target.source_date})` : undefined}
+          title={target ? `An approximate place: the center of ${target.feature}, from the IAU’s list of lunar names. NASA gives no coordinates, only “${target.says}” (NASA, ${target.source_date}).` : undefined}
           onChange={(event) => {
             const value = event.target.value
             if (value === CUSTOM) setCustom(!custom)
@@ -167,7 +167,7 @@ export function Fields({ held = false, onShowHow, sites, site, onSite, landing, 
             </optgroup>
           ))}
           {targets.length > 0 && (
-            <optgroup label="Future targets (approximate region: the IAU centre of the place NASA names)">
+            <optgroup label="Future targets (approximate region: the IAU center of the place NASA names)">
               {targets.map((listed) => (
                 <option key={listed.id} value={targetValue(listed)}>
                   {listed.name} · {listed.who}
@@ -215,7 +215,7 @@ export function Fields({ held = false, onShowHow, sites, site, onSite, landing, 
             Mission
           </span>
         )}
-        <button type="button" className="sl-mission-open" aria-expanded={missionOpen} aria-label={missionOpen ? `Mission: ${missionName}. Select` : `Mission: ${missionName}`} title={mission} onClick={onMission}>
+        <button type="button" className="sl-mission-open" aria-expanded={missionOpen} aria-label={missionOpen ? `Mission: ${missionName}. Select` : `Mission: ${missionName}`} title={`${missionOpen ? 'Closes' : 'Opens'} the mission’s limits. Now: ${mission}.`} onClick={onMission}>
           <b>{missionName}</b> {missionOpen ? <span className="sl-select">Select</span> : <span aria-hidden="true">›</span>}
         </button>
       </div>
@@ -273,7 +273,7 @@ export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission 
         <span className="sl-verdict-words">
           <span aria-hidden="true">{fits ? '✓' : '✗'}</span> {!fits ? 'Does not fit the mission' : marginal.length > 0 ? 'Fits, marginal' : 'Fits the mission'}
         </span>
-        <button type="button" className="sl-link sl-why" title="Ask Scout why, and what would change it" onClick={onWhy}>
+        <button type="button" className="sl-link sl-why" title="Asks Scout why this landing fits or does not, and what would change it." onClick={onWhy}>
           Why?
         </button>
       </p>
@@ -294,7 +294,7 @@ export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission 
         </ul>
       )}
       {next && (
-        <button type="button" className="sl-next" title={next.adds ? 'Adds that landing as another scenario' : 'Four scenarios already: moves this landing there'} onClick={next.onTake}>
+        <button type="button" className="sl-next" title={next.adds ? 'Adds that landing as another scenario.' : 'Moves this landing there: four scenarios is the most.'} onClick={next.onTake}>
           Next landing that fits: {next.when} <span aria-hidden="true">›</span>
         </button>
       )}
@@ -302,7 +302,7 @@ export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission 
         <button
           type="button"
           className="sl-next sl-elsewhere"
-          title={`${elsewhere.name} is ${kmWords(elsewhere.km)} away. ${elsewhere.adds ? 'Adds it, on this date, as another scenario' : 'Four scenarios already: moves this landing there'}`}
+          title={`${elsewhere.name} is ${kmWords(elsewhere.km)} away. ${elsewhere.adds ? 'Adds it on this date as another scenario.' : 'Moves this landing there: four scenarios is the most.'}`}
           onClick={elsewhere.onTake}
         >
           Fits at {elsewhere.name} on this date <span aria-hidden="true">›</span>

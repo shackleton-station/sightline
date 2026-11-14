@@ -62,12 +62,12 @@ function poleFacts(data: ScenarioData): Fact[] {
         `to soften the edge, sunlight simply switches on and off as it passes behind each ridge.`,
     },
     {
-      title: 'A few metres change the answer',
+      title: 'A few meters change the answer',
       text:
         (ground && raised
           ? `In our model, over 18.6 years, part of the Sun is visible ${pct(ground.sun_any_pct)} of the ` +
             `time from ground level and ${pct(raised.sun_any_pct)} from ${raised.obs_height_m} m up.`
-          : `At polar ridges, raising a panel a few metres can add a lot of sunlight, because the Sun ` +
+          : `At polar ridges, raising a panel a few meters can add a lot of sunlight, because the Sun ` +
             `skims just over the terrain.`) +
         (nearby
           ? ` On NASA's map, pixels right next to this one range from ${nearby[0].toFixed(0)}% to ` +

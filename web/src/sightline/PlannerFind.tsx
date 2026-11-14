@@ -105,7 +105,7 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
           type="button"
           className="sl-small pl-example"
           aria-pressed={example && exampleNote}
-          title="Set the mission to the Long stay example, to see where and when such a rover could land"
+          title="Sets the mission to the Long stay example, to show where and when such a rover could land."
           onClick={() => {
             onMission(ROVER_PRESET.mission)
             setExampleNote(true)
@@ -211,7 +211,7 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
                 First that fits: {clockTime(start, detail.first)}
               </button>
               {detail.sunniest && (
-                <button type="button" className="sl-small" aria-pressed={take === 'sunniest'} title="Of the landings that fit, the one whose mission has the most hours of Sun" onClick={() => setTake('sunniest')}>
+                <button type="button" className="sl-small" aria-pressed={take === 'sunniest'} title="The fitting landing whose mission has the most sunlit hours. Press to choose it, then add it." onClick={() => setTake('sunniest')}>
                   Most Sun: {clockTime(start, detail.sunniest.landing)}, {detail.sunniest.sunPct.toFixed(0)}% of the mission sunlit
                 </button>
               )}

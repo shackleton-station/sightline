@@ -343,11 +343,11 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         <p className="how-caption how-heights">
           Every number is for a point 2 m above the ground, a small lander’s deck. Sightline’s Planner can read the Sun at a solar panel’s height instead (5 m or 10 m, the
           middle and top of NASA’s vertical solar array) and Earth at an antenna’s (4 m, the top of a Nova-C class lander, or 10 m), from the same model run again for those
-          heights at the listed sites. From higher up the terrain sits lower in the sky, so the Sun and Earth are never in view less. A few metres do not move them in the sky
+          heights at the listed sites. From higher up the terrain sits lower in the sky, so the Sun and Earth are never in view less. A few meters do not move them in the sky
           by more than the 0.01° our tracks are rounded to, so the comparison with JPL Horizons holds at every height.
         </p>
         <p className="how-caption">
-          Where a page shows power in watts per square metre, it is the sunlight reaching a panel before any panel losses: the Sun’s full strength (1361 W/m²) times the share of
+          Where a page shows power in watts per square meter, it is the sunlight reaching a panel before any panel losses: the Sun’s full strength (1361 W/m²) times the share of
           its disc in view and how squarely the light meets the panel. Near the pole the Sun stays low, so an upright panel that turns to face it gets nearly all of that, and a
           panel lying flat gets almost none. Sightline’s “Sunlight at landing” is that figure for a surface facing the Sun: the sunlight available, not the power a lander
           would make from it.
@@ -382,7 +382,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
             {light.worstAgreePct === 100 ? 'the site’s own answer in every one' : `the site’s own answer in at least ${light.worstAgreePct}%`} of {light.hours.toLocaleString('en-US')} hours. Across{' '}
             {light.pixels.toLocaleString('en-US')} pixels its long-run Sun is within {light.meanAbs.toFixed(1)} points of NASA’s own map on average (correlation{' '}
             {light.r.toFixed(2)}); turn the sky half way round and that falls to {light.rTurned.toFixed(2)}, take the terrain away and it falls to{' '}
-            {light.rNoTerrain.toFixed(2)}. On the brightest ground this check says little, and a pixel is one point: a neighbour {light.pixelM} m away can differ, so the page
+            {light.rNoTerrain.toFixed(2)}. On the brightest ground this check says little, and a pixel is one point: a neighbor {light.pixelM} m away can differ, so the page
             gives a range.
           </p>
         ) : (

@@ -1071,7 +1071,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                 />
                 {accuracyUsed && odds[active] !== null && (
                   <p className="sl-odds-line">
-                    <button type="button" className="sl-link" title="Open Landing accuracy" onClick={openAccuracy}>
+                    <button type="button" className="sl-link" title="Opens Accuracy: where a lander that misses its target could come down." onClick={openAccuracy}>
                       {oddsWords(odds[active])} of landings fit
                     </button>{' '}
                     at {spreadWords(spread)} accuracy
@@ -1148,10 +1148,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {shown && !planner && mode !== 'surface' && hour !== scenario.landing && (
           <p className="sl-off-landing sl-fade">
             <span>Not the landing</span>
-            <button type="button" className="sl-link" title="Put the time bar back on the landing" onClick={() => setHour(scenario.landing)}>
+            <button type="button" className="sl-link" title="Moves the time bar back to the landing hour." onClick={() => setHour(scenario.landing)}>
               Back to landing
             </button>
-            <button type="button" className="sl-link" data-tour="land" title="Make this moment the landing" onClick={() => setScenario((current) => ({ ...current, landing: hour }))}>
+            <button type="button" className="sl-link" data-tour="land" title="Makes the hour on the time bar the landing." onClick={() => setScenario((current) => ({ ...current, landing: hour }))}>
               Land here
             </button>
           </p>
@@ -1160,10 +1160,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {shown && !planner && mode === 'surface' && <iframe ref={surfaceFrame} className="sl-surface" title="Standing at the site, looking around" src={`/surface/${surfaceSrc}${fitShade ? '&odds=1' : ''}`} />}
         {/* In the Planner the Moon is a small live view: pressing it comes back. */}
         {planner && (
-          <button type="button" className="sl-mini-back" aria-label="Back to the Moon" title="Back to the Moon (Esc)" onClick={() => setFull(false)} />
+          <button type="button" className="sl-mini-back" aria-label="Back to the Moon" title="Closes the Planner and shows the Moon again (Esc)." onClick={() => setFull(false)} />
         )}
         {bare && (
-          <button type="button" className="sl-handle" title="Show the controls (H)" onClick={showControls}>
+          <button type="button" className="sl-handle" title="Brings the controls back (H)." onClick={showControls}>
             Show controls
           </button>
         )}
@@ -1174,10 +1174,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <p>Where to land on the Moon, and when</p>
             </header>
             <div className="sl-top sl-fade">
-              <button type="button" className="is-main" data-tour="plan" title="Open the planner (P)" onClick={() => openPlan(null)}>
+              <button type="button" className="is-main" data-tour="plan" title="Opens the plan: a site, a landing and a mission to check (P)." onClick={() => openPlan(null)}>
                 Plan a landing
               </button>
-              <button type="button" title="Hide everything but the Moon (H)" onClick={() => setBare(true)}>
+              <button type="button" title="Hides everything but the Moon (H)." onClick={() => setBare(true)}>
                 Hide all
               </button>
             </div>
@@ -1222,7 +1222,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         )}
         {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
         {!bare && !plan && tourAt === null && !(scoutOpen && room === 'phone') && (
-          <button type="button" className={tourTaken ? 'sl-tour-chip sl-fade' : 'sl-tour-chip sl-fade is-new'} title="Scout walks you through the screen, in about a minute" onClick={() => startTour()}>
+          <button type="button" className={tourTaken ? 'sl-tour-chip sl-fade' : 'sl-tour-chip sl-fade is-new'} title="Scout shows you round the screen, one step at a time." onClick={() => startTour()}>
             <span aria-hidden="true">▶</span> One-minute tour
           </button>
         )}

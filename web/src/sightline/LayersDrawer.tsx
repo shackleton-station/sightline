@@ -51,13 +51,13 @@ export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds
       </header>
       <ul className="sl-layer-own">
         <li>
-          <label title={shade.here ? 'Darkens the ground the Sun cannot reach at the hour on the time bar, from the terrain around it' : 'The light grid covers the ground near the south pole; this site is outside it'}>
+          <label title={shade.here ? 'Darkens the ground the Sun cannot reach at the hour on the time bar.' : 'Only the ground near the south pole has this; this site is outside it.'}>
             <input type="checkbox" role="switch" checked={shade.on && shade.here} disabled={!shade.here} onChange={() => onShade(!shade.on)} />
             <span>Light and shadow</span>
           </label>
         </li>
         <li>
-          <label title={'Colors the Moon by how likely a landing is to fit the mission: green where it is likely, through amber, to red where it is not'}>
+          <label title={'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.'}>
             <input type="checkbox" role="switch" checked={odds.on} onChange={() => onOdds(!odds.on)} />
             <span>Mission success probability</span>
           </label>

@@ -24,6 +24,6 @@ describe("Compare's science row: the distance to permanently shadowed ground", (
   it('has an answer for every listed site, and the row says what it is and whose map it is from', () => {
     for (const entry of Object.values(shadow.sites)) expect(shadowCell(entry.patch).cell).toMatch(/^([\d.,]+|none)$/)
     expect(shadowMeans(shadow)).toMatch(/never reaches/)
-    expect(shadowMeans(shadow)).toMatch(/Source: NASA GSFC PGDA/)
+    expect(shadowMeans(shadow)).toMatch(/NASA’s map of permanent shadow \(LOLA; Mazarico et al\. 2011\)/)
   })
 })

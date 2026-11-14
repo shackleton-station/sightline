@@ -27,6 +27,6 @@ export function shadowCell(answer: ShadowAnswer): ShadowCell {
 }
 
 /** The row's hover text: what the ground is, how the distance is measured, and whose map it is. */
-export function shadowMeans(shadow: ShadowDistances): string {
-  return `${shadow.what} ${shadow.measure} Source: ${shadow.source.name} (${shadow.source.cite}).`
+export function shadowMeans(_shadow: ShadowDistances): string {
+  return 'Distance from the site to the nearest ground that sunlight never reaches, straight over the surface. From NASA’s map of permanent shadow (LOLA; Mazarico et al. 2011).'
 }

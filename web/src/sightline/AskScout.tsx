@@ -222,7 +222,7 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, why, o
           </div>
         )}
       </div>
-      <button type="button" className={tourTaken ? 'sl-tour-here' : 'sl-tour-here is-new'} title="Scout walks you through the screen, in about a minute" onClick={onTour}>
+      <button type="button" className={tourTaken ? 'sl-tour-here' : 'sl-tour-here is-new'} title="Scout shows you round the screen, one step at a time." onClick={onTour}>
         <span aria-hidden="true">▶</span> One-minute tour
       </button>
       <form className="sl-ask" autoComplete="off" onSubmit={send}>

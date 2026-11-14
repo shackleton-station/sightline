@@ -64,7 +64,7 @@ export const TREK_LAYERS: TrekLayer[] = [
   {
     id: 'steep',
     label: 'Steep ground',
-    says: 'Coloured ground slopes less than 15°. Ground left bare is steeper, or beyond 87.5° S.',
+    says: 'Colored ground slopes less than 15°. Ground left bare is steeper, or beyond 87.5° S.',
     product: 'ColorSlope_15below_LRO_LOLA_DEM_SPole875_5m',
     title: 'LRO LOLA Color Slope < 15 deg, S Pole, 87.5 deg',
     level: 5,
@@ -115,7 +115,7 @@ export const TREK_LAYERS: TrekLayer[] = [
   {
     id: 'temperature',
     label: 'Temperature',
-    says: 'Average surface temperature, in Moon Trek’s own colours. Trek gives no scale; the permanently shadowed craters, the coldest ground, are purple.',
+    says: 'Average surface temperature, in Moon Trek’s own colors. Trek gives no scale; the permanently shadowed craters, the coldest ground, are purple.',
     product: 'LRO_Diviner_Temp_Avg_Clr_SPole80_135mp',
     title: 'LRO DLRE Surface Temp Avg S Pole, Color',
     level: 4,
