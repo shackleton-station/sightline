@@ -1,4 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { ShadowDistances } from '../data/contract'
+import { isCustomSite } from '../data/customSite'
+import { loadShadow } from '../data/loadSite'
+import { shadowCell, shadowMeans } from '../lib/shadowWords'
 import { clockTime } from '../lib/sightline'
 import { bestIn, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { landingRows, type PlannerRow, plannerRows } from './plannerTable'
@@ -73,14 +77,34 @@ function Row({ row, hoursPrinted }: { row: PlannerRow; hoursPrinted: boolean }) 
  * mark for each scenario with the words in its hover text (the lists under the table say the rest).
  * Then come bare numbers, with the unit in each row's name: the name column is wide enough for two
  * lines and wraps, and one to four scenarios share the rest equally, so nothing in a cell can reach
- * the next. The rows are the Planner's Compare table's own (`plannerRows`). Two folds, closed until
- * asked for, hold the rest: "More" (the Sun and Earth together, the sunlight on a panel) and "At
- * landing" (the Sun's and Earth's angles). The best value in a row is marked; there
+ * the next. The rows are the Planner's Compare table's own (`plannerRows`). Three folds, closed until
+ * asked for, hold the rest: "More" (the Sun and Earth together, the sunlight on a panel), "At
+ * landing" (the Sun's and Earth's angles) and "Science" (how far the site is from permanently
+ * shadowed ground, in NASA's maps: not part of the verdict). The best value in a row is marked; there
  * is no blended score, because its weights would be invented.
  */
 export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, onClose, marginal: marginalOf, odds, oddsFor, landings, sunlightWm2, onFull }: Props) {
   const [more, setMore] = useState(false)
   const [atLanding, setAtLanding] = useState(false)
+  // The third fold, "Science": what a science team asks of a site, beside the engineering rows. One row for
+  // now: how far the site is from permanently shadowed ground, in NASA's maps. Its file is asked for when the
+  // fold is first opened, and not before. It is not part of the verdict, and no value in it is marked best.
+  const [science, setScience] = useState(false)
+  const [shadow, setShadow] = useState<ShadowDistances | null>(null)
+  useEffect(() => {
+    if (!science || shadow) return
+    let current = true
+    loadShadow()
+      .then((loaded) => current && setShadow(loaded))
+      // Without it the row keeps waiting; the rest of the table does not depend on it.
+      .catch((reason: unknown) => console.error(reason))
+    return () => {
+      current = false
+    }
+  }, [science, shadow])
+  // Each scenario's distance, as the row writes it; null where there is none to write (a custom point, or not loaded yet).
+  const shade = facts.map(({ site }) => (shadow && !isCustomSite(site) && shadow.sites[site.id] ? shadowCell(shadow.sites[site.id].patch) : null))
+  const noShade = science ? shade.flatMap((cell, i) => (cell?.explain ? [{ letter: SCENARIO_LETTERS[i], words: cell.words }] : [])) : []
   const hoursPrinted = scenarios.length <= HOURS_PRINTED_UP_TO
   const measures = scenarios.map((scenario, i) => {
     const { site, flags, slopeDeg } = facts[i]
@@ -184,12 +208,36 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
               <button type="button" className="sl-compare-fold" aria-expanded={atLanding} title="The Sun's and Earth's angles at each landing" onClick={() => setAtLanding(!atLanding)}>
                 At landing
               </button>
+              <button type="button" className="sl-compare-fold" aria-expanded={science} title="What a science team asks of a site: how far it is from permanently shadowed ground" onClick={() => setScience(!science)}>
+                Science
+              </button>
             </th>
           </tr>
           {more && rows.filter((row) => MORE_ROWS.includes(row.key)).map((row) => <Row key={row.key} row={row} hoursPrinted={hoursPrinted} />)}
           {atLanding && landingRows(landings).map((row) => <Row key={row.key} row={row} hoursPrinted={hoursPrinted} />)}
+          {science && (
+            <tr className="sl-compare-science">
+              <th scope="row" title={shadow ? shadowMeans(shadow) : undefined}>
+                Shadowed ground, km
+              </th>
+              {shade.map((cell, i) => (
+                <td key={i} title={cell ? `${facts[i].site.name}: ${cell.words}` : isCustomSite(facts[i].site) && shadow ? 'Not worked out for a custom point' : undefined}>
+                  {cell ? cell.cell : shadow ? '?' : '…'}
+                </td>
+              ))}
+            </tr>
+          )}
         </tbody>
       </table>
+      {noShade.length > 0 && (
+        <ul className="sl-compare-why is-info sl-compare-shade">
+          {noShade.map((one) => (
+            <li key={one.letter}>
+              <b>{one.letter}</b> permanently shadowed ground: {one.words}.
+            </li>
+          ))}
+        </ul>
+      )}
       {marginal.length > 0 && (
         <ul className="sl-compare-why is-info">
           {marginal.map((one) => (
