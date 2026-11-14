@@ -4,7 +4,7 @@ import type { SiteInfo } from '../data/contract'
 import type { SiteFlags } from './flags'
 import { EARTH_CLEARANCES_DEG, hourOf, landingProblems, locateHour, missionEarth, NO_GAP_LIMIT_H, type Requirements } from './mission'
 import { entryAt, GAP_TIE_H, measureEntry, toIso } from './shortlist'
-import { nextViable } from './slip'
+import { distanceKm, nextViable } from './slip'
 import { decodeView, encodeView } from './urlState'
 
 /**
@@ -56,17 +56,23 @@ export interface SightlineMission {
 
 export const DEFAULT_MISSION: SightlineMission = { requirements: DEFAULT_REQUIREMENTS, maxSlopeDeg: DEFAULT_MAX_SLOPE_DEG, heights: DEFAULT_HEIGHTS }
 
-/** The ranges the mission drawer offers. */
+/**
+ * The ranges the mission drawer offers. The mission's length and the darkness it survives stay near
+ * the default mission (14 days, 24 h), up to a month and a week, so the values a planner is likely
+ * to try take most of each slider's travel. A preset or a link can carry more (the long stay does):
+ * the slider then stretches to that value.
+ */
 export const MISSION_RANGES = {
-  missionDays: { min: 1, max: 90, step: 1 },
-  maxSunGapH: { min: 0, max: 400, step: 4 },
+  missionDays: { min: 1, max: 30, step: 1 },
+  maxSunGapH: { min: 0, max: 168, step: 4 },
   maxSlopeDeg: { min: 5, max: 20, step: 1 },
 }
 /**
- * The longest radio silence is a slider like the longest dark, with one more stop after its last
- * hour: no limit. A link still carries "no limit" as NO_LIMIT_H hours.
+ * The longest radio silence is a slider with the longest dark's steps, with one more stop after its
+ * last hour: no limit. It runs further than the longest dark, because near the south pole Earth is
+ * below the skyline for about two weeks at a time. A link still carries "no limit" as NO_LIMIT_H hours.
  */
-export const SILENCE_RANGE = { min: 0, max: MISSION_RANGES.maxSunGapH.max, step: MISSION_RANGES.maxSunGapH.step }
+export const SILENCE_RANGE = { min: 0, max: 400, step: MISSION_RANGES.maxSunGapH.step }
 export const SILENCE_NO_LIMIT_STOP = SILENCE_RANGE.max + SILENCE_RANGE.step
 
 /** Where the radio-silence slider sits for a limit in hours: its last stop for no limit. */
@@ -311,6 +317,21 @@ export function betterDate(flags: SiteFlags, landing: number, mission: Sightline
   if (problems.length === 0) return null
   const next = nextViable(flags, hourIso(flags.start, landing), mission.requirements)
   return next && next.waitH > 0 ? { landing: landing + next.waitH, waitH: next.waitH } : null
+}
+
+/**
+ * Another site for the same landing, offered when this one does not fit: the nearest listed site of
+ * the same group (the south pole ridges, say) where the same hour does fit the same mission, judged
+ * by the verdict's own function (`fitProblems`) on that site's flags and slope. Null when the site
+ * has no group of listed sites (a custom point), or when the landing fits at none of them.
+ */
+export function nearestFittingSite(site: SiteInfo, landing: number, mission: SightlineMission, listed: { site: SiteInfo; flags: SiteFlags }[]): { site: SiteInfo; km: number } | null {
+  return (
+    listed
+      .filter((other) => other.site.id !== site.id && other.site.group === site.group && fitProblems(other.flags, landing, mission, other.site.slope?.deg ?? null).length === 0)
+      .map((other) => ({ site: other.site, km: distanceKm(site, other.site) }))
+      .sort((a, b) => a.km - b.km)[0] ?? null
+  )
 }
 
 const ROW_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

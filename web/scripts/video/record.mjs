@@ -2,7 +2,7 @@
 //
 // Run it from web/ (README.md in this folder says what it needs and what each file is):
 //
-//   node scripts/video/record.mjs                      the full tutorial, from https://shackletonstation.dev
+//   node scripts/video/record.mjs                      the full tutorial, from https://lunarsightline.com
 //   node scripts/video/record.mjs --cut=short          the 30-second cut for the Space Apps submission
 //   node scripts/video/record.mjs --stills             a rehearsal: one picture a second, no video
 //   node scripts/video/record.mjs --check=file.mp4     only measure a finished file
@@ -46,7 +46,7 @@ if (args.has('check')) {
 }
 
 const cutName = args.get('cut') || 'full'
-const base = (args.get('base') || 'https://shackletonstation.dev').replace(/\/$/, '')
+const base = (args.get('base') || 'https://lunarsightline.com').replace(/\/$/, '')
 const outDir = resolve(args.get('out') || join(webDir, '../cache/video', cutName))
 const voiceDir = resolve(join(webDir, '../cache/video/voice'))
 mkdirSync(outDir, { recursive: true })

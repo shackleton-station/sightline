@@ -33,6 +33,7 @@ import {
   steadierLanding,
   DEFAULT_MISSION,
   fitProblems,
+  nearestFittingSite,
   MAX_SCENARIOS,
   missionWords,
   presetOf,
@@ -78,7 +79,7 @@ import { siteValue } from './site'
 import { Skyline } from './Skyline'
 import { Stage } from './Stage'
 import { useHeightFlags } from './useHeights'
-import { useLandingShares, useScenarioFacts } from './useScenarioFacts'
+import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useScenarioFacts'
 import { useTutorialVideo } from './useTutorialVideo'
 import { PlayControl, ScoutLine } from './WatchControls'
 
@@ -238,8 +239,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const beforeTour = useRef<{ plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
   /** Whether the tour has put its own landing in Plan yet: once, so what the visitor tries on the way is kept. */
   const tourPlanned = useRef(false)
-  // The offer in Scout's closed line shows on a first visit only: remembered once seen or taken.
-  const [tourSeen, setTourSeen] = useStored('tourSeen', false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
   const [tourTaken, setTourTaken] = useStored('tourTaken', false)
   const tutorialVideo = useTutorialVideo(TOUR.video, tourAt !== null || how)
@@ -282,6 +281,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // How much of the Sun's and Earth's discs shows at each scenario's landing. A landing that meets a
   // "in view at landing" limit on a sliver of the Sun, or only the edge of Earth, fits only marginally.
   const shares = useLandingShares(scenarios, facts, start, held, lit.applied)
+  // The average sunlight on a panel over each mission: read only while one of the two Compare tables is open.
+  const sunlightWm2 = useMissionSunlight(scenarios, facts, start, held, lit.applied, mission.requirements.missionDays, full || drawer === 'compare')
   const marginalAt = (i: number) => {
     const at = shares[i]
     return at ? marginalReasons(mission.requirements.sunAtLanding ? at.sun : null, mission.requirements.earthAtLanding ? at.earth : null, at.earthUp) : []
@@ -307,6 +308,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     )
     return landing === scenario.landing ? null : { landing, waitH: landing - scenario.landing }
   }, [flags, firstBetter?.landing, firstBetter?.waitH, betterTrack, betterMonth.error, mission, betterAt.index, scenario.landing])
+  // Another site for the same date, offered with the next landing when this one does not fit: the
+  // nearest listed site of the same group where the verdict's own rules pass on this date.
+  const misses = problems !== null && problems.length > 0
+  const elsewhere = useMemo(() => (misses ? nearestFittingSite(site, scenario.landing, mission, lit.flagged) : null), [misses, site, scenario.landing, mission, lit.flagged])
   // A button in one of Scout's replies in Plan: what it proposes is applied as another scenario, never
   // by changing the one on show without a word. A change of limits, which every scenario shares, is
   // applied as the button's own words say.
@@ -526,8 +531,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
 
   /**
    * Home: the opening screen as a first visit finds it. Watch, with the controls on show, the Moon
-   * at the opening hour with time playing, and Scout offering the tour again: from his open card on
-   * a wide window, as the page opens, and from his closed line on a narrower one.
+   * at the opening hour with time playing, and Scout's card open on a wide window as the page opens.
    * The scenarios are kept: "Plan a landing" opens on the same site, landing at the hour on the clock
    * as it always does from Watch.
    */
@@ -535,15 +539,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     showControls()
     setScoutOpen(window.innerWidth >= NARROW_UNDER_PX)
     setPillMin(false)
-    setTourSeen(false)
     setHour(opening)
     setPlaying(!still)
-  }, [showControls, setPillMin, setTourSeen, setHour, setPlaying, opening, still])
+  }, [showControls, setPillMin, setHour, setPlaying, opening, still])
 
   const startTour = () => {
     beforeTour.current = { plan, scenarios, chosen, drawer, full, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
     tourPlanned.current = false
-    setTourSeen(true)
     setTourTaken(true)
     setHow(false)
     setTourAt(0)
@@ -805,6 +807,23 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                         }
                       : null
                   }
+                  elsewhere={
+                    elsewhere
+                      ? {
+                          name: elsewhere.site.name,
+                          km: elsewhere.km,
+                          adds: scenarios.length < MAX_SCENARIOS,
+                          onTake: () => {
+                            // As the date line does: another scenario while there is room; with four already, this one moves there.
+                            if (scenarios.length < MAX_SCENARIOS) addScenario({ site: elsewhere.site.id, landing: scenario.landing })
+                            else {
+                              setScenario((current) => ({ ...current, site: elsewhere.site.id }))
+                              setHour(scenario.landing)
+                            }
+                          },
+                        }
+                      : null
+                  }
                   onWhy={askWhy}
                   onMission={() => setDrawer('mission')}
                 />
@@ -913,7 +932,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             </div>
             {/* While the tour is on, Scout speaks from its bubble instead. */}
             {tourAt === null && <ScoutLine
-              offer={tourSeen ? null : { words: TOUR.offer, onTake: startTour, onGone: () => setTourSeen(true) }}
               line={line}
               state={pointedState ?? null}
               open={scoutOpen}
@@ -950,6 +968,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <i className="is-none" aria-hidden="true" /> Neither
             </li>
           </ul>
+        )}
+        {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
+        {!bare && !plan && tourAt === null && !(scoutOpen && room === 'phone') && (
+          <button type="button" className={tourTaken ? 'sl-tour-chip sl-fade' : 'sl-tour-chip sl-fade is-new'} title="Scout walks you through the screen, in about a minute" onClick={startTour}>
+            <span aria-hidden="true">▶</span> One-minute tour
+          </button>
         )}
         {!bare && !plan && !(scoutOpen && room === 'phone') && <PlayControl clock={clock} date={clockDate(start, hour)} span={monthSpan(start, hour)} minimised={pillMin} onMinimise={setPillMin} />}
       </main>
@@ -1003,6 +1027,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           year={Number(landingAt.month.slice(0, 4))}
           summary={here?.summary ?? null}
           landings={shares}
+          sunlightWm2={sunlightWm2}
         />
       )}
       {brief && (
@@ -1063,7 +1088,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         <AdvancedDrawer mission={mission} onMission={setMission} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} onBack={() => setDrawer('mission')} onClose={() => setDrawer(null)} />
       )}
       {shown && !planner && drawer === 'compare' && (
-        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} />
+        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} />
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}

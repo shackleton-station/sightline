@@ -2,7 +2,7 @@ import type { SiteInfo } from '../../src/data/contract'
 import { heightsWords, isBaseHeights } from '../../src/lib/heights'
 import { locateHour } from '../../src/lib/mission'
 import { entryAt } from '../../src/lib/shortlist'
-import { COMPARE_ROWS, measureScenario, readScenarioLink, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../../src/lib/sightlineMission'
+import { COMPARE_ROWS, measureScenario, nearestFittingSite, readScenarioLink, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../../src/lib/sightlineMission'
 import type { ViewState } from '../../src/lib/urlState'
 import type { SiteData } from '../../shared/tools/data'
 import { fact, type Fact, isoAt, whenLabel } from '../../shared/tools/facts'
@@ -64,6 +64,8 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
     facts.push(fact(key, `Scenario ${letter}`, words(scenario)))
     const site = sites.find((candidate) => candidate.id === scenario.site)
     if (site) facts.push(...(await figures(key, letter, scenario, site, mission, data)))
+    // For the scenario on show, when it does not fit: the other site the visitor's screen offers for the same date.
+    if (site && i === active) facts.push(...(await elsewhere(key, letter, scenario, site, sites, mission, data)))
     else facts.push(fact(`${key}_figures`, `Scenario ${letter}: its figures`, 'not available here (a custom point, not a listed site)'))
   }
 
@@ -71,6 +73,22 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
   const { month, index } = locateHour(span.start, onShow.landing)
   const others = scenarios.filter((_, i) => i !== active).map((scenario) => ({ site: scenario.site, at: entryAt(isoAt(span.start, scenario.landing)) }))
   return { view: { ...base, a: { site: onShow.site, month }, index, shortlist: others }, facts }
+}
+
+/**
+ * When a scenario does not meet the mission limits: the nearest listed site of the same group where
+ * the same landing does, found by the function the visitor's screen uses for its "Fits at … on this
+ * date" line, or the plain statement that there is none. Nothing when the scenario fits.
+ */
+async function elsewhere(key: string, letter: string, scenario: SightlineScenario, site: SiteInfo, sites: SiteInfo[], mission: SightlineMission, data: SiteData): Promise<Fact[]> {
+  const flagsOf = async (id: string) => (isBaseHeights(mission.heights) ? null : await data.flagsAt(id, mission.heights).catch(() => null)) ?? (await data.flags(id))
+  const group = sites.filter((other) => other.group === site.group)
+  const listed = await Promise.all(group.map(async (other) => ({ site: other, flags: await flagsOf(other.id) })))
+  const own = listed.find((entry) => entry.site.id === site.id)
+  if (!own || measureScenario(scenario, site, own.flags, mission, site.slope?.deg ?? null).problems.length === 0) return []
+  const found = nearestFittingSite(site, scenario.landing, mission, listed)
+  const label = `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`
+  return [fact(`${key}_fits_at_another_site`, label, found ? `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away` : 'none: on this date no other site of the group meets them')]
 }
 
 /** One scenario's Compare figures, written as the table writes them. */

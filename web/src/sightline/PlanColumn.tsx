@@ -205,6 +205,11 @@ export function Fields({ sites, site, onSite, landing, landingField, firstField,
   )
 }
 
+/** A distance across the Moon in a few characters: "11 km", or "0.8 km" under ten. */
+function kmWords(km: number): string {
+  return `${km < 10 ? km.toFixed(1) : Math.round(km)} km`
+}
+
 interface VerdictProps {
   /** Why the landing doesn't fit, one line each; empty if it fits; null while it is being checked. */
   problems: string[] | null
@@ -212,6 +217,8 @@ interface VerdictProps {
   marginal: string[]
   /** The next landing that fits, when this one does not: how it reads ("1 June · 18:00"), and what choosing it does. */
   next: { when: string; adds: boolean; onTake: () => void } | null
+  /** Another site of the same group where this date fits, when this one does not: its name, how far it is, and what choosing it does. */
+  elsewhere: { name: string; km: number; adds: boolean; onTake: () => void } | null
   /** Ask Scout why, in his panel. */
   onWhy: () => void
   /** Open the Mission panel, where the limits behind the reasons are. */
@@ -226,9 +233,10 @@ const REASONS_SHOWN = 3
  * app's rules: instant, the same for the same link, never the model's. "Fits the mission" (green,
  * with a tick), "Fits, marginal" (the Sun's gold), or "Does not fit the mission" (the warning
  * colour, with a cross). Under it, up to three reasons, one line each; then, only when it does not
- * fit, the next landing that does. "Why?" asks Scout to explain it.
+ * fit, the next landing that does and the nearest site of the same group where this date does.
+ * "Why?" asks Scout to explain it.
  */
-export function Verdict({ problems, marginal, next, onWhy, onMission }: VerdictProps) {
+export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission }: VerdictProps) {
   if (!problems) {
     return (
       <div className="sl-verdict is-checking">
@@ -269,6 +277,16 @@ export function Verdict({ problems, marginal, next, onWhy, onMission }: VerdictP
       {next && (
         <button type="button" className="sl-next" title={next.adds ? 'Adds that landing as another scenario' : 'Four scenarios already: moves this landing there'} onClick={next.onTake}>
           Next landing that fits: {next.when} <span aria-hidden="true">›</span>
+        </button>
+      )}
+      {elsewhere && (
+        <button
+          type="button"
+          className="sl-next sl-elsewhere"
+          title={`${elsewhere.name} is ${kmWords(elsewhere.km)} away. ${elsewhere.adds ? 'Adds it, on this date, as another scenario' : 'Four scenarios already: moves this landing there'}`}
+          onClick={elsewhere.onTake}
+        >
+          Fits at {elsewhere.name} on this date <span aria-hidden="true">›</span>
         </button>
       )}
     </div>
