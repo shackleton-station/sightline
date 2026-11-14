@@ -55,6 +55,29 @@ export function cellWords(measure: FindMeasure, cell: GridCell): string {
   return cell.text
 }
 
+/** How many of a row's months have at least one day when a landing fits. */
+export function monthsWithFit(cells: GridCell[]): number {
+  return cells.filter((cell) => cell.days > 0).length
+}
+
+/** The grid in one line: how many of its site-and-month cells have a landing that fits, and how many of those on one or two days only. */
+export interface FindTally {
+  withLanding: number
+  /** Of those, the cells with only one or two days. */
+  tight: number
+  total: number
+  sites: number
+}
+
+/** A month with a landing on this many days or fewer is a tight one: the detailed planner's own line. */
+export const TIGHT_DAYS = 2
+
+/** The tally of a year's grid, from each site's row of "landings that fit" cells. */
+export function findTally(rows: GridCell[][]): FindTally {
+  const cells = rows.flat()
+  return { withLanding: cells.filter((cell) => cell.days > 0).length, tight: cells.filter((cell) => cell.days > 0 && cell.days <= TIGHT_DAYS).length, total: cells.length, sites: rows.length }
+}
+
 /** A stretch of hours, counted from the month's first: `from` is in it, `to` is not. */
 export interface HourRun {
   from: number

@@ -1,0 +1,110 @@
+/* The detailed planner's components, drawn inside the Planner's Find and Compare tabs.
+
+   Those components are imported as they are (PlannerFindMore.tsx, PlannerDetail.tsx). Their own
+   styles read colors from the page they were made for, `.planner`, and from its paper sheet,
+   `.pl-brief`. Here a wrapper, `.plh`, stands in for that page: it carries the class the rules look
+   for and sets the colors to this screen's dark ones (the same as the New Planner's dark sheet).
+   Nothing in this file is named `.pl-…`: those names are the detailed planner's and the Planner's own. */
+
+.plh.planner {
+  --pl-ink: var(--ink, #f3efe6);
+  --pl-rule: #3a3445;
+  --pl-rule-faint: #241e2e;
+  --pl-works: var(--both);
+  --pl-tight: var(--warning);
+  --pl-paper: transparent;
+  --pl-paper-ink: var(--ink, #f1ede3);
+  --pl-paper-muted: #b0abb8;
+  --pl-paper-rule: rgb(241 237 227 / 16%);
+  --pl-paper-works: var(--both);
+  --pl-paper-tight: var(--warning);
+  --pl-paper-sun: var(--sun);
+  --pl-paper-earth: var(--earth);
+  --pl-paper-both: var(--both);
+  --pl-paper-ground: #6f6b7a;
+  --pl-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* The page those rules were written for is a whole window; this is a part of one. */
+  min-height: 0;
+  background: none;
+  color: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+/* Find's strip: the parts side by side where there is room, one under another where there is not. */
+.plh-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  gap: 0.9rem 1.6rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.plh-part {
+  min-width: 0;
+}
+
+.plh-part h5 {
+  margin: 0 0 0.2rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.plh-part > .sl-quiet {
+  margin: 0 0 0.4rem;
+}
+
+/* The suggestions and the ground nearby run the strip's width. */
+.plh-sugs,
+.plh-nearby {
+  grid-column: 1 / -1;
+}
+
+.plh-nearby:empty {
+  display: none;
+}
+
+/* The suggestions are the detailed planner's list, whose cards are styled under its page's class.
+   The wrapper carries that class for the cards' sake and takes back what the class does to a page. */
+.plh-sugs.sl-np {
+  grid-area: auto;
+  grid-column: 1 / -1;
+  overflow: visible;
+  padding: 0;
+  background: none;
+}
+
+/* Its cards for the scenarios themselves are left out here: the scenarios are on Compare. */
+.plh-sugs > section > h3,
+.plh-sugs > section > ol:first-of-type {
+  display: none;
+}
+
+/* Its second button adds the landing as the next scenario, in this Planner's words. */
+.plh-sugs li p:last-child button:last-child {
+  font-size: 0;
+}
+
+.plh-sugs li p:last-child button:last-child::after {
+  content: var(--plh-add);
+  font-size: 0.75rem;
+}
+
+/* The scenario's detail under Compare's table: the sheet's parts on this screen's dark ground. */
+.plh-detail {
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .plh-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A day of the month with no landing hour keeps its outline on this screen's dark ground. */
+.plh .pl-days span,
+.plh .pl-day {
+  border-color: var(--pl-paper-rule);
+}

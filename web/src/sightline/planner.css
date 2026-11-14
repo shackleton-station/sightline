@@ -442,3 +442,44 @@
   border-color: var(--gold);
   color: var(--gold);
 }
+
+/* ---------- Find: the tally, each site's count of months, and a point of the visitor's own ---------- */
+.pl-tally-line {
+  margin: 0.1rem 0 0.35rem;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.pl-tally-line b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The count at the end of a site's row: how many of the year's months have a landing that fits. */
+.pl-months .pl-months-count-head,
+.pl-months .pl-months-count {
+  width: 3.4rem;
+  padding-left: 0.5rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* The form for a point of the visitor's own, opened from the bar: the detailed planner's own form. */
+.pl-own-form {
+  margin: 0.2rem 0 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.pl-own-form > .sl-quiet {
+  margin: 0.4rem 0 0;
+}
+
+.pl-nothing-host {
+  margin: 0.2rem 0 0.6rem;
+}

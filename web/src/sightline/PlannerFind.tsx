@@ -1,17 +1,31 @@
 import { useMemo, useState } from 'react'
 import type { FlaggedSite } from '../data/useAllFlags'
+import { locateHour } from '../lib/mission'
+import { NothingWorks } from '../planner/NothingWorks'
 import { CSA_ROVER, ROVER_PRESET, roverMissionDays } from '../lib/csaRover'
 import { type GridCell, type MonthSpan, shadePct } from '../lib/grid'
 import { monthLabel, monthName } from '../lib/months'
-import { clockTime, stateRuns } from '../lib/sightline'
+import { clockTime, isoAt, stateRuns } from '../lib/sightline'
 import { fitProblems, MAX_SCENARIOS, presetOf, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
-import { cellDetail, cellWords, FIND_MEASURES, type FindMeasure, findRow, fitHours, runningTotals } from './plannerFit'
+import { cellDetail, cellWords, FIND_MEASURES, type FindMeasure, findRow, findTally, fitHours, monthsWithFit, runningTotals } from './plannerFit'
+import { PlannerFindMore } from './PlannerFindMore'
+import { PlannerLocation } from './PlannerLocation'
+import { siteValue } from './site'
 import { BAND } from './states'
+
+/** A row of the grid: a listed site, or a point of the visitor's own (whose slope comes with it, where it is known). */
+export type FindSite = FlaggedSite & { slopeDeg?: number | null }
 
 interface Props {
   start: string
-  /** Every listed site with its hourly flags, at the mission's heights. */
-  flagged: FlaggedSite[]
+  /** How many hours the data holds. */
+  hours: number
+  /** Every site the grid lists, with its hourly flags at the mission's heights: the listed sites, then the visitor's own points. */
+  flagged: FindSite[]
+  /** The scenarios, for the own-point form: the same place and hour twice is refused. */
+  scenarios: SightlineScenario[]
+  /** The scenario on show, where the own-point form starts. */
+  shown: { siteId: string; landing: number }
   /** The months of the data on hand. */
   spans: MonthSpan[]
   /** The year the grid opens on: the landing's on show. */
@@ -32,7 +46,7 @@ const DARK_INK_FROM_PCT = 72
 const TINT: Record<FindMeasure, string> = { fit: '87 192 138', sun: '233 180 76', earth: '91 155 234', both: '87 192 138' }
 
 /** The sites in their groups, each group in the data's own order. */
-function grouped(flagged: FlaggedSite[]): { group: string; rows: FlaggedSite[] }[] {
+function grouped(flagged: FindSite[]): { group: string; rows: FindSite[] }[] {
   const names = [...new Set(flagged.map(({ site }) => site.group))]
   names.sort((a, b) => (GROUP_ORDER.indexOf(a) + 1 || GROUP_ORDER.length + 1) - (GROUP_ORDER.indexOf(b) + 1 || GROUP_ORDER.length + 1))
   return names.map((group) => ({ group, rows: flagged.filter(({ site }) => site.group === group) }))
@@ -44,7 +58,10 @@ function grouped(flagged: FlaggedSite[]): { group: string; rows: FlaggedSite[] }
  * answer, counted for every hour (`plannerFit.ts`). A cell opens its month under the grid, where a
  * fitting landing can be added as the next scenario.
  */
-export function PlannerFind({ start, flagged, spans, year, mission, onMission, count, onAdd }: Props) {
+/** A site's slope for the mission's limit: its own figure where the row brings one, else the listed site's. */
+const slopeOf = (row: FindSite): number | null => (row.slopeDeg !== undefined ? row.slopeDeg : (row.site.slope?.deg ?? null))
+
+export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, spans, year, mission, onMission, count, onAdd }: Props) {
   const [measure, setMeasure] = useState<FindMeasure>('fit')
   const years = useMemo(() => [...new Set(spans.map((span) => Number(span.month.slice(0, 4))))], [spans])
   const [picked, setPicked] = useState(year)
@@ -53,7 +70,7 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
   // Every site's fitting hours, worked out again whenever the mission or the heights change.
   const fits = useMemo(() => {
     const began = performance.now()
-    const bySite = new Map(flagged.map(({ site, flags }) => [site.id, fitHours(flags, mission, site.slope?.deg ?? null)]))
+    const bySite = new Map(flagged.map((row) => [row.site.id, fitHours(row.flags, mission, slopeOf(row))]))
     return { bySite, ms: performance.now() - began }
   }, [flagged, mission])
   const groups = useMemo(() => grouped(flagged), [flagged])
@@ -62,10 +79,14 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
     [flagged, fits, measure, shown],
   )
   const largest = useMemo(() => Math.max(0, ...[...rows.values()].flat().map((cell) => cell.share)), [rows])
+  // The count at the end of each row and the line above the grid are about landings that fit, whatever the cells show.
+  const fitRows = useMemo(() => new Map(flagged.map(({ site, flags }) => [site.id, findRow('fit', flags, fits.bySite.get(site.id) as Uint8Array, shown)])), [flagged, fits, shown])
+  const tally = useMemo(() => findTally([...fitRows.values()]), [fitRows])
+  const [ownPoint, setOwnPoint] = useState(false)
 
   // The cell opened under the grid, and which of its two named landings "Add" takes.
   const [open, setOpen] = useState<{ site: string; month: string } | null>(null)
-  const [take, setTake] = useState<'first' | 'sunniest'>('first')
+  const [take, setTake] = useState<'first' | 'sunniest' | number>('first')
   const [added, setAdded] = useState<string | null>(null)
   const openSite = open ? flagged.find(({ site }) => site.id === open.site) : undefined
   const openSpan = open ? shown.find((span) => span.month === open.month) : undefined
@@ -76,6 +97,17 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
 
   const room = count < MAX_SCENARIOS
   const letter = SCENARIO_LETTERS[count]
+  // The landing "Add" takes: the first that fits, the one with the most Sun, or an hour chosen below (a day of the month, a suggestion).
+  const chosen = !detail || !openSpan ? null : detail.first === null ? openSpan.from : take === 'sunniest' && detail.sunniest ? detail.sunniest.landing : typeof take === 'number' && take >= openSpan.from && take < openSpan.to ? take : detail.first
+  const tooSteep = openSite ? (slopeOf(openSite) ?? 0) > mission.maxSlopeDeg : false
+  /** Open another site and month under the grid at a landing hour, turning to its year. */
+  const openAt = (siteId: string, hour: number) => {
+    const month = locateHour(start, hour).month
+    setPicked(Number(month.slice(0, 4)))
+    setOpen({ site: siteId, month })
+    setTake(hour)
+    setAdded(null)
+  }
   const info = FIND_MEASURES.find((one) => one.id === measure) as (typeof FIND_MEASURES)[number]
   const example = presetOf(mission)?.id === ROVER_PRESET.id
   const [exampleNote, setExampleNote] = useState(false)
@@ -113,7 +145,29 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
         >
           Example: Canada’s utility rover
         </button>
+        <button type="button" className="sl-small pl-own" aria-expanded={ownPoint} title="Shows a form to add a point of your own, by its latitude and longitude." onClick={() => setOwnPoint(!ownPoint)}>
+          Your own point
+        </button>
       </div>
+      {ownPoint && (
+        <div className="plh planner pl-own-form">
+          <PlannerLocation
+            sites={flagged.map(({ site }) => site)}
+            siteId={flagged.some(({ site }) => site.id === onShow.siteId) ? onShow.siteId : flagged[0].site.id}
+            landing={isoAt(start, onShow.landing)}
+            first={isoAt(start, 0)}
+            last={isoAt(start, hours - 1)}
+            nextLetter={room ? letter : null}
+            onAdd={(value, iso) => onAdd({ site: value, landing: Math.round((Date.parse(iso) - Date.parse(start)) / 3_600_000) })}
+            sameAs={(value, iso) => {
+              const hour = Math.round((Date.parse(iso) - Date.parse(start)) / 3_600_000)
+              const i = scenarios.findIndex((scenario) => scenario.site === value && scenario.landing === hour)
+              return i < 0 ? null : SCENARIO_LETTERS[i]
+            }}
+          />
+          <p className="sl-quiet">A point of your own is added as a scenario, and then has a row of its own in the grid.</p>
+        </div>
+      )}
       {example && exampleNote && (
         <p className="pl-rover">
           From the Canadian Space Agency, in its own words: status “{CSA_ROVER.status}”, launch “{CSA_ROVER.launch}”, and it is to “{CSA_ROVER.survive}”. The agency has published no landing site. The mission on the left is now
@@ -131,6 +185,14 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
           </button>
         ))}
       </div>
+      <p className="pl-tally-line" data-with={tally.withLanding} data-total={tally.total}>
+        <b>{tally.withLanding}</b> of {tally.total} months at {tally.sites} sites in {gridYear} have a landing that fits{tally.tight > 0 ? `; ${tally.tight} of them on one or two days only` : ''}.
+      </p>
+      {tally.total > 0 && tally.withLanding === 0 && (
+        <div className="plh planner pl-nothing-host">
+          <NothingWorks sites={flagged} requirements={mission.requirements} onChange={(requirements) => onMission({ ...mission, requirements })} />
+        </div>
+      )}
       <p className="pl-find-legend">
         {info.legend}: <span>{measure === 'fit' ? 'none' : '0'}</span>
         <i style={{ background: `linear-gradient(90deg, rgb(${TINT[measure]} / 8%), rgb(${TINT[measure]} / 85%))` }} aria-hidden="true" />
@@ -146,12 +208,15 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
                   {monthName(span.month)}
                 </th>
               ))}
+              <th scope="col" className="pl-months-count-head" title="How many of the year’s months have a landing that fits.">
+                Months
+              </th>
             </tr>
           </thead>
           {groups.map(({ group, rows: sites }) => (
             <tbody key={group}>
               <tr className="pl-group-row">
-                <th scope="colgroup" colSpan={shown.length + 1}>
+                <th scope="colgroup" colSpan={shown.length + 2}>
                   {group}
                 </th>
               </tr>
@@ -183,6 +248,9 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
                       </td>
                     )
                   })}
+                  <td className="pl-months-count" data-months={monthsWithFit(fitRows.get(site.id) ?? [])}>
+                    {monthsWithFit(fitRows.get(site.id) ?? [])}/{shown.length}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -203,16 +271,21 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
           <MonthBands site={openSite} span={openSpan} runs={detail.runs} />
           {detail.first === null ? (
             <p>
-              No landing in {monthLabel(openSpan.month)} fits the mission. On the 1st at 00:00 UTC: {fitProblems(openSite.flags, openSpan.from, mission, openSite.site.slope?.deg ?? null).join(' ')}
+              No landing in {monthLabel(openSpan.month)} fits the mission. On the 1st at 00:00 UTC: {fitProblems(openSite.flags, openSpan.from, mission, slopeOf(openSite)).join(' ')}
             </p>
           ) : (
             <div className="pl-landings" role="group" aria-label="Which landing to add">
-              <button type="button" className="sl-small" aria-pressed={take === 'first'} onClick={() => setTake('first')}>
+              <button type="button" className="sl-small" aria-pressed={chosen === detail.first} onClick={() => setTake('first')}>
                 First that fits: {clockTime(start, detail.first)}
               </button>
               {detail.sunniest && (
-                <button type="button" className="sl-small" aria-pressed={take === 'sunniest'} title="The fitting landing whose mission has the most sunlit hours. Press to choose it, then add it." onClick={() => setTake('sunniest')}>
+                <button type="button" className="sl-small" aria-pressed={chosen === detail.sunniest.landing} title="The fitting landing whose mission has the most sunlit hours. Press to choose it, then add it." onClick={() => setTake('sunniest')}>
                   Most Sun: {clockTime(start, detail.sunniest.landing)}, {detail.sunniest.sunPct.toFixed(0)}% of the mission sunlit
+                </button>
+              )}
+              {chosen !== null && chosen !== detail.first && chosen !== detail.sunniest?.landing && (
+                <button type="button" className="sl-small" aria-pressed="true">
+                  Chosen below: {clockTime(start, chosen)}
                 </button>
               )}
             </div>
@@ -226,10 +299,9 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
               <button
                 type="button"
                 className="sl-small is-main"
-                data-landing={detail.first === null ? openSpan.from : take === 'sunniest' && detail.sunniest ? detail.sunniest.landing : detail.first}
+                data-landing={chosen ?? openSpan.from}
                 onClick={() => {
-                  const landing = detail.first === null ? openSpan.from : take === 'sunniest' && detail.sunniest ? detail.sunniest.landing : detail.first
-                  onAdd({ site: openSite.site.id, landing })
+                  onAdd({ site: siteValue(openSite.site), landing: chosen ?? openSpan.from })
                   setAdded(letter)
                 }}
               >
@@ -237,6 +309,27 @@ export function PlannerFind({ start, flagged, spans, year, mission, onMission, c
               </button>
             )}
           </p>
+          {/* The detailed planner's parts for this site and month. They do not know the slope limit, so a site too steep has none. */}
+          {chosen !== null && !tooSteep && (
+            <PlannerFindMore
+              start={start}
+              sites={flagged}
+              site={openSite.site}
+              month={openSpan.month}
+              landing={chosen}
+              mission={mission}
+              letter={room ? letter : null}
+              onLanding={(hour) => {
+                setTake(hour)
+                setAdded(null)
+              }}
+              onOpen={openAt}
+              onAdd={(scenario) => {
+                onAdd(scenario)
+                setAdded(letter)
+              }}
+            />
+          )}
         </section>
       )}
     </div>

@@ -378,3 +378,12 @@ Local Lead.
 - [x] Check `TIPS_KEEP_RULES` in `web/scripts/sightline-shots.mjs`, in seven scenes
 - [ ] Teammates' files (Scout's panel, the brief, the Surface view): a separate pull request, left open for them
 - [ ] Not changed: the New Planner's own tips (it is being merged into the Planner), "A few metres make a difference" there, and "grey" on the Classic page
+
+## The New Planner's detail inside the Planner (2026-11-14)
+
+- [x] Find: each site's count of months with a landing, the tally line, "Your own point" (latitude and longitude, a row of its own once added), and "nothing works" when no month fits (`PlannerFind.tsx`, `plannerFit.ts`)
+- [x] Find's strip: the month's days with their landing hours, "if the landing slips", suggestions near the landing ("Open", "Add as C"), and the ground nearby (`PlannerFindMore.tsx`, the detailed planner's components imported unchanged inside `plannerHost.css`'s wrapper)
+- [x] Checks: scene `planner-find-more` at three sizes; a cell's count equals the brief's count for that site and month
+- [ ] Compare: the scenario on show in depth under the table (the brief's four figures with their charts, the Sun's height, power and battery)
+- [ ] Left as they are until Rodrigo has seen this: the New Planner button and page
+- [ ] Would change in the detailed planner's own files, if they were ours to change: a prop for the suggestion button's words and one to leave out its cards for the scenarios; the slope limit in its grid and brief (they ignore it, so a site too steep shows no detail here)
