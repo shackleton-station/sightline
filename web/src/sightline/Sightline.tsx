@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import type { DataRange, SiteInfo } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
 import type { ScenarioData } from '../data/scenarioData'
@@ -96,6 +97,9 @@ const SCOUT_FOOT_PX = 84
 /** Under this window width Scout's bubble would reach the Moon's disc, so the Moon is fitted above it. */
 const NARROW_UNDER_PX = 1180
 
+/** Under this window width the page is laid out for a phone: Scout's card and panels are sheets. */
+const PHONE_UNDER_PX = 761
+
 /** A sheet across the bottom of a phone's screen has this much air between it and the Moon. */
 const SHEET_AIR_PX = 10
 /** How long the Moon takes to glide aside for Scout's card (the same time as in the styles). */
@@ -184,10 +188,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [brief, setBrief] = useState(false)
   // Scout's chat card in Watch: whether it is open, how tall it is, and how wide the window is. On a
   // window too narrow for the card to sit beside the Moon, the Moon moves aside (up) for it.
-  // On a window wide enough for the card to stand beside the Moon it is open when the page opens, so
-  // the first thing a visitor meets is somewhere to ask. Shutting it is remembered; opening it again is too.
-  const [scoutShut, setScoutShut] = useStored('scoutShut', false)
-  const [scoutOpen, setScoutOpen] = useState(() => !scoutShut && window.innerWidth >= NARROW_UNDER_PX)
+  // Scout is open unless the visitor shuts him: his card in Watch when the page opens, and his panel
+  // in Plan when Plan is opened from Watch. Shutting either is kept for the visit (until the tab is
+  // closed), and opening either undoes it. A phone is the exception: there his card and his panel
+  // are sheets over the Moon, so they open only when asked for.
+  const [scoutShut, setScoutShut] = useStored('scoutShut', false, 'visit')
+  const [scoutOpen, setScoutOpen] = useState(() => !scoutShut && window.innerWidth >= PHONE_UNDER_PX)
   const openScout = useCallback(
     (open: boolean) => {
       setScoutOpen(open)
@@ -427,6 +433,29 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     },
     [onNeed],
   )
+  /** Plan opened from Watch has Scout's panel open, unless the visitor has shut him or the screen is a phone's. */
+  const withScout = useCallback(() => {
+    if (!scoutShut && window.innerWidth >= PHONE_UNDER_PX) setDrawer('scout')
+  }, [scoutShut])
+  /**
+   * A change of screen in which Scout's card in Watch becomes his panel in Plan, or the panel the
+   * card: the browser draws the one growing into the other (both are named "scout" in the styles).
+   * Without that in the browser, or with motion reduced, the change is made at once.
+   */
+  const morphScout = useCallback(
+    (change: () => void) => {
+      if (still || typeof document.startViewTransition !== 'function') change()
+      else document.startViewTransition(() => flushSync(change))
+    },
+    [still],
+  )
+  /** Scout's panel in Plan, opened or shut by the visitor: which is how he is found again in Watch. */
+  const toggleScoutPanel = () => {
+    const open = drawer !== 'scout'
+    setDrawer(open ? 'scout' : null)
+    setScoutShut(!open)
+    setScoutOpen(open && window.innerWidth >= PHONE_UNDER_PX)
+  }
   const openLink = useCallback(
     (hash: string) => {
       const link = readScenarioLink(hash, start, hours)
@@ -442,11 +471,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         setSpread(carried)
         setAccuracyUsed(true)
       }
-      setPlan(true)
-      setPlaying(false)
-      setHour(link.scenarios[link.active].landing)
+      morphScout(() => {
+        if (!plan) withScout()
+        setPlan(true)
+        setPlaying(false)
+        setHour(link.scenarios[link.active].landing)
+      })
     },
-    [start, hours, setPlaying, setHour, reach],
+    [start, hours, plan, setPlaying, setHour, reach, morphScout, withScout],
   )
   // The years asked for have arrived: open the link that was waiting for them.
   useEffect(() => {
@@ -465,11 +497,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   /** Open Plan from Watch: at a site if one was chosen, landing at the time on the clock. */
   const openPlan = useCallback(
     (chosen: SiteInfo | null) => {
-      setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: plan ? current.landing : hour }))
-      setPlan(true)
-      setPointed(null)
+      morphScout(() => {
+        setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: plan ? current.landing : hour }))
+        if (!plan) withScout()
+        setPlan(true)
+        setPointed(null)
+      })
     },
-    [plan, hour, setScenario],
+    [plan, hour, setScenario, morphScout, withScout],
   )
   /** Add a scenario and show it, with the time bar on its landing. With four already, nothing is added. */
   /** The New Planner moved the scenario on show: the Moon, the time bar and the column follow. */
@@ -531,17 +566,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
 
   /**
    * Home: the opening screen as a first visit finds it. Watch, with the controls on show, the Moon
-   * at the opening hour with time playing, and Scout's card open on a wide window as the page opens.
+   * at the opening hour with time playing, and Scout's card open as the page opens (not on a phone).
    * The scenarios are kept: "Plan a landing" opens on the same site, landing at the hour on the clock
    * as it always does from Watch.
    */
   const goHome = useCallback(() => {
-    showControls()
-    setScoutOpen(window.innerWidth >= NARROW_UNDER_PX)
-    setPillMin(false)
-    setHour(opening)
-    setPlaying(!still)
-  }, [showControls, setPillMin, setHour, setPlaying, opening, still])
+    morphScout(() => {
+      showControls()
+      setScoutShut(false)
+      setScoutOpen(window.innerWidth >= PHONE_UNDER_PX)
+      setPillMin(false)
+      setHour(opening)
+      setPlaying(!still)
+    })
+  }, [showControls, setScoutShut, setPillMin, setHour, setPlaying, opening, still, morphScout])
 
   const startTour = () => {
     beforeTour.current = { plan, scenarios, chosen, drawer, full, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
@@ -994,7 +1032,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onScenario={moveScenario}
           onBack={() => setFull(false)}
           scoutOpen={drawer === 'scout'}
-          onScout={() => setDrawer(drawer === 'scout' ? null : 'scout')}
+          onScout={toggleScoutPanel}
           site={site}
           month={landingAt.month}
           year={Number(landingAt.month.slice(0, 4))}
@@ -1021,7 +1059,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           onTab={setPlannerTab}
           onBrief={() => setBrief(true)}
           scoutOpen={drawer === 'scout'}
-          onScout={() => setDrawer(drawer === 'scout' ? null : 'scout')}
+          onScout={toggleScoutPanel}
           site={site}
           month={landingAt.month}
           year={Number(landingAt.month.slice(0, 4))}
@@ -1080,7 +1118,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             },
           }}
           onOpen={openAsScenario}
-          onClose={() => setDrawer(null)}
+          onClose={toggleScoutPanel}
         />
       )}
       {shown && !planner && drawer === 'mission' && <MissionDrawer mission={mission} onMission={setMission} onAdvanced={() => setDrawer('advanced')} onClose={() => setDrawer(null)} />}
@@ -1112,7 +1150,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           }}
           scoutOpen={drawer === 'scout'}
           scoutState={now ? riverState(now) : null}
-          onScout={() => setDrawer(drawer === 'scout' ? null : 'scout')}
+          onScout={toggleScoutPanel}
           missionOpen={drawer === 'mission' || drawer === 'advanced'}
           onMission={toggleMission}
           compareOpen={drawer === 'compare'}
