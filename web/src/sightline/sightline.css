@@ -3714,6 +3714,14 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-weight: 600;
 }
 
+/* Something ready to try, under the step's words. */
+.sl-tour .sl-tour-try {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
 .sl-tour .sl-tour-video {
   font-size: 0.8125rem;
 }

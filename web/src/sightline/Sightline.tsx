@@ -66,6 +66,7 @@ import { AccuracyDrawer } from './AccuracyDrawer'
 import { FitLegend } from './FitLegend'
 import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
+import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
 import { useLightGrid } from '../atlas/useLightGrid'
@@ -584,6 +585,27 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setFull(false)
   }, [])
 
+  // Why a small change of place matters, ready to look at: two ridge sites a few kilometres apart on
+  // one date, as two scenarios with Compare open. Offered by Scout in Watch and by the tour's step on
+  // scenarios. Null when the data on hand does not hold both sites and the date.
+  const pairKm = useMemo(() => nearbyPairKm(sites), [sites])
+  const pairLanding = hourOf(start, NEARBY_PAIR.landing)
+  const pairWords = pairKm !== null && Number.isInteger(pairLanding) && pairLanding >= 0 && pairLanding < hours ? `two sites ${pairKm} km apart, same date` : null
+  const openPair = useCallback(() => {
+    setScenarios([
+      { site: NEARBY_PAIR.a, landing: pairLanding },
+      { site: NEARBY_PAIR.b, landing: pairLanding },
+    ])
+    setActive(0)
+    setRemoved(null)
+    setPlan(true)
+    setFull(false)
+    setScoutOpen(false)
+    setPlaying(false)
+    setHour(pairLanding)
+    setDrawer('compare')
+  }, [pairLanding, setPlaying, setHour])
+
   /** Bringing the controls back always lands on Watch, whatever was open before hiding. */
   const showControls = useCallback(() => {
     setBare(false)
@@ -825,6 +847,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                 }
               : null
           }
+          tryIt={tourStep?.offers === 'nearby-pair' && pairWords ? { label: `Try it: ${pairWords}`, onPick: openPair } : null}
           state={now ? riverState(now) : (pointedState ?? null)}
         />
       )}
@@ -1033,6 +1056,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             </div>
             {/* While the tour is on, Scout speaks from its bubble instead. */}
             {tourAt === null && <ScoutLine
+              idea={pairWords ? { label: `T${pairWords.slice(1)}`, onPick: openPair } : null}
               line={line}
               state={pointedState ?? null}
               open={scoutOpen}

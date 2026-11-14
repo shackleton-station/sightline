@@ -31,6 +31,8 @@ interface ScoutProps {
    * narrower window, where the Moon moves up for a card only as tall as its conversation.
    */
   beside: number | null
+  /** One thing to try, offered under the questions: it opens a ready comparison instead of asking anything. Null when it cannot be shown. */
+  idea: { label: string; onPick: () => void } | null
 }
 
 /** How long Scout's line stays beside his mark before it fades to the mark alone. */
@@ -56,7 +58,7 @@ const WATCH_IDEAS = ['What am I looking at?', 'Which site has the most Sun this 
  * left, and closes it; it never leaves Watch. A reply that names a place carries "Show me" and "Plan
  * this", the only things in a reply that change the screen, and only when pressed.
  */
-export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, beside }: ScoutProps) {
+export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, beside, idea }: ScoutProps) {
   const [draft, setDraft] = useState('')
   const [said, setSaid] = useState<string | null>(line)
   const card = useRef<HTMLDivElement>(null)
@@ -191,6 +193,13 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
                     </button>
                   </li>
                 ))}
+                {idea && (
+                  <li>
+                    <button type="button" className="sl-idea is-action" onClick={idea.onPick}>
+                      {idea.label} <span aria-hidden="true">›</span>
+                    </button>
+                  </li>
+                )}
               </ul>
             )}
             {thread.map((message, i) => {
