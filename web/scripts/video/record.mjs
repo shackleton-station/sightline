@@ -2,16 +2,18 @@
 //
 // Run it from web/ (README.md in this folder says what it needs and what each file is):
 //
-//   node scripts/video/record.mjs                      the tutorial, from https://lunarsightline.com
+//   node scripts/video/record.mjs --chapter=tour       one chapter of the walkthrough, from https://lunarsightline.com
+//   node scripts/video/record.mjs --join               the walkthrough, joined from the chapters recorded so far
 //   node scripts/video/record.mjs --cut=pitch          the 30-second demo for the Space Apps submission
 //   node scripts/video/record.mjs --stills             a rehearsal: one picture a second, no video
 //   node scripts/video/record.mjs --words              only speak the words and print how long they take
 //   node scripts/video/record.mjs --check=file.mp4     only measure a finished file
 //   node scripts/video/record.mjs --base=http://localhost:5173 --tour=path/to/tour.json --out=dir --fps=30
 //
-// The tutorial's steps and words come from the tour's own file (src/sightline/tour.json), so the
-// video says what the tour on the site says. tutorial.json, beside this file, holds what the videos
-// add: where the pointer and the camera go, the demo's own words, the cards, the pauses, and the
+// The walkthrough is recorded a chapter at a time, each chapter its own take, and joined at the
+// chapters' cards. Its first chapter is Scout's tour: its steps and words come from the tour's own
+// file (src/sightline/tour.json), so the video says what the tour on the site says. tutorial.json,
+// beside this file, holds what the videos add: the other chapters' words, where the pointer and the camera go, the demo's own words, the cards, the pauses, and the
 // line that says the voice is AI-generated.
 //
 // The voice is Google Cloud Text-to-Speech, asked from this machine (never through the site's own
@@ -50,15 +52,34 @@ if (args.has('check')) {
   process.exit(report.ok ? 0 : 1)
 }
 
-const cutName = args.get('cut') || 'full'
+const cutName = args.get('cut') || 'walkthrough'
 const base = (args.get('base') || 'https://lunarsightline.com').replace(/\/$/, '')
 const outDir = resolve(args.get('out') || join(webDir, '../cache/video', cutName))
 const voiceDir = resolve(join(webDir, '../cache/video/voice'))
 mkdirSync(outDir, { recursive: true })
 mkdirSync(voiceDir, { recursive: true })
 const directions = JSON.parse(readFileSync(join(here, 'tutorial.json'), 'utf8'))
-const cut = directions.cuts[cutName]
-if (!cut) throw new Error(`No cut called "${cutName}" in tutorial.json.`)
+const whole = directions.cuts[cutName]
+if (!whole) throw new Error(`No cut called "${cutName}" in tutorial.json.`)
+if (args.has('join')) {
+  const report = joinChapters(whole)
+  console.log(JSON.stringify(report, null, 1))
+  process.exit(report.ok ? 0 : 1)
+}
+// A cut made of chapters is recorded one chapter at a time. The first chapter opens with the video's
+// own card and the others with a card of their title; the last one closes the video.
+const chapterAt = whole.chapters ? whole.chapters.findIndex((one) => one.id === (args.get('chapter') || whole.chapters[0].id)) : -1
+if (whole.chapters && chapterAt < 0) throw new Error(`No chapter called "${args.get('chapter')}" in "${cutName}": it has ${whole.chapters.map((one) => one.id).join(', ')}.`)
+const cut = whole.chapters
+  ? {
+      ...whole,
+      ...whole.chapters[chapterAt],
+      file: `${whole.file}-${whole.chapters[chapterAt].id}`,
+      opening: chapterAt === 0 ? whole.opening : whole.chapterOpening,
+      card: chapterAt === 0 ? null : { title: whole.chapters[chapterAt].title, lines: [`Chapter ${chapterAt + 1} of ${whole.chapters.length}`] },
+      closing: chapterAt === whole.chapters.length - 1 ? whole.closing : 0,
+    }
+  : whole
 // The tutorial follows the tour's file; a cut with words of its own (the demo) does not need it.
 const tour = cut.script ? null : JSON.parse(readFileSync(resolve(args.get('tour') || join(webDir, 'src/sightline/tour.json')), 'utf8'))
 const voiceName = args.get('voice') || /\(([a-z]{2}-[A-Z]{2}-[^)]+)\)/.exec(tour?.voice?.from ?? '')?.[1] || directions.voice
@@ -212,7 +233,7 @@ const span = (step) => step.end - step.start
 const stretches = [{ id: 'intro', start: 0, end: pace.lead, targets: [], acts: cut.intro ?? [] }, ...steps, { id: 'outro', start: clock, end: length, targets: [], acts: cut.outro ?? [] }]
 /** The cards: the one that opens the video, the one that closes it, and any a step's acts put up. */
 const cards = []
-if (cut.opening) cards.push({ ...directions.cards.open, from: -1, to: cut.opening, fadeIn: 0, fadeOut: 0.6 })
+if (cut.opening) cards.push({ ...(cut.card ?? directions.cards.open), from: -1, to: cut.opening, fadeIn: 0, fadeOut: 0.6 })
 if (cut.closing) cards.push({ ...directions.cards.close, from: length - cut.closing, to: length + 1, fadeIn: 0.6, fadeOut: 0 })
 for (const step of stretches) for (const act of step.acts.filter((one) => one.card)) cards.push({ ...directions.cards[act.card], from: step.start + act.at * span(step), to: length + 1, fadeIn: act.over ?? 0.5, fadeOut: 0 })
 
@@ -588,12 +609,76 @@ writeFileSync(
     recordedFrom: base,
     siteRevision: status?.revision ?? null,
     voice: { name: voiceName, from: 'Google Cloud Text-to-Speech', disclosure },
+    cues: cues.map((cue) => ({ from: Number(cue.from.toFixed(3)), to: Number(cue.to.toFixed(3)), text: cue.text })),
     steps: steps.map((step) => ({ id: step.id, title: step.title, say: step.say, start: Number(step.start.toFixed(3)), speech: [Number(step.speechStart.toFixed(3)), Number(step.speechEnd.toFixed(3))], end: Number(step.end.toFixed(3)) })),
   }, null, 1)}\n`,
 )
 console.log(JSON.stringify(report, null, 1))
 console.log(`Written to ${outDir}`)
 process.exit(report.ok ? 0 : 1)
+
+/**
+ * Joins the chapters recorded so far, in order, into the one video: the picture and sound are copied
+ * as they are (the joins fall on the chapters' cards), the captions are moved to each chapter's
+ * place, and the chapters are written as a WebVTT chapters track, in the list of steps and in the
+ * file itself. A chapter not recorded yet is left out, and said so.
+ */
+function joinChapters(group) {
+  if (!group.chapters) throw new Error('This cut has no chapters to join.')
+  const dir = resolve(args.get('out') || join(webDir, '../cache/video', args.get('cut') || 'walkthrough'))
+  const have = []
+  for (const chapter of group.chapters) {
+    const file = join(dir, `${group.file}-${chapter.id}`)
+    if (existsSync(`${file}.mp4`) && existsSync(`${file}.json`)) have.push({ ...chapter, file, made: JSON.parse(readFileSync(`${file}.json`, 'utf8')) })
+    else console.log(`not recorded yet, left out: ${chapter.id}`)
+  }
+  if (have.length === 0) throw new Error('No chapter has been recorded yet.')
+  const stamp = (seconds) => `${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${(seconds % 60).toFixed(3).padStart(6, '0')}`
+  let at = 0
+  for (const chapter of have) {
+    chapter.start = at
+    at += chapter.made.seconds
+    chapter.end = at
+  }
+  const out = join(dir, group.file)
+  const list = join(dir, 'chapters.txt')
+  writeFileSync(list, have.map((chapter) => `file '${chapter.file}.mp4'`).join('\n'))
+  const marks = join(dir, 'chapters.ffmeta')
+  writeFileSync(marks, `;FFMETADATA1\ntitle=${group.title}\ncomment=${directions.disclosure}.\n${have.map((chapter) => `[CHAPTER]\nTIMEBASE=1/1000\nSTART=${Math.round(chapter.start * 1000)}\nEND=${Math.round(chapter.end * 1000)}\ntitle=${chapter.title}`).join('\n')}\n`)
+  execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', list, '-i', marks, '-map', '0', '-map_metadata', '1', '-map_chapters', '1', '-c', 'copy', '-movflags', '+faststart', `${out}.mp4`])
+  writeFileSync(`${out}.vtt`, `WEBVTT\n\nNOTE ${directions.disclosure}\n\n${have.flatMap((chapter) => chapter.made.cues.map((cue) => `${stamp(chapter.start + cue.from)} --> ${stamp(chapter.start + cue.to)}\n${cue.text}`)).join('\n\n')}\n`)
+  writeFileSync(`${out}-chapters.vtt`, `WEBVTT\n\n${have.map((chapter, index) => `${index + 1}\n${stamp(chapter.start)} --> ${stamp(chapter.end)}\n${chapter.title}`).join('\n\n')}\n`)
+  if (existsSync(`${have[0].file}-poster.jpg`)) writeFileSync(`${out}-poster.jpg`, readFileSync(`${have[0].file}-poster.jpg`))
+  const report = measure(`${out}.mp4`, null, FPS)
+  writeFileSync(
+    `${out}.json`,
+    `${JSON.stringify({
+      name: group.title,
+      file: `${group.file}.mp4`,
+      captions: `${group.file}.vtt`,
+      chapterMarks: `${group.file}-chapters.vtt`,
+      poster: `${group.file}-poster.jpg`,
+      seconds: report.seconds,
+      width: report.width,
+      height: report.height,
+      framesASecond: report.framesASecond,
+      voice: have[0].made.voice,
+      chapters: have.map((chapter) => ({
+        id: chapter.id,
+        title: chapter.title,
+        start: Number(chapter.start.toFixed(3)),
+        end: Number(chapter.end.toFixed(3)),
+        recorded: chapter.made.recorded,
+        recordedFrom: chapter.made.recordedFrom,
+        siteRevision: chapter.made.siteRevision,
+        steps: chapter.made.steps.map((step) => ({ id: step.id, title: step.title, start: Number((chapter.start + step.start).toFixed(3)), end: Number((chapter.start + step.end).toFixed(3)) })),
+      })),
+    }, null, 1)}\n`,
+  )
+  // The joins must not have changed the length: the chapters' own lengths, added up.
+  const ok = report.ok && Math.abs(report.seconds - at) < 0.1
+  return { ...report, ok, chapters: have.map((chapter) => `${stamp(chapter.start)} ${chapter.title}`), lengthOfChapters: Number(at.toFixed(3)) }
+}
 
 /**
  * Measures a finished file: its real length, size and frame rate, and how its picture moves. Each
