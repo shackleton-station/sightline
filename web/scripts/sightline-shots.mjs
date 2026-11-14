@@ -179,8 +179,9 @@ const REMOVE_SCENARIO = (letter) => `(document.querySelector('.sl-tabs .sl-tab-r
  * back, with a two-line brief. A plan whose name has "busy" in it is refused as the service refuses
  * when too many are being saved; the id "zzzz2345" is a plan that no longer exists. `kept` is a
  * plan to answer with when none has been saved on this page (a short link opened in a new tab).
+ * `others` are more plans to answer with, by id: { title, note, view } each.
  */
-const STAND_IN_PLANS = (kept = null) => `(() => {
+const STAND_IN_PLANS = (kept = null, others = {}) => `(() => {
   if (window.__plans) return true
   window.__plans = { saved: [], kept: ${JSON.stringify(kept)} }
   const real = window.fetch
@@ -194,6 +195,8 @@ const STAND_IN_PLANS = (kept = null) => `(() => {
       return answer({ id: 'abcd2345' }, 201)
     }
     if (address.endsWith('/api/plans/zzzz2345')) return answer({ error: 'not-found' }, 404)
+    const other = ${JSON.stringify(others)}[address.split('/api/plans/')[1]]
+    if (other) return answer({ plan: { id: address.split('/api/plans/')[1], title: other.title, note: other.note ?? '', view: other.view, brief: [{ label: 'Site', value: 'Connecting Ridge' }], created: '2026-11-01T09:00:00.000Z', expires: '2027-04-30T09:00:00.000Z' }, mine: false }, 200)
     if (address.endsWith('/api/plans/abcd2345')) {
       const plan = window.__plans.saved.at(-1) ?? window.__plans.kept
       return answer({ plan: { id: 'abcd2345', title: plan.title, note: plan.note ?? '', view: plan.view, brief: [{ label: 'Site', value: 'Connecting Ridge' }, { label: 'Sun up', value: '82% of May 2027' }], created: '2026-11-14T21:00:00.000Z', expires: '2027-05-13T21:00:00.000Z' }, mine: false }, 200)
@@ -1825,7 +1828,7 @@ const SCENES = [
       ['a name is required: Save is off until there is one', "document.querySelector('.sl-share-save button[type=submit]').disabled === true"],
       ['the keyboard reaches everything and stays in the sheet: Tab from the last control comes back to the first', "(() => { const sheet = document.querySelector('.sl-share-sheet'); const stops = [...sheet.querySelectorAll('button:not([disabled]), input, textarea')]; stops.at(-1).focus(); sheet.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })); const round = document.activeElement === stops[0]; stops[0].focus(); sheet.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true })); return (round && document.activeElement === stops.at(-1) && stops.length >= 4) || stops.length + ' stops' })()"],
       ['a refusal is said in plain words under the fields, and the link is still there to copy', `${SHARE_TYPE('.sl-share-save input', 'A busy day')} && (document.querySelector('.sl-share-save').requestSubmit(), true) && ${after(900, "(() => { const said = document.querySelector('.sl-share-problem')?.textContent ?? ''; return (/^Too many plans are being saved just now\\. Give it a minute and try again\\.$/.test(said) && !/429|busy|error/i.test(said) && document.querySelector('.sl-share-sheet button').textContent.trim() === 'Copy link') || said })()")}`],
-      ['saving sends the whole screen: every scenario, the mission and its heights, the scenario on show, the skyline and, on a laptop, the open panel', `${SHARE_TYPE('.sl-share-save input', '  Ridge and rim   in May ')} && ${SHARE_TYPE('.sl-share-save textarea', 'Two sites, a 5 m panel.')} && (document.querySelector('.sl-share-save').requestSubmit(), true) && ${after(900, `(() => { const sent = window.__plans.saved.at(-1); const want = '#a=connecting-ridge@2027-05&t=133&limits=21_48_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00&slope=8&hp=5&ha=10&sc=1&sky=1' + (window.innerWidth < 761 ? '' : '&panel=compare'); return (sent.title === 'Ridge and rim in May' && sent.note === 'Two sites, a 5 m panel.' && sent.view === want) || JSON.stringify(sent) })()`)}`],
+      ['saving sends the whole screen, marked as saved from this screen: every scenario, the mission and its heights, the scenario on show, the skyline and, on a laptop, the open panel', `${SHARE_TYPE('.sl-share-save input', '  Ridge and rim   in May ')} && ${SHARE_TYPE('.sl-share-save textarea', 'Two sites, a 5 m panel.')} && (document.querySelector('.sl-share-save').requestSubmit(), true) && ${after(900, `(() => { const sent = window.__plans.saved.at(-1); const want = '#a=connecting-ridge@2027-05&t=133&limits=21_48_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00&slope=8&hp=5&ha=10&sc=1&sky=1' + (window.innerWidth < 761 ? '' : '&panel=compare') + '&sl=1'; return (sent.title === 'Ridge and rim in May' && sent.note === 'Two sites, a 5 m panel.' && sent.view === want) || JSON.stringify(sent) })()`)}`],
       ['the saved plan\'s short link is shown with its own Copy button, and it opens the front page', "(() => { const link = document.querySelector('.sl-share-link input')?.value ?? ''; return (link === location.origin + '/#plan=abcd2345' && document.querySelector('.sl-share-link button').textContent.trim() === 'Copy' && /^Saved as “Ridge and rim in May”$/.test(document.querySelector('.sl-share-saved .sl-share-head').textContent.trim())) || link })()"],
       ['the sheet still fits with the link shown', SHARE_PLACED],
       ['Escape closes it and gives the keyboard back to the Share button', `(window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && ${after(300, "document.querySelector('.sl-share-sheet') === null && document.activeElement?.getAttribute('aria-label') === 'Share'")}`],
@@ -1867,6 +1870,29 @@ const SCENES = [
     steps: [click('Compare')],
     checks: [
       ['one site on two dates: the better sunlit share keeps its star, and there is no line about measured error', "(() => { const rows = [...document.querySelectorAll('.sl-compare tbody tr')]; const sun = [...rows.find((one) => one.querySelector('th').textContent.trim() === 'Sunlit, %').querySelectorAll('td')]; return (sun.filter((cell) => cell.classList.contains('is-best')).length === 1 && document.querySelector('.sl-compare .sl-too-close') === null) || sun.map((cell) => cell.textContent.trim()).join(' | ') })()", 4000],
+    ],
+  },
+  {
+    // One plan of each kind, told apart by what the plans service returns and not by the address:
+    // all three short links are the front door's. A plan saved from the Sightline screen carries its
+    // mark and opens here. A plan from an older page opens here when nothing it held is lost (its
+    // comparison becomes a second scenario), and on the older screen when something would be (its 3D view).
+    name: 'plan-kinds',
+    path: '/',
+    hash: '#plan=pppp2345',
+    beforeLoad: STAND_IN_PLANS(null, {
+      nnnn2345: { title: 'Saved from Sightline', note: 'A long note that would push the column if it were printed in the line: the ridge first, then the rim, then back to the ridge in June when the Sun is higher and Earth is above the skyline for most of the stay.', view: '#a=connecting-ridge@2027-05&t=133&limits=21_48_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13&slope=8&panel=layers&sl=1' },
+      pppp2345: { title: 'An older comparison', view: '#a=connecting-ridge@2027-06&b=shackleton-rim@2027-06&t=497&limits=14_72_72_1_1&mode=plan' },
+      qqqq2345: { title: 'An older plan in 3D', view: '#a=connecting-ridge@2027-06&t=497&limits=14_72_72_1_1&view=3d&mode=plan' },
+    }),
+    checks: [
+      ['a plan from an older page that loses nothing opens here: its comparison is a second scenario at the same hour, its limits are the mission, and its name is in the line', `${after(4500, "(() => { const tabs = document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]').length; const words = document.querySelector('.sl-plan-note-words'); return (location.pathname === '/' && tabs === 2 && location.hash.startsWith('#a=connecting-ridge@2027-06&t=497&limits=14_72_72_1_1&mode=plan&list=shackleton-rim@2027-06-21T17') && words?.textContent === 'Plan: An older comparison' && words.tagName === 'SPAN') || tabs + ' scenarios at ' + location.pathname + location.hash + ' ; ' + words?.textContent })()")}`],
+      ['a plan saved from the Sightline screen carries its mark and opens here as it was: its scenarios, its 21-day mission and, on a laptop, Layers open', `(location.hash = '#plan=nnnn2345', true) && ${after(3000, "(() => { const tabs = document.querySelectorAll('.sl-tabs button[aria-label^=\"Scenario\"]').length; const laptop = window.innerWidth >= 761; return (location.pathname === '/' && tabs === 2 && location.hash.startsWith('#a=connecting-ridge@2027-05&t=133&limits=21_48_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13') && (!laptop || document.querySelector('.sl-layers') !== null)) || tabs + ' scenarios at ' + location.hash })()")}`],
+      ['the line is "Plan: <name>" and nothing more: a long note is not printed in it, and the column\'s head keeps its one line', `window.innerWidth < 761 || (${click('Close')}, true) && ${after(300, "(() => { const note = document.querySelector('.sl-col-head .sl-plan-note'); const words = note.querySelector('.sl-plan-note-words'); const head = document.querySelector('.sl-col-head').getBoundingClientRect(); window.__head = head.height; return (words.textContent === 'Plan: Saved from Sightline' && words.tagName === 'BUTTON' && /^Saved from Sightline: A long note/.test(words.title) && document.querySelector('.sl-plan-note-card') === null && head.height < 40) || words.textContent + ' ' + head.height })()")}`],
+      ['a press on the name shows the note in a small card over the column: nothing moves, the card is whole inside the window, and Escape puts it away', `window.innerWidth < 761 || ((document.querySelector('.sl-plan-note-words').click(), true) && ${after(300, "(() => { const card = document.querySelector('.sl-plan-note-card'); if (!card) return 'no card'; const box = card.getBoundingClientRect(); const head = document.querySelector('.sl-col-head').getBoundingClientRect(); const column = document.querySelector('.sl-col').getBoundingClientRect(); const ok = /^A long note that would push the column/.test(card.textContent) && head.height === window.__head && box.left >= column.left && box.right <= column.right + 1 && box.bottom <= window.innerHeight && document.querySelector('.sl-plan-note-words').getAttribute('aria-expanded') === 'true'; window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return ok || 'card at ' + [box.left, box.top, box.right, box.bottom].map(Math.round).join(', ') + ', head ' + head.height })()")} && ${after(300, "document.querySelector('.sl-plan-note-card') === null")})`],
+      // The page leaves for the older screen here, so the address is read in a check of its own, once it has.
+      ['the short link of a plan from an older page that would lose something here (its 3D view) is followed', "(location.hash = '#plan=qqqq2345', true)"],
+      ['and it opens where it always did, on the older screen, with the same short link', "(location.pathname === '/classic/' && location.hash === '#plan=qqqq2345') || 'at ' + location.pathname + location.hash", 4000],
     ],
   },
   {
