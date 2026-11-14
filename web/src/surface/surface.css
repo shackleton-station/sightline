@@ -513,8 +513,7 @@
   color: var(--text);
 }
 
-.sf-answer-next span::before,
-.sf-face button::before {
+.sf-answer-next span::before {
   content: '';
   display: inline-block;
   width: 0.6rem;
@@ -524,13 +523,11 @@
   background: currentColor;
 }
 
-.sf-answer-next .sun::before,
-.sf-face .sun::before {
+.sf-answer-next .sun::before {
   background: var(--sun);
 }
 
-.sf-answer-next .earth::before,
-.sf-face .earth::before {
+.sf-answer-next .earth::before {
   background: var(--earth);
 }
 
@@ -551,12 +548,6 @@
   max-width: 26rem;
 }
 
-.sf-face {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.sf-face button,
 .sf-motion {
   min-height: 44px;
   padding: 0 1rem;
@@ -567,22 +558,12 @@
   cursor: pointer;
 }
 
-.sf-face button:hover,
 .sf-motion:hover {
   border-color: var(--muted);
 }
 
-.sf-face button[aria-pressed='true'],
 .sf-motion[aria-pressed='true'] {
   border-color: var(--text);
-}
-
-.sf-face .sun[aria-pressed='true'] {
-  border-color: var(--sun);
-}
-
-.sf-face .earth[aria-pressed='true'] {
-  border-color: var(--earth);
 }
 
 .sf-motion-says {
@@ -989,11 +970,6 @@
     max-height: 46vh;
   }
 
-  .sf-face button {
-    flex: 1 1 0;
-    padding: 0 0.5rem;
-  }
-
   .sf-motion-says,
   .sf-about summary {
     text-align: left;
@@ -1103,7 +1079,6 @@
     gap: 0.3rem;
   }
 
-  .sf-face button,
   .sf-motion {
     min-height: 38px;
   }
