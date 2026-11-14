@@ -1,5 +1,5 @@
 import { clockTime } from '../lib/sightline'
-import { bestIn, COMPARE_ROWS, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { bestIn, COMPARE_ROWS, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, shareHours, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import type { ScenarioFacts } from './useScenarioFacts'
 
 interface Props {
@@ -19,8 +19,9 @@ interface Props {
 /**
  * Compare: the scenarios side by side, each measured over its own mission. A short list says which
  * site and landing each letter is; the table holds bare numbers, with the unit in each row's name, so
- * four scenarios fit without scrolling sideways. The best value in a row is marked; there is no
- * blended score, because its weights would be invented.
+ * four scenarios fit without scrolling sideways. Under a share of the mission are the hours behind it
+ * ("12 of 24 h"). The best value in a row is marked; there is no blended score, because its weights
+ * would be invented.
  */
 export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, onClose, marginal: marginalOf }: Props) {
   const measures = scenarios.map((scenario, i) => {
@@ -82,6 +83,7 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
                         ★
                       </span>
                     )}
+                    {row.share && value !== null && <small> {shareHours(value, mission.requirements.missionDays)}</small>}
                   </td>
                 ))}
               </tr>

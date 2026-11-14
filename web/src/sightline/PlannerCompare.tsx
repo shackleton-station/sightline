@@ -74,6 +74,7 @@ export function PlannerCompare({ start, hours, scenarios, facts, mission, measur
                         ★
                       </span>
                     )}
+                    {row.notes[i] && <small> {row.notes[i]}</small>}
                   </td>
                 ))}
               </tr>
