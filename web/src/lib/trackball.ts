@@ -63,6 +63,41 @@ export function dragPose(pose: Pose, held: Vec3, under: Vec3): Pose {
   return turnPose(pose, axis, angle)
 }
 
+/**
+ * The direction under a spot on the disk (zoom 1; x right, y up), for dragging. Inside the inner part
+ * of the disk (x² + y² ≤ ½) it is exactly the Moon point there, so the ground follows the pointer.
+ * Beyond that it lies on a gentle curve instead of the sphere's edge (the usual "Bell" trackball), so
+ * near the rim, and off the disk altogether, a pixel never stands for a huge turn and a drag never
+ * loses its grip. Never null, unlike `unproject`.
+ */
+export function softPoint(x: number, y: number, center: Vec3, up: Vec3): Vec3 {
+  const rr = x * x + y * y
+  const depth = rr <= 0.5 ? Math.sqrt(1 - rr) : 0.5 / Math.sqrt(rr)
+  const right = cross(up, center)
+  return unit(add(add(scale(right, x), scale(up, y)), scale(center, depth)), center)
+}
+
+/**
+ * One step of a drag that keeps the picture the usual way up as it goes. The held direction ends up
+ * under the pointer at (x, y), and `up` turns toward the usual way up for the new middle of the view,
+ * but by at most `maxTwist` radians, so the picture only ever turns while it is being moved and
+ * nothing is left to happen once the pointer lets go. Near the one point where the usual way up flips
+ * (see screenUp) the cap turns that flip into a steady turn, paced by the drag.
+ */
+export function dragLevel(pose: Pose, held: Vec3, x: number, y: number, maxTwist: number): Pose {
+  let next = dragPose(pose, held, softPoint(x, y, pose.center, pose.up))
+  let budget = Math.max(0, maxTwist)
+  // Turning around the middle of the view moves the held point a little off the pointer, so the two
+  // are done in turns; two rounds leave both within a hair of exact.
+  for (let round = 0; round < 2 && budget > 0; round += 1) {
+    const twist = Math.max(-budget, Math.min(budget, twistTo(next, screenUp(next.center))))
+    budget -= Math.abs(twist)
+    next = squared({ center: next.center, up: turn(next.up, next.center, twist) })
+    next = dragPose(next, held, softPoint(x, y, next.center, next.up))
+  }
+  return next
+}
+
 /** How far `up` must turn around `center` to reach `goalUp`, in radians, by the shorter way. */
 export function twistTo(pose: Pose, goalUp: Vec3): number {
   const goal = add(goalUp, scale(pose.center, -dot(goalUp, pose.center)))
