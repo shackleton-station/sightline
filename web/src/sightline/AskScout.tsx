@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { askCopilot, type ChatMessage, MAX_QUESTION_CHARS, stillWaitingText } from '../lib/chatClient'
+import { copilotModel, readServices } from '../data/serviceStatus'
 import { useCooldown } from '../lib/cooldown'
 import type { RiverState } from '../lib/river'
 import { Mascot } from '../scout/Mascot'
@@ -10,6 +11,44 @@ export function AiTag() {
   return (
     <abbr className="sl-ai" title="Scout's answers and its mark are AI-generated. How it works says more.">
       AI
+    </abbr>
+  )
+}
+
+/** The co-pilot's model as a name to read, asked for once for the whole page; a failed read is asked again next time. */
+let modelRequest: Promise<string | null> | null = null
+function readCopilotModel(): Promise<string | null> {
+  modelRequest ??= fetch(`${import.meta.env.BASE_URL}api/status/services`)
+    .then(async (response) => (response.ok ? readServices(await response.json()) : null))
+    .then((services) => (services ? copilotModel({ state: 'ready', services }) : null))
+    .catch(() => null)
+    .then((name) => {
+      if (name === null) modelRequest = null
+      return name
+    })
+  return modelRequest
+}
+
+/**
+ * The tag in the header of Scout's open card or panel: that he is AI, and which model, "AI · Claude
+ * Opus 5.5". The name is read from the co-pilot's own status when the card opens, so it is never
+ * out of date; if the status cannot be read, the tag says "AI" alone. His closed mark keeps the small
+ * "AI" tag (`AiTag`).
+ */
+export function ModelTag() {
+  const [model, setModel] = useState<string | null>(null)
+  useEffect(() => {
+    let current = true
+    void readCopilotModel().then((name) => {
+      if (current) setModel(name)
+    })
+    return () => {
+      current = false
+    }
+  }, [])
+  return (
+    <abbr className="sl-ai sl-ai-model" title={`Scout's answers and its mark are AI-generated${model ? `: he is Anthropic's ${model}` : ''}. How it works says more.`}>
+      {model ? `AI · ${model}` : 'AI'}
     </abbr>
   )
 }
@@ -112,7 +151,7 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, onOpen
     <aside className="sl-drawer sl-scout-panel" aria-label="Scout">
       <header className="sl-drawer-head">
         <h2 className="sl-ask-name">
-          <Mascot state={state} size={20} /> Scout <AiTag />
+          <Mascot state={state} size={20} /> Scout <ModelTag />
         </h2>
         <button type="button" className="sl-small" onClick={onClose}>
           Close

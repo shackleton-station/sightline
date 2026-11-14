@@ -360,6 +360,11 @@
   line-height: 1;
 }
 
+/* In an open card's or panel's header the tag also names the model: one line, never wrapped. */
+.sl-ai-model {
+  white-space: nowrap;
+}
+
 .sl-scout-tag .sl-ai {
   background: var(--sl-panel);
   font-size: 0.6875rem;
@@ -386,8 +391,9 @@
   pointer-events: none;
 }
 
-/* Open, his mark sits under a compact chat card: about 320 px wide and no taller than half the stage.
-   On a laptop it stays in the empty sky beside the Moon; narrower, the Moon moves up for it. */
+/* Open, his mark sits under a chat card about 320 px wide, as tall as its conversation needs up to
+   70% of the stage, so a normal answer reads without scrolling inside it. On a laptop it stays in
+   the empty sky beside the Moon; narrower, the Moon moves up for it. */
 .sl-scout.is-open {
   flex-direction: column-reverse;
   align-items: flex-start;
@@ -398,7 +404,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-height: min(50vh, 26rem);
+  max-height: 70vh;
   padding: 0.6rem 0.7rem 0.7rem;
   border: 1.5px solid var(--gold-deep);
   border-radius: 14px;
@@ -2902,7 +2908,9 @@
   }
 
   .sl-scout.is-open .sl-card {
-    max-height: 48vh;
+    /* A sheet, up to three quarters of the screen: the Moon keeps the rest. */
+    max-height: 75vh;
+    max-height: 75dvh;
     border-radius: 14px 14px 0 0;
     padding-bottom: max(0.7rem, env(safe-area-inset-bottom, 0px));
   }
