@@ -1014,6 +1014,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           active={active}
           onSelect={setActive}
           onAdd={addScenario}
+          onChange={(index, next) => setScenarios((all) => all.map((one, i) => (i === index ? next : one)))}
           onAddShown={() => addScenario({ site: scenario.site, landing: hour })}
           onRemove={removeScenario}
           onBack={() => setFull(false)}

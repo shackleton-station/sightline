@@ -10,9 +10,10 @@ import { AdvancedControls, MissionControls } from './MissionDrawer'
 import { PlannerCompare } from './PlannerCompare'
 import { PlannerFind } from './PlannerFind'
 import type { PlannerTab } from './plannerFit'
-import { landingRows, plannerCsv, plannerRows } from './plannerTable'
+import { compareGroups, plannerCsv } from './plannerTable'
 import { ScenarioTabs } from './Scenarios'
 import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
+import { useShadow } from './useShadow'
 import './planner.css'
 
 interface Props {
@@ -29,6 +30,8 @@ interface Props {
   onSelect: (index: number) => void
   /** Add a scenario and show it. With four already, nothing is added. */
   onAdd: (scenario: SightlineScenario) => void
+  /** Change one scenario's site or landing, in place. */
+  onChange: (index: number, scenario: SightlineScenario) => void
   /** The tray's "+": add what is on the main screen, as there. */
   onAddShown: () => void
   onRemove: (index: number) => void
@@ -63,19 +66,23 @@ const TABS: { id: PlannerTab; label: string; title: string }[] = [
  * scenarios side by side. The Moon stays as a small live view in the corner (drawn by the screen,
  * not here), and is itself a way back.
  */
-export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2 }: Props) {
+export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2 }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
   })
-  const rows = plannerRows(
+  // The distances to permanent shadow are Compare's alone: fetched when it first opens, never for Find.
+  const shadow = useShadow(tab === 'compare')
+  const groups = compareGroups({
     scenarios,
+    siteIds: facts.map((fact) => (isCustomSite(fact.site) ? null : fact.site.id)),
     measures,
-    facts.map((fact) => fact.flags),
+    flags: facts.map((fact) => fact.flags),
     mission,
+    landings,
     sunlightWm2,
-  )
-  const atLanding = landingRows(landings)
+    shadow,
+  })
   const spans = useMemo(() => monthSpans(start, hours), [start, hours])
 
   const exportTable = () => {
@@ -83,7 +90,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
       start,
       scenarios,
       facts.map((fact) => fact.site.name),
-      [...rows, ...atLanding],
+      groups.flatMap((group) => group.rows),
       measures,
       missionWords(mission),
     )
@@ -143,7 +150,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
           {tab === 'find' ? (
             <PlannerFind start={start} flagged={flagged} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} />
           ) : (
-            <PlannerCompare start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} rows={rows} active={active} onSelect={onSelect} onRemove={onRemove} landingRows={atLanding} />
+            <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} />
           )}
         </div>
       </div>

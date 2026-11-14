@@ -114,6 +114,17 @@ export function cellDetail(fit: Uint8Array, sunTotals: Uint32Array, span: MonthS
   return { fitHours: hours, fitDays: days.size, runs, first, sunniest }
 }
 
+/**
+ * The next landing that fits after one: the first hour that fits once the stretch this landing is
+ * in (if it fits) has ended, so "next" is another chance and not the hour after. Null if none is left.
+ */
+export function nextFit(fit: Uint8Array, landing: number): number | null {
+  let hour = Math.max(landing, 0)
+  while (hour < fit.length && fit[hour]) hour += 1
+  while (hour < fit.length && !fit[hour]) hour += 1
+  return hour < fit.length ? hour : null
+}
+
 /** The tabs of the Planner, as the link names them. */
 export type PlannerTab = 'find' | 'compare'
 

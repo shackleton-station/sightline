@@ -4,7 +4,7 @@ import { decodeRuns, type SiteFlags } from '../lib/flags'
 import { monthSpans } from '../lib/grid'
 import { DEFAULT_MISSION, fitProblems, PRESETS, type SightlineMission } from '../lib/sightlineMission'
 import { checkOverview, dataFile } from '../lib/testData'
-import { cellDetail, cellWords, findRow, fitHours, plannerTabIn, runningTotals, withPlannerTab } from './plannerFit'
+import { cellDetail, cellWords, findRow, fitHours, nextFit, plannerTabIn, runningTotals, withPlannerTab } from './plannerFit'
 
 const overview = checkOverview()
 const sites = dataFile<SiteInfo[]>('sites.json')
@@ -112,5 +112,24 @@ describe('the Planner\'s tab in the link', () => {
     expect(plannerTabIn(withPlannerTab('#a=connecting-ridge@2027-05&t=133&mode=plan', 'compare'))).toBe('compare')
     expect(plannerTabIn('#a=x@2027-05&planner=find&t=1')).toBe('find')
     expect(plannerTabIn('#a=x@2027-05&planner=other')).toBeNull()
+  })
+})
+
+describe('the next landing that fits', () => {
+  const fit = Uint8Array.from([0, 1, 1, 0, 0, 1, 1, 0])
+
+  it('is another chance, not the hour after: the stretch a fitting landing is in is passed over', () => {
+    expect(nextFit(fit, 1)).toBe(5)
+    expect(nextFit(fit, 2)).toBe(5)
+  })
+
+  it('is the first hour that fits after a landing that does not', () => {
+    expect(nextFit(fit, 0)).toBe(1)
+    expect(nextFit(fit, 3)).toBe(5)
+  })
+
+  it('is nothing when no later landing fits', () => {
+    expect(nextFit(fit, 5)).toBeNull()
+    expect(nextFit(fit, 7)).toBeNull()
   })
 })

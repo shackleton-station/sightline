@@ -287,6 +287,16 @@
 
 /* ---------- A phone: the tabs stay, and each tab is one column ---------- */
 @media (max-width: 760px) {
+  /* A phone's table keeps columns wide enough to read and scrolls sideways inside its own frame. */
+  .pl-table {
+    min-width: calc(7.5rem + var(--pl-columns, 2) * 9.5rem);
+  }
+
+  .pl-table thead td,
+  .pl-table tbody th {
+    width: 7.5rem;
+  }
+
   /* The small Moon sits at the header's top left: the back button and the title start beside it,
      and the tabs, the tray and the tools take the rows under it. */
   .pl-back {
@@ -333,4 +343,102 @@
   .pl-bands {
     --pl-name: 4.6rem;
   }
+}
+
+/* ---------- Compare: a column per scenario, its site and date changed in its header ---------- */
+.sl-full .pl-compare > h3:first-child {
+  margin-top: 0;
+}
+
+.pl-th {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  font-weight: 400;
+}
+
+.pl-th select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #1d1826;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+/* The date and the hour go on two lines where a column is narrow: four scenarios, or Scout's panel open. */
+.pl-th .sl-pick {
+  flex-wrap: wrap;
+  justify-self: start;
+  max-width: 100%;
+  min-height: 0;
+  margin-bottom: 0;
+  padding: 0.12rem 0.3rem;
+  font-size: 0.75rem;
+}
+
+.pl-th .sl-pick-mark {
+  margin-left: 0.2rem;
+}
+
+/* A long date ("10 September 2027") breaks at its spaces instead of pushing its column wider. */
+.pl-th .sl-pick-part {
+  min-width: 0;
+}
+
+.pl-th .sl-pick .sl-value {
+  white-space: normal;
+}
+
+.pl-table th,
+.pl-table td {
+  padding: 0.25rem 0.35rem;
+}
+
+.pl-table .sl-full-th {
+  column-gap: 0.3rem;
+}
+
+/* Room for a row's name on one line where it can be, and still four columns beside Scout's panel. */
+.sl-full-table.pl-table thead td,
+.sl-full-table.pl-table tbody th {
+  width: 11.5rem;
+}
+
+.pl-table .pl-group th {
+  padding-top: 0.5rem;
+  border-bottom: 0;
+  color: var(--soft);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pl-table tbody[data-group='verdict'] td {
+  font-weight: 600;
+}
+
+.pl-add-col {
+  border-left: 1px dashed var(--line);
+}
+
+.pl-table thead .pl-add-col b {
+  grid-row: 1 / span 2;
+  width: 1.1rem;
+  color: var(--soft);
+  font-size: 1.1rem;
+  line-height: 1.6rem;
+  text-align: center;
+}
+
+.pl-add-button {
+  grid-column: 2;
+  justify-self: start;
+  border-color: var(--gold);
+  color: var(--gold);
 }
