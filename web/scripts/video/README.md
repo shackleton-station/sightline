@@ -5,16 +5,20 @@ Two videos of Sightline are recorded from the real site by `record.mjs`:
 - **The walkthrough** (`sightline-walkthrough.mp4`, with a poster, WebVTT captions, WebVTT chapter
   marks and a list of its chapters): a chapter for each part of the screen, as long as it needs.
   Chapter one is Scout's tour as a visitor takes it, about 85 seconds. For How it works.
-- **The demo** (`sightline-demo-30s.mp4`, with a poster and captions): the problem, the answer and
-  one moment of proof in under 30 seconds, for the Space Apps submission. A video over 30 seconds is
-  not eligible for Global Judging, so the recorder refuses to make one.
+- **The demo** (`sightline-demo-30s.mp4`, with a poster and captions): 29 seconds for the Space Apps
+  submission, in the order the Project Submission Guide asks for: who we are and which challenge
+  this answers (over a card with both names), what makes the challenge hard, the project's name and
+  tagline, how it works and which NASA data it stands on, and what it could become. A video over 30
+  seconds is not eligible for Global Judging, so the recorder refuses to make one.
 
 Nothing is filmed by hand and nothing is edited afterwards, so either can be made again whenever the
 site or the words change.
 
 **The narration is an AI-generated voice**: Google Cloud Text-to-Speech, the voice Scout speaks with
 on the site (`en-US-Chirp3-HD-Leda`). Each video says so in a line under the picture for its whole
-length, in a note at the top of its captions, and in the file's own description. Say the same
+length, and, in a full sentence that also says the picture was recorded from the live site, in a
+note at the top of its captions and in the file's own `description` and `comment` tags
+(`ffprobe -show_entries format_tags file.mp4` prints them). Say the same
 wherever a video is posted. There is no music. The picture is the site itself; what the video adds
 is the pointer, rings round what is being talked about, the words being said, and a card at each end.
 
@@ -93,7 +97,9 @@ gcloud storage cp -n ../cache/video/walkthrough/sightline-walkthrough.mp4 ../cac
 - **Real use.** The pointer's moves and presses are real mouse events sent to the page, the wheel is
   the real wheel, and typing is real typing. One thing is set through the page's address, as a
   shared link sets it: the four scenarios the demo opens with, so its landing and figures are the
-  same in every take. Every figure in the picture is the site's own.
+  same in every take. Every figure in the picture is the site's own. The demo also opens as the
+  page does for a visitor who has shut Scout's panel before (`"scoutShut"` in `tutorial.json`): the
+  page keeps that in the tab's own storage, and the recorder writes the same note there first.
 - **The tour's chip.** In the Moon view the tour is offered as a chip beside Scout ("One-minute
   tour"). The pointer presses it as the opening card clears. If the chip is not there the run stops
   and says so.
@@ -111,8 +117,8 @@ gcloud storage cp -n ../cache/video/walkthrough/sightline-walkthrough.mp4 ../cac
   the site's own voice route, which has a daily allowance for visitors. Chirp 3: HD voices cost
   US$30 for a million characters after the first million each month (Google's price list, read on
   2026-11-14); the tour chapter's words are about 900 characters and the demo's about 400, so recording
-  both costs under five cents at most. The demo's voice runs at 1.07 times its usual pace, set in
-  `tutorial.json`, to fit its words in 29 seconds.
+  both costs under five cents at most. The demo's voice runs at 1.12 times its usual pace, set in
+  `tutorial.json`, to fit its 81 words in 29 seconds.
 - **Nothing is asked of Scout.** While recording, whatever the page sends to `/api/chat`, `/api/ask`
   or `/api/speak` is stopped in the browser, so a recording spends none of the visitors' daily
   questions. `--ask` lets them through, for a take that is meant to show a real answer.
