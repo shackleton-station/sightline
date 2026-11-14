@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLightGrid } from '../atlas/useLightGrid'
 import type { SiteInfo } from '../data/contract'
 import { gapsFor, gapsKey, gapsNow, loadSlopeWhole, slopePartFor, slopePartNow, WHOLE_SUB } from '../data/loadMissionGrid'
@@ -17,6 +17,25 @@ import { hourOfYear, smoothMoonFit, softened, WASH_SIZE } from '../lib/moonWash'
  * loosest accuracy offered, with room left to look for a better place to aim.
  */
 export const REACH_M = ACCURACY_RANGE.max * 2
+
+/**
+ * A value that changes at most every `everyMs`: while it keeps changing, the latest is handed on at
+ * that pace; once it rests, the last one arrives. For work too heavy to redo on every hour of a
+ * time bar being played.
+ */
+export function usePaced<T>(value: T, everyMs: number): T {
+  const [paced, setPaced] = useState(value)
+  const last = useRef(0)
+  useEffect(() => {
+    const wait = Math.max(0, last.current + everyMs - performance.now())
+    const timer = window.setTimeout(() => {
+      last.current = performance.now()
+      setPaced(value)
+    }, wait)
+    return () => window.clearTimeout(timer)
+  }, [value, everyMs])
+  return paced
+}
 
 export interface MissionGrid {
   /** The light grid's description: undefined until known, null if this build has none. */
@@ -41,18 +60,14 @@ export function useMissionGrid(start: string, landing: number, missionDays: numb
   useEffect(() => {
     if (!meta || !wanted || gapsNow(start, landing, missionDays) !== undefined) return
     let current = true
-    // A landing being dragged along the time bar asks once it rests.
-    const wait = window.setTimeout(() => {
-      gapsFor(meta, start, landing, missionDays)
-        .then(() => current && setSettled({ key, failed: false }))
-        .catch((reason: unknown) => {
-          console.error(reason)
-          if (current) setSettled({ key, failed: true })
-        })
-    }, 250)
+    gapsFor(meta, start, landing, missionDays)
+      .then(() => current && setSettled({ key, failed: false }))
+      .catch((reason: unknown) => {
+        console.error(reason)
+        if (current) setSettled({ key, failed: true })
+      })
     return () => {
       current = false
-      window.clearTimeout(wait)
     }
   }, [meta, wanted, key, start, landing, missionDays])
 
@@ -102,7 +117,7 @@ export function useFitOverlay(grid: MissionGrid, mission: SightlineMission, spre
     return fitField(gaps, requirements, maxSlopeDeg, WHOLE_SUB, slope, true)
   }, [on, meta, gaps, slope, requirements, maxSlopeDeg])
 
-  return useMemo(() => {
+  const picture = useMemo(() => {
     if (!fits || !meta || !gaps) return null
     const full = gaps.size * WHOLE_SUB
     const fullM = meta.pixel_m / WHOLE_SUB
@@ -118,6 +133,12 @@ export function useFitOverlay(grid: MissionGrid, mission: SightlineMission, spre
     context.putImageData(new ImageData(oddsPixels(odds) as Uint8ClampedArray<ArrayBuffer>, side, side), 0, 0)
     return { image, halfWidthM: meta.half_width_m, radiusM: meta.radius_m }
   }, [fits, meta, gaps, rested])
+  // While the next hour's picture is on the way the last one stays, so the Moon does not blink.
+  const [kept, setKept] = useState(picture)
+  useEffect(() => {
+    if (picture) setKept(picture)
+  }, [picture])
+  return on ? (picture ?? kept) : null
 }
 /**
  * The odds of a landing fitting, for each scenario: its own landing read from the light grid, the
