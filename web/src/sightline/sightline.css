@@ -2155,6 +2155,46 @@ button.sl-moment-heights[aria-expanded='true'] {
   border-top: 1px solid var(--line);
 }
 
+/* What each section of the rail is for, in one small word over it: "View", "Plan", "Help". */
+.sl-rail-label {
+  margin-top: 0.55rem;
+  color: var(--soft);
+  /* 12 px: the smallest type the screen sets. */
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sl-rail-label:first-child {
+  margin-top: 0;
+}
+
+/* The one-minute tour, at the foot of Scout's panel, over his input. Outlined in gold until it has been taken. */
+.sl-tour-here {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8125rem;
+}
+
+.sl-tour-here span {
+  color: var(--gold);
+  font-size: 0.625rem;
+}
+
+.sl-tour-here.is-new,
+.sl-tour-here:hover,
+.sl-tour-here:focus-visible {
+  border-color: var(--gold-deep);
+}
+
 /* Home is a house alone in the rail; its word is still there for a screen reader. */
 .sl-rail-home {
   display: flex;

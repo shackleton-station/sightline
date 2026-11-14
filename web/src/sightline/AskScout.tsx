@@ -119,14 +119,17 @@ interface Props {
   /** A button in an answer was pressed: go where its link points. */
   onOpen: (hash: string) => void
   onClose: () => void
+  /** Start Scout's one-minute tour of the screen; whether it has been taken (until then its chip is outlined). */
+  onTour: () => void
+  tourTaken: boolean
 }
 
 /**
  * Scout's panel, on the right like Mission and Compare: the conversation down the screen's full
- * height, the input pinned at its foot, and, until something is said, ideas to tap for the scenario
- * on show.
+ * height, the one-minute tour and the input pinned at its foot, and, until something is said, ideas
+ * to tap for the scenario on show.
  */
-export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, onOpen, onClose }: Props) {
+export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, onOpen, onClose, onTour, tourTaken }: Props) {
   const [draft, setDraft] = useState('')
   const talk = useRef<HTMLDivElement>(null)
   const { thread, waiting, step } = chat
@@ -202,6 +205,9 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, onOpen
           </div>
         )}
       </div>
+      <button type="button" className={tourTaken ? 'sl-tour-here' : 'sl-tour-here is-new'} title="Scout walks you through the screen, in about a minute" onClick={onTour}>
+        <span aria-hidden="true">▶</span> One-minute tour
+      </button>
       <form className="sl-ask" autoComplete="off" onSubmit={send}>
         <input type="text" id="sl-question" name="question" {...NOT_A_LOGIN} value={draft} maxLength={MAX_QUESTION_CHARS} placeholder={placeholder} aria-label="Ask Scout" onChange={(event) => setDraft(event.target.value)} />
         <button type="submit" className="sl-small" disabled={waiting || !draft.trim()}>
