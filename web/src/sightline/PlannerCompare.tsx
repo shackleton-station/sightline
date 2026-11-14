@@ -1,8 +1,8 @@
-import { clockTime, degWords, stateAt, stateRuns } from '../lib/sightline'
+import { clockTime, stateAt, stateRuns } from '../lib/sightline'
 import { type ScenarioMeasure, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import type { PlannerRow } from './plannerTable'
 import { BAND, STATE_CHIP } from './states'
-import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
+import type { ScenarioFacts } from './useScenarioFacts'
 
 interface Props {
   start: string
@@ -16,8 +16,24 @@ interface Props {
   active: number
   onSelect: (index: number) => void
   onRemove: (index: number) => void
-  /** Each scenario's landing hour, for the Sun's and Earth's elevations; null while its month loads. */
-  landings: (LandingShares | null)[]
+  /** The Sun's and Earth's angles at each landing, under the "At landing" row. */
+  landingRows: PlannerRow[]
+}
+
+/** The cells of one row with a number in them: the figure, the best mark, and the hours behind a share. */
+function RowCells({ row }: { row: PlannerRow }) {
+  return row.cells.map((cell, i) => (
+    <td key={i} className={row.best[i] ? 'is-best' : undefined}>
+      {cell ?? '…'}
+      {row.best[i] && (
+        <span className="sl-best" title="Best in this row">
+          {' '}
+          ★
+        </span>
+      )}
+      {row.notes[i] && <small> {row.notes[i]}</small>}
+    </td>
+  ))
 }
 
 /** How many days apart the labels under the aligned rows are, so about ten fit. */
@@ -29,7 +45,7 @@ function dayStep(missionDays: number): number {
  * Compare: "which of my picks is best?" The scenarios side by side with every row the app can
  * measure, then one time row per scenario lined up on its own landing.
  */
-export function PlannerCompare({ start, hours, scenarios, facts, mission, measures, rows, active, onSelect, onRemove, landings }: Props) {
+export function PlannerCompare({ start, hours, scenarios, facts, mission, measures, rows, active, onSelect, onRemove, landingRows }: Props) {
   const missionH = mission.requirements.missionDays * 24
   const step = dayStep(mission.requirements.missionDays)
   return (
@@ -64,19 +80,10 @@ export function PlannerCompare({ start, hours, scenarios, facts, mission, measur
           <tbody>
             {rows.map((row) => (
               <tr key={row.key}>
-                <th scope="row">{row.label}</th>
-                {row.cells.map((cell, i) => (
-                  <td key={i} className={row.best[i] ? 'is-best' : undefined}>
-                    {cell ?? '…'}
-                    {row.best[i] && (
-                      <span className="sl-best" title="Best in this row">
-                        {' '}
-                        ★
-                      </span>
-                    )}
-                    {row.notes[i] && <small> {row.notes[i]}</small>}
-                  </td>
-                ))}
+                <th scope="row" title={row.title}>
+                  {row.label}
+                </th>
+                <RowCells row={row} />
               </tr>
             ))}
             <tr>
@@ -97,23 +104,15 @@ export function PlannerCompare({ start, hours, scenarios, facts, mission, measur
                 )
               })}
             </tr>
-            {/* The conventional figures, measured from a level horizon (the column gives height above the skyline instead). Units in the row's name, as in the rows above. */}
-            <tr>
-              <th scope="row" title="At landing, measured from a level horizon. The column gives height above the skyline instead.">
-                Sun's elevation, °
-              </th>
-              {landings.map((landing, i) => (
-                <td key={i}>{landing ? degWords(landing.sunElDeg).replace('°', '') : '…'}</td>
-              ))}
-            </tr>
-            <tr>
-              <th scope="row" title="At landing, measured from a level horizon. The column gives height above the skyline instead.">
-                Earth's elevation, °
-              </th>
-              {landings.map((landing, i) => (
-                <td key={i}>{landing ? degWords(landing.earthElDeg).replace('°', '') : '…'}</td>
-              ))}
-            </tr>
+            {/* Each body's angle at landing, both ways: from a level horizon (the conventional figure) and above the skyline. */}
+            {landingRows.map((row) => (
+              <tr key={row.key}>
+                <th scope="row" title={row.title}>
+                  {row.label}
+                </th>
+                <RowCells row={row} />
+              </tr>
+            ))}
             <tr>
               <th scope="row">Fits the mission</th>
               {measures.map((measure, i) => (

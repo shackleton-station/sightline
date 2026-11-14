@@ -5,7 +5,7 @@
   "settle": 5,
   "voice": "en-US-Chirp3-HD-Leda",
   "disclosure": "Narration: AI-generated voice (Google Cloud Text-to-Speech)",
-  "strip": { "right": "shackletonstation.dev/sightline" },
+  "strip": { "right": "lunarsightline.com/sightline" },
   "pointerStart": [1560, 900],
   "pace": { "lead": 1.2, "before": 0.6, "after": 1.1, "tail": 2.2 },
   "acts": {

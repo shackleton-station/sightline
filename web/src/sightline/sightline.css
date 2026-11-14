@@ -1844,6 +1844,14 @@
   font-weight: 600;
 }
 
+/* A name over the rows that follow it: the angles at landing. */
+.sl-compare .sl-compare-group th {
+  width: auto;
+  padding-top: 0.6rem;
+  color: inherit;
+  font-weight: 600;
+}
+
 /* The hours behind a share of the mission, on their own line so four scenarios still fit. */
 .sl-compare td small {
   display: block;
