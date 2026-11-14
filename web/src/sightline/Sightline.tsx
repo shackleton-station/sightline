@@ -59,6 +59,8 @@ import { FullPlanner } from './FullPlanner'
 import { NewPlanner } from './NewPlanner'
 import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
+import { PlanNote, SavedBrief } from './PlanNote'
+import { usePlanLink } from './usePlanLink'
 import { HypeDrawer } from './HypeDrawer'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
@@ -545,6 +547,17 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     },
     [start, hours, setPlaying, setHour, reach],
   )
+  // A saved plan's short link (#plan=<id>): fetched, then opened as a link is, with its panel, skyline and Planner tab.
+  const savedPlan = usePlanLink({
+    open: openLink,
+    panel: setDrawer,
+    skyline: () => setSkyMin(false),
+    planner: (tab) => {
+      setNewPlanner(false)
+      setPlannerTab(tab)
+      setFull(true)
+    },
+  })
   // The years asked for have arrived: open the link that was waiting for them.
   useEffect(() => {
     const hash = awaited.current
@@ -943,7 +956,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             <div className="sl-col-head">
               {/* The undo notice takes the title's place for a few seconds: nothing moves, and nothing is over the Moon. */}
               <h1 className="sl-title">Sightline</h1>
-              <HeaderTools onBrief={() => setBrief(true)} held={tourStep?.state.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} />
+              <HeaderTools onBrief={() => setBrief(true)} held={tourStep?.state.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} panel={drawer} />
+              <PlanNote plan={savedPlan.plan} problem={savedPlan.problem} onDismiss={savedPlan.dismiss} />
             </div>
             {/* The scenarios, on a row of their own; the undo notice sits at the row's end for a few seconds, so nothing moves and nothing is over the Moon. */}
             <div className="sl-tabs-row">
@@ -1258,6 +1272,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             }}
             onKeep={addScenario}
             onClose={() => setBrief(false)}
+            saved={savedPlan.plan ? <SavedBrief plan={savedPlan.plan} /> : null}
           />
         </Suspense>
       )}

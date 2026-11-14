@@ -134,7 +134,7 @@
           "title": "The written brief",
           "say": "Share also opens the brief: the scenario on show, written out in full.",
           "state": { "view": "plan", "open": "share" },
-          "targets": [".sl-share-menu"]
+          "targets": [".sl-share-sheet .sl-share-brief"]
         }
       ]
     }

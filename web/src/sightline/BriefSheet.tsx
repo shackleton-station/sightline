@@ -1,5 +1,5 @@
 import { heightsWords, isBaseHeights } from '../lib/heights'
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
 import { hourOf, locateHour } from '../lib/mission'
@@ -27,6 +27,8 @@ interface Props {
   onLanding: (landing: number, site?: string) => void
   onKeep: (scenario: SightlineScenario) => void
   onClose: () => void
+  /** A saved plan's own brief, shown first when the screen was opened from its short link. */
+  saved?: ReactNode
 }
 
 /** The slip first asked about: the app's shortest listed delay, a week. */
@@ -37,7 +39,7 @@ const FIRST_SLIP_DAYS = SLIPS[0].days ?? 7
  * brief (the Planner page's), worked out by the same functions, for this site, month and landing.
  * Its buttons move the scenario on show. It is written for listed sites only.
  */
-export default function BriefSheet({ start, scenario, site, mission, room, onLanding, onKeep, onClose }: Props) {
+export default function BriefSheet({ start, scenario, site, mission, room, onLanding, onKeep, onClose, saved = null }: Props) {
   const data = usePlannerData()
   const [slipDays, setSlipDays] = useState(FIRST_SLIP_DAYS)
   const [kept, setKept] = useState(false)
@@ -62,6 +64,7 @@ export default function BriefSheet({ start, scenario, site, mission, room, onLan
           Back to the Moon
         </button>
       </div>
+      {saved}
       {/* The brief is written from the app's own 2 m numbers: it says so when other heights are chosen. */}
       {!isCustomSite(site) && !isBaseHeights(mission.heights) && (
         <p className="sl-quiet sl-brief-heights">This brief is written for 2 m above the ground. Your heights ({heightsWords(mission.heights)}) are not applied to it.</p>

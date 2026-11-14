@@ -39,8 +39,10 @@ export function forwardOldAddress(at: { pathname: string; search: string; hash: 
   if (at.pathname !== '/' && at.pathname !== '/index.html') return { kind: 'stay' }
   const search = new URLSearchParams(at.search)
   const hash = at.hash === '#' ? '' : at.hash
-  // Following a presenter, a shared plan, the demo video and the tour have no match in Sightline.
-  if (search.has('follow') || hash === '#demo' || hash === '#tour' || hash.startsWith('#plan=')) return { kind: 'leave', to: `${OLD_HOME}${at.search}${hash}` }
+  // Following a presenter, the demo video and the tour have no match in Sightline.
+  if (search.has('follow') || hash === '#demo' || hash === '#tour') return { kind: 'leave', to: `${OLD_HOME}${at.search}${hash}` }
+  // A saved plan opens here: Sightline fetches it and shows its view (sightline/usePlanLink.ts).
+  if (hash.startsWith('#plan=')) return { kind: 'stay' }
   if (hash === '#how') return { kind: 'how' }
   if (!hash.startsWith('#a=')) return search.has('ui') ? { kind: 'rewrite', to: '/' } : { kind: 'stay' }
 

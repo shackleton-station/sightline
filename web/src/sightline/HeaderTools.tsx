@@ -1,18 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
+import { withPanel } from '../lib/planView'
+import { ShareSheet } from './ShareSheet'
 
 interface Props {
   onBrief: () => void
-  /** A guide is talking about the list: it is held open while its step is on show. */
+  /** A guide is talking about the sheet: it is held open while its step is on show. */
   held?: boolean
   /** Start the short guide to sharing; left out, or null while a guide is already on, where there is none to offer. */
   onShowHow?: (() => void) | null
+  /** The side panel that is open, so a saved plan can reopen it; none in the Planner. */
+  panel?: string | null
 }
 
 /**
  * Share, a small icon button beside the name, with a name for readers that cannot see it. It opens a
- * short list: copy the link for what is on screen, or read the written brief for the scenario on show.
+ * small sheet (ShareSheet): copy the link for what is on screen, save it with a name, or read the
+ * written brief for the scenario on show.
  */
-export function HeaderTools({ onBrief, held = false, onShowHow = null }: Props) {
+export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = null }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const box = useRef<HTMLSpanElement>(null)
@@ -25,7 +30,8 @@ export function HeaderTools({ onBrief, held = false, onShowHow = null }: Props) 
   useEffect(() => {
     if (!open) return
     const close = (event: Event) => {
-      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !(event.target instanceof Node && box.current?.contains(event.target))) setOpen(false)
+      // The sheet is drawn at the end of the page, so a press inside it is not a press elsewhere.
+      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !(event.target instanceof Element && (box.current?.contains(event.target) || event.target.closest('.sl-share-sheet')))) setOpen(false)
     }
     window.addEventListener('pointerdown', close)
     window.addEventListener('keydown', close)
@@ -46,7 +52,7 @@ export function HeaderTools({ onBrief, held = false, onShowHow = null }: Props) 
 
   return (
     <span ref={box} className="sl-head-tools">
-      <button type="button" className="sl-icon" aria-label="Share" aria-haspopup="true" aria-expanded={open} title={copied ? 'Link copied' : 'Share: the link, or the written brief'} onClick={() => setOpen(!open)}>
+      <button type="button" className="sl-icon" aria-label="Share" aria-haspopup="true" aria-expanded={open} title={copied ? 'Link copied' : 'Share: copy the link, save with a name, or the written brief'} onClick={() => setOpen(!open)}>
         {copied ? (
           <span aria-hidden="true">✓</span>
         ) : (
@@ -59,33 +65,22 @@ export function HeaderTools({ onBrief, held = false, onShowHow = null }: Props) 
         </span>
       </button>
       {(open || held) && (
-        <span className="sl-share-menu" role="group" aria-label="Share">
-          <button type="button" title="Copy the link to this view" onClick={copy}>
-            Copy link
-          </button>
-          <button
-            type="button"
-            title="The written brief for the scenario on show"
-            onClick={() => {
+        <ShareSheet
+          onCopy={copy}
+          onBrief={() => {
+            setOpen(false)
+            onBrief()
+          }}
+          onShowHow={
+            onShowHow &&
+            (() => {
               setOpen(false)
-              onBrief()
-            }}
-          >
-            Brief
-          </button>
-          {onShowHow && (
-            <button
-              type="button"
-              className="sl-show-how"
-              onClick={() => {
-                setOpen(false)
-                onShowHow()
-              }}
-            >
-              Show me how
-            </button>
-          )}
-        </span>
+              onShowHow()
+            })
+          }
+          held={held && !open}
+          view={() => withPanel(window.location.hash, panel)}
+        />
       )}
     </span>
   )
