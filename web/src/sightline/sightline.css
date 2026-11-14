@@ -3378,160 +3378,120 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-size: 0.75rem;
 }
 
-/* ---------- The Sun and Earth over the mission, charted at the column's foot ---------- */
-.sl-light {
-  display: grid;
-  gap: 0.3rem;
-  margin-top: 0.3rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--line);
-  font-size: 0.75rem;
+/* ---------- The Sun's and Earth's rows over the whole mission: the share of the mission, then a chart ---------- */
+.sl-fact[hidden] {
+  display: none;
 }
 
-/* The name, then the averages or the hour under the pointer: one line each, so nothing moves. */
-.sl-light-head {
-  display: grid;
-  gap: 0.1rem;
-  margin: 0;
-}
-
-.sl-light-head b {
-  font-size: 0.8125rem;
-}
-
-.sl-light-head span {
-  overflow: hidden;
-  color: var(--soft);
-  font-variant-numeric: tabular-nums;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sl-light-chart {
-  margin: 0;
-}
-
-.sl-light-chart figcaption {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--soft);
-}
-
-/* The colour says which body, as everywhere on the screen; the name beside it says so in words. */
-.sl-light-chart figcaption::before {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: var(--series);
-  content: '';
-}
-
-.sl-light-chart.is-sun {
+.sl-over {
   --series: var(--sl-sun);
 }
 
-.sl-light-chart.is-earth {
+.sl-over.is-earth {
   --series: var(--sl-earth);
 }
 
-.sl-light-plot {
+/* The share of the body's disc in view at every hour, from the landing to the mission's end. */
+.sl-over-plot {
   position: relative;
-  height: 2.8rem;
-  margin-top: 0.15rem;
+  grid-column: 1 / -1;
+  height: 2.9rem;
+  margin: 0.35rem 0 0;
   border-bottom: 1px solid var(--line);
   cursor: crosshair;
   touch-action: pan-y;
 }
 
-.sl-light-plot svg {
+.sl-over-plot svg {
   display: block;
   width: 100%;
   height: 100%;
   overflow: visible;
 }
 
-.sl-light-area {
+.sl-over-area {
   fill: var(--series);
   opacity: 0.22;
 }
 
-.sl-light-line {
+.sl-over-line {
   fill: none;
   stroke: var(--series);
   stroke-width: 2;
   stroke-linejoin: round;
 }
 
-.sl-light-cross {
+/* The longest time down: shaded quietly, and in the warning colour when it breaks the mission's limit. */
+.sl-over-gap {
+  fill: var(--soft);
+  opacity: 0.12;
+}
+
+.sl-over-gap.is-miss {
+  fill: #e8915a;
+  opacity: 0.24;
+}
+
+.sl-over-cross {
   stroke: var(--ink);
   stroke-width: 1;
   opacity: 0.7;
 }
 
-/* The scale's two ends, small and out of the line's way. */
-.sl-light-y {
+/* Its name, on its own side of the chart: in ink, with the colour on its edge and a cross when it breaks the limit. */
+.sl-over-note {
   position: absolute;
-  right: 0;
-  color: var(--soft);
-  font-size: 0.6875rem;
-  line-height: 1;
+  top: 0.15rem;
+  right: 0.2rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-bottom);
+  color: var(--ink);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  white-space: nowrap;
   pointer-events: none;
 }
 
-.sl-light-y.is-top {
-  top: 0;
+.sl-over-note.is-left {
+  right: auto;
+  left: 0.2rem;
 }
 
-.sl-light-y.is-bottom {
-  bottom: 0.15rem;
+.sl-over-note.is-miss {
+  border-color: #e8915a;
 }
 
-/* Days since landing, under both charts. */
-.sl-light-axis {
+/* Days since landing, under the chart. */
+.sl-over-axis {
   position: relative;
+  grid-column: 1 / -1;
   height: 1rem;
+  margin: 0;
   color: var(--soft);
+  font-size: 0.6875rem;
 }
 
-.sl-light-axis span {
+.sl-over-axis span {
   position: absolute;
-  top: 0;
+  top: 0.1rem;
   white-space: nowrap;
   transform: translateX(-50%);
 }
 
-.sl-light-axis span:first-child {
+.sl-over-axis span:first-child {
   transform: none;
 }
 
-.sl-light-axis span.is-end {
+.sl-over-axis span.is-end {
   transform: translateX(-100%);
 }
 
-.sl-light-table summary {
-  width: max-content;
-  color: var(--soft);
-  cursor: pointer;
-}
-
-.sl-light-table table {
-  width: 100%;
-  margin-top: 0.3rem;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
-}
-
-.sl-light-table th,
-.sl-light-table td {
-  padding: 0.1rem 0.3rem;
-  border-top: 1px solid var(--line);
-  font-weight: 400;
-  text-align: right;
-}
-
-.sl-light-table th:first-child {
-  text-align: left;
+/* The body at the landing's hour: what the row used to lead with, in one small line across it. */
+.sl-fact-small.sl-over-landing {
+  grid-column: 1 / -1;
+  padding-left: 0;
 }
 
 /* The plan's controls sit under the verdict, above the Sun, Earth and ground. */

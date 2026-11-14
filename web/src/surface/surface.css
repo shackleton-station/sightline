@@ -1099,3 +1099,43 @@
     opacity: 0.5;
   }
 }
+
+/* ---------- A phone, inside Sightline: the two views get the room ----------
+   Sightline's sheet already says the site, the verdict and what is in view, so the answer under the
+   picture is left out, and the phone's steering and "What this picture is" share one short row. */
+@media (max-width: 700px) {
+  .surface.is-embedded .sf-answer {
+    display: none;
+  }
+
+  .surface.is-embedded .sf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.3rem 0.5rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .surface.is-embedded .sf-motion {
+    min-height: 36px;
+    padding: 0 0.7rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  .surface.is-embedded .sf-motion-says {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .surface.is-embedded .sf-about {
+    flex: none;
+    font-size: 0.8125rem;
+  }
+
+  /* The page's footer rule spaces it from the content above; here the views run down to the time bar. */
+  .surface.is-embedded .sf-river {
+    margin-top: 0;
+  }
+}

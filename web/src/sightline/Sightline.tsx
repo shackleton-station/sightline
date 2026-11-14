@@ -12,7 +12,8 @@ import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, marginalReasons, shortWhen } from '../lib/sightlineSky'
 import { bodyRadiiDeg } from '../lib/surfaceView'
 import { HowItWorks } from '../shell/HowItWorks'
-import { hourOf, locateHour } from '../lib/mission'
+import { hourOf, locateHour, missionEarth } from '../lib/mission'
+import { spanStats } from '../lib/missionLight'
 import { type RiverState, riverState } from '../lib/river'
 import { spanOfHours, yearsInHash } from '../lib/span'
 import {
@@ -38,6 +39,7 @@ import {
   nearestFittingSite,
   MAX_SCENARIOS,
   missionWords,
+  NO_LIMIT_H,
   presetOf,
   readScenarioLink,
   rowLabels,
@@ -46,6 +48,7 @@ import {
   restoreScenario,
   SCENARIO_LETTERS,
   scenarioLink,
+  surfaceLink,
   type SightlineScenario,
 } from '../lib/sightlineMission'
 import { ROVER_PRESET } from '../lib/csaRover'
@@ -67,6 +70,7 @@ import { FitLegend } from './FitLegend'
 import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
+import { readSurfaceMoved } from '../surface/address'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
 import { useLightGrid } from '../atlas/useLightGrid'
@@ -74,7 +78,6 @@ import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
 import { LayersDrawer } from './LayersDrawer'
 import { RoverDrawer } from './RoverDrawer'
-import { LightChart } from './LightChart'
 import { MissionDrawer, MissionInline } from './MissionDrawer'
 import { useMissionLight } from './useMissionLight'
 import { useTrekOverlay } from './useTrekOverlay'
@@ -451,6 +454,40 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const view = `${scenarioLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
   // In Watch there is no scenario on show: Scout is sent the featured site at the moment on the clock.
   const watchView = scenarioLink([{ site: scenarios[0].site, landing: hour }], 0, start, mission)
+  // The Surface view stands at the scenario on show, at its landing: the side panel's site and date.
+  const surfaceView = `${surfaceLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
+  // The other way: an hour or month chosen in the Surface view becomes the landing in the side panel.
+  // The link that change makes is not sent back to the view, which already shows it: while time plays
+  // there, sending it back would pull the view back to an hour it has just left.
+  const [surfaceSrc, setSurfaceSrc] = useState(surfaceView)
+  const fromSurface = useRef<string | null>(null)
+  const surfaceFrame = useRef<HTMLIFrameElement>(null)
+  useEffect(() => {
+    if (surfaceView !== fromSurface.current) {
+      setSurfaceSrc(surfaceView)
+      // After a change made in the view, the frame is ahead of `surfaceSrc`: a link equal to it would not move the frame.
+      const frame = surfaceFrame.current?.contentWindow
+      if (frame && surfaceView === surfaceSrc) frame.location.hash = `${surfaceView}${fitShade ? '&odds=1' : ''}`
+    }
+    fromSurface.current = null
+    // Only a new link moves the view; the rest is read as it is then.
+  }, [surfaceView])
+  useEffect(() => {
+    if (mode !== 'surface') return
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      const moved = readSurfaceMoved(event.data)
+      if (!moved || moved.site !== scenario.site) return
+      const landing = hourOf(start, `${moved.month}-01T00:00:00Z`) + moved.index
+      if (!Number.isInteger(landing) || landing < 0 || landing >= hours || landing === scenario.landing) return
+      const next = scenarios.map((one, i) => (i === active ? { ...one, landing } : one))
+      fromSurface.current = `${surfaceLink(next, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
+      setScenario((current) => ({ ...current, landing }))
+      setHour(landing)
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [mode, scenario, scenarios, active, start, hours, mission, accuracyUsed, spread, setScenario, setHour])
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
   const scoutView = active > 0 ? view : `${view}&sc=0`
   useEffect(() => {
@@ -796,6 +833,25 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const toggleMission = () => setMissionHere((open) => !open)
   // The Sun and Earth over the mission, charted at the column's foot: read while Plan is on show and the mission's limits are shut (open, they take its room).
   const missionLight = useMissionLight(site, scenario.landing, start, held, lit.applied, mission.requirements.missionDays, plan && !full && !missionHere)
+  // The Sun and Earth over the whole mission, for their rows in the column: the hours up and the longest time down are
+  // from the hourly flags the verdict is worked out from; the charts' lines arrive with the mission's hours.
+  const over = useMemo(() => {
+    const { missionDays, maxSunGapH, maxEarthGapH } = mission.requirements
+    const end = scenario.landing + missionDays * 24
+    if (!flags || missionHere || end > flags.sun.length) return null
+    return {
+      start,
+      landing: scenario.landing,
+      missionDays,
+      sun: {
+        ...spanStats(flags.sun, scenario.landing, end),
+        limitH: maxSunGapH,
+        values: missionLight?.hours.map((one) => one.sunPct) ?? null,
+        also: missionLight ? `avg ${Math.round(missionLight.sunlightWm2)} W/m²` : undefined,
+      },
+      earth: { ...spanStats(missionEarth(flags, mission.requirements), scenario.landing, end), limitH: maxEarthGapH >= NO_LIMIT_H ? null : maxEarthGapH, values: missionLight?.hours.map((one) => one.earthPct) ?? null },
+    }
+  }, [flags, missionHere, mission.requirements, scenario.landing, start, missionLight])
   const pointedState = pointed ? states.get(pointed.id) : undefined
   const line = pointed && pointedState ? `${pointed.name}: ${STATE_WORDS[pointedState]}.` : 'Pick a site, or just watch.'
   const shown = plan && !bare
@@ -903,6 +959,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               heights={siteHeights}
               heightsLine={heightsLine}
               earthShare={shares[active]?.earth ?? null}
+              over={over}
               plan={
                 <Fields
                   held={tourStep?.state.open === 'custom'}
@@ -988,7 +1045,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                 </>
               }
             />
-            {!missionHere && <LightChart light={missionLight} start={start} landing={scenario.landing} missionDays={mission.requirements.missionDays} />}
           </PlanColumn>
           {/* The skyline in 2D, with the Sun's and Earth's paths: above the time bar in Orbit and Site, folded until it is
               asked for (the time bar's readout is its door), so folded it takes no room at all. The Surface view shows the
@@ -1063,7 +1119,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           </p>
         )}
         {/* Standing at the site: the app's own surface view, inside the stage, on the scenario's site and landing. */}
-        {shown && !planner && mode === 'surface' && <iframe className="sl-surface" title="Standing at the site, looking around" src={`/surface/${view}${fitShade ? '&odds=1' : ''}`} />}
+        {shown && !planner && mode === 'surface' && <iframe ref={surfaceFrame} className="sl-surface" title="Standing at the site, looking around" src={`/surface/${surfaceSrc}${fitShade ? '&odds=1' : ''}`} />}
         {/* In the Planner the Moon is a small live view: pressing it comes back. */}
         {planner && (
           <button type="button" className="sl-mini-back" aria-label="Back to the Moon" title="Back to the Moon (Esc)" onClick={() => setFull(false)} />

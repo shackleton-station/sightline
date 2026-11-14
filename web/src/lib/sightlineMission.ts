@@ -156,6 +156,16 @@ export function scenarioLink(scenarios: SightlineScenario[], active: number, sta
   return `${link}${slope}${panel}${antenna}${active > 0 ? `&sc=${active}` : ''}`
 }
 
+/**
+ * The link for Sightline's Surface view: the scenario on show as the link's own site and hour. The
+ * Surface page reads only the link's first place, so a scenario other than A must be put there, or
+ * the view would stay on A's site and date while the side panel shows another.
+ */
+export function surfaceLink(scenarios: SightlineScenario[], active: number, startIso: string, mission: SightlineMission): string {
+  const shown = scenarios[active] ?? scenarios[0]
+  return scenarioLink([shown], 0, startIso, mission)
+}
+
 /** The scenarios and mission a link carries; null if it carries none or its first points outside the data. */
 export function readScenarioLink(hash: string, startIso: string, hours: number): { scenarios: SightlineScenario[]; active: number; mission: SightlineMission } | null {
   const view = decodeView(hash, DEFAULT_REQUIREMENTS)

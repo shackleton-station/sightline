@@ -49,3 +49,22 @@ export function atNearestHour(base: SurfaceAddress, iso: string): SurfaceAddress
   const month = at.toISOString().slice(0, 7)
   return { ...base, month, index: (at.getTime() - Date.parse(`${month}-01T00:00:00Z`)) / HOUR_MS }
 }
+
+/** The message the Surface view sends Sightline, its host page, once the hour on show has settled. */
+export const SURFACE_MOVED = 'sightline-surface-moved'
+export interface SurfaceMoved {
+  type: typeof SURFACE_MOVED
+  site: string
+  month: string
+  /** The hour within the month. */
+  index: number
+}
+
+/** The message, if `data` is one; null for anything else a page may be sent. */
+export function readSurfaceMoved(data: unknown): SurfaceMoved | null {
+  if (typeof data !== 'object' || data === null) return null
+  const { type, site, month, index } = data as Record<string, unknown>
+  if (type !== SURFACE_MOVED || typeof site !== 'string' || typeof month !== 'string' || !/^\d{4}-\d{2}$/.test(month)) return null
+  if (typeof index !== 'number' || !Number.isInteger(index) || index < 0) return null
+  return { type, site, month, index }
+}

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import type { TrackPoint } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
 import { useHorizonsCheck } from '../data/horizonsCheck'
@@ -12,6 +12,7 @@ import { panelSunlight } from '../lib/power'
 import { aboveSkylineMeans, elevationWords } from '../lib/sightline'
 import { earthLine, groundLine, landingSentence, showingWords, skylineFigure, sunLine } from '../lib/sightlineSky'
 import { HorizonsLive } from './HorizonsLive'
+import { type BodyOver, OverRow } from './LightChart'
 
 interface Props {
   /** The site, in the month of the landing; null while it loads. */
@@ -32,6 +33,12 @@ interface Props {
   verdict: ReactNode
   /** The plan's three controls (site, landing, mission): under the verdict, above the Sun, Earth and ground. */
   plan: ReactNode
+  /**
+   * The Sun and Earth over the whole mission, for their rows to lead with: null while the mission's
+   * limits are open in the column or when the mission runs past the data, and the rows are then the
+   * landing's hour alone.
+   */
+  over: { start: string; landing: number; missionDays: number; sun: BodyOver; earth: BodyOver } | null
 }
 
 /** What the Sun's small line means, for its tooltip. */
@@ -50,7 +57,9 @@ function elevationLead(elevationDeg: number): string {
  * landing's hour (the countdowns run from the landing) from the pipeline's track, horizon and flags,
  * through the functions the rest of the app uses. It does not follow the time bar.
  */
-export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsLine, earthShare, verdict, plan }: Props) {
+export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsLine, earthShare, verdict, plan, over }: Props) {
+  // The hour under the pointer, on either row's chart: one crosshair runs through both.
+  const [at, setAt] = useState<number | null>(null)
   // The hour-for-hour comparison with JPL Horizons for a listed site; a custom point has none.
   const horizons = useHorizonsCheck(data?.site.id ?? null)
   if (error) {
@@ -85,7 +94,33 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
       </p>
       {heightsLine && <p className="sl-heights-line">{heightsLine}</p>}
       <dl className="sl-facts">
-        <div className="sl-fact is-sun" tabIndex={0} title={aboveMeans && now ? `${elevationLead(now.sun_el)}${aboveMeans} ${SUNLIGHT_MEANS}` : undefined}>
+        {over && (
+          <OverRow
+            kind="sun"
+            over={over.sun}
+            start={over.start}
+            landing={over.landing}
+            missionDays={over.missionDays}
+            atLanding={`${sunAbove ? `${sunAbove.figure} ${sunAbove.side}` : '…'}${sunShowing ? `, ${sunShowing}` : ''}${now && next ? ` · ${sunLine(now.sun_up, next.sun.hours, panelSunlight([now]).vertical)}` : ''}`}
+            title={aboveMeans && now ? `At landing: ${elevationLead(now.sun_el)}${aboveMeans} ${SUNLIGHT_MEANS}` : undefined}
+            at={at}
+            onAt={setAt}
+          />
+        )}
+        {over && (
+          <OverRow
+            kind="earth"
+            over={over.earth}
+            start={over.start}
+            landing={over.landing}
+            missionDays={over.missionDays}
+            atLanding={`${earthAbove ? `${earthAbove.figure} ${earthAbove.side}` : '…'}${earthShowing ? `, ${earthShowing}` : ''}${now && next ? ` · ${earthLine(now.earth_up, next.earth.hours)}` : ''}`}
+            title={earthAboveMeans && now ? `At landing: ${elevationLead(now.earth_el)}${earthAboveMeans}` : undefined}
+            at={at}
+            onAt={setAt}
+          />
+        )}
+        <div hidden={over !== null} className="sl-fact is-sun" tabIndex={0} title={aboveMeans && now ? `${elevationLead(now.sun_el)}${aboveMeans} ${SUNLIGHT_MEANS}` : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Sun
           </dt>
@@ -96,7 +131,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
           <dd className="sl-fact-small">{now && next ? sunLine(now.sun_up, next.sun.hours, panelSunlight([now]).vertical) : '…'}</dd>
           {sunShowing && <dd className="sl-fact-small is-showing">{sunShowing}</dd>}
         </div>
-        <div className="sl-fact is-earth" tabIndex={0} title={earthAboveMeans && now ? `${elevationLead(now.earth_el)}${earthAboveMeans}` : undefined}>
+        <div hidden={over !== null} className="sl-fact is-earth" tabIndex={0} title={earthAboveMeans && now ? `${elevationLead(now.earth_el)}${earthAboveMeans}` : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Earth
           </dt>
