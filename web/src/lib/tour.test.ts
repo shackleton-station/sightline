@@ -28,7 +28,7 @@ describe("Scout's tour: the steps", () => {
 
   it('name a voice file each, and the video the page looks for', () => {
     expect(tour.steps.map((step) => voiceFile(tour, step))).toEqual(['watch', 'markers', 'plan', 'verdict', 'skyline', 'time', 'compare', 'scout'].map((id) => `/tour/voice/${id}.mp3`))
-    expect(tour.video).toEqual({ manifest: '/video/sightline-tutorial.json', file: '/video/sightline-tutorial.mp4', poster: '/video/sightline-tutorial-poster.jpg', captions: '/video/sightline-tutorial.vtt' })
+    expect(tour.video).toMatchObject({ file: '/media/sightline-tutorial.mp4', poster: '/media/sightline-tutorial-poster.jpg', captions: '/media/sightline-tutorial.vtt' })
     expect(tour.voice.disclosure).toBe('AI-generated voice')
   })
 

@@ -3,23 +3,23 @@
   "disclosure": "AI-generated voice",
   "lines": {
     "watch": {
-      "hash": "0a18d6615ab733b8",
-      "bytes": 32544,
-      "say": "This is the Moon seen from above its south pole, lit as it is right now. Press play to watch the light move."
+      "hash": "dd4743c689ba253e",
+      "bytes": 36672,
+      "say": "A lander needs the Sun for power and Earth for radio. This is the Moon from above its south pole, lit as it is now: press play."
     },
     "markers": {
       "hash": "df9da48749873479",
-      "bytes": 34944,
+      "bytes": 33024,
       "say": "Each marker is a landing site. Its shape and colour say what it can see at this moment: the Sun, Earth, both or neither."
     },
     "plan": {
       "hash": "f49cc2e91380f5c6",
-      "bytes": 23904,
+      "bytes": 22272,
       "say": "Choose where to land, when, and which mission. Everything below answers for that plan."
     },
     "verdict": {
       "hash": "ccd804c2249390cb",
-      "bytes": 32352,
+      "bytes": 30432,
       "say": "Sightline says whether the landing fits the mission, and why. If it does not, it offers the next landing that does."
     },
     "skyline": {
@@ -28,18 +28,18 @@
       "say": "This is the real skyline around the site, with the Sun and Earth where they stand at that hour. A body below the skyline is out of view."
     },
     "time": {
-      "hash": "c3e3160e14082474",
-      "bytes": 30624,
-      "say": "The bands show when the Sun and Earth are in view in the weeks after landing. Move along them, then press \"land here\" to try that hour."
+      "hash": "c536755e1fd171ff",
+      "bytes": 37152,
+      "say": "The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press \"land here\" to try that hour."
     },
     "compare": {
       "hash": "09951bc37173365d",
-      "bytes": 34464,
+      "bytes": 41664,
       "say": "Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window."
     },
     "scout": {
       "hash": "9a38e2df9bfd0b2b",
-      "bytes": 30336,
+      "bytes": 28416,
       "say": "Ask Scout in plain words: he looks the answer up in the same data. Hide leaves only the Moon."
     }
   }

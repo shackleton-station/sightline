@@ -8,10 +8,10 @@
     "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\""
   },
   "video": {
-    "manifest": "/video/sightline-tutorial.json",
-    "file": "/video/sightline-tutorial.mp4",
-    "poster": "/video/sightline-tutorial-poster.jpg",
-    "captions": "/video/sightline-tutorial.vtt"
+    "about": "The tutorial video, recorded from this tour. The page shows its player only once the file answers.",
+    "file": "/media/sightline-tutorial.mp4",
+    "poster": "/media/sightline-tutorial-poster.jpg",
+    "captions": "/media/sightline-tutorial.vtt"
   },
   "scenario": {
     "about": "The landing the tour plans from step 3 on: one that does not fit the default mission, so the verdict has a reason and a next landing to show.",
@@ -22,7 +22,7 @@
     {
       "id": "watch",
       "title": "The Moon, now",
-      "say": "This is the Moon seen from above its south pole, lit as it is right now. Press play to watch the light move.",
+      "say": "A lander needs the Sun for power and Earth for radio. This is the Moon from above its south pole, lit as it is now: press play.",
       "state": { "view": "watch" },
       "targets": [".sl-pill"]
     },
@@ -57,7 +57,7 @@
     {
       "id": "time",
       "title": "The month ahead",
-      "say": "The bands show when the Sun and Earth are in view in the weeks after landing. Move along them, then press \"land here\" to try that hour.",
+      "say": "The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press \"land here\" to try that hour.",
       "state": { "view": "plan", "show": "time" },
       "targets": [".sl-river"]
     },

@@ -39,12 +39,12 @@ screen: each step puts the app in a state, rings the control it is about, and sa
 sentences. Back, Next and Close, or the arrow keys and Escape; closing at any step puts the screen back
 as it was. **Listen** plays each line in Scout's voice (AI-generated; off until pressed). The steps:
 
-1. **The Moon, now.** This is the Moon seen from above its south pole, lit as it is right now. Press play to watch the light move.
+1. **The Moon, now.** A lander needs the Sun for power and Earth for radio. This is the Moon from above its south pole, lit as it is now: press play.
 2. **The markers.** Each marker is a landing site. Its shape and colour say what it can see at this moment: the Sun, Earth, both or neither.
 3. **Plan a landing.** Choose where to land, when, and which mission. Everything below answers for that plan.
 4. **The verdict.** Sightline says whether the landing fits the mission, and why. If it does not, it offers the next landing that does.
 5. **What the lander sees.** This is the real skyline around the site, with the Sun and Earth where they stand at that hour. A body below the skyline is out of view.
-6. **The month ahead.** The bands show when the Sun and Earth are in view in the weeks after landing. Move along them, then press "land here" to try that hour.
+6. **The month ahead.** The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press "land here" to try that hour.
 7. **More than one plan.** Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window.
 8. **Ask Scout.** Ask Scout in plain words: he looks the answer up in the same data. Hide leaves only the Moon.
 

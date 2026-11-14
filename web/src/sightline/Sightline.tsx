@@ -214,7 +214,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const tourPlanned = useRef(false)
   // The offer in Scout's closed line shows on a first visit only: remembered once seen or taken.
   const [tourSeen, setTourSeen] = useStored('tourSeen', false)
-  const tutorialVideo = useTutorialVideo(TOUR.video.manifest, tourAt !== null || how)
+  /** Whether the visitor has taken the tour: How it works then offers it "again". */
+  const [tourTaken, setTourTaken] = useStored('tourTaken', false)
+  const tutorialVideo = useTutorialVideo(TOUR.video, tourAt !== null || how)
   /** How it works opens at its video when the tour's last step asks for it. */
   const [howAtVideo, setHowAtVideo] = useState(false)
 
@@ -486,6 +488,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     beforeTour.current = { plan, scenarios, chosen, drawer, full, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
     tourPlanned.current = false
     setTourSeen(true)
+    setTourTaken(true)
     setHow(false)
     setTourAt(0)
   }
@@ -777,7 +780,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             <button type="button" className="sl-link" title="Put the time bar back on the landing" onClick={() => setHour(scenario.landing)}>
               Back to landing
             </button>
-            <button type="button" className="sl-link" title="Make this moment the landing" onClick={() => setScenario((current) => ({ ...current, landing: hour }))}>
+            <button type="button" className="sl-link" data-tour="land" title="Make this moment the landing" onClick={() => setScenario((current) => ({ ...current, landing: hour }))}>
               Land here
             </button>
           </p>
@@ -800,7 +803,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <p>Where to land on the Moon, and when</p>
             </header>
             <div className="sl-top sl-fade">
-              <button type="button" className="is-main" title="Open the planner (P)" onClick={() => openPlan(null)}>
+              <button type="button" className="is-main" data-tour="plan" title="Open the planner (P)" onClick={() => openPlan(null)}>
                 Plan a landing
               </button>
               <button type="button" title="Hide everything but the Moon (H)" onClick={() => setBare(true)}>
@@ -900,6 +903,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               setHowAtVideo(false)
             }}
             onTour={startTour}
+            tourTaken={tourTaken}
             video={tutorialVideo}
             openAtVideo={howAtVideo}
           />

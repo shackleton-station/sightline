@@ -30,7 +30,8 @@ export interface TourFile {
   /** Scout's closed line on a first visit. */
   offer: string
   voice: { disclosure: string; files: string; from: string }
-  video: { manifest: string; file: string; poster: string; captions: string }
+  /** The tutorial video's files, under /media/. The page shows the player only once the file answers. */
+  video: { file: string; poster: string; captions: string }
   /** The landing the tour plans from its first Plan step on. */
   scenario: { site: string; landing: string }
   steps: TourStep[]
@@ -72,7 +73,8 @@ const CLEAR = 8
 /**
  * Where Scout's bubble sits for a step: the first of a few fixed places that covers neither the
  * Moon's disc nor anything the step rings. On a laptop that is the lower left corner, where Scout
- * lives in Watch and where Plan's column is empty, then the other corners. On a phone it is the foot
+ * lives in Watch and where Plan's column is empty (so it stands beside the column and the strips the
+ * steps ring, and "Next" stays in one place from step to step), then the other corners. On a phone it is the foot
  * of the screen, then just above the lowest thing ringed, then the top. If every place covers
  * something, the Moon's disc is the one thing still never covered; the place that hides the least
  * of what is ringed wins.

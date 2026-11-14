@@ -23,6 +23,8 @@ interface Props {
   onBack: () => void
   /** Start Scout's tour of the screen (Sightline only: the tour drives that screen). */
   onTour?: () => void
+  /** The visitor has taken the tour before: the button offers it again. */
+  tourTaken?: boolean
   /** The tutorial video's files, once they exist; the player shows only then. */
   video?: TutorialVideo | null
   /** Open with the video in view: the tour's last step leads here. */
@@ -110,7 +112,7 @@ const STACK: { layer: string; items: string[] }[] = [
 ]
 
 /** How the numbers are made, why to trust them, what the site runs on, and how the co-pilot stays honest. */
-export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, video = null, openAtVideo = false }: Props) {
+export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, video = null, openAtVideo = false }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -178,7 +180,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, video =
         {onTour && (
           <p className="how-use-tour">
             <button type="button" className="how-tour-button" onClick={onTour}>
-              Take the tour
+              {tourTaken ? 'Take the tour again' : 'Take the tour'}
             </button>{' '}
             Scout walks you through these on the real screen, in about a minute.
           </p>
