@@ -1,7 +1,7 @@
 import { type KeyboardEvent, type PointerEvent, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MAX_ZOOM, MIN_ZOOM } from '../lib/globe'
-import { latLonOf, project, screenUp, unitOf, unproject, type Vec3 } from '../lib/polarCamera'
-import { dragPose, flightPose, leveled, type Pose, poseAt, turnBetween, turnPose, twistTo } from '../lib/trackball'
+import { latLonOf, project, unitOf, unproject, type Vec3 } from '../lib/polarCamera'
+import { dragLevel, dragPose, flightPose, leveled, type Pose, poseAt, softPoint, turnBetween, turnPose } from '../lib/trackball'
 
 interface Options {
   /** Where the view starts, in degrees. */
@@ -20,8 +20,8 @@ interface Options {
   /** Called with the Moon point under a click (not a drag). */
   onPick?: (lat: number, lon: number) => void
   /**
-   * Leave the picture exactly as the visitor turned it: no easing back the usual way up after a
-   * drag, a glide or an arrow key. Flights still arrive the usual way up. Off unless asked for.
+   * Leave the picture exactly as the visitor turned it: no turning toward the usual way up during a
+   * drag or after an arrow key. Flights still arrive the usual way up. Off unless asked for.
    */
   keepTurn?: boolean
 }
@@ -33,20 +33,12 @@ interface Camera extends Pose {
 const CLICK_SLOP_PX = 5
 const WHEEL_RATE = 0.0015
 const KEY_STEP = 0.12
-/** A glide slows steadily: every GLIDE_MS its speed falls to about a third. */
-const GLIDE_MS = 320
-/** The farthest a glide may carry the view, in disk units at zoom 1 (the box is 2 across). */
-const GLIDE_REACH = 0.5
-/** Slower than this (radians per millisecond), a release is just a release. */
-const GLIDE_MIN_SPEED = 0.00002
-/** How long the picture takes to come back the right way up once it is let go. */
-const LEVEL_MS = 600
 /**
- * The fastest the picture may turn while it rights itself, in radians per millisecond (150° a second).
- * Far round a pole the usual way up can be half a turn from how the picture was left; at this pace
- * that reads as the map turning round, not as a jump.
+ * While a drag moves the ground by some angle, the picture may turn toward the usual way up by up to
+ * this many times that angle. Fast enough to keep up through the turn near a pole (72° to 82°), and
+ * since it is paced by the drag, the picture stops turning the moment the pointer stops.
  */
-const LEVEL_MAX_RATE = (150 * Math.PI) / 180 / 1000
+const LEVEL_PACE = 3
 
 function reducedMotion(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -54,18 +46,36 @@ function reducedMotion(): boolean {
 
 /**
  * One camera for every globe on the site. Drag the ground and it follows the pointer, anywhere on
- * the Moon, the poles included; let go while moving and it glides to a stop; wheel or pinch zooms
- * toward where the pointer is; arrow keys and +/- work too; flights between places ease in and out.
- * After a drag the picture eases back the usual way up (see lib/trackball.ts for why it can tilt).
+ * the Moon, the poles included, and stops where the pointer lets go: no glide, no turning afterwards.
+ * While it is dragged the picture turns toward the usual way up (north, or the polar map's way up
+ * near a pole) at a pace set by the drag (lib/trackball.ts, dragLevel). Wheel or pinch zooms toward
+ * where the pointer is; arrow keys and +/- work too; flights between places ease in and out.
  */
 export function useMoonCamera({ initialView, initialZoom = 1, surfaceRef, minZoom = MIN_ZOOM, maxZoom = MAX_ZOOM, maxZoomAt, onPick, keepTurn = false }: Options) {
   const [camera, setCameraState] = useState<Camera>(() => ({ ...poseAt(initialView.lat, initialView.lon), zoom: initialZoom }))
   // Pointer events can arrive several to a frame, so the newest camera is also kept outside React.
   const latest = useRef(camera)
+  const drawSoon = useRef<number | null>(null)
   const setCamera = useCallback((next: Camera) => {
     latest.current = next
+    if (drawSoon.current !== null) cancelAnimationFrame(drawSoon.current)
+    drawSoon.current = null
     setCameraState(next)
   }, [])
+  /** For a drag: the camera follows every move, but the page redraws once a frame with the newest one. */
+  const setCameraSoon = useCallback((next: Camera) => {
+    latest.current = next
+    drawSoon.current ??= requestAnimationFrame(() => {
+      drawSoon.current = null
+      setCameraState(latest.current)
+    })
+  }, [])
+  useEffect(
+    () => () => {
+      if (drawSoon.current !== null) cancelAnimationFrame(drawSoon.current)
+    },
+    [],
+  )
   const options = useRef({ minZoom, maxZoom, maxZoomAt, onPick, keepTurn })
   useEffect(() => {
     options.current = { minZoom, maxZoom, maxZoomAt, onPick, keepTurn }
@@ -77,37 +87,13 @@ export function useMoonCamera({ initialView, initialZoom = 1, surfaceRef, minZoo
   }, [])
   const [touched, setTouched] = useState(false)
 
-  // One animation at a time: a flight, a glide, or the picture righting itself.
+  // One animation at a time: a flight or a zoom step. A drag never leaves one running.
   const motion = useRef<number | null>(null)
   const stopMotion = useCallback(() => {
     if (motion.current !== null) cancelAnimationFrame(motion.current)
     motion.current = null
   }, [])
   useEffect(() => stopMotion, [stopMotion])
-
-  /** Ease the picture back the usual way up, without moving the view. */
-  const level = useCallback(() => {
-    stopMotion()
-    if (reducedMotion()) {
-      setCamera({ ...leveled(latest.current, 1), zoom: latest.current.zoom })
-      return
-    }
-    let last: number | null = null
-    const step = (time: number) => {
-      const dt = last === null ? 16 : Math.min(time - last, 50)
-      last = time
-      const from = latest.current
-      // Closing a fixed share of what is left each frame: quick at first, gentle at the end,
-      // and never faster than LEVEL_MAX_RATE.
-      const twist = Math.abs(twistTo(from, screenUp(from.center)))
-      const share = Math.min(1 - Math.exp(-dt / (LEVEL_MS / 4)), twist > 0 ? (LEVEL_MAX_RATE * dt) / twist : 1)
-      const next = leveled(from, share)
-      setCamera({ ...next, zoom: from.zoom })
-      const left = Math.abs(turnBetween(next.up, leveled(next, 1).up).angle)
-      motion.current = left > 0.0005 ? requestAnimationFrame(step) : null
-    }
-    motion.current = requestAnimationFrame(step)
-  }, [setCamera, stopMotion])
 
   /** Glide to a place and zoom, easing in and out; resolves when it arrives. */
   const flyTo = useCallback(
@@ -137,13 +123,23 @@ export function useMoonCamera({ initialView, initialZoom = 1, surfaceRef, minZoo
     [setCamera, stopMotion, clampZoom],
   )
 
-  /** The Moon point under a spot on the screen, for a given camera; null off the disk. */
-  const pointAt = (clientX: number, clientY: number, at: Camera): Vec3 | null => {
+  /** A spot on the screen in disk units at zoom 1 (x right, y up, the disk -1 to 1) for a given zoom. */
+  const diskAt = (clientX: number, clientY: number, zoom: number): { x: number; y: number } | null => {
     const box = surfaceRef.current?.getBoundingClientRect()
     if (!box) return null
-    const x = (((clientX - box.left) / box.width) * 2 - 1) / at.zoom
-    const y = (1 - ((clientY - box.top) / box.height) * 2) / at.zoom
-    return unproject(x, y, at.center, at.up)
+    return { x: (((clientX - box.left) / box.width) * 2 - 1) / zoom, y: (1 - ((clientY - box.top) / box.height) * 2) / zoom }
+  }
+
+  /** The Moon point under a spot on the screen, for a given camera; null off the disk. */
+  const pointAt = (clientX: number, clientY: number, at: Camera): Vec3 | null => {
+    const spot = diskAt(clientX, clientY, at.zoom)
+    return spot ? unproject(spot.x, spot.y, at.center, at.up) : null
+  }
+
+  /** The direction a drag holds at a spot: the ground itself, softened near the rim and beyond it. */
+  const gripAt = (clientX: number, clientY: number, at: Camera): Vec3 | null => {
+    const spot = diskAt(clientX, clientY, at.zoom)
+    return spot ? softPoint(spot.x, spot.y, at.center, at.up) : null
   }
 
   /** Change the zoom, keeping the ground under (clientX, clientY) where it is. */
@@ -175,8 +171,6 @@ export function useMoonCamera({ initialView, initialZoom = 1, surfaceRef, minZoo
   const held = useRef<Vec3 | null>(null)
   const moved = useRef(0)
   const pinch = useRef<number | null>(null)
-  /** The last turn a drag made and how long it took, for carrying on when the pointer lets go. */
-  const spin = useRef<{ axis: Vec3; rate: number; at: number } | null>(null)
 
   const onPointerDown = (event: PointerEvent<HTMLElement>) => {
     if (!(event.target instanceof HTMLCanvasElement)) return
@@ -185,10 +179,9 @@ export function useMoonCamera({ initialView, initialZoom = 1, surfaceRef, minZoo
     setTouched(true)
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
     pinch.current = null
-    spin.current = null
     if (pointers.current.size === 1) {
       moved.current = 0
-      held.current = pointAt(event.clientX, event.clientY, latest.current)
+      held.current = gripAt(event.clientX, event.clientY, latest.current)
     }
   }
 
@@ -203,19 +196,16 @@ export function useMoonCamera({ initialView, initialZoom = 1, surfaceRef, minZoo
       pinch.current = distance
       moved.current = Infinity
       held.current = null
-      spin.current = null
       return
     }
     moved.current += Math.hypot(event.clientX - last.x, event.clientY - last.y)
     const from = latest.current
-    const under = pointAt(event.clientX, event.clientY, from)
-    if (!held.current || !under || moved.current <= CLICK_SLOP_PX) return
-    const { axis, angle } = turnBetween(under, held.current)
-    setCamera({ ...turnPose(from, axis, angle), zoom: from.zoom })
-    // Remember how fast the globe is turning, smoothed over the last few moves.
-    const elapsed = Math.max(event.timeStamp - (spin.current?.at ?? event.timeStamp - 16), 1)
-    const rate = angle / elapsed
-    spin.current = { axis, rate: spin.current && elapsed < 80 ? spin.current.rate * 0.5 + rate * 0.5 : rate, at: event.timeStamp }
+    const spot = diskAt(event.clientX, event.clientY, from.zoom)
+    if (!held.current || !spot || moved.current <= CLICK_SLOP_PX) return
+    // How far this move turns the ground sets how far the picture may turn toward the usual way up.
+    const { angle } = turnBetween(softPoint(spot.x, spot.y, from.center, from.up), held.current)
+    const twist = options.current.keepTurn ? 0 : LEVEL_PACE * angle
+    setCameraSoon({ ...dragLevel(from, held.current, spot.x, spot.y, twist), zoom: from.zoom })
   }
 
   const onPointerUp = (event: PointerEvent<HTMLElement>) => {
@@ -224,41 +214,19 @@ export function useMoonCamera({ initialView, initialZoom = 1, surfaceRef, minZoo
     if (pointers.current.size < 2) pinch.current = null
     const point = wasClick ? pointAt(event.clientX, event.clientY, latest.current) : null
     held.current = null
+    // Letting go ends the drag where it is: the last move is drawn now, and nothing carries on.
+    setCamera(latest.current)
     if (point) {
       const { lat, lon } = latLonOf(point)
       options.current.onPick?.(lat, lon)
-      return
     }
-    if (pointers.current.size > 0) return
-    // Let go while moving: carry on the same way and slow to a stop, then come back the right way up.
-    const going = spin.current
-    spin.current = null
-    if (!going || event.timeStamp - going.at > 80 || going.rate < GLIDE_MIN_SPEED || reducedMotion()) {
-      if (!options.current.keepTurn) level()
-      return
-    }
-    // However hard the flick, the glide carries the picture a quarter of the box at most, at any zoom.
-    let rate = Math.min(going.rate, GLIDE_REACH / (latest.current.zoom * GLIDE_MS))
-    let last: number | null = null
-    const step = (time: number) => {
-      const dt = last === null ? 16 : Math.min(time - last, 50)
-      last = time
-      rate *= Math.exp(-dt / GLIDE_MS)
-      const from = latest.current
-      setCamera({ ...turnPose(from, going.axis, rate * dt), zoom: from.zoom })
-      if (rate > GLIDE_MIN_SPEED / 2) motion.current = requestAnimationFrame(step)
-      else if (options.current.keepTurn) motion.current = null
-      else level()
-    }
-    stopMotion()
-    motion.current = requestAnimationFrame(step)
   }
 
   const onPointerCancel = (event: PointerEvent<HTMLElement>) => {
     pointers.current.delete(event.pointerId)
     pinch.current = null
     held.current = null
-    spin.current = null
+    setCamera(latest.current)
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
