@@ -1,5 +1,5 @@
 import type { RiverState } from '../lib/river'
-import { DEFAULT_SPEED, SPEEDS } from '../lib/sightline'
+import { DEFAULT_SPEED, SPEEDS, TIME_KEYS_MEAN } from '../lib/sightline'
 import { Mascot } from '../scout/Mascot'
 import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { MAX_QUESTION_CHARS } from '../lib/chatClient'
@@ -242,7 +242,7 @@ interface PlayProps {
 /** The small play control at the bottom: play or pause, the date, the speed and a scrub line. Shrinks to a dot. */
 export function PlayControl({ clock, date, span, minimised, onMinimise }: PlayProps) {
   const play = (
-    <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} onClick={() => clock.setPlaying(!clock.playing)}>
+    <button type="button" className="sl-round" aria-label={clock.playing ? 'Pause' : 'Play'} title={TIME_KEYS_MEAN} onClick={() => clock.setPlaying(!clock.playing)}>
       {clock.playing ? '❚❚' : '▶'}
     </button>
   )

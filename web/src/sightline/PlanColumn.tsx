@@ -117,8 +117,8 @@ const CUSTOM = '__custom'
 const TOOLS = '__tools'
 
 /**
- * The plan: three compact controls, each one control with a small picture before it and no label
- * above it. The site (a custom point and NASA's tools are at the foot of its own list), the landing's
+ * The plan: three compact controls, each one control with a small picture before it, one tiny word
+ * inside it saying what it is ("Site", "Landing", "Mission") and no label above it. The site (a custom point and NASA's tools are at the foot of its own list), the landing's
  * date and hour, and the mission (its preset's name, opening the Mission panel).
  */
 export function Fields({ sites, site, onSite, landing, landingField, firstField, lastField, onPickDate, missionName, mission, missionOpen, onMission }: FieldsProps) {
@@ -132,6 +132,9 @@ export function Fields({ sites, site, onSite, landing, landingField, firstField,
     <div className="sl-plan">
       <div className="sl-plan-row">
         <PlanIcon kind="site" />
+        <span className="sl-plan-label" aria-hidden="true">
+          Site
+        </span>
         <select
           id="sl-site"
           aria-label="Landing site"
@@ -193,10 +196,16 @@ export function Fields({ sites, site, onSite, landing, landingField, firstField,
       )}
       <div className="sl-plan-row">
         <PlanIcon kind="landing" />
+        <span className="sl-plan-label is-edge" aria-hidden="true">
+          Landing
+        </span>
         <LandingPick landing={landing} landingField={landingField} firstField={firstField} lastField={lastField} onPick={onPickDate} />
       </div>
       <div className="sl-plan-row">
         <PlanIcon kind="mission" />
+        <span className="sl-plan-label" aria-hidden="true">
+          Mission
+        </span>
         <button type="button" className="sl-mission-open" aria-expanded={missionOpen} aria-label={`Mission: ${missionName}`} title={mission} onClick={onMission}>
           <b>{missionName}</b> <span aria-hidden="true">›</span>
         </button>

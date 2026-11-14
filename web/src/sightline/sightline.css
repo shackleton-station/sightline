@@ -1137,6 +1137,14 @@
   opacity: 0.65;
 }
 
+/* Over each thin path, a wide stroke nobody sees: what the pointer finds, for the path's hover text. */
+.sl-sky-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+}
+
 .sl-sky-path.is-sun {
   stroke: var(--sl-sun);
 }
@@ -1532,6 +1540,30 @@ button.sl-moment-heights[aria-expanded='true'] {
   touch-action: none;
 }
 
+/* What a band is and how long it lasts, over its own row: inside the time bar, so never over the Moon. */
+.sl-band-tip {
+  --half: min(9.5rem, 50%);
+
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: clamp(var(--half), var(--at), calc(100% - var(--half)));
+  z-index: 3;
+  width: max-content;
+  max-width: min(19rem, 100%);
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #241e2e;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 50%);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
 .sl-seek input {
   position: absolute;
   inset: 0;
@@ -1626,13 +1658,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   cursor: pointer;
   font-size: 0.875rem;
   color-scheme: dark;
-}
-
-.sl-pick-mark {
-  margin-left: auto;
-  color: var(--soft);
-  font-size: 0.75rem;
-  pointer-events: none;
 }
 
 .sl-caption {
@@ -3136,6 +3161,32 @@ button.sl-moment-heights[aria-expanded='true'] {
   min-height: 2.25rem;
   margin: 0;
   padding-left: 2.1rem;
+}
+
+/* What each control is, in one tiny word inside it, before its arrow: "Site", "Landing", "Mission". */
+.sl-plan-label {
+  position: absolute;
+  top: 50%;
+  right: 2.1rem;
+  z-index: 1;
+  color: var(--soft);
+  /* 12 px: the smallest type the column sets. */
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+/* The landing's control opens a calendar, not a list, so it has no arrow: its label sits at its edge. */
+.sl-plan-label.is-edge {
+  right: 0.7rem;
+}
+
+/* The site's name stops short of its label. */
+.sl-plan-row > select {
+  padding-right: 4.6rem;
+  text-overflow: ellipsis;
 }
 
 /* What the site's list opens under it: the form for a custom point, or NASA's tools on this place. */
