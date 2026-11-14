@@ -45,6 +45,11 @@ function getJson<T>(path: string): Promise<T> {
   return request
 }
 
+/** A listed site's comparison with NASA's maps and with Horizons (`<site>/validation.json`), fetched once. */
+export function loadValidation(siteId: string): Promise<Validation> {
+  return getJson<Validation>(`${siteId}/validation.json`)
+}
+
 export function loadMapMeta(): Promise<MapMeta> {
   return getJson<MapMeta>('maps/meta.json')
 }

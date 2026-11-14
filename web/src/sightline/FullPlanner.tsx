@@ -14,6 +14,8 @@ import { PlannerCompare } from './PlannerCompare'
 import { PlannerFind } from './PlannerFind'
 import type { PlannerTab } from './plannerFit'
 import { compareGroups, plannerCsv } from './plannerTable'
+import { useSiteValidations } from '../data/useSiteValidations'
+import { shareTies } from '../lib/starTie'
 import { ScenarioTabs } from './Scenarios'
 import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
 import { useShadow } from './useShadow'
@@ -76,15 +78,19 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
   })
   // The distances to permanent shadow are Compare's alone: fetched when it first opens, never for Find.
   const shadow = useShadow(tab === 'compare')
+  const siteIds = facts.map((fact) => (isCustomSite(fact.site) ? null : fact.site.id))
+  // For the star in the three rows that are a share of the mission, between two different sites (lib/starTie.ts).
+  const validations = useSiteValidations(siteIds)
   const groups = compareGroups({
     scenarios,
-    siteIds: facts.map((fact) => (isCustomSite(fact.site) ? null : fact.site.id)),
+    siteIds,
     measures,
     flags: facts.map((fact) => fact.flags),
     mission,
     landings,
     sunlightWm2,
     shadow,
+    ties: shareTies(scenarios.map((scenario, i) => ({ site: scenario.site, siteId: siteIds[i], validation: siteIds[i] === null ? undefined : validations[siteIds[i]] }))),
   })
   const spans = useMemo(() => monthSpans(start, hours), [start, hours])
 

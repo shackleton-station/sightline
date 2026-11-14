@@ -353,7 +353,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
           would make from it.
         </p>
         <p className="how-caption">
-          Where landings are compared, a star marks the best value in each row. There is no single blended score: the weights behind one would be invented.
+          Where landings are compared, a star marks the best value in each row. Between two different sites, a share of the mission (sunlit, Earth in view, or the two together) earns the star only when it leads by more than the model&apos;s measured error against NASA&apos;s maps for that pair of sites: inside it, the sites share the star or none is shown. There is no single blended score: the weights behind one would be invented.
         </p>
       </Act>
 

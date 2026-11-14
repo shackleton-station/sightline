@@ -1,4 +1,4 @@
-import type { GridStats } from '../data/contract'
+import type { GridStats, Validation } from '../data/contract'
 import type { ScenarioData } from '../data/scenarioData'
 import { type PanelSunlight, panelSunlight } from './power'
 import { pct } from './verdict'
@@ -21,16 +21,63 @@ interface Metric {
 }
 
 /** What the table compares: "Sun up" counts any part of the disk, so it's judged on that measure. */
-type MapQuantity = 'sun_any_pct' | 'earth_any_pct'
+export type MapQuantity = 'sun_any_pct' | 'earth_any_pct'
+
+/**
+ * One listed site's comparison with NASA's maps, as plain inputs: its id, its validation file and
+ * the height above the ground to read it at. What the tolerance is worked out from, wherever the
+ * caller got them (Classic has them in its scenario; the Sightline screen loads the files).
+ */
+export interface SiteValidation {
+  siteId: string
+  validation: Validation | null
+  obsHeightM: number
+}
+
+/**
+ * How far the model reads from NASA's map at a site (signed points): 0 where no map reaches, null
+ * where the file has no results at that height.
+ */
+export function mapDifference({ validation, obsHeightM }: SiteValidation, quantity: MapQuantity): number | null {
+  const pgda = validation?.pgda
+  if (!pgda?.map) return 0
+  const ours = pgda.ours?.find((row) => row.obs_height_m === obsHeightM)
+  if (!ours) return null
+  const map = quantity === 'sun_any_pct' ? pgda.map.sun_pct : pgda.map.earth_pct
+  return ours[quantity] - map
+}
+
+/** The error measured against NASA's maps at a height (RMSE over the whole grid); null where the file has no such row. */
+export function measuredErrorAt({ validation, obsHeightM }: SiteValidation, quantity: MapQuantity): number | null {
+  const row = validation?.pgda?.grid?.stats?.find((stats: GridStats) => stats.quantity === quantity && stats.obs_height_m === obsHeightM && stats.sample === 'all')
+  return row ? row.rmse : null
+}
+
+/**
+ * Smallest difference between two listed sites' readings that means anything: at least the error
+ * measured for either and, for two different sites, how differently the model reads at those
+ * sites, since that alone could produce a gap between them. Null when a number it needs is not in
+ * the files; it never throws.
+ */
+export function siteTolerance(a: SiteValidation, b: SiteValidation, quantity: MapQuantity): number | null {
+  const errorA = measuredErrorAt(a, quantity)
+  const errorB = measuredErrorAt(b, quantity)
+  if (errorA === null || errorB === null) return null
+  const base = Math.max(errorA, errorB)
+  if (a.siteId === b.siteId) return base
+  const differenceA = mapDifference(a, quantity)
+  const differenceB = mapDifference(b, quantity)
+  if (differenceA === null || differenceB === null) return null
+  return Math.max(base, Math.abs(differenceA - differenceB))
+}
+
+const plainInputs = (data: ScenarioData): SiteValidation => ({ siteId: data.site.id, validation: data.validation, obsHeightM: data.summary.obs_height_m })
 
 /** How far the model reads from NASA's map at this site (signed points); 0 where no map reaches. */
 function siteDifference(data: ScenarioData, quantity: MapQuantity): number {
-  const pgda = data.validation?.pgda
-  if (!pgda?.map) return 0
-  const ours = pgda.ours.find((row) => row.obs_height_m === data.summary.obs_height_m)
-  if (!ours) throw new Error(`no results at ${data.summary.obs_height_m} m for ${data.site.id}`)
-  const map = quantity === 'sun_any_pct' ? pgda.map.sun_pct : pgda.map.earth_pct
-  return ours[quantity] - map
+  const difference = mapDifference(plainInputs(data), quantity)
+  if (difference === null) throw new Error(`no results at ${data.summary.obs_height_m} m for ${data.site.id}`)
+  return difference
 }
 
 /** Error measured for one scenario. A custom point carries the full model's error plus its own. */
@@ -42,13 +89,9 @@ function measuredError(data: ScenarioData, quantity: MapQuantity): number {
       ? Math.max(sample.sun_p90_error, modelError.sun_any_rmse)
       : Math.max(sample.earth_p90_error, modelError.earth_rmse)
   }
-  const obsHeightM = data.summary.obs_height_m
-  const row = data.validation?.pgda.grid.stats.find(
-    (stats: GridStats) =>
-      stats.quantity === quantity && stats.obs_height_m === obsHeightM && stats.sample === 'all',
-  )
-  if (!row) throw new Error(`no validation results for ${quantity} at ${obsHeightM} m`)
-  return row.rmse
+  const error = measuredErrorAt(plainInputs(data), quantity)
+  if (error === null) throw new Error(`no validation results for ${quantity} at ${data.summary.obs_height_m} m`)
+  return error
 }
 
 /**
@@ -57,6 +100,12 @@ function measuredError(data: ScenarioData, quantity: MapQuantity): number {
  * alone could produce a gap between them.
  */
 export function tolerance(a: ScenarioData, b: ScenarioData, quantity: MapQuantity): number {
+  // Two listed sites: the plain inputs say it all.
+  if (!a.custom && !b.custom) {
+    const fromFiles = siteTolerance(plainInputs(a), plainInputs(b), quantity)
+    if (fromFiles !== null) return fromFiles
+  }
+  // A custom point carries its own error; and a file without the rows is said so, as before.
   const base = Math.max(measuredError(a, quantity), measuredError(b, quantity))
   if (a.site.id === b.site.id) return base
   return Math.max(base, Math.abs(siteDifference(a, quantity) - siteDifference(b, quantity)))

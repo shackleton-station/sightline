@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import type { ShadowDistances } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
 import { loadShadow } from '../data/loadSite'
+import { useSiteValidations } from '../data/useSiteValidations'
 import { shadowCell, shadowMeans } from '../lib/shadowWords'
 import { clockTime } from '../lib/sightline'
 import { bestIn, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { shareTies, TOO_CLOSE_NOTE } from '../lib/starTie'
 import { landingRows, type PlannerRow, plannerRows } from './plannerTable'
 import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
 
@@ -110,12 +112,16 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
     const { site, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, site, flags, mission, slopeDeg) : null
   })
+  // Between two different sites, a share of the mission earns its star only beyond the model's measured error for that pair.
+  const siteIds = facts.map((fact) => (isCustomSite(fact.site) ? null : fact.site.id))
+  const validations = useSiteValidations(siteIds)
   const rows = plannerRows(
     scenarios,
     measures,
     facts.map((fact) => fact.flags),
     mission,
     sunlightWm2,
+    shareTies(scenarios.map((scenario, i) => ({ site: scenario.site, siteId: siteIds[i], validation: siteIds[i] === null ? undefined : validations[siteIds[i]] }))),
   )
   const marginal = measures.flatMap((measure, i) => {
     const words = measure && measure.problems.length === 0 ? marginalOf[i] : []
@@ -257,6 +263,7 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
         </ul>
       )}
       <p className="sl-quiet">★ best in its row{odds?.some((one) => one !== null) && oddsFor ? `. Landings that fit: the odds of coming down where the mission fits, at ${oddsFor} accuracy` : ''}</p>
+      {rows.some((row) => row.tooClose) && <p className="sl-quiet sl-too-close">{TOO_CLOSE_NOTE}</p>}
       <div className="sl-compare-actions">
         {scenarios.length < MAX_SCENARIOS && (
           <button type="button" className="sl-small" onClick={onAdd}>

@@ -1849,6 +1849,27 @@ const SCENES = [
     ],
   },
   {
+    // The star between two different sites: Peak near Shackleton (6 May 2027) and de Gerlache Rim (26 May 2027) are
+    // 2 points apart in sunlight over a 14-day mission, well inside the model's measured error for that pair
+    // (about 21 points), so neither is starred and a line says why. Earth in view is 49 points apart: starred.
+    name: 'compare-close',
+    hash: '#a=peak-near-shackleton@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=de-gerlache-rim@2027-05-26T00',
+    steps: [click('Compare')],
+    checks: [
+      ['two sites 2 points apart in sunlight: no star on that row, a star where the lead is beyond the measured error, and the line that says why', "(() => { const rows = [...document.querySelectorAll('.sl-compare tbody tr')]; const row = (name) => rows.find((one) => one.querySelector('th').textContent.trim() === name); const sun = [...row('Sunlit, %').querySelectorAll('td')]; const earth = [...row('Earth in view, %').querySelectorAll('td')]; const gap = Math.abs(parseFloat(sun[0].textContent) - parseFloat(sun[1].textContent)); const note = document.querySelector('.sl-compare .sl-too-close')?.textContent ?? ''; return (gap > 0.5 && gap < 5 && sun.every((cell) => !cell.classList.contains('is-best')) && earth.filter((cell) => cell.classList.contains('is-best')).length === 1 && /^Two sites closer than the model's measured error share the ★ or get none: see How it works\\.$/.test(note)) || 'gap ' + gap + ', sunlit stars ' + sun.filter((cell) => cell.classList.contains('is-best')).length + ', note: ' + note })()", 4000],
+      ['the Planner\'s Compare tab says the same under its table', `(document.querySelector('.sl-compare .sl-compare-full').click(), true) && ${after(1500, "(() => { const notes = [...document.querySelectorAll('.sl-full .sl-quiet')].map((note) => note.textContent.trim()); return (notes.includes('★ best in its row') && notes.some((note) => /^Two sites closer than the model's measured error/.test(note))) || notes.join(' | ') })()")}`],
+    ],
+  },
+  {
+    // One site on two dates keeps its star: half a point still settles it there, and no line is added.
+    name: 'compare-same-site',
+    hash: '#a=peak-near-shackleton@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=peak-near-shackleton@2027-05-08T13',
+    steps: [click('Compare')],
+    checks: [
+      ['one site on two dates: the better sunlit share keeps its star, and there is no line about measured error', "(() => { const rows = [...document.querySelectorAll('.sl-compare tbody tr')]; const sun = [...rows.find((one) => one.querySelector('th').textContent.trim() === 'Sunlit, %').querySelectorAll('td')]; return (sun.filter((cell) => cell.classList.contains('is-best')).length === 1 && document.querySelector('.sl-compare .sl-too-close') === null) || sun.map((cell) => cell.textContent.trim()).join(' | ') })()", 4000],
+    ],
+  },
+  {
     name: 'compare-four',
     hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~de-gerlache-rim@2027-06-01T00~peak-near-shackleton@2027-07-10T12',
     steps: [click('Compare')],
@@ -1858,7 +1879,7 @@ const SCENES = [
       ['with Compare open the page says "skyline", never "the ridge", for the terrain\'s outline', OWN_WORDS],
       ['on a phone each letter is a comfortable touch target, and each badge has one larger than it looks', "window.innerWidth > 760 || ([...document.querySelectorAll('.sl-tabs .sl-tab > button:first-child, .sl-tabs > button')].every((button) => button.getBoundingClientRect().width >= 36 && button.getBoundingClientRect().height >= 36) && [...document.querySelectorAll('.sl-tabs .sl-tab-remove')].every((badge) => badge.getBoundingClientRect().width - 2 * parseFloat(getComputedStyle(badge, '::after').top) >= 34))"],
       ['with four there is no tab to add a fifth', "document.querySelector('.sl-tabs button[aria-label=\"Add a scenario\"]') === null"],
-      ['the note under Compare\'s table is "★ best in its row" and nothing more', "(() => { const notes = [...document.querySelectorAll('.sl-compare .sl-quiet')].map((note) => note.textContent.trim()); return (notes.length === 1 && notes[0] === '★ best in its row') || notes.join(' | ') })()"],
+      ['the note under Compare\'s table is "★ best in its row", and the only other line is the one about two sites too close to call', "(() => { const notes = [...document.querySelectorAll('.sl-compare .sl-quiet')].map((note) => note.textContent.trim()); return (notes[0] === '★ best in its row' && notes.slice(1).every((note) => /^Two sites closer than the model's measured error share the ★ or get none: see How it works\\.$/.test(note)) && notes.length <= 2) || notes.join(' | ') })()"],
       ['with Compare open no label on the river is cut or ends in "…"', `window.innerWidth < 761 || ${LABELS_WHOLE}`],
       ['Compare with four scenarios does not scroll sideways, and no cell is cut off', "(() => { const drawer = document.querySelector('.sl-compare'); const box = drawer.getBoundingClientRect(); const table = drawer.querySelector('table').getBoundingClientRect(); return drawer.scrollWidth <= drawer.clientWidth && table.left >= box.left && table.right <= box.right + 0.5 && [...drawer.querySelectorAll('th, td, li, caption')].every((cell) => cell.scrollWidth <= cell.clientWidth + 1) })()"],
       ['neither the column nor the Compare panel scrolls', COLUMN_FITS],
