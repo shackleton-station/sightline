@@ -846,8 +846,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const toggleMission = () => setMissionHere((open) => !open)
   // The Sun and Earth over the mission, charted at the column's foot: read while Plan is on show and the mission's limits are shut (open, they take its room).
   const missionLight = useMissionLight(site, scenario.landing, start, held, lit.applied, mission.requirements.missionDays, plan && !full && !missionHere)
-  // The Sun and Earth over the whole mission, for their rows in the column: the hours up and the longest time down are
-  // from the hourly flags the verdict is worked out from; the charts' lines arrive with the mission's hours.
+  // The Sun and Earth over the whole mission, charted under their rows in the column: the longest time down is from
+  // the hourly flags the verdict is worked out from; the charts' lines arrive with the mission's hours.
   const over = useMemo(() => {
     const { missionDays, maxSunGapH, maxEarthGapH } = mission.requirements
     const end = scenario.landing + missionDays * 24
@@ -860,7 +860,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         ...spanStats(flags.sun, scenario.landing, end),
         limitH: maxSunGapH,
         values: missionLight?.hours.map((one) => one.sunPct) ?? null,
-        also: missionLight ? `avg ${Math.round(missionLight.sunlightWm2)} W/m²` : undefined,
       },
       earth: { ...spanStats(missionEarth(flags, mission.requirements), scenario.landing, end), limitH: maxEarthGapH >= NO_LIMIT_H ? null : maxEarthGapH, values: missionLight?.hours.map((one) => one.earthPct) ?? null },
     }

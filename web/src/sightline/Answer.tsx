@@ -12,7 +12,7 @@ import { panelSunlight } from '../lib/power'
 import { aboveSkylineMeans, elevationWords } from '../lib/sightline'
 import { earthLine, groundLine, landingSentence, showingWords, skylineFigure, sunLine } from '../lib/sightlineSky'
 import { HorizonsLive } from './HorizonsLive'
-import { type BodyOver, OverRow } from './LightChart'
+import { type BodyOver, OverChart } from './LightChart'
 
 interface Props {
   /** The site, in the month of the landing; null while it loads. */
@@ -34,9 +34,9 @@ interface Props {
   /** The plan's three controls (site, landing, mission): under the verdict, above the Sun, Earth and ground. */
   plan: ReactNode
   /**
-   * The Sun and Earth over the whole mission, for their rows to lead with: null while the mission's
-   * limits are open in the column or when the mission runs past the data, and the rows are then the
-   * landing's hour alone.
+   * The Sun and Earth over the whole mission, charted under their rows' figures: null while the
+   * mission's limits are open in the column or when the mission runs past the data, and the rows are
+   * then their figures alone.
    */
   over: { start: string; landing: number; missionDays: number; sun: BodyOver; earth: BodyOver } | null
 }
@@ -94,33 +94,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
       </p>
       {heightsLine && <p className="sl-heights-line">{heightsLine}</p>}
       <dl className="sl-facts">
-        {over && (
-          <OverRow
-            kind="sun"
-            over={over.sun}
-            start={over.start}
-            landing={over.landing}
-            missionDays={over.missionDays}
-            atLanding={`${sunAbove ? `${sunAbove.figure} ${sunAbove.side}` : '…'}${sunShowing ? `, ${sunShowing}` : ''}${now && next ? ` · ${sunLine(now.sun_up, next.sun.hours, panelSunlight([now]).vertical)}` : ''}`}
-            title={aboveMeans && now ? `At landing: ${elevationLead(now.sun_el)}${aboveMeans} ${SUNLIGHT_MEANS}` : undefined}
-            at={at}
-            onAt={setAt}
-          />
-        )}
-        {over && (
-          <OverRow
-            kind="earth"
-            over={over.earth}
-            start={over.start}
-            landing={over.landing}
-            missionDays={over.missionDays}
-            atLanding={`${earthAbove ? `${earthAbove.figure} ${earthAbove.side}` : '…'}${earthShowing ? `, ${earthShowing}` : ''}${now && next ? ` · ${earthLine(now.earth_up, next.earth.hours)}` : ''}`}
-            title={earthAboveMeans && now ? `At landing: ${elevationLead(now.earth_el)}${earthAboveMeans}` : undefined}
-            at={at}
-            onAt={setAt}
-          />
-        )}
-        <div hidden={over !== null} className="sl-fact is-sun" tabIndex={0} title={aboveMeans && now ? `${elevationLead(now.sun_el)}${aboveMeans} ${SUNLIGHT_MEANS}` : undefined}>
+        <div className="sl-fact is-sun" tabIndex={0} title={aboveMeans && now ? `${elevationLead(now.sun_el)}${aboveMeans} ${SUNLIGHT_MEANS}` : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Sun
           </dt>
@@ -130,8 +104,9 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
           </dd>
           <dd className="sl-fact-small">{now && next ? sunLine(now.sun_up, next.sun.hours, panelSunlight([now]).vertical) : '…'}</dd>
           {sunShowing && <dd className="sl-fact-small is-showing">{sunShowing}</dd>}
+          {over && <OverChart kind="sun" over={over.sun} start={over.start} landing={over.landing} missionDays={over.missionDays} at={at} onAt={setAt} />}
         </div>
-        <div hidden={over !== null} className="sl-fact is-earth" tabIndex={0} title={earthAboveMeans && now ? `${elevationLead(now.earth_el)}${earthAboveMeans}` : undefined}>
+        <div className="sl-fact is-earth" tabIndex={0} title={earthAboveMeans && now ? `${elevationLead(now.earth_el)}${earthAboveMeans}` : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Earth
           </dt>
@@ -141,6 +116,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
           </dd>
           <dd className="sl-fact-small">{now && next ? earthLine(now.earth_up, next.earth.hours) : '…'}</dd>
           {earthShowing && <dd className="sl-fact-small is-showing">{earthShowing}</dd>}
+          {over && <OverChart kind="earth" over={over.earth} start={over.start} landing={over.landing} missionDays={over.missionDays} at={at} onAt={setAt} />}
         </div>
         <div className="sl-fact is-ground" tabIndex={0} title={slope ? `The ground's slope over ${slope.baseline_m} m, from the LOLA terrain, against the steepest ground your mission allows.` : undefined}>
           <dt>
