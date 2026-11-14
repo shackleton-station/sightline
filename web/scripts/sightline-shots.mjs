@@ -38,7 +38,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['other-site', 'tour', 'tour-restore', 'watch-scout-long', 'heights', 'heights-link', 'planner-moon', 'planner-find', 'rows-panels', 'plan-link', 'mission', 'compare-four', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly'] },
 ]
 
 /**
@@ -399,6 +399,26 @@ function tourScenes() {
 }
 
 const SCENES = [
+  {
+    // A landing that does not fit here, on a date that does fit at another site of the same group.
+    name: 'other-site',
+    hash: '#a=connecting-ridge@2027-05&t=0&limits=14_24_99999_1_1&mode=plan',
+    still: true,
+    checks: [
+      ['under the next landing that fits, a second line offers the nearest site of the same group where this date fits', `/Does not fit the mission/.test(${text('.sl-verdict-words')}) && /^Next landing that fits: /.test(${text('.sl-next')}.trim()) && (${text('.sl-elsewhere')}.replace(/\\s+/g, ' ').trim() === 'Fits at Peak near Shackleton on this date ›' || ${text('.sl-elsewhere')})`],
+      ['its hover text says how far that site is and what a click does; no help cursor', "(() => { const line = document.querySelector('.sl-elsewhere'); return (/^Peak near Shackleton is 42 km away\\. Adds it, on this date, as another scenario$/.test(line.title) && getComputedStyle(line).cursor !== 'help') || line.title })()"],
+      ['the two lines sit one under the other inside the verdict, and the column still fits with nothing to scroll', `(() => { const [date, site] = [document.querySelector('.sl-next:not(.sl-elsewhere)'), document.querySelector('.sl-elsewhere')].map((el) => el.getBoundingClientRect()); const box = document.querySelector('.sl-verdict').getBoundingClientRect(); return (site.top >= date.bottom - 1 && site.bottom <= box.bottom + 1 && site.right <= box.right + 1) || 'date ' + Math.round(date.top) + '-' + Math.round(date.bottom) + ', site ' + Math.round(site.top) + '-' + Math.round(site.bottom) + ', verdict to ' + Math.round(box.bottom) })() && ${COLUMN_FITS} && ${NOTHING_SCROLLS}`],
+      ['a click adds that site, on the same date, as scenario B, which fits; there the verdict offers nothing more', `(document.querySelector('.sl-elsewhere').click(), true) && ${after(2500, `document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length === 2 && document.querySelector('#sl-site').value === 'peak-near-shackleton' && ${LANDING} === '1 May 2027 · 00:00 UTC' && location.hash.includes('&sc=1') && /^✓ Fits/.test(${text('.sl-verdict-words')}.trim()) && document.querySelector('.sl-next') === null`)}`],
+      ['back on A the line is still there', `(document.querySelector('.sl-tabs button[aria-label="Scenario A"]').click(), true) && ${after(700, "document.querySelector('.sl-elsewhere') !== null")}`],
+    ],
+  },
+  {
+    // A date that fits at no site of the group: the next landing is offered, and no other site.
+    name: 'other-site-none',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
+    still: true,
+    checks: [['on a date that fits at no site of the group there is no such line, only the next landing', `/^Next landing that fits: /.test(${text('.sl-next')}.trim()) && document.querySelector('.sl-elsewhere') === null`, 1500]],
+  },
   {
     name: 'watch',
     hash: '',

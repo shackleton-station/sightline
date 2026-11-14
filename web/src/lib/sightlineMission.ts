@@ -4,7 +4,7 @@ import type { SiteInfo } from '../data/contract'
 import type { SiteFlags } from './flags'
 import { EARTH_CLEARANCES_DEG, hourOf, landingProblems, locateHour, missionEarth, NO_GAP_LIMIT_H, type Requirements } from './mission'
 import { entryAt, GAP_TIE_H, measureEntry, toIso } from './shortlist'
-import { nextViable } from './slip'
+import { distanceKm, nextViable } from './slip'
 import { decodeView, encodeView } from './urlState'
 
 /**
@@ -317,6 +317,21 @@ export function betterDate(flags: SiteFlags, landing: number, mission: Sightline
   if (problems.length === 0) return null
   const next = nextViable(flags, hourIso(flags.start, landing), mission.requirements)
   return next && next.waitH > 0 ? { landing: landing + next.waitH, waitH: next.waitH } : null
+}
+
+/**
+ * Another site for the same landing, offered when this one does not fit: the nearest listed site of
+ * the same group (the south pole ridges, say) where the same hour does fit the same mission, judged
+ * by the verdict's own function (`fitProblems`) on that site's flags and slope. Null when the site
+ * has no group of listed sites (a custom point), or when the landing fits at none of them.
+ */
+export function nearestFittingSite(site: SiteInfo, landing: number, mission: SightlineMission, listed: { site: SiteInfo; flags: SiteFlags }[]): { site: SiteInfo; km: number } | null {
+  return (
+    listed
+      .filter((other) => other.site.id !== site.id && other.site.group === site.group && fitProblems(other.flags, landing, mission, other.site.slope?.deg ?? null).length === 0)
+      .map((other) => ({ site: other.site, km: distanceKm(site, other.site) }))
+      .sort((a, b) => a.km - b.km)[0] ?? null
+  )
 }
 
 const ROW_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

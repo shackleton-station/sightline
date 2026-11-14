@@ -3104,6 +3104,11 @@
   text-underline-offset: 2px;
 }
 
+/* Under it, the nearest site where the same date fits: the same kind of line, close beneath. */
+.sl-verdict .sl-next.sl-elsewhere {
+  margin-top: 0;
+}
+
 .sl-verdict .sl-next:hover,
 .sl-verdict .sl-next:focus-visible {
   color: var(--ink);

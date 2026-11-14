@@ -33,6 +33,7 @@ import {
   steadierLanding,
   DEFAULT_MISSION,
   fitProblems,
+  nearestFittingSite,
   MAX_SCENARIOS,
   missionWords,
   presetOf,
@@ -309,6 +310,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     )
     return landing === scenario.landing ? null : { landing, waitH: landing - scenario.landing }
   }, [flags, firstBetter?.landing, firstBetter?.waitH, betterTrack, betterMonth.error, mission, betterAt.index, scenario.landing])
+  // Another site for the same date, offered with the next landing when this one does not fit: the
+  // nearest listed site of the same group where the verdict's own rules pass on this date.
+  const misses = problems !== null && problems.length > 0
+  const elsewhere = useMemo(() => (misses ? nearestFittingSite(site, scenario.landing, mission, lit.flagged) : null), [misses, site, scenario.landing, mission, lit.flagged])
   // A button in one of Scout's replies in Plan: what it proposes is applied as another scenario, never
   // by changing the one on show without a word. A change of limits, which every scenario shares, is
   // applied as the button's own words say.
@@ -793,6 +798,23 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                             else {
                               setScenario((current) => ({ ...current, landing: better.landing }))
                               setHour(better.landing)
+                            }
+                          },
+                        }
+                      : null
+                  }
+                  elsewhere={
+                    elsewhere
+                      ? {
+                          name: elsewhere.site.name,
+                          km: elsewhere.km,
+                          adds: scenarios.length < MAX_SCENARIOS,
+                          onTake: () => {
+                            // As the date line does: another scenario while there is room; with four already, this one moves there.
+                            if (scenarios.length < MAX_SCENARIOS) addScenario({ site: elsewhere.site.id, landing: scenario.landing })
+                            else {
+                              setScenario((current) => ({ ...current, site: elsewhere.site.id }))
+                              setHour(scenario.landing)
                             }
                           },
                         }
