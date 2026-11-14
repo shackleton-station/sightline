@@ -157,7 +157,7 @@ Cloud Run --Google API-------> Firestore, database "plans"            shared mis
 
 ## The site's own domain
 
-`shackletonstation.dev` is the team's address, for this demo now and the hackathon app later.
+`shackletonstation.dev` is the team's address.
 
 ```
 visitor -> 34.128.184.151 (global IP) -> load balancer: HTTPS + CDN -> Cloud Run (us-east4)
@@ -193,19 +193,18 @@ The load balancer costs about $18 a month while it exists, whether or not anyone
 only work over HTTPS (browsers enforce it), so the site is unreachable on the domain until the certificate
 is active.
 
-To point the same domain at the hackathon app, change the `cloud_run` service in `domain.tf`'s endpoint
-group (or move `domain.tf` and the `domain` setting into the new repo's `infra/`) and apply.
+To point the domain at another Cloud Run service, change the `cloud_run` service in `domain.tf`'s endpoint
+group and apply.
 
-## Reusing this for the hackathon app
+## Where this came from, and reusing it
 
-Two ways, and the first is the one planned for Space Apps 2026.
-
-**The same services, deployed from another repository.** Nothing in Google Cloud is made again. Add the new
-repository to `github_repositories` in `settings.auto.tfvars` (its name, and its number from
-`gh api repos/<owner>/<name> --jq .id`), in a pull request here: merging lets its workflows deploy, plan and
-apply. Every repository on that list shares one Terraform state, so only one of them may have the Terraform
-workflows switched on at a time: when `infra/` moves to the new repository, switch this one's off in the
-same step (`gh workflow disable`).
+This folder, and everything it manages in Google Cloud, was built for the team's pre-event practice code. On
+2026-11-14 it moved to this repository with nothing in Google Cloud made again: this repository was added to
+`github_repositories` in `settings.auto.tfvars` (its name, and its number from
+`gh api repos/<owner>/<name> --jq .id`), the Terraform state was copied to a prefix of this repository's own
+(`sightline/web`, `versions.tf`), and the earlier repository's Terraform workflows were switched off in the
+same step. Every repository on that list can sign in to the one project, so only one of them may have the
+Terraform workflows switched on at a time.
 
 **A second set of services.** Copy this folder into the new repo, change `service_name`,
 `github_repositories`, the other values in `settings.auto.tfvars` and the state `prefix` in `versions.tf`,

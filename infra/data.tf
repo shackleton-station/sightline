@@ -81,7 +81,7 @@ resource "google_redis_instance" "store" {
 
 # ---------- Firestore ----------
 
-# A database of its own, so the project's default one stays free for the hackathon app.
+# A database of its own, so the project's default one stays free.
 resource "google_firestore_database" "plans" {
   count       = local.with_plans
   name        = "plans"

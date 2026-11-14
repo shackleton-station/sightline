@@ -20,11 +20,14 @@ domain = "shackletonstation.dev"
 # added here, in a pull request, once it exists. Every repository listed shares one Terraform state,
 # so only one of them may have the Terraform workflows switched on at a time.
 github_repositories = [
+  # The team's working copy, which the live site was deployed from until the hand-over to this
+  # repository. It may still deploy until the hand-over is complete, so that going back stays one
+  # command away. This entry is removed when the hand-over is done.
   { name = "shackleton-station/clps-demo", id = "1419879185" },
   { name = "shackleton-station/sightline", id = "1457831519" },
 ]
 
-# Hackathon settings (Rodrigo, 2026-11-13: this demo is run as the hackathon project would be). Two warm
+# Hackathon settings (Rodrigo, 2026-11-13). Two warm
 # copies of each visitor-facing service, so no visitor waits for a cold start and losing one copy loses
 # nothing; up to ten each for a spike; one vCPU and 1 GiB each, with CPU kept on between requests.
 # At list price about $10.40 a day for the six warm copies (instance-based billing), against about $1 a
