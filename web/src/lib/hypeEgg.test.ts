@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hypeListener, typedSoFar } from './hypeEgg'
+import { hypeListener, isHypeWord, typedSoFar } from './hypeEgg'
 import { tabLinks } from './siteTabs'
 
 const type = (listener: ReturnType<typeof hypeListener>, keys: string, how: { modified?: boolean; writing?: boolean } = {}) =>
@@ -39,3 +39,14 @@ describe('the Hype easter egg', () => {
     expect(links.some((tab) => tab.href.includes('hype') || /hype/i.test(tab.label))).toBe(false)
   })
 })
+
+describe('the word sent to Scout', () => {
+  it('counts when it is the whole message, in any case, with or without spaces round it', () => {
+    for (const message of ['hype', 'Hype', 'HYPE', '  hype ', '\thYpE\n']) expect(isHypeWord(message), message).toBe(true)
+  })
+
+  it('does not count inside a longer message, or as another word', () => {
+    for (const message of ['', 'hyper', 'the hype', 'hype!', 'What is all the hype about?', 'hy pe']) expect(isHypeWord(message), message).toBe(false)
+  })
+})
+

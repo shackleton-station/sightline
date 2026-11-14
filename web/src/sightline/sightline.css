@@ -4008,6 +4008,10 @@ button.sl-moment-heights[aria-expanded='true'] {
   margin: 0.5rem 0 0;
 }
 
+.sl-hype .sl-hype-lede {
+  margin: 0;
+}
+
 /* ---------- Scout's tour: a ring round what a step is about, and his bubble. Nothing is dimmed,
    and neither is ever drawn over the Moon's disc (the bubble's place is worked out: lib/tour.ts). ---------- */
 .sl-tour-ring {

@@ -72,8 +72,11 @@ export interface ScoutChat {
   say: (text: string) => void
 }
 
-/** The same co-pilot as the rest of the site. Each question goes with the page's link at that moment, so Scout knows the scenario on show. */
-export function useScoutChat(): ScoutChat {
+/**
+ * The same co-pilot as the rest of the site. Each question goes with the page's link at that moment, so Scout knows the scenario on show.
+ * `taken`, when given, sees each message first: one it takes (it answers true) is not sent to the co-pilot and not added to the conversation.
+ */
+export function useScoutChat(taken?: (message: string) => boolean): ScoutChat {
   const [thread, setThread] = useState<ChatMessage[]>([])
   const [waiting, setWaiting] = useState(false)
   const [step, setStep] = useState<string | null>(null)
@@ -84,6 +87,8 @@ export function useScoutChat(): ScoutChat {
     (question: string, view: string) => {
       const text = question.trim().slice(0, MAX_QUESTION_CHARS)
       if (!text || waiting) return Promise.resolve(false)
+      // A message the screen takes for itself: nothing is sent and nothing is said; the box is cleared as for an answered question.
+      if (taken?.(text)) return Promise.resolve(true)
       const said = thread.filter((message) => !message.failed)
       if (cooldown.secondsLeft > 0) {
         setThread([...said, { role: 'assistant', text: stillWaitingText(cooldown.secondsLeft), failed: true }])
@@ -100,7 +105,7 @@ export function useScoutChat(): ScoutChat {
         return !answer.failed
       })
     },
-    [thread, waiting, cooldown],
+    [thread, waiting, cooldown, taken],
   )
   const say = useCallback((text: string) => setThread((before) => [...before, { role: 'assistant', text }]), [])
   return { thread, waiting, step, ask, say }
