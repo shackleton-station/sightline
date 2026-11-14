@@ -2,7 +2,11 @@
 
 Resume from the first unchecked item. Update after every meaningful step.
 
-- Repo: the team's private practice repository
+> Everything dated before 2026-11-14 below is the record of the team's pre-event practice build, kept as
+> it was written. This repository is built on that code; the Bethesda Local Lead approved the reuse. The
+> port into this repository is the last section.
+
+- Repo: private at the time (it held the team's pre-event practice code)
 - Board: https://github.com/orgs/shackleton-station/projects/1 ("CLPS Demo #1", project #1, linked to repo)
 
 ## Phase 0 — Preflight ✅ (2026-10-14)
@@ -265,3 +269,21 @@ Colors, fonts and contrast for each: [`ATLAS_LOOKS.md`](ATLAS_LOOKS.md).
 - [x] B · Mission Control: docked side panels from 1100 px, Chakra Petch + JetBrains Mono, cyan controls (#214)
 - [x] C · Night Glass: one bottom dock from 1100 px, Sora + DM Mono, frosted panels (#214)
 - [ ] Not done: the tour and status chips were checked in headless Chrome at 1280×800 and 390×844, not on a real phone; the month arrows of the old river are gone (the month menu stays); no switch on the page between looks yet (a link sets it with `&look=`)
+
+## The port into this repository (2026-11-14)
+
+This repository was created on 2026-11-14 at 14:25 UTC. The code came over in steps, files only, each a
+pull request with CI green. Built on the team's own pre-event practice code; reuse approved by the Bethesda
+Local Lead.
+
+- [x] Step 1: `REFERENCES.md`, `AI_USAGE.md`, `FRICTION_LOG.md`, a new `README.md` (pull request 1)
+- [ ] Step 1, the rules: `CLAUDE.md` and `AGENTS.md` (pull request 2, waiting for Rodrigo)
+- [x] Step 2: the pipeline and its tests; CI's pipeline job (pull request 3)
+- [x] Step 3: the web app's core, its data and scripts; CI's web job (pull request 4)
+- [x] Step 4: the four services; CI complete (pull request 5)
+- [ ] Step 5: Terraform (`infra/`) and the deploy workflows. Until then this repository deploys nothing and the
+      live site is still deployed from the practice code
+- [x] Step 6: the Sightline screen and front page, Scout, the planner and the other pages (pull request 6)
+- [x] Catch-up: a change made on 2026-11-14 in the working copy, Scout's taller chat card and the model's name
+      in his tag (pull request 7)
+- [x] Step 7: these documents
