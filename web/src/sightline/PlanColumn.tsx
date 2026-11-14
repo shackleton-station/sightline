@@ -114,13 +114,12 @@ function PlanIcon({ kind }: { kind: keyof typeof ICONS }) {
   )
 }
 
-/** What the site control's list offers under the sites: a custom point, and NASA's tools on this place. */
+/** What the site control's list offers under the sites: a custom point. */
 const CUSTOM = '__custom'
-const TOOLS = '__tools'
 
 /**
  * The plan: three compact controls, each one control with a small picture before it, one tiny word
- * inside it saying what it is ("Site", "Landing", "Mission") and no label above it. The site (a custom point and NASA's tools are at the foot of its own list), the landing's
+ * inside it saying what it is ("Site", "Landing", "Mission") and no label above it. The site (a custom point is at the foot of its own list, and NASA's tools on the place are one small line of links under it), the landing's
  * date and hour, and the mission (its preset's name). The mission's control opens its limits in place,
  * under itself: while they are open the control says "Select", which closes them.
  */
@@ -129,8 +128,8 @@ export function Fields({ sites, site, onSite, landing, landingField, firstField,
   // Places NASA names for landings still to come: in the list, but worked out like any custom point.
   const targets = useFutureTargets()
   const target = site ? targetAt(targets, site) : null
-  // What the site's list opened under it: the form for a custom point, or NASA's tools on this place.
-  const [more, setMore] = useState<typeof CUSTOM | typeof TOOLS | null>(null)
+  // Whether the site's list opened the form for a custom point under it.
+  const [custom, setCustom] = useState(false)
   return (
     <div className="sl-plan">
       <div className="sl-plan-row">
@@ -145,10 +144,9 @@ export function Fields({ sites, site, onSite, landing, landingField, firstField,
           title={target ? `Approximate region: the centre of ${target.feature} in the IAU Gazetteer. NASA names the place and gives no coordinates: “${target.says}” (NASA, ${target.source_date})` : undefined}
           onChange={(event) => {
             const value = event.target.value
-            if (value === CUSTOM || value === TOOLS) setMore(more === value ? null : value)
+            if (value === CUSTOM) setCustom(!custom)
             else {
-              // NASA's tools stay open on the new place; the form for a custom point closes.
-              setMore(more === TOOLS ? TOOLS : null)
+              setCustom(false)
               onSite(value)
             }
           }}
@@ -176,23 +174,20 @@ export function Fields({ sites, site, onSite, landing, landingField, firstField,
           {site && isCustomSite(site) && !target && <option value={siteValue(site)}>{site.name}</option>}
           <optgroup label="More">
             <option value={CUSTOM}>Custom point…</option>
-            <option value={TOOLS}>Open in NASA tools…</option>
           </optgroup>
         </select>
       </div>
-      {more && (
+      {/* The place in NASA's own tools: always under the site, one small line. */}
+      {site && <OpenIn site={site} landingField={landingField} />}
+      {custom && (
         <div className="sl-plan-more">
-          {more === CUSTOM ? (
-            <Coordinates
-              onSite={(value) => {
-                setMore(null)
-                onSite(value)
-              }}
-            />
-          ) : (
-            site && <OpenIn site={site} landingField={landingField} />
-          )}
-          <button type="button" className="sl-small" aria-label="Close" onClick={() => setMore(null)}>
+          <Coordinates
+            onSite={(value) => {
+              setCustom(false)
+              onSite(value)
+            }}
+          />
+          <button type="button" className="sl-small" aria-label="Close" onClick={() => setCustom(false)}>
             ×
           </button>
         </div>
