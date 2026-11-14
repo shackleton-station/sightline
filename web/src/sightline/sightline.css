@@ -412,6 +412,12 @@
   box-shadow: 0 10px 26px rgb(0 0 0 / 50%);
 }
 
+/* Beside the Moon the card is given the height of the empty sky (WatchControls.tsx): the
+   conversation fills it, and the input stays at its foot. */
+.sl-card.is-tall {
+  max-height: none;
+}
+
 .sl-card-head {
   display: flex;
   align-items: center;
@@ -3603,4 +3609,76 @@
   display: block;
   width: 100%;
   margin-top: 0.5rem;
+}
+
+/* Landing accuracy, second pass: a color for each reason, the approach controls, a better aim, the
+   odds under the verdict, and the key to the shading on the Moon. */
+.sl-accuracy-swatch {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.3rem;
+  vertical-align: -0.05rem;
+}
+
+.sl-accuracy-misses {
+  padding-left: 0;
+  list-style: none;
+}
+
+.sl-accuracy-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.7rem;
+}
+
+.sl-accuracy-key span + span {
+  margin-left: 0;
+}
+
+.sl-accuracy-approach {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.sl-accuracy-approach summary {
+  color: var(--soft);
+  cursor: pointer;
+}
+
+.sl-accuracy-aim {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+}
+
+.sl-odds-line {
+  margin: 0.25rem 0 0;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.sl-fit-legend {
+  position: absolute;
+  /* Above the strip that says when the Moon is not showing the landing; clear of Earth at the top. */
+  bottom: 2.4rem;
+  left: 0.7rem;
+  z-index: 3;
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  background: rgb(13 11 18 / 82%);
+  font-size: 0.8125rem;
+  list-style: none;
+  pointer-events: none;
+}
+
+.sl-fit-legend span {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-right: 0.35rem;
+  vertical-align: -0.05rem;
 }

@@ -212,21 +212,32 @@ export function slopeDegFrom(x: Uint8Array | Uint8ClampedArray, y: Uint8Array | 
   return out
 }
 
+/** The whole grid as a picture: its pixels (RGBA), and which verdicts are in it. */
+export interface FitPicture {
+  pixels: Uint8ClampedArray
+  /** For each code (0 fits, then each reason): whether any pixel has it. */
+  seen: boolean[]
+}
+
 /**
- * The whole grid as a picture's pixels (RGBA), `sub` pixels along each light cell: one color where
- * a landing fits and another where it does not, for laying over the Moon. `slopeDeg` holds the
- * slope for each pixel, or is null when it could not be read.
+ * The whole grid as a picture's pixels, `sub` pixels along each light cell, each in the color of
+ * its verdict (`colors[code]`), for laying over the Moon. `slopeDeg` holds the slope for each
+ * pixel, or is null when it could not be read.
  */
-export function fitPixels(gaps: GridGaps, req: Requirements, maxSlopeDeg: number, sub: number, slopeDeg: Float32Array | null, fit: readonly [number, number, number], miss: readonly [number, number, number]): Uint8ClampedArray {
+export function fitPixels(gaps: GridGaps, req: Requirements, maxSlopeDeg: number, sub: number, slopeDeg: Float32Array | null, colors: readonly (readonly [number, number, number])[]): FitPicture {
   const side = gaps.size * sub
   const pixels = new Uint8ClampedArray(4 * side * side)
+  const seen = colors.map(() => false)
+  const steep = missCode('slope')
   for (let row = 0; row < gaps.size; row += 1) {
     for (let col = 0; col < gaps.size; col += 1) {
-      const lightFits = lightVerdict(gaps, row * gaps.size + col, req) === FITS
+      const light = lightVerdict(gaps, row * gaps.size + col, req)
       for (let dRow = 0; dRow < sub; dRow += 1) {
         for (let dCol = 0; dCol < sub; dCol += 1) {
           const pixel = (row * sub + dRow) * side + col * sub + dCol
-          const color = lightFits && !(slopeDeg && slopeDeg[pixel] > maxSlopeDeg) ? fit : miss
+          const code = slopeDeg && slopeDeg[pixel] > maxSlopeDeg ? steep : light
+          const color = colors[code]
+          seen[code] = true
           pixels[4 * pixel] = color[0]
           pixels[4 * pixel + 1] = color[1]
           pixels[4 * pixel + 2] = color[2]
@@ -235,5 +246,5 @@ export function fitPixels(gaps: GridGaps, req: Requirements, maxSlopeDeg: number
       }
     }
   }
-  return pixels
+  return { pixels, seen }
 }
