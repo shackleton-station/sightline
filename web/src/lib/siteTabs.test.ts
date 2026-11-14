@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_REQUIREMENTS } from './mission'
 import { decodeView } from './urlState'
 import { DEFAULT_VIEW, tabLinks } from './siteTabs'
 
@@ -30,6 +31,8 @@ describe('the site tabs', () => {
     for (const tab of designs) expect(tab.href.endsWith(DEFAULT_VIEW)).toBe(true)
     // The default is a link the app can open.
     expect(decodeView(DEFAULT_VIEW, LIMITS)?.a).toEqual({ site: 'connecting-ridge', month: '2027-05' })
+    // Its limits are the app's default mission, so a design opened fresh judges as the front page does.
+    expect(decodeView(DEFAULT_VIEW, LIMITS)?.requirements).toEqual(DEFAULT_REQUIREMENTS)
     // With no view chosen the Sightline tab is the bare front page, not the default view.
     expect(tabLinks('').find((tab) => tab.id === 'sightline')?.href).toBe('/')
     // Anything that isn't a view link (the How it works address, say) falls back to the default too.

@@ -51,6 +51,8 @@ describe('the planner address', () => {
   it('defaults to the view the other tabs default to', () => {
     const fallback = defaultAddress(MISSION)
     expect(fallback).toMatchObject({ site: 'connecting-ridge', month: '2027-05', index: 0, shortlist: [] })
-    expect(decodeView(DEFAULT_VIEW, MISSION)?.requirements).toEqual(fallback.requirements)
+    // The same limits, inside the bounds of this page's inputs: "no limit" on radio silence is their longest.
+    const shared = decodeView(DEFAULT_VIEW, MISSION)?.requirements
+    expect(shared && boundedLimits(shared)).toEqual(fallback.requirements)
   })
 })

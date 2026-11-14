@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import type Anthropic from '@anthropic-ai/sdk'
 import { describe, expect, it, vi } from 'vitest'
+import { DEFAULT_REQUIREMENTS } from '../../src/lib/mission'
 import { decodeView } from '../../src/lib/urlState'
 import { memoryBreaker } from '../breaker'
 import { DEFAULT_LIMITS as COPILOT_LIMITS, LIMITS } from '../limits'
@@ -11,6 +12,7 @@ import { PROGRAMS } from '../testing'
 import { buildActions, DEFAULT_LIMITS, viewFrom } from './actions'
 import { LAST_ROUND, REFUSAL_TEXT, runChat, viewFacts } from './chat'
 import { siteData } from '../../shared/tools/data'
+import { limitsLabel } from '../../shared/tools/facts'
 import { buildPrompt, systemPrompt } from './prompt'
 import { cleanFollowup, renderAnswer } from './render'
 import { optionalParameters, runTool } from '../../shared/tools/tools'
@@ -363,7 +365,8 @@ describe('buttons', () => {
     const views = actions.map((action) => decodeView(action.hash, DEFAULT_LIMITS))
     expect(views[0]).toMatchObject({ a: { site: 'shackleton-rim', month: '2027-06' }, b: null, index: 20 * 24 + 17 })
     expect(views[1]).toMatchObject({ a: { site: 'apollo-11', month: '2028-03' }, b: { site: 'connecting-ridge', month: '2028-03' } })
-    expect(views[2]).toMatchObject({ mode: 'plan', requirements: { ...DEFAULT_LIMITS, missionDays: 30 } })
+    // The other limits stay the ones in the visitor's view, not the defaults.
+    expect(views[2]).toMatchObject({ mode: 'plan', requirements: { ...VIEW.requirements, missionDays: 30 } })
   })
 
   it('drop anything that does not check out, and stop at three', async () => {
@@ -407,8 +410,10 @@ describe('tools', () => {
 
   it('try other limits only when asked, and say which they used', async () => {
     const mine = await facts('best_months', { site: 'connecting-ridge', measure: 'landing' })
-    const longer = await facts('best_months', { site: 'connecting-ridge', measure: 'landing', mission_days: 30 })
+    const longer = await facts('best_months', { site: 'connecting-ridge', measure: 'landing', mission_days: 30, max_sun_gap_h: 72, max_earth_gap_h: 72 })
     expect(mine.limits).toContain('14-day mission')
+    // With none asked for, the limits are the app's default mission: the front page's.
+    expect(mine.limits).toBe(limitsLabel(DEFAULT_REQUIREMENTS))
     expect(longer.limits).toContain('30-day mission')
     expect(longer.best_1_value).toBe('0 days')
     // An out-of-range limit is dropped, not bent into range.
