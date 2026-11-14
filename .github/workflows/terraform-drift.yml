@@ -1,0 +1,215 @@
+name: Terraform drift
+
+# Every night: plan main against the live project, as the identity that can only read. "Drift" is
+# the project and the code having come apart: a change made in the console or with gcloud, an apply
+# from a laptop that was never committed, or a merge the pipeline did not apply.
+#
+#   The plan is empty      nothing to say. If an issue from an earlier night is open, close it.
+#   The plan is not empty  open an issue with the plan, or update the one already open.
+#   The plan failed        the same issue, saying that it is a failure and not drift.
+#
+# Together with the destroy guard this is what stands in for a reviewer
+# (docs/decisions/0007-terraform-through-github.md). It reports; it never applies.
+
+on:
+  schedule:
+    - cron: "23 7 * * *" # 07:23 UTC, the small hours in the eastern United States
+  workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash # with `-o pipefail`
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "0"
+  TERRAFORM_VERSION: 1.17.2
+  PLAN_PROVIDER: projects/919194174067/locations/global/workloadIdentityPools/github-terraform-plan/providers/pull-requests-and-main
+  PLANNER: terraform-planner@clps-compute-6z1nc.iam.gserviceaccount.com
+  ISSUE_TITLE: "Terraform drift: the live project does not match main"
+
+jobs:
+  plan:
+    name: plan main against the live project
+    # The planner is only handed out to main (and to pull requests, which this is not).
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write # lets the job ask GitHub for the identity token Google Cloud checks
+      actions: read # to see whether an apply is running
+    outputs:
+      state: ${{ steps.result.outputs.state }}
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      TF_VAR_billing_account: ${{ secrets.TF_BILLING_ACCOUNT }}
+      TF_VAR_alert_email: ${{ secrets.TF_ALERT_EMAIL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Check the two personal settings are there
+        run: |
+          if [ -z "$TF_VAR_billing_account" ] || [ -z "$TF_VAR_alert_email" ]; then
+            echo "::error::The repository secrets TF_BILLING_ACCOUNT and TF_ALERT_EMAIL are not both set (docs/ARCHITECTURE_PHASE_5_5.md, section 2)."
+            exit 1
+          fi
+
+      # A plan made while an apply is half way would report the half that is not done yet.
+      - name: Wait for any apply to finish
+        id: wait
+        run: |
+          set +e
+          node infra/scripts/wait-for-runs.mjs drift --minutes 30
+          CODE=$?
+          set -e
+          if [ "$CODE" = "3" ]; then
+            echo "busy=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::An apply was still running after 30 minutes. No drift check tonight; the next night's run checks."
+          elif [ "$CODE" != "0" ]; then
+            exit "$CODE"
+          fi
+
+      - uses: google-github-actions/auth@v3
+        if: steps.wait.outputs.busy != 'true'
+        with:
+          workload_identity_provider: ${{ env.PLAN_PROVIDER }}
+          service_account: ${{ env.PLANNER }}
+
+      # Exit status 0: the plan is empty. 2: it is not. Anything else: the plan failed.
+      - name: Plan
+        id: plan
+        if: steps.wait.outputs.busy != 'true'
+        run: |
+          set +e
+          terraform -chdir=infra init -no-color 2>&1 | node infra/scripts/redact.mjs | tee infra/plan.log
+          INIT="${PIPESTATUS[0]}"
+          if [ "$INIT" = "0" ]; then
+            terraform -chdir=infra plan -lock=false -no-color -detailed-exitcode -out=tfplan 2>&1 | node infra/scripts/redact.mjs | tee infra/plan.log
+            CODE="${PIPESTATUS[0]}"
+          else
+            CODE=1
+          fi
+          set -e
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          if [ "$CODE" = "0" ] || [ "$CODE" = "2" ]; then
+            terraform -chdir=infra show -no-color tfplan > infra/plan.txt
+            terraform -chdir=infra show -json tfplan > infra/tfplan.json
+          else
+            tail -n 200 infra/plan.log > infra/plan.txt
+          fi
+
+      # For the issue: says whether the pipeline would even apply what the plan shows.
+      - name: Destroy guard (to report, not to stop anything)
+        if: steps.plan.outputs.code == '2'
+        continue-on-error: true
+        run: node infra/scripts/destroy-guard.mjs infra/tfplan.json --json infra/guard.json
+
+      - name: Write the issue's text
+        if: steps.plan.outputs.code != '' && steps.plan.outputs.code != '0'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node infra/scripts/plan-comment.mjs --mode drift \
+            --plan-json infra/tfplan.json --plan-text infra/plan.txt --guard infra/guard.json \
+            --sha "$(git rev-parse HEAD)" --run-url "$RUN_URL" --out infra/plan-comment.md
+          cat infra/plan-comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Only the issue's text, which has been through the filter (infra/scripts/redact.mjs).
+      - uses: actions/upload-artifact@v7
+        if: steps.plan.outputs.code != '' && steps.plan.outputs.code != '0'
+        with:
+          name: terraform-drift-issue
+          path: infra/plan-comment.md
+          retention-days: 1
+
+      - name: Remove the plan files
+        if: always()
+        run: rm -f infra/tfplan infra/tfplan.json infra/plan.txt infra/plan.log
+
+      - name: Say how it went
+        id: result
+        if: always()
+        env:
+          BUSY: ${{ steps.wait.outputs.busy }}
+          CODE: ${{ steps.plan.outputs.code }}
+        run: |
+          if [ "$BUSY" = "true" ]; then STATE=skipped
+          elif [ "$CODE" = "0" ]; then STATE=clean
+          elif [ "$CODE" = "2" ]; then STATE=drift
+          else STATE=failed
+          fi
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
+          echo "The nightly plan: $STATE"
+
+  # A job of its own, so that the job that reaches Google Cloud cannot write issues, and the job
+  # that writes issues runs no Terraform and reaches no cloud.
+  report:
+    name: open, update or close the issue
+    needs: plan
+    if: always() && needs.plan.result != 'skipped' && needs.plan.outputs.state != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      STATE: ${{ needs.plan.outputs.state }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.state == 'drift' || needs.plan.outputs.state == 'failed'
+        continue-on-error: true
+        with:
+          name: terraform-drift-issue
+          path: issue
+
+      - name: Open, update or close
+        run: |
+          # The one open issue this workflow keeps, found by its title and its author.
+          NUMBER="$(gh api "repos/$REPO/issues?state=open&per_page=100" --paginate \
+            --jq ".[] | select(.pull_request == null and .user.login == \"github-actions[bot]\" and .title == \"$ISSUE_TITLE\") | .number" | head -n 1)"
+
+          if [ "$STATE" = "clean" ]; then
+            if [ -n "$NUMBER" ]; then
+              gh api --method POST "repos/$REPO/issues/$NUMBER/comments" \
+                -f body="Tonight's plan of \`main\` is empty: the live project matches the code again. Closing. [The run]($RUN_URL)." --jq '.html_url'
+              gh api --method PATCH "repos/$REPO/issues/$NUMBER" -f state=closed -f state_reason=completed --jq '.html_url'
+            else
+              echo "The plan is empty and no issue is open. Nothing to do."
+            fi
+            exit 0
+          fi
+
+          BODY=issue/plan-comment.md
+          if [ ! -s "$BODY" ]; then
+            mkdir -p issue
+            printf '<!-- terraform-drift-issue -->\n## The nightly check could not plan `main`\n\nThe job stopped before it could write a plan, so nobody knows tonight whether the project matches `main`. [The run'"'"'s log](%s) says why.\n' "$RUN_URL" > "$BODY"
+          fi
+          if [ "$(wc -c < "$BODY")" -gt 65000 ]; then
+            head -c 64000 "$BODY" > "$BODY.cut"
+            printf '\n\n(cut to fit: [the run'"'"'s log](%s) has the rest)\n' "$RUN_URL" >> "$BODY.cut"
+            mv "$BODY.cut" "$BODY"
+          fi
+          if [ -n "$NUMBER" ]; then
+            gh api --method PATCH "repos/$REPO/issues/$NUMBER" -F body=@"$BODY" --jq '.html_url'
+          else
+            gh api --method POST "repos/$REPO/issues" -f title="$ISSUE_TITLE" -F body=@"$BODY" --jq '.html_url'
+          fi
+
+      - name: Mark the run failed when the plan failed
+        if: needs.plan.outputs.state == 'failed' || needs.plan.outputs.state == ''
+        run: |
+          echo "::error::The nightly plan did not finish. The issue says what Terraform printed."
+          exit 1

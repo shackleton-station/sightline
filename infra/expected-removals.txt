@@ -1,0 +1,14 @@
+# Removals of protected resources that a pull request means to make.
+#
+# The destroy guard (infra/scripts/destroy-guard.mjs) stops an apply that would delete or replace a
+# resource on the protected list (protected-resources.txt), unless that resource's full address is
+# on a line here in the same commit. Write the address exactly as the plan prints it, and say why:
+#
+#   google_redis_instance.store[0]   # Phase 4, step 1: Basic to Standard tier replaces the instance
+#
+# A line is good for one removal. Once it is applied, the next pull request that touches infra/
+# fails its plan check until the line is deleted, because the plan no longer removes that resource.
+#
+# Some resources also carry `prevent_destroy` in their .tf file (the Firestore databases, the DNS
+# zone, the identity pools and providers). For those Terraform itself refuses to plan a removal, so
+# the pull request must take that block out as well as naming the address here.

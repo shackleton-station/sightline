@@ -1,0 +1,21 @@
+# What the destroy guard protects (infra/scripts/destroy-guard.mjs).
+#
+# One pattern a line: <resource type>.<name>, or <resource type>.* for every resource of that type.
+# A plan that deletes, replaces or stops managing a resource matched here is not applied, unless the
+# same commit names the resource's full address in expected-removals.txt.
+#
+# Changing this file changes what the pipeline will delete without asking. The plan comment on a
+# pull request says so whenever this file, the guard or expected-removals.txt is touched.
+
+google_firestore_database.*                    # saved plans (plans) and the day's question counts (stats)
+google_dns_managed_zone.*                      # the zone: a new one gets other name servers and signing keys
+google_dns_record_set.*                        # the domain's records: without them the site does not resolve
+google_storage_bucket.*                        # the assets bucket, and the state bucket if it is ever imported
+google_iam_workload_identity_pool.*            # the doors GitHub signs in through; a deleted pool keeps its name for 30 days
+google_iam_workload_identity_pool_provider.*   # the rule on each door
+google_redis_instance.*                        # rate limits, cached answers, presenter rooms: a replacement starts empty
+google_secret_manager_secret.*                 # any secret: deleting it deletes its versions (none is stored today)
+google_bigquery_dataset.*                      # the question log's dataset: deleting it deletes its tables
+google_bigquery_table.questions                # the question log's rows live in this table (the views can be made again)
+google_service_account.terraform_planner       # the pipeline's own identities: without them it cannot plan or apply
+google_service_account.terraform_applier
