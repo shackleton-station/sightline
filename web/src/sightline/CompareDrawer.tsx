@@ -1,6 +1,7 @@
 import { clockTime } from '../lib/sightline'
-import { bestIn, COMPARE_ROWS, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, shareHours, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
-import type { ScenarioFacts } from './useScenarioFacts'
+import { MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { landingRows, type PlannerRow, plannerRows } from './plannerTable'
+import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
 
 interface Props {
   start: string
@@ -14,20 +15,55 @@ interface Props {
   onClose: () => void
   /** Why each scenario, if it fits, is only a marginal fit: one line each; empty when it is not. */
   marginal: string[][]
+  /** Each scenario's landing hour, for the Sun's and Earth's angles; null while its month loads. */
+  landings: (LandingShares | null)[]
+  /** The average sunlight on a panel over each scenario's mission, in W/m²; undefined while its months load. */
+  sunlightWm2: (number | null | undefined)[]
+}
+
+/** One row of the table: its name, then each scenario's figure, the best marked, and the hours under a share. */
+function Row({ row }: { row: PlannerRow }) {
+  return (
+    <tr>
+      <th scope="row" title={row.title}>
+        {row.label}
+      </th>
+      {row.cells.map((cell, i) => (
+        <td key={i} className={row.best[i] ? 'is-best' : undefined}>
+          {cell ?? '…'}
+          {row.best[i] && (
+            <span className="sl-best" title="Best in this row">
+              {' '}
+              ★
+            </span>
+          )}
+          {row.notes[i] && <small> {row.notes[i]}</small>}
+        </td>
+      ))}
+    </tr>
+  )
 }
 
 /**
  * Compare: the scenarios side by side, each measured over its own mission. A short list says which
  * site and landing each letter is; the table holds bare numbers, with the unit in each row's name, so
  * four scenarios fit without scrolling sideways. Under a share of the mission are the hours behind it
- * ("12 of 24 h"). The best value in a row is marked; there is no blended score, because its weights
- * would be invented.
+ * ("12 of 24 h"). The rows are the Planner's Compare table's own (`plannerRows`), then the Sun's and
+ * Earth's angles at each landing. The best value in a row is marked; there is no blended score,
+ * because its weights would be invented.
  */
-export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, onClose, marginal: marginalOf }: Props) {
+export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, onClose, marginal: marginalOf, landings, sunlightWm2 }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, site, flags, mission, slopeDeg) : null
   })
+  const rows = plannerRows(
+    scenarios,
+    measures,
+    facts.map((fact) => fact.flags),
+    mission,
+    sunlightWm2,
+  )
   const marginal = measures.flatMap((measure, i) => {
     const words = measure && measure.problems.length === 0 ? marginalOf[i] : []
     return words.length > 0 ? [{ letter: SCENARIO_LETTERS[i], words: words.join(', and ') }] : []
@@ -68,27 +104,17 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
           </tr>
         </thead>
         <tbody>
-          {COMPARE_ROWS.map((row) => {
-            const values = measures.map((measure) => measure?.[row.key] ?? null)
-            const best = bestIn(values, row.better, row.tie)
-            return (
-              <tr key={row.key}>
-                <th scope="row">{row.label}</th>
-                {values.map((value, i) => (
-                  <td key={i} className={best[i] ? 'is-best' : undefined}>
-                    {value === null ? (measures[i] ? '?' : '…') : value.toFixed(row.digits)}
-                    {best[i] && (
-                      <span className="sl-best" title="Best in this row">
-                        {' '}
-                        ★
-                      </span>
-                    )}
-                    {row.share && value !== null && <small> {shareHours(value, mission.requirements.missionDays)}</small>}
-                  </td>
-                ))}
-              </tr>
-            )
-          })}
+          {rows.map((row) => (
+            <Row key={row.key} row={row} />
+          ))}
+          <tr className="sl-compare-group">
+            <th scope="row" colSpan={scenarios.length + 1}>
+              At landing
+            </th>
+          </tr>
+          {landingRows(landings).map((row) => (
+            <Row key={row.key} row={row} />
+          ))}
           <tr>
             <th scope="row">Fits the mission</th>
             {measures.map((measure, i) => (

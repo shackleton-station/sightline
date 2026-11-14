@@ -75,7 +75,7 @@ import { siteValue } from './site'
 import { Skyline } from './Skyline'
 import { Stage } from './Stage'
 import { useHeightFlags } from './useHeights'
-import { useLandingShares, useScenarioFacts } from './useScenarioFacts'
+import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useScenarioFacts'
 import { useTutorialVideo } from './useTutorialVideo'
 import { PlayControl, ScoutLine } from './WatchControls'
 
@@ -263,6 +263,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // How much of the Sun's and Earth's discs shows at each scenario's landing. A landing that meets a
   // "in view at landing" limit on a sliver of the Sun, or only the edge of Earth, fits only marginally.
   const shares = useLandingShares(scenarios, facts, start, held, lit.applied)
+  // The average sunlight on a panel over each mission: read only while one of the two Compare tables is open.
+  const sunlightWm2 = useMissionSunlight(scenarios, facts, start, held, lit.applied, mission.requirements.missionDays, full || drawer === 'compare')
   const marginalAt = (i: number) => {
     const at = shares[i]
     return at ? marginalReasons(mission.requirements.sunAtLanding ? at.sun : null, mission.requirements.earthAtLanding ? at.earth : null, at.earthUp) : []
@@ -908,6 +910,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           year={Number(landingAt.month.slice(0, 4))}
           summary={here?.summary ?? null}
           landings={shares}
+          sunlightWm2={sunlightWm2}
         />
       )}
       {brief && (
@@ -968,7 +971,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         <AdvancedDrawer mission={mission} onMission={setMission} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} onBack={() => setDrawer('mission')} onClose={() => setDrawer(null)} />
       )}
       {shown && !planner && drawer === 'compare' && (
-        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} />
+        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} />
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={setFitShade} onClose={() => setDrawer(null)} />}

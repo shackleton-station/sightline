@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteFlags } from '../lib/flags'
 import { DEFAULT_MISSION, type ScenarioMeasure } from '../lib/sightlineMission'
-import { bothPct, plannerCsv, plannerRows } from './plannerTable'
+import { bothPct, landingRows, plannerCsv, plannerRows } from './plannerTable'
+import type { LandingShares } from './useScenarioFacts'
 
 const START = '2027-01-01T00:00:00Z'
 /** Two years of hours. The Sun is up on even days, Earth in the first half of each day. */
@@ -34,16 +35,24 @@ describe('plannerRows', () => {
   const measures = [measure({ sunPct: 61, sunGapH: 95 }), measure({ sunPct: 79, sunGapH: 56 })]
 
   it("has Compare's rows and the share with both, each cell written as the page shows it", () => {
-    const rows = plannerRows(scenarios, measures, [flags, flags], mission)
-    expect(rows.map((row) => row.key)).toEqual(['sunPct', 'sunGapH', 'earthPct', 'earthGapH', 'bothPct', 'slopeDeg'])
+    const rows = plannerRows(scenarios, measures, [flags, flags], mission, [412.4, 530])
+    expect(rows.map((row) => row.key)).toEqual(['sunPct', 'sunGapH', 'earthPct', 'earthGapH', 'bothPct', 'sunlightWm2', 'slopeDeg'])
     expect(rows[0].cells).toEqual(['61', '79'])
     expect(rows[0].best).toEqual([false, true])
     expect(rows[1].best).toEqual([false, true])
     expect(rows[4].cells).toEqual(['25', '25'])
+    expect(rows[5].cells).toEqual(['412', '530'])
+    expect(rows[5].best).toEqual([false, true])
+  })
+
+  it('leaves the sunlight empty while its months load, and says when it cannot be worked out', () => {
+    const rows = plannerRows(scenarios, measures, [flags, flags], mission, [undefined, null])
+    expect(rows[5].cells).toEqual([null, '?'])
+    expect(rows[5].best).toEqual([false, false])
   })
 
   it('says the hours behind each share of the mission, and nothing beside the other rows', () => {
-    const rows = plannerRows(scenarios, [measure({}), null], [flags, null], mission)
+    const rows = plannerRows(scenarios, [measure({}), null], [flags, null], mission, [300, undefined])
     // A four-day mission is 96 hours: half of it sunlit, half with Earth, a quarter with both.
     expect(rows[0].notes).toEqual(['48 of 96 h', null])
     expect(rows[2].notes).toEqual(['48 of 96 h', null])
@@ -53,9 +62,25 @@ describe('plannerRows', () => {
   })
 
   it('leaves a cell empty while its site is being worked out', () => {
-    const rows = plannerRows(scenarios, [measures[0], null], [flags, null], mission)
+    const rows = plannerRows(scenarios, [measures[0], null], [flags, null], mission, [300, undefined])
     expect(rows[0].cells).toEqual(['61', null])
     expect(rows[4].cells).toEqual(['25', null])
+  })
+})
+
+describe('landingRows', () => {
+  const landing: LandingShares = { sun: 1, earth: 1, earthUp: true, sunElDeg: 1.44, earthElDeg: -0.26, sunAboveDeg: 0.81, earthAboveDeg: -1.02 }
+
+  it("gives each body's angle from level and above the skyline, to a tenth of a degree, with no best mark", () => {
+    const rows = landingRows([landing, null])
+    expect(rows.map((row) => row.label)).toEqual(["Sun's elevation, °", 'Sun above the skyline, °', "Earth's elevation, °", 'Earth above the skyline, °'])
+    expect(rows.map((row) => row.cells)).toEqual([
+      ['1.4', null],
+      ['0.8', null],
+      ['−0.3', null],
+      ['−1.0', null],
+    ])
+    expect(rows.every((row) => row.best.every((mark) => !mark))).toBe(true)
   })
 })
 
@@ -66,7 +91,7 @@ describe('plannerCsv', () => {
       { site: 'b', landing: 25 },
     ]
     const measures = [measure({}), measure({ problems: ['The Sun is gone for 95 h during the mission; your limit is 24 h.'] })]
-    const rows = plannerRows(scenarios, measures, [flags, flags], mission)
+    const rows = plannerRows(scenarios, measures, [flags, flags], mission, [300, 300])
     const csv = plannerCsv(START, scenarios, ['Ridge, east', 'Rim'], rows, measures, 'a 4-day mission')
     const lines = csv.trimEnd().split('\n')
     expect(lines[0]).toBe(',"A · Ridge, east · 2027-01-01T00:00:00Z",B · Rim · 2027-01-02T01:00:00Z')
