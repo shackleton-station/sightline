@@ -1212,6 +1212,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           }}
           onOpen={openAsScenario}
           onClose={toggleScoutPanel}
+          onTour={startTour}
+          tourTaken={tourTaken}
         />
       )}
       {/* The mission's Advanced controls; its presets and basic limits are in the column, under the mission's control. */}

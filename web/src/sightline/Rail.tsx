@@ -37,8 +37,9 @@ interface Props {
 }
 
 /**
- * The rail down the right of the Plan frame: how close the Moon is seen (one grouped control), the
- * tools, and the way out (home, to the opening screen). Nothing here leaves the screen.
+ * The rail down the right of the Plan frame, in three named sections: View (how close the Moon is
+ * seen, one grouped control, and its layers), Plan (Scout and the tools) and Help (How it works, and
+ * home, to the opening screen). Nothing here leaves the screen.
  */
 export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome, hype }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
@@ -143,12 +144,13 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen
   }
   return (
     <nav className="sl-rail" aria-label="Views and tools">
+      <span className="sl-rail-label">View</span>
       {heights}
       {layers}
-      <hr />
+      <span className="sl-rail-label">Plan</span>
       {scout}
       {tools}
-      <hr />
+      <span className="sl-rail-label">Help</span>
       {ways}
     </nav>
   )
