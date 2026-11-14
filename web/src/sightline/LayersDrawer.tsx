@@ -21,6 +21,9 @@ interface Props {
    */
   odds: { on: boolean; here: boolean }
   onOdds: (on: boolean) => void
+  /** "Place names": the Moon's named places printed on it. Whether it is on, and whether its names have arrived. */
+  names: { on: boolean; state: 'off' | 'loading' | 'ready' | 'failed' }
+  onNames: (on: boolean) => void
   onClose: () => void
   /** Start the short guide to the views and layers; null while a guide is already on. */
   onShowHow: (() => void) | null
@@ -31,7 +34,7 @@ interface Props {
  * on the stage one at a time. Each says how to read it, and the one that is on carries Trek's own
  * title and credit.
  */
-export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds, onOdds, onClose, onShowHow }: Props) {
+export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds, onOdds, names, onNames, onClose, onShowHow }: Props) {
   const on = trekLayer(layer)
   return (
     <aside className="sl-drawer sl-layers" aria-label="Layers">
@@ -58,7 +61,29 @@ export function LayersDrawer({ layer, onLayer, state, fine, shade, onShade, odds
             <input type="checkbox" role="switch" checked={odds.on} onChange={() => onOdds(!odds.on)} />
             <span>Mission success probability</span>
           </label>
-        </li>      </ul>
+        </li>
+        <li>
+          <label title="Prints the names of the Moon's large seas, craters, valleys and mountains, and of earlier landings, where they are: for finding your way around. Best seen with Orbit.">
+            <input type="checkbox" role="switch" checked={names.on} onChange={() => onNames(!names.on)} />
+            <span>Place names</span>
+          </label>
+        </li>
+      </ul>
+      {names.on && (
+        <p className="sl-layer-shade sl-layer-credit sl-layer-names" role="status">
+          {names.state === 'failed' ? (
+            'The names could not be read. Switch the layer off and on to try again.'
+          ) : (
+            <>
+              Names from the{' '}
+              <a href="https://planetarynames.wr.usgs.gov/" target="_blank" rel="noreferrer">
+                IAU Gazetteer of Planetary Nomenclature
+              </a>
+              ; earlier landings from NASA. Labels only: no number is worked out from them.
+            </>
+          )}
+        </p>
+      )}
       {shade.on && shade.here && (
         <p className="sl-layer-shade" role="status">
           {shade.state === 'missing'

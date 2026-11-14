@@ -1,5 +1,5 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { SiteInfo } from '../data/contract'
+import type { MoonFeatures, SiteInfo } from '../data/contract'
 import { GlobeCanvas } from '../components/GlobeCanvas'
 import type { GlobeOverlay, GlobeOverlayDetail, GlobeShade, GroundDetail } from '../three/GlobeViewer'
 import { loadTrekWindow } from '../data/trekPicture'
@@ -18,6 +18,7 @@ import { scaleBar, scaleWords } from '../lib/scaleBar'
 import { needleDeg, refitZoom, viewMoved } from '../lib/sightlineView'
 import { poseAt } from '../lib/trackball'
 import { Dots, type Marker } from './Dots'
+import { PlaceNames } from './PlaceNames'
 import { Sky } from './Sky'
 
 interface Props {
@@ -57,6 +58,8 @@ interface Props {
    * the clock (null leaves the grid off), and what the grid says of the site itself at that hour.
    */
   grid: { meta: LightMeta | null | undefined; month: LightMonth | null; wide: LightMonth | null; hour: number | null; atSite: { sun: boolean; earth: boolean } | null }
+  /** The "Place names" layer: the Moon's named places, printed on it; null while the layer is off. */
+  names?: MoonFeatures | null
 }
 
 /**
@@ -107,7 +110,7 @@ function lonLatOf(direction: readonly [number, number, number]): { lon: number; 
 /** How close to a zoom limit counts as being at it, as a share of the limit. */
 const ZOOM_SLACK = 1e-6
 
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid }: Props) {
+export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
@@ -390,6 +393,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
             <GlobeCanvas view={view} up={up} zoom={zoom} sun={sun} earth={earth} color terrain overlay={overlay} shade={shade} overlayDetail={shownDetail?.picture ?? null} ground={shownGround?.picture ?? null} lightMeta={grid.meta} lightMonth={grid.month} lightWide={grid.wide} lightShow={gridShow} onLost={onLost} onDrawn={onDrawn} />
           )
         )}
+        {!bare && placed && names && <PlaceNames features={names} place={placeOf} zoom={zoom} side={side} markers={markers} />}
         {!bare && placed && <Dots markers={markers} side={side} states={states} onChoose={onChoose} onPoint={onPoint} within={within} />}
       </div>
       {!bare && (
