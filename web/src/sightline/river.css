@@ -85,7 +85,18 @@
   line-height: 1.35;
 }
 
-/* What is in view at the hour on show, and how far above the skyline. */
+/* What is in view and the tools, kept together: they share the name's line where it has room, and
+   otherwise take the next line whole, the chip at its start and the tools at its end. */
+.sl-river .sl-river-head > .sl-river-second {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem 0.6rem;
+  min-width: 0;
+}
+
+/* What is in view at the hour on show. */
 .sl-moment {
   display: inline-flex;
   align-items: center;

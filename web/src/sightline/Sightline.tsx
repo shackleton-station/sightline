@@ -297,13 +297,22 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [pillMin, setPillMin] = useStored('pillMin', false)
   const [riverMin, setRiverMin] = useStored('riverMin', false)
   // The skyline strip ("What the lander sees") is open when Plan opens on a laptop (Rodrigo's word of
-  // 2026-11-15); on a phone, where it would take the Moon's room, it is folded until asked for. A
-  // visitor's own fold is kept for the visit, and a link that says so (`sky=1`) opens it anywhere.
+  // 2026-11-15); on a phone it starts as its bar. Folded, it is one thin bar in the same place, which
+  // opens it again. A visitor's own fold is kept for the visit. A link says how the strip stands when
+  // that is not how this screen opens it (`sky=0` folded, `sky=1` open), and either word is obeyed.
   // The name is new with that default: a fold stored under the old name, from before the strip opened
   // by itself (the tour and "Hide all" stored one without the visitor folding anything), is not read.
-  const [skyMin, setSkyMin] = useStored('skylineFolded', window.innerWidth < 761, 'visit')
+  const [skyStartsFolded] = useState(() => window.innerWidth < 761)
+  const [skyMin, setSkyMin] = useStored('skylineFolded', skyStartsFolded, 'visit')
+  // In Surface the stage already shows this skyline, twice: there the strip rests as its bar, and
+  // opening it there lasts until the view changes. Leaving Surface brings the visitor's own state back.
+  const [skyInSurface, setSkyInSurface] = useState(false)
+  if (mode !== 'surface' && skyInSurface) setSkyInSurface(false)
+  const skyFolded = mode === 'surface' ? !skyInSurface : skyMin
   useEffect(() => {
-    if (new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sky') === '1') setSkyMin(false)
+    const said = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sky')
+    if (said === '1') setSkyMin(false)
+    if (said === '0') setSkyMin(true)
     // Read once, as the page opens: after that the fold is the visitor's.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -510,9 +519,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   useEffect(() => {
     // With the Planner open the address also says which of its tabs is on show.
     // The link says when the skyline strip is open, so a shared link opens as its sender saw it.
-    const withSky = (link: string) => (skyMin ? link : `${link}&sky=1`)
+    const withSky = (link: string) => (skyMin === skyStartsFolded ? link : `${link}&sky=${skyMin ? 0 : 1}`)
     setAddressBar(plan ? withSky(full ? withPlannerTab(view, plannerTab) : view) : window.location.pathname)
-  }, [plan, view, full, plannerTab, skyMin])
+  }, [plan, view, full, plannerTab, skyMin, skyStartsFolded])
 
   // A date the data covers but in a year not on hand: ask for the years, and go there once they
   // are here. A date far from the years on hand starts the screen again around it, on this link.
@@ -568,7 +577,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const savedPlan = usePlanLink({
     open: openLink,
     panel: setDrawer,
-    skyline: () => setSkyMin(false),
+    skyline: (open) => setSkyMin(!open),
     planner: (tab) => {
       setNewPlanner(false)
       setPlannerTab(tab)
@@ -815,8 +824,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       tourPlanned.current = true
     }
     setPlan(true)
-    // The step about the skyline opens it; every other step leaves it as the visitor had it.
-    setSkyMin(show === 'skyline' ? false : (beforeTour.current?.skyMin ?? true))
+    // The step about the skyline opens it; on every other step it rests as its bar, so each step has
+    // the Moon's full room. Leaving the tour puts it back as the visitor had it.
+    setSkyMin(show !== 'skyline')
     if (show === 'time') setRiverMin(false)
     // On a phone the strips are down the sheet: it opens to its full height for them, to half for the rest.
     setSheet(show ? SHEET_HEIGHTS : 2)
@@ -1100,12 +1110,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               }
             />
           </PlanColumn>
-          {/* The skyline in 2D, with the Sun's and Earth's paths: above the time bar in Orbit and Site, folded until it is
-              asked for (the time bar's readout is its door), so folded it takes no room at all. It keeps its place in
-              the Surface view too, so nothing on the screen moves when the view changes. */}
-          {!skyMin && (
-            <Skyline horizon={hereOnBar?.horizon ?? null} track={hereOnBar?.track ?? null} index={index} obsHeightM={hereOnBar ? siteHeights.panelM : 0} folded={false} onFold={() => setSkyMin(true)} />
-          )}
+          {/* The skyline in 2D, with the Sun's and Earth's paths: above the time bar, open when Plan first opens.
+              Folded it is one thin bar in the same place, which opens it again. In Surface it rests as that bar. */}
+          <Skyline
+            horizon={hereOnBar?.horizon ?? null}
+            track={hereOnBar?.track ?? null}
+            index={index}
+            obsHeightM={hereOnBar ? siteHeights.panelM : 0}
+            above={{
+              sunDeg: nowOnBar && hereOnBar ? nowOnBar.sun_el - horizonAt(hereOnBar.horizon, nowOnBar.sun_az) : null,
+              earthDeg: nowOnBar && hereOnBar ? nowOnBar.earth_el - horizonAt(hereOnBar.earthHorizon ?? hereOnBar.horizon, nowOnBar.earth_az) : null,
+            }}
+            folded={skyFolded}
+            onFold={(folded) => (mode === 'surface' ? setSkyInSurface(!folded) : setSkyMin(folded))}
+          />
           {/* One time bar, in Orbit, Site and Surface alike: in Surface its hour is the hour stood in. */}
           <River
             start={start}
@@ -1115,8 +1133,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             moment={{
               state: barState,
               words: barState ? chipWords(barState === 'both' || barState === 'sun', barState === 'both' || barState === 'earth', earthOnBar) : null,
-              sunAboveDeg: nowOnBar && hereOnBar ? nowOnBar.sun_el - horizonAt(hereOnBar.horizon, nowOnBar.sun_az) : null,
-              earthAboveDeg: nowOnBar && hereOnBar ? nowOnBar.earth_el - horizonAt(hereOnBar.earthHorizon ?? hereOnBar.horizon, nowOnBar.earth_az) : null,
             }}
             rows={scenarios.map((one, i) => ({
               key: String(i),
@@ -1129,7 +1145,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               active: i === active,
             }))}
             missionHours={mission.requirements.missionDays * 24}
-            sky={{ open: !skyMin, onToggle: () => setSkyMin(!skyMin) }}
             onHourly={() => saveHourlyCsv({ site, start, landing: scenario.landing, missionDays: mission.requirements.missionDays, years: held, heights: mission.heights })}
             folded={riverMin}
             onFold={setRiverMin}

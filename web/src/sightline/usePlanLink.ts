@@ -9,8 +9,8 @@ export interface PlanOpeners {
   open: (view: string) => void
   /** Open a side panel, or none. */
   panel: (panel: PlanPanel | null) => void
-  /** Unfold the skyline above the time bar. */
-  skyline: () => void
+  /** Open the skyline strip above the time bar, or fold it to its bar, as the saved link says. */
+  skyline: (open: boolean) => void
   /** Open the Planner on a tab. */
   planner: (tab: 'find' | 'compare') => void
 }
@@ -65,7 +65,8 @@ export function usePlanLink(openers: PlanOpeners): PlanLinkState {
         const params = new URLSearchParams(view.replace(/^#/, ''))
         const { open, panel, skyline, planner } = latest.current
         open(view)
-        if (params.get('sky') === '1') skyline()
+        if (params.get('sky') === '1') skyline(true)
+        if (params.get('sky') === '0') skyline(false)
         panel(panelIn(view))
         const tab = params.get('planner')
         if (tab === 'find' || tab === 'compare') planner(tab)

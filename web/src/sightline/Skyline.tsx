@@ -3,10 +3,10 @@ import { useMemo } from 'react'
 import type { HorizonPoint, TrackPoint } from '../data/contract'
 import { MOON_RADIUS_M } from '../lib/customModel'
 import { splitAtWrap } from '../lib/panorama'
-import { skylineCentre, skylineDomain, skylineHorizon, skylineStretch, skylineX, smoothHorizonDeg, stretchWords } from '../lib/sightline'
+import { ABOVE_SKYLINE_MEANS, degWords, skylineCentre, skylineDomain, skylineHorizon, skylineStretch, skylineX, smoothHorizonDeg, stretchWords } from '../lib/sightline'
 import { stripLabels } from '../lib/sightlineDots'
 import { useWidth } from '../lib/useWidth'
-import { useFitLevel } from './hooks'
+import { useFitLevel, useShortWindow } from './hooks'
 
 interface Props {
   /** The site's horizon from the pipeline: 720 points round the compass. Null while it loads. */
@@ -17,11 +17,17 @@ interface Props {
   index: number
   /** How high above the ground the horizon was worked out for, in metres. */
   obsHeightM: number
+  /** How far the Sun's and Earth's centres stand above the skyline at that hour, in degrees; null while it loads. */
+  above: { sunDeg: number | null; earthDeg: number | null }
   folded: boolean
   onFold: (folded: boolean) => void
 }
 
-const HEIGHT = 120
+/** The picture's height: a little less in a short window (a 1366 by 768 laptop), where the Moon needs the room. */
+const HEIGHT_TALL = 120
+const HEIGHT_SHORT = 88
+/** What the strip is, for the folded bar's hover text. */
+const STRIP_MEANS = "Opens the whole horizon at this site, with the Sun and Earth on it at the time bar's hour."
 const MARGIN = { top: 8, bottom: 16, left: 30, right: 6 }
 const COMPASS = [
   { az: 0, label: 'N' },
@@ -39,8 +45,13 @@ const SUN_PATH_MEANS = 'Where the Sun goes over the month, seen from the site.'
  * compass point nearest Earth, with the Sun and Earth where they are at the hour on the playhead, the Sun's track and Earth's
  * loop through the month, and a dashed line where a smooth Moon's horizon would be. Heights are
  * stretched to be readable, and the strip says by how much.
+ *
+ * Folded, it does not go away: it is one thin bar in the same place, above the time bar, with its
+ * name, how far the Sun and Earth stand above the skyline at the time bar's hour, and "Open". The
+ * whole bar is the press, so the way back is where the strip was.
  */
-export function Skyline({ horizon, track, index, obsHeightM, folded, onFold }: Props) {
+export function Skyline({ horizon, track, index, obsHeightM, above, folded, onFold }: Props) {
+  const HEIGHT = useShortWindow() ? HEIGHT_SHORT : HEIGHT_TALL
   // The header is one row: 3 is everything; each level down drops a note.
   const head = useFitLevel<HTMLDivElement>(3)
   const [ref, width] = useWidth()
@@ -90,11 +101,30 @@ export function Skyline({ horizon, track, index, obsHeightM, folded, onFold }: P
     ? `The horizon all the way round. The Sun's elevation is ${now.sun_el.toFixed(1)}° and it is ${now.sun_up ? 'in view' : 'hidden'}; Earth's elevation is ${now.earth_el.toFixed(1)}° and it is ${now.earth_up ? 'in view' : 'hidden'}.`
     : 'The horizon all the way round.'
 
+  const readout = (
+    <span className="sl-sky-readout" title={folded ? undefined : ABOVE_SKYLINE_MEANS}>
+      Sun {above.sunDeg === null ? '…' : degWords(above.sunDeg)} · Earth {above.earthDeg === null ? '…' : degWords(above.earthDeg)} <span className="sl-sky-readout-tail">above the skyline</span>
+    </span>
+  )
+  if (folded) {
+    return (
+      <section id="sl-sky" className="sl-sky is-folded" aria-label="What the lander sees">
+        <button type="button" className="sl-sky-bar" aria-expanded={false} title={STRIP_MEANS} onClick={() => onFold(false)}>
+          <span className="sl-strip-title">What the lander sees</span> {readout}{' '}
+          <span className="sl-sky-open">
+            Open <span aria-hidden="true">▸</span>
+          </span>
+        </button>
+      </section>
+    )
+  }
+
   return (
-    <section id="sl-sky" className={folded ? 'sl-sky is-folded' : 'sl-sky'} aria-label="What the lander sees">
+    <section id="sl-sky" className="sl-sky" aria-label="What the lander sees">
       {/* One row: the notes give way, the least needed first, when the strip is narrow. */}
       <div ref={head.ref} className="sl-strip-head sl-sky-head">
         <span className="sl-strip-title">What the lander sees</span>
+        {readout}
         {head.level >= 1 && (
           <span className="sl-legend">
             {head.level >= 3 && 'all 360° of the horizon'}
@@ -107,12 +137,11 @@ export function Skyline({ horizon, track, index, obsHeightM, folded, onFold }: P
             <i className="sl-dash" aria-hidden="true" /> a smooth Moon's horizon
           </span>
         )}
-        <button type="button" className="sl-small sl-fold" aria-expanded={!folded} onClick={() => onFold(!folded)}>
-          {folded ? 'Open' : 'Fold'}
+        <button type="button" className="sl-small sl-fold" aria-expanded={true} title="Folds the skyline to one line, here, above the time bar." onClick={() => onFold(true)}>
+          Fold
         </button>
       </div>
-      {!folded && (
-        <div ref={ref} className="sl-sky-body">
+      <div ref={ref} className="sl-sky-body">
           {width > 0 && drawn && now && (
             <svg width={width} height={HEIGHT} role="img" aria-label={description}>
               {y.ticks(3).map((el) => (
@@ -166,7 +195,6 @@ export function Skyline({ horizon, track, index, obsHeightM, folded, onFold }: P
           )}
           {(!drawn || !now) && <p className="sl-quiet">Reading the horizon…</p>}
         </div>
-      )}
     </section>
   )
 }
