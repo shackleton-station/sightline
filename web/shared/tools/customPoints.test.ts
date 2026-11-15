@@ -78,7 +78,7 @@ describe('a custom point, worked out for the co-pilot', () => {
     const link = `#a=${POINT}@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&sc=0`
     const scene = await scenarioScene(link, viewFrom(link), data)
     const value = (key: string) => scene?.facts.find((item) => item.key === key)?.value
-    expect(value('scenario_a')).toMatch(/^Custom point 89\.453°S, 137\.149°W, landing /)
+    expect(value('scenario_a_site')).toBe('Custom point 89.453°S, 137.149°W')
     expect(value('scenario_a_figures')).toBeUndefined()
 
     const site = await data.site(POINT)

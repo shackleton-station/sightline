@@ -47,6 +47,7 @@ import {
   presetOf,
   readScenarioLink,
   type RemovedScenario,
+  type SightlineMission,
   removeScenarioAt,
   restoreScenario,
   SCENARIO_LETTERS,
@@ -99,7 +100,7 @@ import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
 import { Skyline } from './Skyline'
 import { loadScenarioAt } from '../data/heights'
-import { firstFitFrom, goodLandingFrom } from './openingLanding'
+import { firstFitFrom, goodLandingFrom } from '../lib/openingLanding'
 import { Stage } from './Stage'
 import { bothPct } from './plannerTable'
 import { SurfaceFrame } from './SurfaceFrame'
@@ -304,7 +305,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [layer, setLayer] = useState<TrekLayerId | null>(null)
   // The app's own computed light, as a layer: off by default, so Site view opens on the Moon's own picture.
   const [shade, setShade] = useState(false)
-  // Where a landing fits the mission, shaded on the Moon: off until its switch is turned on, in Landing accuracy or in Layers.
+  // Where a landing fits the mission, shaded on the Moon: on from the first time Landing accuracy is opened.
   const [fitShade, setFitShade] = useState(false)
   // The "Place names" layer: off until switched on in Layers; its names are fetched then.
   const [namesOn, setNamesOn] = useState(false)
@@ -348,7 +349,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [tourAt, setTourAt] = useState<number | null>(null)
   /** Which steps are on show: a feature guide's, by its id, or the main tour's (null). */
   const [tourGuide, setTourGuide] = useState<string | null>(null)
-  const beforeTour = useRef<{ plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
+  const beforeTour = useRef<{ mission: SightlineMission; plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
   /** Whether the tour has put its own landing in Plan yet: once, so what the visitor tries on the way is kept. */
   const tourPlanned = useRef(false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
@@ -823,7 +824,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
 
   /** Start the main tour, or a feature guide by its id. Either way the screen as it is now is kept, to put back at the end. */
   const startTour = (guide: string | null = null) => {
-    beforeTour.current = { plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
+    beforeTour.current = { mission, plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
     tourPlanned.current = false
     if (guide === null) setTourTaken(true)
     setHow(false)
@@ -836,6 +837,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     beforeTour.current = null
     setTourAt(null)
     if (!was) return
+    setMission(was.mission)
     setPlan(was.plan)
     setScenarios(was.scenarios)
     setActive(was.chosen)
@@ -883,6 +885,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   useEffect(() => {
     if (!tourStep) return
     const { view, show, open, pair } = tourStep.state
+    // The rover's guide is about the Long stay example: it is the mission while its steps are on.
+    if (tourStep.state.mission === 'long') setMission((current) => ({ ...ROVER_PRESET.mission, heights: current.heights }))
     setBare(false)
     // A step may open the panel it is about; every other panel is shut.
     setDrawer(open === 'compare' || open === 'layers' ? open : null)
@@ -1065,14 +1069,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setLayer(null)
   }
   const openAccuracy = () => {
-    // Opening it leaves the Moon as it was: the shading is a switch, in the panel and in Layers. The
-    // share of landings that fit is said under the verdict from here on.
-    setAccuracyUsed(true)
+    // Opening it shades the Moon too, in the view the visitor is in; the panel's switch and the key
+    // on the Moon take the shading off. Closing the panel leaves it as the visitor set it.
+    showFitShade(true)
     setDrawer('accuracy')
   }
-  // The shading is switched on close up, as NASA's maps are: from Orbit only the wash over smooth
-  // ground shows, which says little about the site.
-  const shadeFromPanel = (on: boolean) => {
+  // From Layers the shading is switched on close up, as NASA's maps are.
+  const shadeCloseUp = (on: boolean) => {
     if (on) closeUp()
     showFitShade(on)
   }
@@ -1167,7 +1170,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                   mission={missionWords(mission)}
                   missionOpen={missionHere}
                   onMission={toggleMission}
-                  missionPanel={<MissionInline mission={mission} onMission={setMission} heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} />}
+                  missionPanel={<MissionInline mission={mission} onMission={setMission} onRover={() => setDrawer('rover')} heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} />}
                 />
               }
               verdict={
@@ -1606,10 +1609,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           setFull(true)
         }} />
       )}
-      {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={shadeFromPanel} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'rover' && <RoverDrawer long={presetOf(mission)?.id === 'long'} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, lander: closenessWords(spread) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeFromPanel} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
+      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, lander: closenessWords(spread) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
             if (next !== null) closeUp()
             // One coloring of the ground at a time: a map takes the place of "Landings that fit".
             if (next !== null) setFitShade(false)

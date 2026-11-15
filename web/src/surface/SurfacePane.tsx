@@ -8,6 +8,7 @@ import { CompassStrip } from './CompassStrip'
 import { LensControls } from './LensControls'
 import { type HourDot, SkyOverlay } from './SkyOverlay'
 import { SurfaceCanvas } from './SurfaceCanvas'
+import { useCoveredFoot } from './useCoveredFoot'
 import type { SkyPair } from './useGlide'
 import { type Body, useLook } from './useLook'
 import { useLookInput } from './useLookInput'
@@ -39,9 +40,8 @@ interface Props {
   opening: { fovDeg: number; stretch: number } | null
   /** Whether the arrow keys steer this view. */
   keys: boolean
-  /** Whether this view carries the zoom and stretch controls (one set, for every view up). */
+  /** Whether this view carries the zoom control (one set, for every view up). */
   showLens: boolean
-  stretchBy: number
   /** Changes the lens of every view up, so they stay at one scale. */
   setLensAll: (change: (look: Look) => Look) => void
   register: (body: Body, controls: PaneControls | null) => void
@@ -70,18 +70,16 @@ function coveredTopPx(place: 0 | 1): number {
   return short ? 52 : 150
 }
 
-/** How much of the foot of the picture the answer's band covers (px): it lies over the picture except on a phone. */
-const coveredBottomPx = () => (window.innerWidth > NARROW_PX ? 140 : 8)
-
 /**
  * One of the two views from the site: the picture, the lines and names over it, and its compass.
  * It keeps its body, the Sun or Earth, in the middle as time moves, until the visitor steers it by
  * hand; a button then turns it back.
  */
 export function SurfacePane(props: Props) {
-  const { body, place, site, horizon, groundTint, now, sky, discs, hours, still, level, opening, keys, showLens, stretchBy, setLensAll, register, onActive, onLens, onLost } = props
+  const { body, place, site, horizon, groundTint, now, sky, discs, hours, still, level, opening, keys, showLens, setLensAll, register, onActive, onLens, onLost } = props
   const stage = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+  const coveredFootPx = useCoveredFoot(stage)
 
   useEffect(() => {
     const element = stage.current
@@ -143,7 +141,7 @@ export function SurfacePane(props: Props) {
         {size.width > 0 && (
           <>
             <SurfaceCanvas horizon={horizon} groundTint={groundTint} latDeg={site.lat} frame={frame} onLost={onLost} />
-            <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} hours={hours} clearTopPx={coveredTopPx(place)} clearBottomPx={coveredBottomPx()} />
+            <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} hours={hours} clearTopPx={coveredTopPx(place)} clearBottomPx={coveredFootPx} />
           </>
         )}
       </div>
@@ -153,15 +151,7 @@ export function SurfacePane(props: Props) {
           Follow {NAMES[body]} again
         </button>
       )}
-      {showLens && <LensControls look={look} acrossDeg={acrossDeg(lens)} stretchBy={stretchBy} setLens={setLensAll} />}
-      {stretch > 1 && place !== 1 && (
-        <p className="sf-stretched" role="status">
-          Heights drawn {stretch} times taller
-          <button type="button" onClick={() => setLensAll((current) => ({ ...current, stretch: 1 }))}>
-            Show true scale
-          </button>
-        </p>
-      )}
+      {showLens && <LensControls look={look} acrossDeg={acrossDeg(lens)} setLens={setLensAll} />}
     </div>
   )
 }

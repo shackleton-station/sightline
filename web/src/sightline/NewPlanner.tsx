@@ -14,6 +14,7 @@ import { NothingWorks } from '../planner/NothingWorks'
 import { SlipCheck } from '../planner/SlipCheck'
 import { type Plan, usePlannerView } from '../planner/usePlannerView'
 import { WindowGrid } from '../planner/WindowGrid'
+import { nearbyAnchor } from '../lib/nearby'
 import type { PlannerSite } from '../planner/plannerModel'
 import { type KeptPick, PlannerAlternatives } from './PlannerAlternatives'
 import { PlannerLocation } from './PlannerLocation'
@@ -21,8 +22,11 @@ import { MissionBar } from '../planner/MissionBar'
 import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { PlannerMore } from './PlannerMore'
 import { NewPlannerCompare } from './NewPlannerCompare'
-import { PlannerNearby } from './PlannerNearby'
-import { useMissionTracks } from './useMissionTracks'
+import { NearbyGround } from './NearbyGround'
+import { useHorizons, useMissionTracks } from './useMissionTracks'
+import { LandingRain } from './LandingRain'
+import { useMissionGrid } from './useMissionGrid'
+import { DEFAULT_SPREAD, type Spread } from '../lib/landingOdds'
 import { isBaseHeights } from '../lib/heights'
 import { siteValue } from './site'
 import '../planner/planner.css'
@@ -101,6 +105,11 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
     facts.map((fact) => fact.site),
     mission.requirements.missionDays,
   )
+  const horizons = useHorizons(
+    start,
+    scenarios,
+    facts.map((fact) => fact.site),
+  )
   const heightsNote = isBaseHeights(mission.heights) ? null : "The Sun's height and the sunlight are read at 2 m above the ground; the longest dark is at your panel's height."
 
   // The sites the grid and the dropdown hold: the listed ones, and any custom point a scenario is at, once its flags are in.
@@ -129,6 +138,12 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   const plan: Plan = useMemo(() => ({ ...chosen, requirements: mission.requirements, shortlist: [], kept: { b: null, view3d: false } }), [chosen, mission.requirements])
   const fallback = useMemo(() => defaultAddress(mission.requirements), [mission.requirements])
   const view = usePlannerView(sites, plan, fallback, slipDays)
+  // Find: where around the aim point a landing still fits, for the ridge sites the light grid covers.
+  const [spread, setSpread] = useState<Spread>(DEFAULT_SPREAD)
+  // A ridge site, or a point of your own on a ridge site's map (where Aim and Go there lead).
+  const anchor = useMemo(() => (view && sites ? nearbyAnchor(view.row.site, sites.map((one) => one.site)) : null), [view, sites])
+  const accuracyWanted = tab === 'find' && view !== null && anchor !== null
+  const missionGrid = useMissionGrid(start, view ? hourOf(start, view.landing.t) : 0, mission.requirements.missionDays, accuracyWanted)
   const why = useMemo(() => (view ? briefWhy(view.row.flags, view.answer.span, view.viable, view.answer.days, mission.requirements) : null), [view, mission.requirements])
   const [obsHeightM, setObsHeightM] = useState<number | null>(null)
   useEffect(() => {
@@ -293,7 +308,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           )}
         </div>
         {tab === 'compare' ? (
-          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
+          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} horizons={horizons} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
         ) : (
         <>
 
@@ -324,16 +339,28 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                 }}
               />
             )}
-            {view ? <WindowGrid grid={view.grid} siteId={view.row.site.id} month={view.month} listed={listed} onPick={pick} keptWords="kept to compare" /> : <p className="pl-grid sl-quiet">Reading every site and month…</p>}
+            {view ? <WindowGrid grid={view.grid} siteId={view.row.site.id} month={view.month} listed={listed} onPick={pick} keptWords="kept to compare" hideEmpty /> : <p className="pl-grid sl-quiet">Reading every site and month…</p>}
             {view && (
-              <PlannerNearby
-                site={view.row.site}
-                month={view.month}
-                onSpot={(lat, lon) => {
+              <>
+                {accuracyWanted && (
+                  <div className="np-accuracy">
+                    <h5>Where the lander may come down</h5>
+                    <LandingRain site={view.row.site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} onAim={(lat, lon) => onScenario({ site: `${lat},${lon}`, landing: hourOf(start, view.landing.t) })} />
+                  </div>
+                )}
+                {anchor && (
+<NearbyGround
+                  anchor={anchor}
+                  site={view.row.site}
+                  month={view.month}
+                  mission={mission}
+                  onSpot={(lat, lon) => {
                   const atSite = Math.abs(lat - view.row.site.lat) < 1e-6 && Math.abs(lon - view.row.site.lon) < 1e-6
                   onScenario({ site: atSite ? siteValue(view.row.site) : siteValue(customSiteInfo(lat, lon)), landing: hourOf(start, view.landing.t) })
                 }}
-              />
+                />
+                )}
+              </>
             )}
           </div>
           <div className="pl-answer sl-fp-brief" ref={briefRef}>

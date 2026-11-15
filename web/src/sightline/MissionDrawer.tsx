@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import type { MastHeight, SiteInfo, Summary } from '../data/contract'
 import { loadMastHeights } from '../data/loadSite'
 import { ANTENNA_HEIGHTS_M, HEIGHT_MEANS, heightsWords, isBaseHeights, type MissionHeights, PANEL_HEIGHTS_M } from '../lib/heights'
 import type { Requirements } from '../lib/mission'
 import { CLEARANCE_CHOICES_DEG, MISSION_RANGES, NO_LIMIT_H, PRESETS, presetOf, SILENCE_NO_LIMIT_STOP, SILENCE_RANGE, type SightlineMission, silenceHours, silenceStop } from '../lib/sightlineMission'
 import { heightNote } from '../lib/sightlineNotes'
+import { RoverLine } from './RoverLine'
 
 interface Props {
   mission: SightlineMission
@@ -110,7 +111,7 @@ export function Assumptions({ site, year, summary, heights, choice }: Pick<Props
 }
 
 /** The presets and the six basic limits: what the Mission panel holds, and the Planner's left side. */
-export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 'onMission'>) {
+export function MissionControls({ mission, onMission, note }: Pick<Props, 'mission' | 'onMission'> & { /** A line under the examples: in the column, the way to Canada's utility rover. */ note?: ReactNode }) {
   const { requirements } = mission
   const preset = presetOf(mission)
   const limit = (change: Partial<Requirements>) => onMission({ ...mission, requirements: { ...requirements, ...change } })
@@ -127,6 +128,7 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
           Custom
         </button>
       </div>
+      {note}
 
       <Slider id="sl-m-days" label="Mission length" value={requirements.missionDays} unit=" days" range={MISSION_RANGES.missionDays} onChange={(missionDays) => limit({ missionDays })} />
       <Slider id="sl-m-dark" label="Longest dark spell" value={requirements.maxSunGapH} unit=" h" text={spanWords(requirements.maxSunGapH)} range={MISSION_RANGES.maxSunGapH} onChange={(maxSunGapH) => limit({ maxSunGapH })} />
@@ -157,7 +159,7 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
  * must clear the skyline, how high the solar panel and the antenna stand, and what the hourly
  * numbers assume), with "Limits" leading back. Nothing opens anywhere else.
  */
-export function MissionInline({ mission, onMission, heightsOff, site, month, year, summary }: Omit<Props, 'onClose'>) {
+export function MissionInline({ mission, onMission, heightsOff, site, month, year, summary, onRover }: Omit<Props, 'onClose'> & { /** Opens the rover's panel, from the line under the examples. */ onRover?: () => void }) {
   const [advanced, setAdvanced] = useState(false)
   if (advanced) {
     return (
@@ -173,7 +175,7 @@ export function MissionInline({ mission, onMission, heightsOff, site, month, yea
   }
   return (
     <div className="sl-mission-inline" role="group" aria-label="Mission limits">
-      <MissionControls mission={mission} onMission={onMission} />
+      <MissionControls mission={mission} onMission={onMission} note={onRover && <RoverLine onOpen={onRover} />} />
       <button type="button" className="sl-link sl-advanced-link" aria-controls="sl-advanced" onClick={() => setAdvanced(true)}>
         Advanced <span aria-hidden="true">›</span>
       </button>
