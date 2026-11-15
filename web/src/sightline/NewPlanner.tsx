@@ -78,7 +78,7 @@ type Chosen = Pick<Plan, 'site' | 'month' | 'index'>
  * kept to compare. The brief is always the scenario on show: choosing a square, a site, a point or
  * a time moves it, and the Moon follows; moving it on the Moon moves the brief.
  */
-export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onRemove, onScenario, onBack, scoutOpen, onScout, site, month, year, summary, banner = null }: Props) {
+export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onRemove, onScenario, onBack, scoutOpen, onScout, site, month, year, summary, landings, banner = null }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -293,7 +293,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
           )}
         </div>
         {tab === 'compare' ? (
-          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
+          <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} landings={landings} tracks={tracks} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
         ) : (
         <>
 

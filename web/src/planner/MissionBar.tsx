@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LIMIT_BOUNDS } from '../lib/ask'
-import { EARTH_CLEARANCES_DEG, type Requirements } from '../lib/mission'
+import { EARTH_CLEARANCES_DEG, isNoGapLimit, type Requirements } from '../lib/mission'
 import { nearestStop, sliderStops } from './plannerModel'
 
 interface Props {
@@ -24,13 +24,18 @@ interface DialProps {
   value: number
   bounds: readonly [number, number]
   stops: number[]
+  /** The value stands for "no limit" (the number a link carries in its place): it is written so, never as that number. */
+  none?: boolean
   onChange: (value: number) => void
 }
 
 /** One limit: a number to type and a slider to drag. Either one redraws the grid as it changes. */
-export function Dial({ id, label, unit, value, bounds: [min, max], stops, onChange }: DialProps) {
+export function Dial({ id, label, unit, value, bounds: [min, max], stops, none = false, onChange }: DialProps) {
   // The number can be empty or out of range while typing; only a valid value counts.
   const [draft, setDraft] = useState<string | null>(null)
+  // With no limit set and nothing being typed, the field is empty and says "no limit"; typing a number sets one.
+  const unset = none && draft === null
+  const shown = draft ?? (none ? '' : value)
   return (
     <div className="pl-dial">
       <label className="pl-label" htmlFor={id}>
@@ -43,8 +48,9 @@ export function Dial({ id, label, unit, value, bounds: [min, max], stops, onChan
           inputMode="numeric"
           min={min}
           max={max}
-          value={draft ?? value}
-          style={{ width: `${String(draft ?? value).length + 0.4}ch` }}
+          value={shown}
+          placeholder={none ? 'no limit' : undefined}
+          style={{ width: `${(unset ? 'no limit' : String(shown)).length + 0.4}ch` }}
           onChange={(event) => {
             const text = event.target.value
             setDraft(text)
@@ -57,7 +63,7 @@ export function Dial({ id, label, unit, value, bounds: [min, max], stops, onChan
             setDraft(null)
           }}
         />
-        <span className="pl-dial-unit">{unit}</span>
+        {!unset && <span className="pl-dial-unit">{unit}</span>}
       </div>
       <input
         className="pl-slider"
@@ -67,7 +73,7 @@ export function Dial({ id, label, unit, value, bounds: [min, max], stops, onChan
         step={1}
         value={nearestStop(value, stops)}
         aria-label={`${label}, slider`}
-        aria-valuetext={`${value} ${unit}`}
+        aria-valuetext={none ? 'no limit' : `${value} ${unit}`}
         onChange={(event) => {
           setDraft(null)
           onChange(stops[Number(event.target.value)])
@@ -90,8 +96,8 @@ export function MissionBar({ value, example, onChange }: Props) {
   return (
     <form className="pl-mission" aria-label="Your mission" onSubmit={(event) => event.preventDefault()}>
       <Dial id="pl-days" label="Mission length" unit="days" value={value.missionDays} bounds={LIMIT_BOUNDS.missionDays} stops={DAY_STOPS} onChange={(missionDays) => onChange({ ...value, missionDays })} />
-      <Dial id="pl-sun" label="Longest time without Sun" unit="hours" value={value.maxSunGapH} bounds={LIMIT_BOUNDS.maxSunGapH} stops={SUN_STOPS} onChange={(maxSunGapH) => onChange({ ...value, maxSunGapH })} />
-      <Dial id="pl-earth" label="Longest time without Earth" unit="hours" value={value.maxEarthGapH} bounds={LIMIT_BOUNDS.maxEarthGapH} stops={EARTH_STOPS} onChange={(maxEarthGapH) => onChange({ ...value, maxEarthGapH })} />
+      <Dial id="pl-sun" label="Longest time without Sun" unit="hours" value={value.maxSunGapH} bounds={LIMIT_BOUNDS.maxSunGapH} stops={SUN_STOPS} none={isNoGapLimit(value.maxSunGapH)} onChange={(maxSunGapH) => onChange({ ...value, maxSunGapH })} />
+      <Dial id="pl-earth" label="Longest time without Earth" unit="hours" value={value.maxEarthGapH} bounds={LIMIT_BOUNDS.maxEarthGapH} stops={EARTH_STOPS} none={isNoGapLimit(value.maxEarthGapH)} onChange={(maxEarthGapH) => onChange({ ...value, maxEarthGapH })} />
       <fieldset className="pl-at-landing">
         <legend className="pl-label">At landing</legend>
         <label className="pl-check">

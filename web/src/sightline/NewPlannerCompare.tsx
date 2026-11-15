@@ -1,11 +1,12 @@
 import type { TrackPoint } from '../data/contract'
 import { LandingSky } from '../planner/LandingSky'
+import { landingVerdict, marginalAtLanding } from '../lib/landingVerdict'
 import { clockTime } from '../lib/sightline'
 import { shortReason } from '../lib/sightlineSky'
 import { type ScenarioMeasure, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { PlannerPower } from './PlannerPower'
 import { PlannerSunChart } from './PlannerSunChart'
-import type { ScenarioFacts } from './useScenarioFacts'
+import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
 
 interface Props {
   start: string
@@ -13,6 +14,8 @@ interface Props {
   facts: ScenarioFacts[]
   mission: SightlineMission
   measures: (ScenarioMeasure | null)[]
+  /** The Sun's and Earth's discs at each landing, which say when a fit is only marginal; null while its month loads. */
+  landings: (LandingShares | null)[]
   /** Each pick's mission hour by hour, for the Sun chart and the power budget. */
   tracks: (TrackPoint[] | null | undefined)[]
   active: number
@@ -32,7 +35,7 @@ function isoAt(start: string, hour: number): string {
  * hour by hour, the Sun's height and the skyline), then the Sun's height for every pick on one scale
  * and a rough power budget. The columns line up row for row so the eye can run across them.
  */
-export function NewPlannerCompare({ start, scenarios, facts, mission, measures, tracks, active, onSelect, onRemove, heightsNote }: Props) {
+export function NewPlannerCompare({ start, scenarios, facts, mission, measures, landings, tracks, active, onSelect, onRemove, heightsNote }: Props) {
   if (scenarios.length < 2) {
     return (
       <div className="np-compare-empty" role="tabpanel" aria-label="Compare">
@@ -47,17 +50,20 @@ export function NewPlannerCompare({ start, scenarios, facts, mission, measures, 
         {scenarios.map((scenario, i) => {
           const fact = facts[i]
           const measure = measures[i]
-          const fits = measure ? measure.problems.length === 0 : null
+          // The verdict is the plan column's own: a plain fit, a marginal one, or a miss, with the same marks.
+          const verdict = measure ? landingVerdict(measure.problems, marginalAtLanding(mission.requirements, landings[i])) : null
           return (
-            <article key={i} className={`pl-brief np-pick ${fits === false ? 'tight' : 'works'} ${i === active ? 'is-on-show' : ''}`} aria-label={`${SCENARIO_LETTERS[i]}: ${fact.site.name}`}>
+            <article key={i} className={`pl-brief np-pick ${verdict && verdict.state !== 'fits' ? 'tight' : 'works'} ${i === active ? 'is-on-show' : ''}`} aria-label={`${SCENARIO_LETTERS[i]}: ${fact.site.name}`}>
               <header className="np-pick-head">
                 <p className="np-pick-tag">
                   <span className="pl-sunrow-letter">{SCENARIO_LETTERS[i]}</span> {i === active ? 'On show' : 'Kept'}
-                  <span className={`np-pick-fit ${fits ? 'fits' : 'misses'}`}>{fits === null ? '…' : fits ? '✓ Fits' : '✗ Misses'}</span>
+                  <span className={`np-pick-fit ${verdict ? { fits: 'fits', marginal: 'marginal', miss: 'misses' }[verdict.state] : ''}`} data-verdict={verdict?.state}>
+                    {!verdict ? '…' : `${verdict.mark} ${{ fits: 'Fits', marginal: 'Fits, marginal', miss: 'Does not fit' }[verdict.state]}`}
+                  </span>
                 </p>
                 <h3>{fact.site.name}</h3>
                 <p className="np-pick-when">{clockTime(start, scenario.landing)}</p>
-                {measure && measure.problems.length > 0 && <p className="np-pick-why">{measure.problems.map(shortReason).join(' · ')}</p>}
+                {verdict && verdict.reasons.length > 0 && <p className="np-pick-why">{verdict.reasons.map(shortReason).join(' · ')}</p>}
                 <p className="np-pick-actions">
                   {i !== active && (
                     <button type="button" className="sl-small" onClick={() => onSelect(i)}>

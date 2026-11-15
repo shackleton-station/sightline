@@ -1153,8 +1153,12 @@
   color: var(--both);
 }
 
+.sl-np .np-pick-fit.marginal {
+  color: var(--sl-marginal);
+}
+
 .sl-np .np-pick-fit.misses {
-  color: var(--warning);
+  color: var(--sl-miss);
 }
 
 .sl-np .np-pick-when {

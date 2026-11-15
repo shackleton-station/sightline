@@ -40,7 +40,7 @@ export function PlannerNearby({ site, month, onSpot }: Props) {
   const text = spread?.key === key ? spread.text : undefined
   return (
     <section className="pl-nearby" aria-label={`The ground around ${site.name}`}>
-      <h5>A few metres make a difference</h5>
+      <h5>A few meters make a difference</h5>
       <p>{text === undefined ? 'Reading how much this month changes close by…' : (text ?? `How much ${monthLabel(month)} changes close by isn't worked out here.`)}</p>
       <button type="button" className="sl-small" aria-expanded={mapOpen} onClick={() => setMapOpen(!mapOpen)}>
         {mapOpen ? 'Hide the ground around it' : `Show the ground around ${site.name}`}
