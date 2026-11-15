@@ -3004,12 +3004,14 @@
 .sl-np .np-lead {
   grid-column: 1 / -1;
   max-width: 62ch;
-  margin: -0.2rem 0 0.6rem;
+  margin: 0.9rem 0 0.9rem;
   color: var(--muted);
   font-size: 0.8rem;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .sl-np .np-lead b {
+  display: block;
+  margin-bottom: 0.25rem;
   color: var(--text, inherit);
 }
