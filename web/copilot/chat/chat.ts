@@ -13,7 +13,7 @@ import { distanceWords, fact, type Fact, isoAt, latitudeLabel, limitFacts, limit
 import { yearsOf } from '../../src/lib/span'
 import { asksAboutPresent, dateBasis, type DateBasis, dayLabel, realHourIso } from './dates'
 import { buildPrompt, systemPrompt } from './prompt'
-import { cleanFollowup, type FactBook, fallbackAnswer, renderAnswer } from './render'
+import { cleanFollowup, fallbackAnswer, renderAnswer, type FactBook, visitorsAmounts } from './render'
 import { scenarioScene } from './scenarios'
 import type { HorizonsAsk } from '../../shared/tools/horizonsTool'
 import { kmLabel } from '../../shared/tools/spotTools'
@@ -180,7 +180,8 @@ export async function runChat(
   const range = await deps.data.range()
   const system = systemPrompt(range)
   // The years the data covers may be typed: "in 2028" is a name for a year, not a measurement.
-  const allowedWords = [...sites.map((site) => site.name), '3D', ...yearsOf({ from: range.first_year, to: range.last_year }).map(String)]
+  // What an answer may carry besides references: the sites' names, the data's years, and the amounts the visitor typed in this question.
+  const allowedWords = [...sites.map((site) => site.name), '3D', ...yearsOf({ from: range.first_year, to: range.last_year }).map(String), ...visitorsAmounts(input.turns.filter((turn) => turn.role === 'user').at(-1)?.text ?? '')]
   // On the Sightline screen the visitor has up to four scenarios: the one on show becomes the view.
   const scene = await scenarioScene(input.viewHash, input.view, deps.data)
   const shown = scene?.view ?? input.view
