@@ -6,7 +6,7 @@ import { acrossDeg, type BodyRadii, fovForAcross, type Lens, type Look } from '.
 import type { GroundTint, SurfaceFrame } from '../three/SurfaceViewer'
 import { CompassStrip } from './CompassStrip'
 import { LensControls } from './LensControls'
-import { type HourDot, SkyOverlay } from './SkyOverlay'
+import { type HoursNear, SkyOverlay } from './SkyOverlay'
 import { SurfaceCanvas } from './SurfaceCanvas'
 import { useCoveredFoot } from './useCoveredFoot'
 import type { SkyPair } from './useGlide'
@@ -32,7 +32,7 @@ interface Props {
   now: TrackPoint
   sky: SkyPair
   discs: BodyRadii
-  hours: { first: number; sun: HourDot[]; earth: HourDot[] }
+  hours: HoursNear
   still: boolean
   /** The pitch both views share while both bodies fit in one picture. */
   level: LevelPitch | null
