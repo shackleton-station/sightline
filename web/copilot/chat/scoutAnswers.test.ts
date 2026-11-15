@@ -770,7 +770,11 @@ describe('19. a teacher\'s "why" is answered from the Guide\'s own explanations'
     expect(values.month).toBe('May 2027')
     // The site's figures are the ones the Guide's "A day here" card reads from the same hourly track.
     const track = (await data.scenario('connecting-ridge', '2027-05')).track
-    expect(values.sun_highest_here).toBe(degWords(Math.max(...track.map((point) => point.sun_el))))
+    // Said with its side, never with a minus sign: "−0.8° above a level horizon" is what a bare figure made.
+    const highest = Math.round(Math.max(...track.map((point) => point.sun_el)) * 10) / 10
+    expect(values.sun_highest_here).toBe(`${degWords(Math.abs(highest))} ${highest < 0 ? 'below' : 'above'} a level horizon`)
+    expect(values.sun_highest_here).toBe('0.8° below a level horizon')
+    for (const key of ['sun_highest_here', 'earth_lowest_here', 'earth_highest_here']) expect(values[key]).toMatch(/^\d+\.\d° (above|below) a level horizon$/)
     expect(values.sun_rises_here).toMatch(/^(never rises|does not rise, because it is already up|rises (once|twice|\d+ times))$/)
     expect(values.longest_dark_here).toMatch(/^(\d+ h|\d+ d \d+ h|none: it never goes dark)$/)
   })
@@ -797,10 +801,10 @@ describe('19. a teacher\'s "why" is answered from the Guide\'s own explanations'
   })
 
   it('through the whole chat: the explanation and the site\'s figure reach the visitor, with no number typed by the model', async () => {
-    const model = scripted([{ name: 'explain_the_pole', args: { site: 'connecting-ridge', month: '2027-05' } }], [answer('{{r1.why_sun_and_earth_are_low}} At {{r1.site}} in {{r1.month}} the Sun gets no higher than {{r1.sun_highest_here}} from level.')])
+    const model = scripted([{ name: 'explain_the_pole', args: { site: 'connecting-ridge', month: '2027-05' } }], [answer('{{r1.why_sun_and_earth_are_low}} At {{r1.site}} in {{r1.month}} the Sun gets no higher than {{r1.sun_highest_here}}.')])
     const outcome = await ask(model, '#a=connecting-ridge@2027-05&t=132&limits=14_24_99999_1_1&mode=plan&sc=0', 'Why is the Sun so low here?')
     expect(outcome.ok && outcome.fellBack).toBe(false)
-    expect(outcome.ok && outcome.reply.text).toMatch(/^Near the Moon’s south pole the Sun and Earth never climb\. They skim the horizon, .* At Connecting Ridge in May 2027 the Sun gets no higher than [−\d.]+° from level\.$/)
+    expect(outcome.ok && outcome.reply.text).toMatch(/^Near the Moon’s south pole the Sun and Earth never climb\. They skim the horizon, .* At Connecting Ridge in May 2027 the Sun gets no higher than 0\.8° below a level horizon\.$/)
   })
 })
 
