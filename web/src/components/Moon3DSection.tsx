@@ -11,6 +11,8 @@ interface Props {
   now: TrackPoint
   obsHeightM: number
   camera?: CameraCue
+  /** When standing, keep the ground in the picture however high the Sun or Earth is. */
+  groundInView?: boolean
   onReadyChange?: (ready: boolean) => void
 }
 
@@ -31,7 +33,7 @@ class LoadFailure extends Component<{ children: ReactNode }, { failed: boolean }
 }
 
 /** The 3D view, downloaded only when someone gets to it, with a way back if it can't start. */
-export function Moon3DSection({ site, now, obsHeightM, camera, onReadyChange }: Props) {
+export function Moon3DSection({ site, now, obsHeightM, camera, groundInView, onReadyChange }: Props) {
   const [attempt, setAttempt] = useState(0)
 
   return (
@@ -44,6 +46,7 @@ export function Moon3DSection({ site, now, obsHeightM, camera, onReadyChange }: 
             now={now}
             obsHeightM={obsHeightM}
             camera={camera}
+            groundInView={groundInView}
             onReadyChange={onReadyChange}
             onRestart={() => setAttempt((count) => count + 1)}
           />

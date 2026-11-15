@@ -7,6 +7,8 @@ interface Props {
   offerMotion: boolean
   motion: MotionStatus
   onMotion: () => void
+  /** Opens the ground itself, drawn in 3D from the terrain, in place of the skyline views. */
+  onTerrain: () => void
   /** The Sun's and Earth's radii this hour (degrees), for saying how big they are drawn. */
   radii: BodyRadii
   obsHeightM: number
@@ -15,7 +17,7 @@ interface Props {
 const across = (radiusDeg: number) => (2 * radiusDeg).toFixed(2)
 
 /** Under the picture: steering with the phone, and what is drawn. */
-export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM }: Props) {
+export function StageActions({ offerMotion, motion, onMotion, onTerrain, radii, obsHeightM }: Props) {
   const steering = motion === 'on' || motion === 'asking'
   const words = motionWords(motion)
   // Escape closes the note, wherever in this page the keyboard is.
@@ -29,6 +31,9 @@ export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM 
   }, [])
   return (
     <div className="sf-actions">
+      <button type="button" className="sf-motion sf-stand" title="The ground here drawn in 3D from NASA’s LOLA terrain, with the Sun’s shadows." onClick={onTerrain}>
+        Stand here in 3D terrain
+      </button>
       {offerMotion && (
         <button type="button" className="sf-motion" aria-pressed={steering} onClick={onMotion}>
           {steering ? 'Stop following the phone' : 'Look around by moving your phone'}

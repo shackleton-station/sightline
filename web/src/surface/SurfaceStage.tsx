@@ -6,6 +6,7 @@ import type { BodyRadii, Look } from '../lib/surfaceView'
 import type { GroundTint } from '../three/SurfaceViewer'
 import { StageActions } from './StageActions'
 import { offCenterNow, type PaneControls, SurfacePane } from './SurfacePane'
+import { TerrainStand } from './TerrainStand'
 import { useGlide } from './useGlide'
 import type { Body } from './useLook'
 import { hasTouchPointer, useMotionLook } from './useMotionLook'
@@ -41,6 +42,8 @@ const VIEWS: Body[] = ['sun', 'earth']
  */
 export function SurfaceStage({ site, month, horizon, groundTint = null, track, index, radii, obsHeightM, pickers, answer }: Props) {
   const [flat, setFlat] = useState(false)
+  // "Stand here in 3D terrain": the ground itself, in place of the two skyline views, until the visitor goes back.
+  const [terrain, setTerrain] = useState(false)
   const still = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
   const offerMotion = useMemo(() => hasTouchPointer(), [])
 
@@ -111,6 +114,15 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
     )
   }
 
+  if (terrain) {
+    return (
+      <>
+        <TerrainStand site={site} now={now} obsHeightM={obsHeightM} pickers={pickers} onBack={() => setTerrain(false)} />
+        {answer}
+      </>
+    )
+  }
+
   return (
     <>
       <div className="sf-view split">
@@ -141,7 +153,7 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
         {pickers}
       </div>
       {answer}
-      <StageActions offerMotion={offerMotion} motion={status} onMotion={toggleMotion} radii={discs} obsHeightM={obsHeightM} />
+      <StageActions offerMotion={offerMotion} motion={status} onMotion={toggleMotion} onTerrain={() => setTerrain(true)} radii={discs} obsHeightM={obsHeightM} />
     </>
   )
 }

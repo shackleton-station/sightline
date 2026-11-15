@@ -227,6 +227,23 @@ async function deskChecks(cdp, size) {
   const facing = await page.evaluate(FACING)
   check('with reduced motion, following the Sun again happens at once', Math.abs(turn(facing, 311.4)) <= 1, `${facing}°`)
   await page.close()
+
+  // "Stand here in 3D terrain": the ground itself takes the skyline views' place, and one press brings them back.
+  page = await open(cdp, size, view)
+  await page.click('Stand here in 3D terrain')
+  const STANDING = "document.querySelector('.sf-terrain .camera-choices button[aria-pressed=true]')?.textContent === 'Stand here, face the Sun' && document.querySelector('.sf-terrain .moon-3d-status') === null"
+  for (let tries = 0; tries < 150 && !(await page.evaluate(STANDING)); tries += 1) await sleep(200)
+  const stand = await page.evaluate(`(() => { const view = document.querySelector('.sf-terrain'); const canvas = view?.querySelector('.moon-3d canvas')?.getBoundingClientRect(); return { standing: ${STANDING}, panes: document.querySelectorAll('.sf-pane').length, canvas: canvas ? [Math.round(canvas.width), Math.round(canvas.height)] : null, answer: document.querySelector('.sf-answer') !== null, river: document.querySelector('.sf-river') !== null, hash: location.hash } })()`)
+  check(
+    '"Stand here in 3D terrain" puts the ground drawn from the terrain in the skyline views\' place, standing and facing the Sun, with the answer and the time bar still there and the address unchanged',
+    stand.standing && stand.panes === 0 && stand.canvas !== null && stand.canvas[0] > 300 && stand.canvas[1] > 200 && stand.answer && stand.river && stand.hash === view,
+    JSON.stringify(stand),
+  )
+  await page.click('Back to the skyline views')
+  await sleep(1200)
+  const skylines = await page.evaluate("({ panes: document.querySelectorAll('.sf-pane').length, terrain: document.querySelector('.sf-terrain') !== null })")
+  check('"Back to the skyline views" brings the two views back', skylines.panes === 2 && !skylines.terrain, JSON.stringify(skylines))
+  await page.close()
 }
 
 /** The ways looking around with the phone can go, none of which may break the page. */

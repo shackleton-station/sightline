@@ -14,6 +14,8 @@ interface Props {
   obsHeightM: number
   /** Where a guided tour wants the camera. People can still drag it from there. */
   camera?: CameraCue
+  /** When standing, look up no further than leaves the ground in the picture, however high the body is. */
+  groundInView?: boolean
   onReadyChange?: (ready: boolean) => void
   /** Start again on a new canvas, for when the browser won't give the old one back. */
   onRestart: () => void
@@ -47,6 +49,8 @@ const MAX_RANGE_M = 300_000
 const ARROW_STEP_DEG = 5
 const ZOOM_STEP = 1.3
 const LOOK_SIDE_ON_DEG = 40
+/** With `groundInView`, a standing view looks up at most this far: the ground keeps the bottom fifth of the picture. */
+const GROUND_IN_VIEW_MAX_DEG = 15
 
 interface View {
   headingDeg: number
@@ -60,7 +64,7 @@ const NO_POINTS: ScreenPoints = { site: null, sun: null, earth: null }
  * Our own view of the Moon in Three.js: LOLA terrain lit and shadowed by the pipeline's Sun, with the Sun
  * and Earth drawn where the ephemeris puts them. Loaded only when opened.
  */
-export default function MoonView3D({ site, now, obsHeightM, camera, onReadyChange, onRestart }: Props) {
+export default function MoonView3D({ site, now, obsHeightM, camera, groundInView = false, onReadyChange, onRestart }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const renderer = useRef<TerrainViewer | null>(null)
   const sunAz = useRef(now.sun_az)
@@ -175,12 +179,13 @@ export default function MoonView3D({ site, now, obsHeightM, camera, onReadyChang
       return
     }
     const sun = next === 'sun'
+    const elDeg = sun ? point.sun_el : point.earth_el
     setView({
       headingDeg: sun ? point.sun_az : point.earth_az,
-      pitchDeg: -(sun ? point.sun_el : point.earth_el),
+      pitchDeg: -(groundInView ? Math.min(elDeg, GROUND_IN_VIEW_MAX_DEG) : elDeg),
       rangeM: START_RANGE_M,
     })
-  }, [])
+  }, [groundInView])
 
   useEffect(() => {
     // A view that can't draw shouldn't hold up a tour, which still has the numbers to show.

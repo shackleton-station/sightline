@@ -707,6 +707,53 @@
   color: var(--muted);
 }
 
+/* "Stand here in 3D terrain": the ground itself in place of the skyline views, laid out like the flat chart. */
+.sf-terrain-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+/* The picture takes the height the window has left, so a laptop shows it whole with the answer under it;
+   in a short window it keeps a least height and the page scrolls. */
+.sf-main:has(.sf-terrain) {
+  display: flex;
+  flex-direction: column;
+}
+
+.sf-view.sf-terrain {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.sf-terrain .moon-3d-section {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  margin-top: 0;
+}
+
+.sf-terrain .camera-choices {
+  margin-top: 0;
+}
+
+.sf-terrain .moon-3d {
+  flex: 1 0 auto;
+  height: auto;
+  min-height: min(52vh, 300px);
+}
+
+.sf-terrain .moon-3d canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.sf-terrain ~ .sf-answer {
+  flex: none;
+}
+
 .sf-flat ~ .sf-answer {
   position: static;
   max-width: 46rem;
