@@ -452,3 +452,10 @@ Pat: the Library is a different thing from the Planner's tabs, and its point is 
 - [ ] Not checked: a phone-width window; the share sheet noting a real save (nothing was saved while checking; the list was filled by hand).
 - [ ] Plans saved before this are not under "Your plans": the browser was not noting them. Signing in could fill the list from the service's own "my plans"; not built.
 - [ ] Resuming the same plan twice in one visit, with nothing else opened in between, does nothing the second time (`usePlanLink` opens an id once).
+
+## The Library adds to the plan (2026-11-15)
+
+- [x] "Add to plan" on a Library card makes its landing the plan's next scenario (C after A and B) and stays on the Library; pressed again, it takes it out. "Show in plan" still also goes to the main screen
+- [x] The tray is the plan: its scenarios as cards, A to D, in the Library's header (`LibraryTray.tsx`, `planEntries` in `web/src/lib/library.ts`). The separate tray kept in the browser (`sightline.library.tray`) is no longer read or written
+- [x] The Planner's header: a Library button in place of its tray
+- [ ] Not done: a Library card says "Fits your mission" where the plan column says "Fits, marginal" (the card has no marginal state); the tray's unused styles for its empty state are still in `library.css`; no scene for the Library in `sightline-shots.mjs`; not looked at on a phone
