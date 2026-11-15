@@ -89,7 +89,7 @@ export interface GlobeShade {
    * reaches: laid out as a `GlobeOverlay` is. Null for none.
    */
   polar: (ShadeBlend<HTMLCanvasElement> & { halfWidthM: number; radiusM: number }) | null
-  /** How much of the Moon the shade hides, 0 to 1. */
+  /** How much of the Moon the shade hides at its strongest, 0 to 1. Each pixel's own alpha scales it down (the pictures are faint where few landings fit). */
   opacity: number
 }
 
@@ -130,7 +130,9 @@ void main() {
   float fade = smoothstep(1.0, 0.66, 2.0 * length(at - 0.5));
   vec2 inside = clamp(at, 0.0, 1.0);
   vec4 polar = mix(texture2D(polarFrom, inside), texture2D(polarTo, inside), polarBlend);
-  shade = mix(shade, polar, polarOn * fade * step(up.z, 0.0) * polar.a);
+  // A picture's alpha is how strongly its color is drawn (faint where few landings fit), not how much
+  // of it there is: the polar picture takes the wash's place by its disc alone, strength and all.
+  shade = mix(shade, polar, polarOn * fade * step(up.z, 0.0));
   gl_FragColor = vec4(shade.rgb, shade.a * shadeMix);
   #include <colorspace_fragment>
 }

@@ -57,7 +57,7 @@ export function useMissionGrid(start: string, landing: number, missionDays: numb
   return mine === 'past' ? { meta, gaps: null, state: 'past' } : { meta, gaps: mine, state: 'ready' }
 }
 
-/** How much of the Moon the shading hides: the ground still shows through it. */
+/** How much of the Moon the shading hides at its strongest (amber and green); where few landings fit it hides `FEW_STRENGTH` of this, about 0.15. */
 const SHADE_OPACITY = 0.38
 /** How far apart the pictures blended between are, in hours: the polar one is the costly one. */
 const POLAR_EVERY_H = 24

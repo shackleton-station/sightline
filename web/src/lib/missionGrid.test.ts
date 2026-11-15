@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { cellCentreM, cellChances, erf, type FitMap, FITS, landingOdds, missCode, missOf, sigmaM } from './landingOdds'
 import { cellCenter, type LightMeta, type LightMonth, planeXY, readMonth, upSeries } from './lightGrid'
 import { landingProblems, type Requirements } from './mission'
-import { addMonth, fieldOf, fitField, fitMapAround, fitsAtTarget, type GridGaps, lightVerdict, missionMonths, oddsAlongBearings, oddsAt, oddsColor, oddsField, oddsPixels, slopeDegFrom, squareAround, startGaps } from './missionGrid'
+import { addMonth, fieldOf, fitField, fitMapAround, fitsAtTarget, type GridGaps, lightVerdict, missionMonths, oddsAlongBearings, oddsAt, oddsColor, oddsField, oddsPixels, oddsStrength, FEW_STRENGTH, slopeDegFrom, squareAround, startGaps } from './missionGrid'
 
 const SIZE = 12
 const SUN_SLOTS = 6
@@ -259,8 +259,22 @@ describe('the odds of fitting, aimed at every pixel', () => {
     expect(oddsColor(1)).toEqual([87, 192, 138])
     expect(oddsColor(0.25)).toEqual([209, 124, 52])
     expect(oddsColor(7)).toEqual([87, 192, 138])
+  })
+
+  it('draws the red end faintly and amber and green at full strength, the strength carried in each pixel’s alpha', () => {
+    expect(oddsStrength(0)).toBe(FEW_STRENGTH)
+    expect(oddsStrength(0.25)).toBeCloseTo((1 + FEW_STRENGTH) / 2)
+    expect(oddsStrength(0.5)).toBe(1)
+    expect(oddsStrength(1)).toBe(1)
+    expect(oddsStrength(-3)).toBe(FEW_STRENGTH)
+    // Faint enough that the ground reads through: about 0.15 of the Moon hidden at the shading's 0.38.
+    expect(FEW_STRENGTH * 0.38).toBeCloseTo(0.15, 2)
     const pixels = oddsPixels(new Float32Array([0, 1]))
-    expect(Array.from(pixels)).toEqual([194, 69, 45, 255, 87, 192, 138, 255])
+    expect(Array.from(pixels)).toEqual([194, 69, 45, Math.round(255 * FEW_STRENGTH), 87, 192, 138, 255])
+    // Alpha only rises with the odds, and is full from half up.
+    const alphas = Array.from(oddsPixels(Float32Array.from({ length: 11 }, (_, i) => i / 10))).filter((_, i) => i % 4 === 3)
+    expect(alphas.every((alpha, i) => i === 0 || alpha >= alphas[i - 1])).toBe(true)
+    expect(alphas.slice(5)).toEqual([255, 255, 255, 255, 255, 255])
   })
 })
 describe('a picture with no squares', () => {
