@@ -7,6 +7,8 @@ export type StageMode = 'orbit' | 'site' | 'surface'
 interface Props {
   mode: StageMode
   onMode: (mode: StageMode) => void
+  /** The pointer or the keyboard is on the Surface button: its view can be made ready before the press. */
+  onSurfaceNear?: () => void
   scoutOpen: boolean
   /** What is in view at the scenario's landing, for Scout's mark; null while it loads. */
   scoutState: RiverState | null
@@ -41,7 +43,7 @@ interface Props {
  * seen, one grouped control, and its layers), Plan (Scout and the tools) and Help (How it works, and
  * home, to the opening screen). Nothing here leaves the screen.
  */
-export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome, hype }: Props) {
+export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome, hype }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -67,7 +69,7 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen
       <button type="button" aria-pressed={mode === 'site'} title="Moves in close on the landing site." onClick={() => onMode('site')}>
         Site
       </button>
-      <button type="button" aria-pressed={mode === 'surface'} title="Shows the view from the ground at the site: the skyline, the Sun and Earth." onClick={() => onMode('surface')}>
+      <button type="button" aria-pressed={mode === 'surface'} title="Shows the view from the ground at the site: the skyline, the Sun and Earth." onPointerEnter={onSurfaceNear} onFocus={onSurfaceNear} onClick={() => onMode('surface')}>
         Surface
       </button>
     </div>
