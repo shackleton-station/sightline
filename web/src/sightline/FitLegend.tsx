@@ -1,4 +1,3 @@
-import { ACCURACY_RANGE, type Spread, spreadWords } from '../lib/landingOdds'
 import { ODDS_RAMP } from '../lib/missionGrid'
 
 const RAMP = `linear-gradient(to right, ${ODDS_RAMP.map((color) => `rgb(${color.join(' ')})`).join(', ')})`
@@ -6,20 +5,14 @@ const RAMP = `linear-gradient(to right, ${ODDS_RAMP.map((color) => `rgb(${color.
 interface Props {
   on: boolean
   onToggle: (on: boolean) => void
-  spread: Spread
-  onSpread: (spread: Spread) => void
-  /** Whether the light grid reaches the site on show: only there do the odds take the terrain and the accuracy into account. */
-  detailed: boolean
-  /** Open the panel with the odds for this landing, the reasons and a better place to aim. */
-  onDetails: () => void
 }
 
 /**
- * The switch for "Landings that fit", the share of landings that fit the mission shaded on the Moon, on the stage itself in every
- * view. Switched on, it is also the shading's key: what the colors mean, the landing accuracy they
- * are for, and what they are worked out from.
+ * The key to "Landings that fit" while it shades the Moon: its switch and what the colors mean, small
+ * enough for the stage's corner, where it lies on none of the Moon's disc and on no site's name. What
+ * the shading is worked out from, and the landing it is for, are said in Layers and in Landing accuracy.
  */
-export function FitLegend({ on, onToggle, spread, onSpread, detailed, onDetails }: Props) {
+export function FitLegend({ on, onToggle }: Props) {
   return (
     <div className={on ? 'sl-fit-legend is-on' : 'sl-fit-legend'}>
       <label className="sl-fit-switch" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
@@ -27,36 +20,11 @@ export function FitLegend({ on, onToggle, spread, onSpread, detailed, onDetails 
         <span>Landings that fit</span>
       </label>
       {on && (
-        <>
+        <span className="sl-fit-key">
+          <span>Few</span>
           <span className="sl-fit-ramp" style={{ background: RAMP }} />
-          <span className="sl-fit-ends">
-            <span>Few</span>
-            <span>Most</span>
-          </span>
-          <label className="sl-fit-accuracy">
-            <span>
-              Landing accuracy <output>{spreadWords(spread)}</output>
-            </span>
-            <input
-              type="range"
-              min={ACCURACY_RANGE.min}
-              max={ACCURACY_RANGE.max}
-              step={ACCURACY_RANGE.step}
-              value={spread.accuracyM}
-              aria-valuetext={`${spread.accuracyM} meters`}
-              onChange={(event) => onSpread({ ...spread, accuracyM: Number(event.target.value) })}
-            />
-          </label>
-          <p>For a landing at the time on the time bar.</p>
-          <p>
-            {detailed ? 'Near the south pole: the hourly light on the terrain, and the slope, for a lander this accurate.' : 'This site is outside the terrain grid near the south pole.'} Elsewhere: a smooth Moon, with no terrain shadows and no slope.
-          </p>
-          {detailed && (
-            <button type="button" className="sl-small" onClick={onDetails}>
-              Details for this landing
-            </button>
-          )}
-        </>
+          <span>Most</span>
+        </span>
       )}
     </div>
   )
