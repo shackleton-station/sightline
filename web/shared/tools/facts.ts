@@ -44,6 +44,19 @@ export function longitudeLabel(lon: number): string {
   return `${Math.abs(east).toFixed(3)}°${east < 0 ? 'W' : 'E'}`
 }
 
+/**
+ * Why a landing does not meet the limits, as a clause that joins a sentence ("it does not fit because
+ * …"): no capital, no full stop, and the limit it breaks said in passing ("the Sun is gone for 95 h,
+ * past the 24 h limit") in place of the screen's two-part line with a semicolon.
+ */
+export function reasonClause(problem: string): string {
+  return problem
+    .replace(/\.$/, '')
+    .replace(/^The /, 'the ')
+    .replace(/ during the mission; your limit is (\d+) h$/, ', past the $1 h limit')
+    .replace(/; your limit is ([\d.]+)°$/, ', past the $1° limit')
+}
+
 export function daysLabel(days: number): string {
   return `${days} ${days === 1 ? 'day' : 'days'}`
 }
