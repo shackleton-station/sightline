@@ -958,6 +958,44 @@
   color: var(--ink);
 }
 
+/* The claim is one control: a press opens the card that proves it. */
+.sl-horizons:has(.sl-horizons-claim) {
+  position: relative;
+}
+
+.sl-horizons-claim {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sl-horizons-claim:hover,
+.sl-horizons-claim[aria-expanded='true'] {
+  color: var(--ink);
+}
+
+/* The card lies over the column, above its line: what was compared, and NASA's own answer for this hour. */
+.sl-horizons-card {
+  position: absolute;
+  z-index: 6;
+  right: 0;
+  bottom: calc(100% + 0.35rem);
+  left: 0;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #241e2e;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
+  color: var(--ink);
+  line-height: 1.4;
+}
+
 /* A short laptop screen (1366 by 768) has no line to spare in the fullest answer, so this one gives way there.
    The same proof stays one click away, under the site field ("Open in ... Horizons") and in How it works. */
 @media (max-height: 819px) and (min-width: 761px) {
