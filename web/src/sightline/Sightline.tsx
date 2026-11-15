@@ -194,6 +194,12 @@ interface Props {
  * The one screen. Watch is the Moon playing with everything else hideable; Plan puts a frame round
  * the Moon with the question (At, On, For) and the answer. One clock drives both.
  */
+/**
+ * The New Planner has no button since 2026-11-15: the rail offers one planner. It still opens from
+ * its own address, the site with "?new-planner" before any "#", which nothing in the app links to.
+ */
+const NEW_PLANNER_LINK = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('new-planner')
+
 export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Props) {
   // Every site's flags share one start and length: the years on hand. Clock hours count from that
   // start. More years are only ever added after them, so an hour keeps its number while the page is open.
@@ -218,7 +224,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [arrivedForHype] = useState(() => window.location.hash === HYPE_HASH)
   const [hypeFound, setHypeFound] = useState(arrivedForHype)
   useEffect(forgetOldHype, [])
-  const [plan, setPlan] = useState(linked !== null || arrivedForHype)
+  const [plan, setPlan] = useState(linked !== null || arrivedForHype || NEW_PLANNER_LINK)
   // Up to four scenarios, A to D; the column, the skyline and the answer are about the active one.
   // With none in the address, Plan starts with two: the two prospective sites at the same hour, so
   // Compare has something to compare from the first press.
@@ -253,10 +259,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const chat = useScoutChat(takenByScreen)
   // The Planner takes the whole window, with the Moon kept small in a corner; How it works opens as a sheet over the scene.
   // A link that names a Planner tab opens the Planner on it.
-  const [full, setFull] = useState(() => linked !== null && plannerTabIn(window.location.hash) !== null)
+  const [full, setFull] = useState(() => NEW_PLANNER_LINK || (linked !== null && plannerTabIn(window.location.hash) !== null))
   const [plannerTab, setPlannerTab] = useState<PlannerTab>(() => plannerTabIn(window.location.hash) ?? 'find')
   // Which Planner the whole window shows: the Find and Compare one, or the New Planner (the Planner page's look on this screen's data).
-  const [newPlanner, setNewPlanner] = useState(false)
+  const [newPlanner, setNewPlanner] = useState(NEW_PLANNER_LINK)
   const [how, setHow] = useState(openHow)
   // The written brief for the scenario on show, as a sheet too.
   const [brief, setBrief] = useState(false)
@@ -1229,18 +1235,19 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                   onWhy={askWhy}
                   onMission={() => setMissionHere(true)}
                 />
-                {/* What a planner asks next when a date or a site slips: the New Planner's own list of
-                    other landings, here and nearby, within two weeks of this one. One line that opens it,
+                {/* What a planner asks next when a date or a site slips: the Planner's months and its
+                    other landings near this one. One line that opens it,
                     shown only when the verdict offers no other landing or site itself, so the column keeps its height. */}
                 {problems && !steadier && !elsewhere && !(better && problems.length > 0) && (
                   <p className="sl-odds-line">
                     <button
                       type="button"
                       className="sl-link"
-                      title="Opens the New Planner at this landing: other landings here and at nearby sites, within two weeks either side, that meet your limits."
+                      title="Opens the Planner at this site: every month with a landing that fits, and other landings near this one."
                       onClick={() => {
                         if (drawer !== 'scout') setDrawer(null)
-                        setNewPlanner(true)
+                        setNewPlanner(false)
+                        setPlannerTab('find')
                         setFull(true)
                       }}
                     >

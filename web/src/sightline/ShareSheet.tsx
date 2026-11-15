@@ -207,8 +207,8 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
                   </span>
                   <textarea name="plan-note" value={note} maxLength={MAX_NOTE} rows={2} onChange={(event) => setNote(event.target.value)} />
                 </label>
-                <p className="sl-share-listed" id="sl-share-listed">
-(m) => m                <div className="sl-share-row">
+                <p className="sl-share-listed">Its name and landings join the Planner’s library, for anyone to find. The note does not.</p>
+                <div className="sl-share-row">
                   <p className="sl-share-kept" id="sl-share-kept">
                     Kept {KEPT_DAYS} days, for anyone with the link.
                   </p>
