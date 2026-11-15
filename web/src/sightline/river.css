@@ -1,9 +1,9 @@
-/* The time bar, "When the Sun and Earth are in view" (River.tsx): its header, one row per site with
-   the scenarios as lettered flags, the selected mission lit, and the line for the hour on show with
+/* The time bar, "When the Sun and Earth are in view" (River.tsx): its header, one row per scenario with
+   its lettered flag and its mission's box, the mission on show lit, and the line for the hour on show with
    its handle and its date. The bands' colours and the header's shared parts are in sightline.css. */
 
 .sl-river {
-  /* The label column: as wide as the longest site's name needs, between a floor (the axis's "September 2027") and a limit. */
+  /* The label column: as wide as the longest label (a letter and the site's name) needs, between a floor (the axis's "September 2027") and a limit. */
   --sl-name: clamp(5.4rem, calc(var(--sl-label-chars, 16) * 0.42rem + 0.4rem), 12rem);
 }
 
@@ -230,12 +230,7 @@
   border-right-width: 1px;
 }
 
-/* A mission previewed from its flag (the pointer or the keyboard is on it) lies over the lit one. */
-.sl-span.is-preview {
-  z-index: 2;
-}
-
-/* The selected mission is lit: a full outline, and the row dimmed on either side of it. */
+/* The mission on show is lit: a full outline. Every row is dimmed on either side of its own mission. */
 .sl-span.is-lit {
   z-index: 1;
   border-color: var(--ink);
@@ -296,6 +291,17 @@
   bottom: calc(100% + 2px);
 }
 
+/* A row's label: its scenario's letter, then its site. The scenario on show has the brighter letter. */
+.sl-row-letter {
+  display: inline-block;
+  min-width: 0.75rem;
+  color: var(--soft);
+}
+
+.sl-site-row.is-on-show .sl-row-letter {
+  color: var(--ink);
+}
+
 .sl-site-row.is-pointed .sl-site-name {
   color: var(--gold);
 }
@@ -351,6 +357,6 @@
 
 @media (max-width: 760px) {
   .sl-river {
-    --sl-name: clamp(5.2rem, calc(var(--sl-label-chars, 16) * 0.42rem + 0.4rem), 8.2rem);
+    --sl-name: clamp(5.2rem, calc(var(--sl-label-chars, 16) * 0.42rem + 0.4rem), 8.8rem);
   }
 }

@@ -51,7 +51,7 @@
         {
           "id": "compare-rows",
           "title": "On the time bar",
-          "say": "Each site has a row, and each scenario a lettered flag at its landing. Press a flag to show that scenario and go to its landing.",
+          "say": "Each scenario has a row: a lettered flag at its landing, a box for its mission. Press a flag to show that scenario and go to its landing.",
           "state": { "view": "plan", "show": "time", "pair": true },
           "targets": [".sl-river .sl-flag"]
         }
