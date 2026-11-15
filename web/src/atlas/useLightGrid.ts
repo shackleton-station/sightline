@@ -9,6 +9,7 @@ export const LIGHT_URLS = {
   meta: `${BASE}data/light/meta.json`,
   month: (month: string) => `${BASE}tiles/light/${month}.bin.gz`,
   wideMonth: (month: string) => `${BASE}tiles/light/wide/${month}.bin.gz`,
+  patchMonth: (site: string, month: string) => `${BASE}tiles/light/patch/${site}/${month}.bin.gz`,
   slopes: [`${BASE}tiles/light/slope_x.jpg`, `${BASE}tiles/light/slope_y.jpg`] as [string, string],
 }
 

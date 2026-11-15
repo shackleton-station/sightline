@@ -1,5 +1,5 @@
 import { cellAtM, erf, type FitMap, FITS, missCode, sigmaM, type Spread } from './landingOdds'
-import { cellAt, type LightMeta, type LightMonth, planeXY } from './lightGrid'
+import { cellAt, type LightMeta, type LightMonth, type LightPatch, planeXY } from './lightGrid'
 import { locateHour, type Requirements } from './mission'
 
 /**
@@ -197,6 +197,49 @@ export function fitMapAround(meta: LightMeta, gaps: GridGaps, square: Square, la
   }
 }
 
+/** The patch that holds a square of the grid's cells whole, with its name; null if none does. */
+export function patchHolding(meta: LightMeta, square: Square): { site: string; patch: LightPatch } | null {
+  for (const [site, patch] of Object.entries(meta.patches ?? {})) {
+    if (square.col >= patch.col && square.row >= patch.row && square.col + square.cells <= patch.col + patch.cells && square.row + square.cells <= patch.row + patch.cells) return { site, patch }
+  }
+  return null
+}
+
+/**
+ * `fitMapAround` where a patch holds the square: the Sun and Earth verdict is each patch pixel's
+ * own, not one for the whole cell, so the map's cells are the patch's pixels. `gaps` are the
+ * patch's. The slope is read from its own finer cells, the one each patch pixel's middle falls in.
+ */
+export function fitMapInPatch(meta: LightMeta, patch: LightPatch, gaps: GridGaps, square: Square, lat: number, lon: number, req: Requirements, maxSlopeDeg: number, slope: SlopePart | null): FitMap {
+  const usable = slope && slope.col === square.col && slope.row === square.row && slope.cells === square.cells ? slope : null
+  const sub = patch.sub
+  const size = square.cells * sub
+  const verdict = new Uint8Array(size * size)
+  const steep = missCode('slope')
+  const slopeSide = usable ? square.cells * usable.sub : 0
+  for (let row = 0; row < size; row += 1) {
+    const patchRow = (square.row - patch.row) * sub + row
+    for (let col = 0; col < size; col += 1) {
+      const patchCol = (square.col - patch.col) * sub + col
+      let tooSteep = false
+      if (usable) {
+        const slopeRow = Math.min(slopeSide - 1, Math.floor(((row + 0.5) * usable.sub) / sub))
+        const slopeCol = Math.min(slopeSide - 1, Math.floor(((col + 0.5) * usable.sub) / sub))
+        tooSteep = usable.deg[slopeRow * slopeSide + slopeCol] > maxSlopeDeg
+      }
+      verdict[row * size + col] = tooSteep ? steep : lightVerdict(gaps, patchRow * patch.size + patchCol, req)
+    }
+  }
+  const target = planeXY(meta, lat, lon)
+  return {
+    size,
+    cellM: meta.pixel_m / sub,
+    leftM: -meta.half_width_m + square.col * meta.pixel_m - target.x,
+    topM: meta.half_width_m - square.row * meta.pixel_m - target.y,
+    verdict,
+  }
+}
+
 /** Whether a landing at the target itself fits, by the map's cell there; null if the target is off the map. */
 export function fitsAtTarget(map: FitMap): boolean | null {
   const cell = cellAtM(map, 0, 0)
@@ -248,6 +291,33 @@ export function fitField(gaps: GridGaps, req: Requirements, maxSlopeDeg: number,
     }
   }
   return field
+}
+
+/**
+ * A patch laid into a field of where a landing fits (`fitField`): inside the patch, each of the
+ * field's pixels becomes the share of the patch's pixels under it where a landing fits, so ground
+ * the grid's one value a cell could not tell apart is told apart. `gaps` are the patch's own, one
+ * per patch pixel. A pixel too steep stays at 0, as in the field. Nothing is changed unless the
+ * patch's pixels divide the field's exactly.
+ */
+export function layPatch(field: Float32Array, sub: number, gridSize: number, patch: LightPatch, gaps: GridGaps, req: Requirements, maxSlopeDeg: number, slopeDeg: Float32Array | null): void {
+  const per = patch.sub / sub
+  if (!Number.isInteger(per) || per < 1 || gaps.size !== patch.size) return
+  const side = gridSize * sub
+  const across = patch.cells * sub
+  for (let j = 0; j < across; j += 1) {
+    for (let i = 0; i < across; i += 1) {
+      const pixel = (patch.row * sub + j) * side + patch.col * sub + i
+      if (slopeDeg && slopeDeg[pixel] > maxSlopeDeg) continue
+      let fits = 0
+      for (let dj = 0; dj < per; dj += 1) {
+        for (let di = 0; di < per; di += 1) {
+          if (lightVerdict(gaps, (j * per + dj) * patch.size + i * per + di, req) === FITS) fits += 1
+        }
+      }
+      field[pixel] = fits / (per * per)
+    }
+  }
 }
 
 /**
