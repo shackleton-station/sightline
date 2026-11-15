@@ -3,8 +3,12 @@
   /* Colors come from the shared space palette in index.css. */
   color-scheme: dark;
 
+  /* The page's side gutter, and the height of the bar that holds the way back. */
+  --how-pad: clamp(1rem, 4vw, 3rem);
+  --how-bar: calc(44px + 1.2rem + 1px);
+
   min-height: 100svh;
-  padding: 0 clamp(1rem, 4vw, 3rem) 3rem;
+  padding: 0 var(--how-pad) 3rem;
   background: var(--bg);
   color: var(--text);
   font-size: 1.0625rem;
@@ -37,8 +41,23 @@
   outline-offset: 2px;
 }
 
-.how-top {
-  padding: 1rem 0;
+/* The way back stays in sight while the page scrolls: a bar across the whole page at the top of the
+   Guide's scroll area, in the page's own solid color so the text passing under it does not show
+   through. Its button keeps its place at the left of the reading column. */
+.how > .how-top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  max-width: none;
+  margin-inline: calc(-1 * var(--how-pad));
+  padding: 0.6rem max(var(--how-pad), calc((100% + 2 * var(--how-pad) - 46rem) / 2));
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* Whatever a link, a button or the keyboard brings into view stops under the bar, not behind it. */
+.how * {
+  scroll-margin-top: calc(var(--how-bar) + 0.75rem);
 }
 
 .how-intro {
@@ -414,7 +433,6 @@
 /* ---------- Why this site is hard: a few sentences from the site's own figures ---------- */
 .how-why {
   padding: 1.25rem 0 0;
-  scroll-margin-top: 1rem;
 }
 
 .how-why:focus {
@@ -481,7 +499,6 @@
 
 /* One reading column in the middle of the page: the text used to sit at the left of a wide page with
    the right of it empty. The diagrams, the counts, the stack and the data sources keep the full width. */
-.how > .how-top,
 .how > .how-start,
 .how > .how-why,
 .how > .how-guides,
