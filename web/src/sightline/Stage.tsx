@@ -133,8 +133,7 @@ function lonLatOf(direction: readonly [number, number, number]): { lon: number; 
 /** How close to a zoom limit counts as being at it, as a share of the limit. */
 const ZOOM_SLACK = 1e-6
 
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, onRingedHidden, turnTo = null, recentreWords = null, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, focus, onChoose, onPoint, onPick, onRecentre, corner, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
+export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, onRingedHidden, turnTo = null, recentreWords = null, focus, onChoose, onPoint, onPick, onRecentre, corner, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
