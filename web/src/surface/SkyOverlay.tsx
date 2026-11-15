@@ -1,4 +1,5 @@
 import { acrossDeg, diskOutline, elevationMarks, type Lens, project } from '../lib/surfaceView'
+import { tagPlace } from '../lib/surfacePitch'
 import { skyTagWords } from '../lib/surfaceWords'
 
 export interface Marked {
@@ -28,6 +29,8 @@ interface Props {
   hours: { first: number; sun: HourDot[]; earth: HourDot[] }
   /** The menus and compass cover this much of the top of the picture (px): no marks are drawn under them. */
   clearTopPx: number
+  /** The answer's band covers this much of the foot of the picture (px). */
+  clearBottomPx: number
 }
 
 /** The scale of elevations sits this far in from the left edge of the picture (px). */
@@ -51,7 +54,7 @@ function markLabel(el: number, stepDeg: number): string {
  * and Earth's path around now, a name by each of them, and a dashed outline where one is behind the
  * land. The disks and the land themselves are in the canvas below.
  */
-export function SkyOverlay({ lens, width, height, sun, earth, hours, clearTopPx }: Props) {
+export function SkyOverlay({ lens, width, height, sun, earth, hours, clearTopPx, clearBottomPx }: Props) {
   const px = (x: number) => ((x + 1) / 2) * width
   const py = (y: number) => ((1 - y) / 2) * height
   const scaleX = -1 + (2 * SCALE_INSET_PX) / width
@@ -87,21 +90,24 @@ export function SkyOverlay({ lens, width, height, sun, earth, hours, clearTopPx 
 
   const tag = (body: Marked, kind: 'sun' | 'earth', name: string) => {
     const outline = diskOutline(lens, body.azDeg, body.elDeg, body.radiusDeg)
-    if (!outline.inFront || Math.abs(outline.x) > 1.1 || Math.abs(outline.y) > 1.1) return null
+    // A body the view is turned to is named even when it is above or below the picture: at that edge.
+    const faced = Math.abs(outline.x) < 0.35
+    if (!outline.inFront || Math.abs(outline.x) > 1.1 || (Math.abs(outline.y) > 1.1 && !faced)) return null
     const rx = (outline.rx * width) / 2
     const ry = (outline.ry * height) / 2
-    const cx = px(outline.x)
+    const cx = Math.min(Math.max(px(outline.x), 96), Math.max(width - 96, 96))
     const cy = py(outline.y)
     // Above the disk (name, then its two lines); under it when that would run into the menus and compass.
     // The skyline comes first: it decides whether the body is in view. Eye level is second.
-    const above = cy - ry - 46 > clearTopPx + 18
-    const nameY = above ? cy - ry - 46 : cy + ry + 26
-    const anglesY = above ? cy - ry - 29 : cy + ry + 43
+    const { nameY, points } = tagPlace(cy, ry, height, clearTopPx, clearBottomPx)
+    const anglesY = nameY + 17
+    const arrow = points === 'down' ? '↓ ' : points === 'up' ? '↑ ' : ''
     const words = skyTagWords(body.aboveDeg, body.elDeg, body.radiusDeg, body.up)
     return (
       <g className={`sf-tag ${kind}${body.up ? '' : ' hidden'}`}>
         {!body.up && <ellipse cx={cx} cy={cy} rx={Math.max(rx, 3)} ry={Math.max(ry, 3)} />}
         <text x={cx} y={nameY} textAnchor="middle">
+          {arrow}
           {body.up ? name : `${name}, behind the land`}
         </text>
         <text className="sf-tag-angles" x={cx} y={anglesY} textAnchor="middle">

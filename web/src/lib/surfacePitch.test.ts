@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { levelPitch, towardLevel } from './surfacePitch'
+import { levelPitch, tagPlace, towardLevel, withSkyline } from './surfacePitch'
 
 const lens = { fovDeg: 31, stretch: 1 }
 
@@ -69,5 +69,44 @@ describe('levelPitch', () => {
   it('has nothing to share with one view, and passes a pitch through when there is no shared one', () => {
     expect(levelPitch([{ bodyElDeg: 3, skylineElDeg: 0 }], lens, 0.2).weight).toBe(0)
     expect(towardLevel(4.2, null)).toBe(4.2)
+  })
+})
+
+describe('withSkyline', () => {
+  it('leaves a pitch alone while the skyline is in the picture', () => {
+    // The Sun 0.4° under the skyline: the view sits between the two.
+    expect(withSkyline(-1.6, -1.4, lens, 0.2)).toBe(-1.6)
+    expect(withSkyline(2.9, -2, lens, 0.2)).toBe(2.9)
+  })
+
+  it('stops tipping down when the skyline would leave the top of the picture', () => {
+    // A point in a crater: the Sun 42.7° under a wall that stands 27.7° over eye level.
+    const pitch = withSkyline(-8.8, 27.7, lens, 0.2)
+    expect(pitch).toBeCloseTo(27.7 - 6.2, 9)
+    // The skyline is a fifth of the picture's height above the middle: in its upper part.
+    expect((27.7 - pitch) / lens.fovDeg).toBeCloseTo(0.2, 9)
+  })
+})
+
+describe('tagPlace', () => {
+  it('puts the name above the disk, or under it near the menus, as before', () => {
+    expect(tagPlace(400, 10, 750, 150, 140)).toEqual({ nameY: 344, points: null })
+    expect(tagPlace(190, 10, 750, 150, 140)).toEqual({ nameY: 226, points: null })
+  })
+
+  it('pins the name at the lower edge, pointing down, for a body under the foot of the picture', () => {
+    expect(tagPlace(900, 10, 750, 150, 140)).toEqual({ nameY: 573, points: 'down' })
+    // Under the answer's band but still in the picture: pinned, and it still points down.
+    expect(tagPlace(700, 10, 750, 150, 140)).toEqual({ nameY: 573, points: 'down' })
+  })
+
+  it('pins the name under the compass, pointing up, for a body above the picture', () => {
+    expect(tagPlace(-300, 10, 750, 150, 140)).toEqual({ nameY: 180, points: 'up' })
+  })
+
+  it('keeps the name in a picture too short for both edges', () => {
+    const place = tagPlace(400, 5, 180, 100, 8)
+    expect(place.nameY).toBeGreaterThanOrEqual(130)
+    expect(place.nameY).toBeLessThanOrEqual(180)
   })
 })
