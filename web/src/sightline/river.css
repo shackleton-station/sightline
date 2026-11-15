@@ -259,9 +259,9 @@
   margin-top: 0.3rem;
 }
 
-/* Two lines: the axis's labels, then the date of the hour on show under them. */
+/* Two lines: the axis's labels, then the date of the hour on show under them, with its ring, all inside the box. */
 .sl-river .sl-axis .sl-track {
-  height: 2.25rem;
+  height: 2.65rem;
 }
 
 .sl-river .sl-axis {
@@ -282,7 +282,7 @@
 
 /* The layer that takes a drag covers the handle's lane and every row, down to the axis. */
 .sl-river .sl-seek {
-  bottom: 2.55rem;
+  bottom: 2.95rem;
   z-index: 1;
 }
 
