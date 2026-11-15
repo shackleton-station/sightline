@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteInfo } from '../data/contract'
 import type { SiteFlags } from './flags'
-import { bandsOf, cardsOf, filterCards, inTray, type LibraryEntry, MAX_TRAY, NO_FILTERS, readTray, shareOf, toggleTray } from './library'
+import { bandsOf, cardsOf, filterCards, type LibraryEntry, NO_FILTERS, planEntries, shareOf } from './library'
 import { DEFAULT_MISSION } from './sightlineMission'
 
 const START = '2027-01-01T00:00:00Z'
@@ -81,18 +81,13 @@ describe('the filters', () => {
   })
 })
 
-describe('the tray', () => {
-  it('puts a card in, takes it out again, and holds no more than its limit', () => {
-    const one = toggleTray([], entry())
-    expect(inTray(one, entry())).toBe(true)
-    expect(toggleTray(one, entry())).toEqual([])
-    const full = Array.from({ length: MAX_TRAY }, (_, i) => entry({ landing: `2027-01-${String(i + 1).padStart(2, '0')}T00:00:00Z` }))
-    expect(toggleTray(full, entry({ site: 'dark' }))).toHaveLength(MAX_TRAY)
-  })
-
-  it('reads back only what a tray could hold', () => {
-    expect(readTray(JSON.stringify([entry(), { plan: 1 }, 'x']))).toEqual([entry()])
-    expect(readTray('not json')).toEqual([])
-    expect(readTray(null)).toEqual([])
+describe('the tray, which is the plan', () => {
+  it('shows the plan\'s own scenarios as cards, in their order, measured like the library\'s', () => {
+    const plan = [{ site: 'bright', landing: 9 * 24 + 6 }, { site: 'dark', landing: 0 }]
+    const entries = planEntries(plan, START)
+    expect(entries.map((one) => [one.site, one.landing])).toEqual([['bright', '2027-01-10T06:00:00Z'], ['dark', '2027-01-01T00:00:00Z']])
+    const made = cards(entries)
+    expect(made.map((card) => card.scenario)).toEqual(plan)
+    expect(made.map((card) => card.fits)).toEqual([true, false])
   })
 })

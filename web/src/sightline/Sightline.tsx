@@ -1519,6 +1519,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           active={active}
           onSelect={setActive}
           onAdd={addScenario}
+          onRemove={removeScenario}
           onBack={() => setFull(false)}
           onCompare={() => {
             setLibrary(false)

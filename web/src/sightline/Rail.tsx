@@ -25,7 +25,7 @@ interface Props {
   onLayers: () => void
   /** Open the Planner: the same scenarios with the whole window to work in. */
   onPlanner: () => void
-  /** Open the Library: landings other people saved, to search and pull into Compare. */
+  /** Open the Library: landings other people saved, to search and add to the plan. */
   onLibrary: () => void
   /** Open the New Planner: the Planner page's look, on the same scenarios. */
   onNewPlanner: () => void
@@ -109,7 +109,7 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
       <button type="button" data-tour="planner" title="Opens the Planner: every site by month, and your scenarios side by side." onClick={onPlanner}>
         Planner
       </button>
-      <button type="button" title="Opens the Library: landings other people saved, to search and pull in to compare." onClick={onLibrary}>
+      <button type="button" title="Opens the Library: your saved plans to pick up again, and landings other people saved, to search and add to your plan." onClick={onLibrary}>
         Library
       </button>
       {SHOW_NEW_PLANNER && (

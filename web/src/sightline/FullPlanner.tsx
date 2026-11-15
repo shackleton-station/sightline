@@ -1,5 +1,5 @@
 import { isCustomSite } from '../data/customSite'
-import { type ReactNode, useCallback, useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import type { SiteInfo, Summary } from '../data/contract'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { monthSpans } from '../lib/grid'
@@ -12,9 +12,6 @@ import { ExportMenu } from './ExportMenu'
 import { HeaderTools } from './HeaderTools'
 import { saveHourlyCsv, saveText } from './hourlyExport'
 import { AdvancedControls, MissionControls } from './MissionDrawer'
-import { MAX_SCENARIOS } from '../lib/sightlineMission'
-import { LibraryTray } from './LibraryTray'
-import { useLibraryCards } from './useLibrary'
 import './library.css'
 import { PlannerCompare } from './PlannerCompare'
 import { PlannerCompareMore } from './PlannerCompareMore'
@@ -76,7 +73,7 @@ interface Props {
   sunlightWm2: (number | null | undefined)[]
   /** A notice for the header's last row: a saved plan's name and note. */
   banner?: ReactNode
-  /** Open the Library page: the tray's "Find more". */
+  /** Open the Library page, where landings are added to this plan. */
   onLibrary: () => void
 }
 
@@ -126,10 +123,6 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
   })
   const spans = useMemo(() => monthSpans(start, hours), [start, hours])
 
-  // The tray: landings pulled in from the Library page, to add to Compare. Read and worked out only once it is opened.
-  const [trayWanted, setTrayWanted] = useState(false)
-  const wantTray = useCallback(() => setTrayWanted(true), [])
-  const library = useLibraryCards({ wanted: trayWanted, start, hours, flagged, mission, scenarios })
 
   const exportTable = () => {
     const csv = plannerCsv(
@@ -166,23 +159,9 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
             </button>
           ))}
         </div>
-        <LibraryTray
-          start={start}
-          cards={library.trayCards}
-          letterOf={library.letterOf}
-          room={scenarios.length < MAX_SCENARIOS}
-          onCompare={(card) => {
-            if (!card.scenario) return
-            // Added for comparing, not opened: the scenario on show stays the one you are working on.
-            const working = active
-            onAdd(card.scenario)
-            onSelect(working)
-          }}
-          onRemove={library.toggle}
-          onOpenCompare={() => onTab('compare')}
-          onOpenLibrary={onLibrary}
-          onWanted={wantTray}
-        />
+        <button type="button" className="sl-small" title="Opens the Library: your saved plans, and landings other people saved, to add to this plan." onClick={onLibrary}>
+          Library
+        </button>
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
         <span className="pl-tools">
           <button type="button" className="sl-small" title="Opens a written summary of the scenario on show." onClick={onBrief}>

@@ -37,7 +37,7 @@ function landingWords(card: LibraryCard, start: string): string {
 
 /** Whether the landing fits, in a few words. */
 function fitWords(card: LibraryCard): string {
-  if (card.fits === null) return card.scenario ? 'Worked out once it is in Compare' : 'Cannot be opened here'
+  if (card.fits === null) return card.scenario ? 'Worked out once it is in your plan' : 'Cannot be opened here'
   return card.fits ? 'Fits your mission' : `Misses: ${card.problems.map(shortReason).join(' · ')}`
 }
 

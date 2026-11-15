@@ -5,7 +5,7 @@ import { fitProblems, type SightlineMission, type SightlineScenario } from './si
 import { parseCustomSite } from './urlState'
 
 /**
- * The library: scenarios other people saved, to search, filter and pull into Compare.
+ * The library: scenarios other people saved, to search, filter and add to the plan on screen.
  *
  * The plans service sends every listed scenario as a place and a landing time (web/plans/API.md,
  * "The library"). Everything else on a card is worked out here, from the same hourly flags the
@@ -41,7 +41,7 @@ export interface LibraryCard {
   scenario: SightlineScenario | null
   /** The site's name, or the coordinates of a custom point. */
   place: string
-  /** The listed site; null for a custom point, which has no flags until it is pulled in. */
+  /** The listed site; null for a custom point, which has no flags until it is in the plan. */
   site: SiteInfo | null
   /** The landing's month, as "2027-06". */
   month: string
@@ -152,29 +152,11 @@ export function filterCards(cards: LibraryCard[], filters: LibraryFilters): Libr
   })
 }
 
-/** At most this many cards in the tray. */
-export const MAX_TRAY = 8
-
-/** The tray with a card put in, or taken out if it was there. Full, a new card is not added. */
-export function toggleTray(tray: LibraryEntry[], entry: LibraryEntry): LibraryEntry[] {
-  const same = (one: LibraryEntry) => one.plan === entry.plan && one.site === entry.site && one.landing === entry.landing
-  if (tray.some(same)) return tray.filter((one) => !same(one))
-  return tray.length >= MAX_TRAY ? tray : [...tray, entry]
-}
-
-/** Whether a card's scenario is in the tray. */
-export function inTray(tray: LibraryEntry[], entry: LibraryEntry): boolean {
-  return tray.some((one) => one.plan === entry.plan && one.site === entry.site && one.landing === entry.landing)
-}
-
-/** A tray read back from the browser: only entries of the right shape, and no more than the tray holds. */
-export function readTray(text: string | null): LibraryEntry[] {
-  try {
-    const kept: unknown = JSON.parse(text ?? '[]')
-    if (!Array.isArray(kept)) return []
-    const isEntry = (one: unknown): one is LibraryEntry => typeof one === 'object' && one !== null && (['plan', 'title', 'saved', 'site', 'landing'] as const).every((name) => typeof (one as Record<string, unknown>)[name] === 'string')
-    return kept.filter(isEntry).slice(0, MAX_TRAY)
-  } catch {
-    return []
-  }
+/**
+ * The plan's own scenarios as entries, so the tray (the plan, as cards) is drawn and measured the
+ * way the library's cards are. There is no separate tray to remember: a landing added from the
+ * library is a scenario of the plan, A to D, and is on the main screen with the others.
+ */
+export function planEntries(scenarios: SightlineScenario[], start: string): LibraryEntry[] {
+  return scenarios.map((scenario) => ({ plan: 'your-plan', title: 'your plan', saved: '', site: scenario.site, landing: new Date(Date.parse(start) + scenario.landing * 3_600_000).toISOString().replace('.000Z', 'Z') }))
 }
