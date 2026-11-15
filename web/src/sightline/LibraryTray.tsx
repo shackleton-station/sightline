@@ -13,7 +13,8 @@ interface Props {
   onCompare: (card: LibraryCard) => void
   onRemove: (entry: LibraryEntry) => void
   onOpenCompare: () => void
-  onOpenLibrary: () => void
+  /** Open the Library page; null where the tray is on that page already. */
+  onOpenLibrary: (() => void) | null
   /** Tells the Planner the tray was looked at, so the library is read. */
   onWanted: () => void
 }
@@ -88,9 +89,13 @@ export function LibraryTray({ start, cards, letterOf, room, onCompare, onRemove,
           {cards.length === 0 ? (
             <p className="lib-tray-empty">
               Nothing pulled in yet.{' '}
-              <button type="button" className="lib-link" onClick={onOpenLibrary}>
-                Search the library
-              </button>{' '}
+              {onOpenLibrary ? (
+                <button type="button" className="lib-link" onClick={onOpenLibrary}>
+                  Open the Library
+                </button>
+              ) : (
+                'Search below'
+              )}{' '}
               and press “Pull in” on a landing.
             </p>
           ) : (
@@ -113,12 +118,23 @@ export function LibraryTray({ start, cards, letterOf, room, onCompare, onRemove,
                 })}
               </ul>
               <p className="lib-tray-foot">
-                <button type="button" className="lib-link" onClick={onOpenCompare}>
+                <button
+                  type="button"
+                  className="lib-link"
+                  onClick={() => {
+                    // The tray folds away, so it is not left lying over the table it opened.
+                    setPinned(false)
+                    setOver(false)
+                    onOpenCompare()
+                  }}
+                >
                   Open Compare
                 </button>
-                <button type="button" className="lib-link" onClick={onOpenLibrary}>
-                  Find more
-                </button>
+                {onOpenLibrary && (
+                  <button type="button" className="lib-link" onClick={onOpenLibrary}>
+                    Find more
+                  </button>
+                )}
               </p>
             </>
           )}

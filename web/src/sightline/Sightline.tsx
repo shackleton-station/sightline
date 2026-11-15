@@ -62,6 +62,8 @@ import { layersReach, lightReachKm } from '../lib/layerReach'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
+import { LibraryPage } from './LibraryPage'
+import { planHash } from '../lib/plans'
 import { NewPlanner } from './NewPlanner'
 import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
@@ -263,6 +265,19 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [plannerTab, setPlannerTab] = useState<PlannerTab>(() => plannerTabIn(window.location.hash) ?? 'find')
   // Which Planner the whole window shows: the Find and Compare one, or the New Planner (the Planner page's look on this screen's data).
   const [newPlanner, setNewPlanner] = useState(NEW_PLANNER_LINK)
+  // The Library takes the Planner's place in the full view. It is not held in the link, and closing the full view closes it.
+  const [library, setLibrary] = useState(false)
+  // The id of a saved plan being opened again from the Library, until its link is in the address.
+  const [resuming, setResuming] = useState<string | null>(null)
+  useEffect(() => {
+    if (!full) setLibrary(false)
+  }, [full])
+  const openLibrary = () => {
+    // In the full view the only panel is Scout's.
+    if (drawer !== 'scout') setDrawer(null)
+    setLibrary(true)
+    setFull(true)
+  }
   const [how, setHow] = useState(openHow)
   // The written brief for the scenario on show, as a sheet too.
   const [brief, setBrief] = useState(false)
@@ -571,6 +586,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const withSky = (link: string) => (skyMin === skyStartsFolded ? link : `${link}&sky=${skyMin ? 0 : 1}`)
     setAddressBar(plan ? withSky(full ? withPlannerTab(view, plannerTab) : view) : window.location.pathname)
   }, [plan, view, full, plannerTab, skyMin, skyStartsFolded])
+  // A saved plan asked for from the Library. The Library closes first; this effect comes after the one
+  // above on purpose, so the plan's short link goes into the address after the screen has written its
+  // own, not before, and is still there to be read and opened (usePlanLink).
+  useEffect(() => {
+    if (resuming === null || full) return
+    window.location.hash = planHash(resuming)
+    setResuming(null)
+  }, [resuming, full])
 
   // A date the data covers but in a year not on hand: ask for the years, and go there once they
   // are here. A date far from the years on hand starts the screen again around it, on this link.
@@ -1465,7 +1488,41 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {!bare && !plan && !(scoutOpen && room === 'phone') && <PlayControl clock={clock} date={clockDate(start, hour)} span={monthSpan(start, hour)} minimised={pillMin} onMinimise={setPillMin} />}
       </main>
 
-      {planner && newPlanner && (
+      {planner && library && (
+        <LibraryPage
+          start={start}
+          hours={hours}
+          flagged={lit.flagged}
+          scenarios={scenarios}
+          mission={mission}
+          active={active}
+          onSelect={setActive}
+          onAdd={addScenario}
+          onBack={() => setFull(false)}
+          onCompare={() => {
+            setLibrary(false)
+            setNewPlanner(false)
+            setPlannerTab('compare')
+          }}
+          onResume={(id) => {
+            // The Library closes, and then the address becomes the plan's short link, which opens it.
+            setFull(false)
+            setResuming(id)
+          }}
+          onShow={(picked) => {
+            // In the plan already: choose it. Otherwise add it, which also puts it on show.
+            const at = scenarios.findIndex((one) => one.site === picked.site && one.landing === picked.landing)
+            if (at < 0) addScenario(picked)
+            else {
+              setActive(at)
+              setHour(picked.landing)
+            }
+            // Back to the main screen, where the plan column at the top left shows it.
+            setFull(false)
+          }}
+        />
+      )}
+      {planner && !library && newPlanner && (
         <NewPlanner
           start={start}
           hours={hours}
@@ -1490,8 +1547,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           banner={savedCard(true)}
         />
       )}
-      {planner && !newPlanner && (
+      {planner && !library && !newPlanner && (
         <FullPlanner
+          onLibrary={openLibrary}
           start={start}
           hours={hours}
           flagged={lit.flagged}
@@ -1644,6 +1702,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             setNewPlanner(false)
             setFull(true)
           }}
+          onLibrary={openLibrary}
           onNewPlanner={() => {
             if (drawer !== 'scout') setDrawer(null)
             setNewPlanner(true)

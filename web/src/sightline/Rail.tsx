@@ -25,6 +25,8 @@ interface Props {
   onLayers: () => void
   /** Open the Planner: the same scenarios with the whole window to work in. */
   onPlanner: () => void
+  /** Open the Library: landings other people saved, to search and pull into Compare. */
+  onLibrary: () => void
   /** Open the New Planner: the Planner page's look, on the same scenarios. */
   onNewPlanner: () => void
   /** Open the written brief of the scenario on show. */
@@ -52,7 +54,7 @@ interface Props {
  */
 const SHOW_NEW_PLANNER: boolean = false
 
-export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onBrief, onHow, onTour, onHome, hype }: Props) {
+export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onLibrary, onNewPlanner, onBrief, onHow, onTour, onHome, hype }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -106,6 +108,9 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
       </button>
       <button type="button" data-tour="planner" title="Opens the Planner: every site by month, and your scenarios side by side." onClick={onPlanner}>
         Planner
+      </button>
+      <button type="button" title="Opens the Library: landings other people saved, to search and pull in to compare." onClick={onLibrary}>
+        Library
       </button>
       {SHOW_NEW_PLANNER && (
         <button type="button" title="Opens the New Planner: choose a place and time, see every site by month, read the written brief." onClick={onNewPlanner}>

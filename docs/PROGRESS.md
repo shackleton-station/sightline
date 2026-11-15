@@ -424,3 +424,17 @@ Every scenario in the saved plans, to search, filter and pull into Compare. Touc
 - [ ] Not checked: a phone-width window; the real Firestore query (`newest`), which only the emulator test or the live database can show.
 - [x] The Library tab and the tray are in the Planner too (`FullPlanner.tsx`), since the rail now offers only that one (#181). There the tab is not held in the link: a saved plan opens on Find or Compare. Tried in a browser the same way.
 - [ ] Three test plans were saved to the live database by mistake while checking this (`pqhmpa9q`, `ppvz82jv`, `uwqvs23j`; the dev server forwards `/api` to the live site unless `BACKEND` is set). They have no owner, so the API cannot delete them: delete the three documents in the `plans` database before the library is live, or they are listed in it.
+
+## The Library as its own page, and "Your plans" (2026-11-15, Pat) — branch `feat/library-page`
+
+Pat: the Library is a different thing from the Planner's tabs, and its point is to make it very easy to pick a previous plan up again.
+
+- [x] The Library is a page of its own, opened by a "Library" button in the rail (`LibraryPage.tsx`; the full view shows it in place of the Planner). It is no longer a tab of the Planner or the New Planner. The tray stays in the Planner's header, and its "Find more" opens the Library.
+- [x] "Your plans" is first on the page (`MyPlans.tsx`, `lib/myPlans.ts`): the plans saved from this browser, newest first, each with "Resume", which opens the plan as its short link would. The share sheet notes each save in the browser. No sign-in is needed; another device, or cleared site data, does not have the list.
+- [x] Each landing's card has "Show in plan": it adds the landing to the plan (or chooses it, if it is there) and goes back to the main screen, where the plan column at the top left shows it. "Open plan" opens the whole plan the landing came from.
+- [x] The library leaves out the plans the deploy's own check saves (title `Deploy check (…)`, `scripts/plans-checks.mjs`): they were 133 of 157 entries on the live site. Written into `web/plans/API.md`.
+- [x] The tray folds away when "Open Compare" is pressed.
+- [x] Checks: `tsc -b`, lint, `vitest run` (all pass). Tried in a browser on one machine against the live library, reading only: the rail's button, the page, Show in plan, the tray into the Planner's Compare, Resume (a plan with four scenarios opened whole), Escape.
+- [ ] Not checked: a phone-width window; the share sheet noting a real save (nothing was saved while checking; the list was filled by hand).
+- [ ] Plans saved before this are not under "Your plans": the browser was not noting them. Signing in could fill the list from the service's own "my plans"; not built.
+- [ ] Resuming the same plan twice in one visit, with nothing else opened in between, does nothing the second time (`usePlanLink` opens an id once).

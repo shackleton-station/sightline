@@ -34,6 +34,13 @@ const PER_PLAN = 4
 /** How long one copy of the service answers from what it last read, so a busy library costs one read of the database in this time. */
 export const LIBRARY_FRESH_MS = 30_000
 
+/**
+ * The title of a plan the deploy's own check saved (scripts/plans-checks.mjs saves one on every
+ * deploy, always the same landing). Those are not anyone's plan, so the library leaves them out;
+ * their links still open them.
+ */
+const CHECK_TITLE = /^Deploy check \(/
+
 const HOUR_MS = 3_600_000
 const hourIso = (ms: number) => `${new Date(ms).toISOString().slice(0, 19)}Z`
 
@@ -47,7 +54,7 @@ export function scenariosOf(plan: Plan): LibraryScenario[] {
   return places.slice(0, PER_PLAN).map((place) => ({ plan: plan.id, title: plan.title, saved: plan.created, ...place }))
 }
 
-/** The library made from the newest plans: expired ones left out, the rest taken apart, newest plan first. */
+/** The library made from the newest plans: expired ones and the deploy's own checks left out, the rest taken apart, newest plan first. */
 export function libraryOf(plans: Plan[], now: number): LibraryScenario[] {
-  return plans.filter((plan) => !(Date.parse(plan.expires) <= now)).flatMap(scenariosOf)
+  return plans.filter((plan) => !CHECK_TITLE.test(plan.title) && !(Date.parse(plan.expires) <= now)).flatMap(scenariosOf)
 }
