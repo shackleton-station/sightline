@@ -35,6 +35,7 @@ import {
 } from '../lib/sightline'
 import {
   betterDate,
+  marginalHour,
   steadierLanding,
   DEFAULT_MISSION,
   fitProblems,
@@ -387,24 +388,25 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const marginal = problems && problems.length === 0 ? marginalAt(active) : []
   // The next landing that fits, offered only when this one does not: the first later hour that meets
   // the Sun and Earth limits, moved on, in the same sunlit stretch, to where at least half the Sun's
-  // disc shows, once that month's track has loaded.
+  // disc shows (and half of Earth's, where the mission needs Earth at landing), once that month's
+  // track has loaded. If that month has no such hour, the first is offered and called marginal.
   const firstBetter = flags ? betterDate(flags, scenario.landing, mission) : null
   const betterAt = locateHour(start, firstBetter?.landing ?? scenario.landing)
   const betterMonth = useScenario(plan && firstBetter ? site : null, betterAt.month, held, siteHeights)
-  const betterTrack = betterMonth.data && betterMonth.data.site.id === site.id && betterMonth.data.month === betterAt.month && forHeights(betterMonth.data) ? betterMonth.data.track : null
+  const betterData = betterMonth.data && betterMonth.data.site.id === site.id && betterMonth.data.month === betterAt.month && forHeights(betterMonth.data) ? betterMonth.data : null
+  const betterTrack = betterData ? betterData.track : null
   const better = useMemo(() => {
     if (!flags || !firstBetter) return null
     // Without the track (it failed to load) the first hour that meets the limits is offered as it is.
-    if (!betterTrack) return betterMonth.error && firstBetter.waitH > 0 ? firstBetter : null
-    const landing = steadierLanding(
-      flags,
-      firstBetter.landing,
-      mission,
-      betterTrack.map((point) => point.sun_frac),
-      firstBetter.landing - betterAt.index,
-    )
-    return landing === scenario.landing ? null : { landing, waitH: landing - scenario.landing }
-  }, [flags, firstBetter?.landing, firstBetter?.waitH, betterTrack, betterMonth.error, mission, betterAt.index, scenario.landing])
+    if (!betterTrack || !betterData) return betterMonth.error && firstBetter.waitH > 0 ? { ...firstBetter, marginal: false } : null
+    const sunShares = betterTrack.map((point) => point.sun_frac)
+    // Half of Earth's disc shows when its center is above the skyline in its own direction.
+    const earthSkyline = betterData.earthHorizon ?? betterData.horizon
+    const earthCenterAbove = betterTrack.map((point) => point.earth_el - horizonAt(earthSkyline, point.earth_az) >= 0)
+    const monthStart = firstBetter.landing - betterAt.index
+    const landing = steadierLanding(flags, firstBetter.landing, mission, sunShares, monthStart, earthCenterAbove)
+    return landing === scenario.landing ? null : { landing, waitH: landing - scenario.landing, marginal: marginalHour(mission.requirements, sunShares, earthCenterAbove, landing - monthStart) }
+  }, [flags, firstBetter?.landing, firstBetter?.waitH, betterTrack, betterData, betterMonth.error, mission, betterAt.index, scenario.landing])
   // Another site for the same date, offered with the next landing when this one does not fit: the
   // nearest listed site of the same group where the verdict's own rules pass on this date.
   const misses = problems !== null && problems.length > 0
@@ -1087,6 +1089,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                     better && problems && problems.length > 0
                       ? {
                           when: shortWhen(clockTime(start, better.landing), landingAt.month.slice(0, 4)),
+                          marginal: better.marginal,
                           adds: scenarios.length < MAX_SCENARIOS,
                           onTake: () => {
                             // As another scenario while there is room; with four already, this landing moves there.

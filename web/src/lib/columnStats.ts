@@ -34,9 +34,16 @@ export function landingCheck(required: boolean, up: boolean, share: number | nul
   return required ? 'ok' : 'none'
 }
 
-/** The line about a body at the landing's hour: "At landing: 0.3° above the skyline · sets in 5 d 11 h", with the share of a cut disc between. */
+/**
+ * The line about a body at the landing's hour: "At landing: 0.3° above the skyline · sets in 5 d 11 h".
+ * Where the skyline cuts the disc the line says whose position the angle is, the center's, and what
+ * still shows: "center 0.8° below the skyline, edge showing (under 1%)". Any part
+ * showing counts as in view, so a center below the skyline beside "in view" is not a contradiction.
+ */
 export function landingWords(figure: string, side: string, next: string, showing: string | null): string {
-  return `At landing: ${figure} ${side}${showing ? `, ${showing}` : ''} · ${next}`
+  if (!showing) return `At landing: ${figure} ${side} · ${next}`
+  const disc = side.startsWith('below') ? `edge showing (${showing.replace(/ of the disc showing$/, '')})` : showing
+  return `At landing: center ${figure} ${side}, ${disc} · ${next}`
 }
 
 /** A share of the mission as the row's main figure: "61%". */

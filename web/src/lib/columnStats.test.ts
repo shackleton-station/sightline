@@ -43,7 +43,8 @@ describe('the words', () => {
 
   it('writes the landing line and the share', () => {
     expect(landingWords('0.3°', 'above the skyline', 'sets in 5 d 11 h', null)).toBe('At landing: 0.3° above the skyline · sets in 5 d 11 h')
-    expect(landingWords('0.2°', 'below the skyline', 'sets in 2 d 7 h', '5% of the disc showing')).toBe('At landing: 0.2° below the skyline, 5% of the disc showing · sets in 2 d 7 h')
+    expect(landingWords('0.2°', 'below the skyline', 'sets in 2 d 7 h', '5% of the disc showing')).toBe('At landing: center 0.2° below the skyline, edge showing (5%) · sets in 2 d 7 h')
+    expect(landingWords('0.1°', 'above the skyline', 'sets in 2 d 7 h', '62% of the disc showing')).toBe('At landing: center 0.1° above the skyline, 62% of the disc showing · sets in 2 d 7 h')
     expect(sharePct(60.7)).toBe('61%')
   })
 
