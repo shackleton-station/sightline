@@ -350,17 +350,32 @@ export function oddsColor(odds: number): [number, number, number] {
   return [mix(0), mix(1), mix(2)]
 }
 
-/** Odds as a picture's pixels (RGBA), each in the ramp's color. */
+/** How strongly the shading is drawn where no landing fits, as a share of its full strength: faint, so the ground reads through the red. */
+export const FEW_STRENGTH = 0.4
+/** The odds from which the shading is drawn at full strength: the ramp's amber, where it is a coin's toss. */
+const FULL_STRENGTH_FROM = 0.5
+
+/**
+ * How strongly odds are drawn, as a share of the shading's full strength. Faint where few landings
+ * fit and full from amber up, so ground where a landing may fit stands out against a Moon that
+ * otherwise looks like itself.
+ */
+export function oddsStrength(odds: number): number {
+  const part = Math.min(1, Math.max(0, odds) / FULL_STRENGTH_FROM)
+  return FEW_STRENGTH + (1 - FEW_STRENGTH) * part
+}
+
+/** Odds as a picture's pixels (RGBA), each in the ramp's color; a pixel's alpha is how strongly it is drawn (`oddsStrength`). */
 export function oddsPixels(odds: Float32Array): Uint8ClampedArray {
   // The ramp is looked up, not worked out, for each of a few million pixels.
-  const table = Array.from({ length: 256 }, (_, i) => oddsColor(i / 255))
+  const table = Array.from({ length: 256 }, (_, i) => [...oddsColor(i / 255), Math.round(255 * oddsStrength(i / 255))])
   const pixels = new Uint8ClampedArray(4 * odds.length)
   for (let i = 0; i < odds.length; i += 1) {
     const color = table[Math.min(255, Math.max(0, Math.round(255 * odds[i])))]
     pixels[4 * i] = color[0]
     pixels[4 * i + 1] = color[1]
     pixels[4 * i + 2] = color[2]
-    pixels[4 * i + 3] = 255
+    pixels[4 * i + 3] = color[3]
   }
   return pixels
 }
