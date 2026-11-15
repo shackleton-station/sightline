@@ -1,4 +1,5 @@
 import { proof, signOut } from './account'
+import type { LibraryEntry } from './library'
 
 /** A mission plan someone saved to share. Mirrors what the plans service stores (web/plans/store.ts); the shapes both sides agree on are in web/plans/API.md. */
 export interface Plan {
@@ -119,6 +120,28 @@ export async function loadPlan(id: string): Promise<PlanResult<{ plan: Plan; min
     const body = (await response.json().catch(() => null)) as { plan?: Plan; mine?: unknown } | null
     if (response.ok && body?.plan && typeof body.plan.view === 'string') return { ok: true, value: { plan: body.plan, mine: body.mine === true } }
     return { ok: false, message: planFailure(response.status, false) }
+  } catch {
+    return { ok: false, message: OFFLINE }
+  }
+}
+
+/**
+ * The library: every scenario in the plans that are listed, for anyone. Null in place of the list
+ * when this site's service is from before the library (it answers 404) or has no database: there
+ * is no library here, which is not a failure to show as one.
+ */
+export async function loadLibrary(): Promise<PlanResult<LibraryEntry[] | null>> {
+  try {
+    const response = await fetch('/api/plans/library')
+    const body = (await response.json().catch(() => null)) as { scenarios?: unknown } | null
+    if (response.ok && Array.isArray(body?.scenarios)) {
+      const text = (value: unknown): value is string => typeof value === 'string'
+      // Only entries of the described shape are kept, and only their described fields: a newer service may send more.
+      const entries = (body.scenarios as Partial<LibraryEntry>[]).flatMap(({ plan, title, saved, site, landing }) => (text(plan) && text(title) && text(saved) && text(site) && text(landing) ? [{ plan, title, saved, site, landing }] : []))
+      return { ok: true, value: entries }
+    }
+    if (response.status === 404 || response.status === 503) return { ok: true, value: null }
+    return { ok: false, message: response.status === 429 ? 'Too many requests at once. Give it a minute and try again.' : "The library couldn't be loaded just now. Try again in a moment.", status: response.status }
   } catch {
     return { ok: false, message: OFFLINE }
   }

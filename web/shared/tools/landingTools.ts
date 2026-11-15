@@ -161,7 +161,8 @@ export async function bestSitesInYear(args: Args, ctx: ToolContext): Promise<Too
       dark: formatDuration(longestDown(flags.sun, from, to)),
       score: metric === 'landing' ? days / (hours / 24) : up / hours,
       value: metric === 'landing' ? `${days} of ${daysLabel(hours / 24)}` : `${Math.round((100 * up) / hours)}% of the year`,
-      best: tiedMonths.length > 1 ? `${monthsWords(tiedMonths.map((cell) => cell.month))}, tied at ${cellValue(metric, bestMonth)}` : `${monthWords(bestMonth.month)}, with ${cellValue(metric, bestMonth)}`,
+      // "December 2027, with 20 days on which a landing fits"; for a share, "with 97%".
+      best: `${tiedMonths.length > 1 ? `${monthsWords(tiedMonths.map((cell) => cell.month))}, each` : `${monthWords(bestMonth.month)},`} with ${cellValue(metric, bestMonth)}${metric === 'landing' ? ' on which a landing fits' : ''}`,
     }
   })
   const leader = rows.reduce((top, row) => (row.score > top.score ? row : top))
@@ -182,7 +183,8 @@ export async function bestSitesInYear(args: Args, ctx: ToolContext): Promise<Too
   const next = rows.find((row) => !best.includes(row))
   if (next) {
     const behind = metric === 'landing' ? daysLabel(leader.days - next.days) : `${leader.pct - next.pct} ${leader.pct - next.pct === 1 ? 'percentage point' : 'percentage points'}`
-    facts.push(fact('runner_up', 'The runner-up and how far behind it is (say how close it is)', `${next.site.name}, ${behind} behind`))
+    facts.push(fact('runner_up_site', 'The runner-up: the best site that is not among the best', next.site.name))
+    facts.push(fact('runner_up_gap', 'How far behind the best the runner-up is, as it sits in a sentence ("{{…runner_up_site}} is {{…runner_up_gap}}")', `${behind} behind`))
   }
   rows.slice(0, countArg(args.count, 4, 1, 8)).forEach((row, i) => {
     const shared = tie && best.includes(row) ? ' (one of the sites tied for best: see best_sites)' : ''

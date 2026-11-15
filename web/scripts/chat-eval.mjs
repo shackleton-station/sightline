@@ -6,10 +6,9 @@
 // new version. The service's own run.app address refuses requests from the internet since Phase 6.
 // It checks what can be checked without judging the prose: the reply arrived in time, it has text
 // with no unfilled reference, every button is a link the app can open, and the questions that must
-// be turned down are answered without looking anything up. It prints each answer's words and seconds,
-// and in the full run it counts as a problem what makes an answer hard to read whatever it says: more
-// than five sentences, or one sentence of more than forty words. In the quick run those are only
-// notes: how an answer reads is not a reason to stop a deploy. Read the printed answers for the rest.
+// be turned down are answered without looking anything up. It prints each answer's words, sentences
+// and seconds. Scout's answers have no limit on their length; a sentence of more than forty words is
+// printed as a note, to read, and is never a failure. Read the printed answers for the rest.
 //
 // Each question costs a few model calls, and the site allows 6 questions a minute per visitor, so
 // this waits between questions. The whole run takes about three minutes.
@@ -41,9 +40,8 @@ const NO_LIMIT_VIEW = '#a=connecting-ridge@2027-05&t=0&limits=14_24_99999_1_1&mo
 /** Ground tapped on the Atlas map, 2 km from Connecting Ridge: the co-pilot looks it up in the light grid. */
 const TAPPED_SPOT = '-89.52000,-140.00000'
 const MAX_SECONDS = 25
-/** Scout is asked for two to five sentences, none long. Past these an answer reads as a wall. */
-const MAX_SENTENCES = 5
-const MAX_SENTENCE_WORDS = 40
+/** A sentence longer than this is worth reading again: it is noted, never failed. Answers have no limit on their length. */
+const LONG_SENTENCE_WORDS = 40
 const wordsIn = (text) => text.trim().split(/\s+/).filter(Boolean).length
 /** An answer's sentences: split after a full stop, question mark or exclamation mark that a capital follows ("12:00 UTC. The" splits; "0.01°" and "17:00 UTC, a wait" do not). */
 const sentencesIn = (text) => text.trim().split(/(?<=[.!?])\s+(?=[A-Z"“])/).filter(Boolean)
@@ -130,8 +128,7 @@ async function ask(question, again = false) {
     if (question.mustNotSay?.test(reply.text)) problems.push(`said "${question.mustNotSay.exec(reply.text)?.[0]}", which this answer must not`)
     const sentences = sentencesIn(reply.text ?? '')
     const longest = Math.max(0, ...sentences.map(wordsIn))
-    if (sentences.length > MAX_SENTENCES) (quick ? notes : problems).push(`${sentences.length} sentences, where ${MAX_SENTENCES} is the most`)
-    if (longest > MAX_SENTENCE_WORDS) (quick ? notes : problems).push(`a sentence of ${longest} words, where ${MAX_SENTENCE_WORDS} is the most`)
+    if (longest > LONG_SENTENCE_WORDS) notes.push(`a sentence of ${longest} words`)
     // A preference, not a guarantee: the co-pilot may check the site before saying a question is outside
     // its data. Worth reading in a full run; not a reason to stop a deploy.
     if (question.refuses && reply.sources.length > 0) (quick ? notes : problems).push('looked something up for a question outside the data')

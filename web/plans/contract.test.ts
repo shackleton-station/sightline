@@ -111,6 +111,12 @@ describe.each(PROGRAMS)('the plans API as API.md describes it, answered by $name
     'list 400 bad-limit': () => site({ identity }).request(as('token-of-ana', new Request(`${ORIGIN}/api/plans?limit=500`))),
     'list 400 bad-cursor': () => site({ identity }).request(as('token-of-ana', new Request(`${ORIGIN}/api/plans?after=not-a-marker`))),
     'list 401': () => site({ identity }).request(new Request(`${ORIGIN}/api/plans`)),
+    'library 200': async () => {
+      // One plan saved, so the list holds a scenario and its shape is checked too.
+      const app = site()
+      await app.request(save(PLAN))
+      return app.request(new Request(`${ORIGIN}/api/plans/library`))
+    },
     'delete 200': async () => {
       const app = site({ identity })
       return app.request(remove(await idOf(await app.request(as('token-of-ana', save(PLAN)))), 'token-of-ana'))
@@ -201,7 +207,7 @@ describe('the status address, as API.md describes it', () => {
 
 describe('the description itself', () => {
   it('describes each operation once, with the methods and paths the service routes', () => {
-    expect(described.map((item) => `${item.method} ${item.path}`)).toEqual(['POST /api/plans', 'GET /api/plans/<id>', 'GET /api/plans', 'DELETE /api/plans/<id>', 'PUT /api/plans/<id>', 'GET /api/plans/status', 'GET /api/plans/status/web'])
+    expect(described.map((item) => `${item.method} ${item.path}`)).toEqual(['POST /api/plans', 'GET /api/plans/<id>', 'GET /api/plans', 'GET /api/plans/library', 'DELETE /api/plans/<id>', 'PUT /api/plans/<id>', 'GET /api/plans/status', 'GET /api/plans/status/web'])
     expect(new Set(described.map((item) => item.operation)).size).toBe(described.length)
   })
 

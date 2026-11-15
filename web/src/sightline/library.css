@@ -1,0 +1,441 @@
+/* The Planner's Library tab, its cards and the tray. Colors are the screen's own: --sun, --earth, --both. */
+
+/* ---------- the mission dial ---------- */
+.lib-dial {
+  flex: none;
+}
+
+.lib-dial circle {
+  fill: none;
+  stroke-width: 5;
+}
+
+.lib-dial .lib-dial-track {
+  stroke: rgb(255 255 255 / 8%);
+}
+
+.lib-dial .lib-band-both {
+  stroke: var(--both);
+}
+
+.lib-dial .lib-band-sun {
+  stroke: var(--sun);
+}
+
+.lib-dial .lib-band-earth {
+  stroke: var(--earth);
+}
+
+.lib-dial .lib-band-none {
+  stroke: #4a4556;
+}
+
+.lib-dial text {
+  fill: var(--soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lib-dial.fits text {
+  fill: var(--both);
+}
+
+.lib-dial.misses text {
+  fill: var(--warning);
+}
+
+/* ---------- a card ---------- */
+.lib-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  align-items: start;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.8rem 0.85rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: 12px;
+  background: #1b1723;
+}
+
+.lib-card.fits {
+  border-left-color: var(--both);
+}
+
+.lib-card.misses {
+  border-left-color: var(--warning);
+}
+
+.lib-card h4 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.lib-card p {
+  margin: 0.15rem 0 0;
+  color: var(--soft);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.lib-card .lib-when {
+  color: var(--text);
+  font-family: var(--pl-mono, ui-monospace, monospace);
+  font-size: 0.78rem;
+}
+
+.lib-card .lib-from q {
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.lib-card .lib-fit.fits {
+  color: var(--both);
+  font-weight: 600;
+}
+
+.lib-card .lib-fit.misses {
+  color: var(--warning);
+}
+
+.lib-card-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.45rem;
+}
+
+.lib-pull[aria-pressed='true'] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.lib-open,
+.lib-link,
+.lib-reload {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--soft);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.lib-open:hover,
+.lib-link:hover,
+.lib-reload:hover {
+  color: var(--text);
+}
+
+/* ---------- the tab: filters, count, grid ---------- */
+.lib-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.6rem 0.8rem;
+  margin: 0 0 0.7rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 2%);
+}
+
+.lib-filters label {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.lib-filters .lib-words {
+  flex: 1 1 13rem;
+}
+
+.lib-filters input:not([type='checkbox']),
+.lib-filters select {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #14111b;
+  color: var(--text);
+  color-scheme: dark;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.lib-filters .lib-check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
+.lib-filters :focus-visible,
+.lib-tray :focus-visible,
+.lib-card :focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.lib-count {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.8rem;
+  margin: 0 0 0.7rem;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- the tray: a lander with a count, and the fan under it ---------- */
+/* The fan hangs under the whole top bar, not under the lander, so it never leaves the Planner's column. */
+:where(.np-topbar, .pl-header) {
+  position: relative;
+}
+
+.lib-tray {
+  flex: none;
+}
+
+.lib-tray-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.1rem;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 3%);
+  color: var(--soft);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lib-tray-icon:hover,
+.lib-tray-icon[aria-expanded='true'] {
+  border-color: var(--gold-deep, var(--gold));
+  color: var(--text);
+}
+
+.lib-tray-icon small {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 12%);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.lib-tray-icon.has small {
+  background: var(--gold);
+  color: #17120a;
+}
+
+/* The lander settles a little when a card lands in it. */
+.lib-tray-icon.has svg {
+  animation: lib-settle 0.5s ease-out;
+}
+
+@keyframes lib-settle {
+  0% {
+    transform: translateY(-5px);
+  }
+
+  60% {
+    transform: translateY(1px);
+  }
+
+  100% {
+    transform: none;
+  }
+}
+
+.lib-tray-fan {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 30;
+  /* The gap is padding, not margin, so the pointer can cross from the lander to the fan without leaving the tray. */
+  padding-top: 0.5rem;
+  box-sizing: border-box;
+  width: min(100%, calc(var(--n) * 12rem + 2.5rem));
+  container-type: inline-size;
+}
+
+.lib-tray-box {
+  /* Room at the sides and under the fan: its end cards are turned and sit lower. */
+  padding: 1.3rem 1.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #14111b;
+  box-shadow: 0 18px 40px rgb(0 0 0 / 55%);
+}
+
+.lib-tray-empty {
+  max-width: 19rem;
+  margin: 0;
+  color: var(--soft);
+  font-size: 0.875rem;
+}
+
+.lib-tray-foot {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  margin: 1.6rem 0 0;
+}
+
+/* A hand of cards: each a little turned and lower toward the ends, overlapping more the more there are. */
+.lib-fan {
+  --w: 11.5rem;
+  --mid: calc((var(--n) - 1) / 2);
+
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-fan li {
+  --off: calc(var(--i) - var(--mid));
+
+  flex: none;
+  width: var(--w);
+  margin-left: min(0.5rem, calc((100cqw - 3.4rem - var(--n) * var(--w)) / max(1, var(--n) - 1)));
+  border-radius: 12px;
+  transform: rotate(calc(var(--off) * 3deg)) translateY(calc(var(--off) * var(--off) * 0.22rem));
+  transform-origin: 50% 140%;
+  transition: transform 0.16s ease-out;
+}
+
+.lib-fan li:first-child {
+  margin-left: 0;
+}
+
+.lib-fan li:hover,
+.lib-fan li:focus,
+.lib-fan li:focus-within {
+  z-index: 2;
+  transform: translateY(-0.6rem) scale(1.04);
+}
+
+.lib-fan .lib-card {
+  box-shadow: -6px 4px 14px rgb(0 0 0 / 45%);
+}
+
+.lib-card.small {
+  grid-template-columns: auto 1fr;
+  padding: 0.6rem 0.65rem;
+}
+
+.lib-card.small h4 {
+  font-size: 0.875rem;
+}
+
+.lib-card.small p {
+  font-size: 0.75rem;
+}
+
+.lib-card.small .lib-card-actions {
+  justify-content: space-between;
+}
+
+.lib-x {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--soft);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.lib-x:hover {
+  color: var(--text);
+}
+
+/* A phone: no fan, a plain list as wide as the screen allows. */
+@media (width < 700px) {
+  .lib-tray-fan {
+    position: fixed;
+    top: auto;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+    max-width: none;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  .lib-fan {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .lib-fan li,
+  .lib-fan li:hover,
+  .lib-fan li:focus,
+  .lib-fan li:focus-within {
+    width: auto;
+    margin-left: 0;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lib-fan li {
+    transition: none;
+  }
+
+  .lib-tray-icon.has svg {
+    animation: none;
+  }
+}
+
+/* ---------- no library, or it could not be read ---------- */
+.lib-empty {
+  padding: 1.6rem 1.2rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--soft);
+}
+
+.lib-empty h3 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 1.1rem;
+}
+
+.lib-empty p {
+  margin: 0.35rem 0 0.6rem;
+  font-size: 0.875rem;
+}

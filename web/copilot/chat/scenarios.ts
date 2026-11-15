@@ -135,7 +135,7 @@ async function elsewhere(key: string, letter: string, scenario: SightlineScenari
   // The next landing that fits, as the screen's column offers it: judged on the same hours as the
   // figures (the visitor's heights where their files can be read), with the Sun's disc seen from the panel.
   const high = (await atHeights(site.id)) !== null
-  const next = await nextLandingOnScreen(data, site.id, own.flags, isoAt(own.flags.start, scenario.landing), mission.requirements, high ? mission.heights.panelM : undefined)
+  const next = await nextLandingOnScreen(data, site.id, own.flags, isoAt(own.flags.start, scenario.landing), mission.requirements, high ? mission.heights.panelM : undefined, mission.heights.antennaM)
   const nextFacts = next
     ? [
         fact(`${key}_next_landing`, `Scenario ${letter}: the next landing at its site that meets the mission limits, as the visitor's screen offers it`, whenLabel(next.t)),
@@ -148,7 +148,7 @@ async function elsewhere(key: string, letter: string, scenario: SightlineScenari
   // fits ("it fits at {{…}}"), or a clause saying that none of the group's other sites does.
   const other = found
     ? fact(`${key}_fits_at_another_site`, `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`, `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away`)
-    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on the same landing date, as a clause that stands in a sentence`, `no other ${GROUP_SITE[site.group] ?? 'site in its group'} fits on that date`)
+    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on this scenario's own landing date, not on its next landing's, as a clause that stands in a sentence`, `no other ${GROUP_SITE[site.group] ?? 'site in its group'} fits on ${whenLabel(isoAt(own.flags.start, scenario.landing)).split(',')[0]} either`)
   return alone ? nextFacts : [...nextFacts, other]
 }
 
@@ -208,6 +208,17 @@ async function figures(key: string, letter: string, scenario: SightlineScenario,
   )
   const onScreen = fact(`${key}_verdict_words`, `Scenario ${letter}: the verdict's own words on the screen`, state === 'does not fit' ? 'Does not fit the mission' : state === 'marginal' ? 'Fits, marginal' : 'Fits the mission')
   const reasons = measure.problems.map((problem, i) => fact(`${key}_reason_${i + 1}`, `Scenario ${letter}: why it does not meet the mission limits, as a clause that joins a sentence (it holds the limit: add none after it)`, reasonClause(problem)))
+  // The smallest change of limits under which this same landing would meet them: only where the limits it
+  // breaks are the two on time without the Sun or Earth, which a planner can trade. A landing with the Sun
+  // down or Earth out of view at touchdown, or on ground too steep, is not mended by a limit.
+  const gapOnly = !fits && measure.problems.every((problem) => / during the mission; your limit is \d+ h\.$/.test(problem))
+  const needs = gapOnly
+    ? [
+        measure.sunGapH !== null && measure.sunGapH > mission.requirements.maxSunGapH ? `at least ${formatDuration(measure.sunGapH)} without the Sun` : '',
+        measure.earthGapH !== null && measure.earthGapH > mission.requirements.maxEarthGapH ? `at least ${formatDuration(measure.earthGapH)} without Earth` : '',
+      ].filter(Boolean)
+    : []
+  const fitsIf = needs.length > 0 ? [fact(`${key}_fits_if`, `Scenario ${letter}: the smallest change of limits under which this same landing would meet them, as a clause ("it would fit if the lander could go …")`, needs.join(' and '))] : []
   const narrow = marginal.map((reason, i) => fact(`${key}_marginal_reason_${i + 1}`, `Scenario ${letter}: why the fit is only marginal (the screen's own line)`, reason))
   const landing = edge
     ? [
@@ -215,7 +226,7 @@ async function figures(key: string, letter: string, scenario: SightlineScenario,
         fact(`${key}_earth_at_landing`, `Scenario ${letter}: Earth's center at landing`, `${skylineFigure(edge.earthAboveDeg).figure} ${skylineFigure(edge.earthAboveDeg).side}`),
       ]
     : []
-  return [...rows, verdict, onScreen, ...reasons, ...narrow, ...landing]
+  return [...rows, verdict, onScreen, ...reasons, ...fitsIf, ...narrow, ...landing]
 }
 
 /**

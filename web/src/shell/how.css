@@ -359,6 +359,188 @@
   margin-bottom: 0.5rem;
 }
 
+/* ---------- How the system is built: boxes by area, with the arrows drawn over them ---------- */
+.how > .how-system {
+  max-width: 74rem;
+}
+
+.how-system-head,
+.how-system-words {
+  max-width: 58rem;
+  margin-inline: auto;
+}
+
+/* The picture keeps its width: where the window is narrower, it scrolls sideways in its own frame. */
+.how-system-scroll {
+  margin-top: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-system-canvas {
+  position: relative;
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-areas:
+    'edge request build'
+    'key events watch';
+  gap: 1.5rem;
+  min-width: 66rem;
+  padding: 1rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.how-area {
+  padding: 0.6rem 0.75rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.how-area[data-area='edge'] {
+  grid-area: edge;
+}
+
+.how-area[data-area='request'] {
+  grid-area: request;
+}
+
+.how-area[data-area='build'] {
+  grid-area: build;
+}
+
+.how-area[data-area='key'] {
+  grid-area: key;
+}
+
+.how-area[data-area='events'] {
+  grid-area: events;
+}
+
+.how-area[data-area='watch'] {
+  grid-area: watch;
+}
+
+.how-step .how-area h3 {
+  margin: 0 0 0.6rem;
+  color: var(--dim);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The gaps between boxes are where the arrows run. */
+.how-area-boxes {
+  display: grid;
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.how-area[data-area='request'] .how-area-boxes {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 2.4rem;
+}
+
+.how-area[data-area='build'] .how-area-boxes {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1.8rem;
+}
+
+.how-area[data-area='events'] .how-area-boxes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 1.8rem;
+}
+
+.how-area[data-area='key'] .how-area-boxes,
+.how-area[data-area='watch'] .how-area-boxes {
+  gap: 0.6rem;
+}
+
+.how-box[data-box='redis'],
+.how-box[data-box='canary'] {
+  grid-column: 1 / -1;
+}
+
+.how-box {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #000;
+}
+
+.how-box[data-kind='ours'] {
+  border-color: #5b9bea;
+  background: #0f1a2b;
+}
+
+.how-box[data-kind='store'] {
+  border-color: var(--how-fits);
+  background: #0e1f18;
+}
+
+.how-box b {
+  display: block;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.how-box span {
+  color: var(--muted);
+}
+
+.how .how-area p {
+  margin: 0.6rem 0 0;
+  color: var(--dim);
+}
+
+.how-system-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.how-system-lines path {
+  fill: none;
+  stroke: #b9b09c;
+  stroke-width: 1.3;
+}
+
+.how-system-lines marker path {
+  fill: #b9b09c;
+  stroke: none;
+}
+
+.how-system-lines path[data-line='failure'] {
+  stroke-dasharray: 6 4;
+}
+
+.how-system-lines path[data-line='status'] {
+  stroke-dasharray: 1.5 4;
+}
+
+.how-system-words {
+  margin-top: 0.75rem;
+}
+
+/* Said only where it is true: under the width the picture needs. */
+.how .how-system-hint {
+  display: none;
+}
+
+@media (max-width: 1150px) {
+  .how .how-system-hint {
+    display: block;
+  }
+}
+
+.how-system-words ul {
+  padding-left: 1.2rem;
+  font-size: 0.94rem;
+}
+
 /* ---------- More, for a reader who wants it: shut until asked for ---------- */
 .how-more {
   margin-top: 0.75rem;
@@ -462,52 +644,104 @@
   font-size: 0.9375rem;
 }
 
-/* ---------- Data sources, by section ---------- */
-.how-source-group {
-  margin-top: 1.5rem;
+/* ---------- Data sources: a card each, under tabs by what a source does ---------- */
+.how-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0.9rem;
 }
 
-.how-source-group ul {
+.how .how-tabs button {
+  min-height: 36px;
+  padding: 0 0.8rem;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.how .how-tabs button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.how-source-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.6rem;
+  align-items: start;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .how-source {
-  padding: 0.9rem 1rem;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--panel);
 }
 
-.how-source p {
-  margin: 0;
+.how-source[open] {
+  border-color: var(--accent);
+}
+
+.how-source summary {
+  position: relative;
+  padding: 0.85rem 2.2rem 0.85rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.how-source summary::-webkit-details-marker {
+  display: none;
+}
+
+.how-source summary::after {
+  content: '+';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.9rem;
+  color: var(--accent);
+  font-size: 1.4rem;
+}
+
+.how-source[open] summary::after {
+  content: '–';
 }
 
 .how-source-name {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
+  display: block;
+  color: var(--text);
   font-weight: 700;
 }
 
-.how-source-name a {
-  color: var(--text);
+.how-source-does {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.94rem;
 }
 
-.how-badge,
-.how-role {
-  padding: 0.1rem 0.55rem;
+/* A shut card gives the start of what the source does; open, all of it. */
+.how-source:not([open]) .how-source-does {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.how-role,
+.how-badge {
+  display: inline-block;
+  margin: 0.5rem 0.3rem 0 0;
+  padding: 0.05rem 0.55rem;
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  white-space: nowrap;
 }
 
 .how-badge {
@@ -515,31 +749,206 @@
   color: var(--accent);
 }
 
-.how-source-does {
-  margin-top: 0.35rem;
-}
-
 .how-source dl {
   display: grid;
-  gap: 0.2rem;
-  margin: 0.6rem 0 0;
-  color: var(--muted);
-  font-size: 0.875rem;
-  line-height: 1.45;
-}
-
-.how-source dl > div {
-  display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr);
   gap: 0.5rem;
+  margin: 0;
+  padding: 0.8rem 1rem 0;
+  border-top: 1px solid #241f2c;
+  font-size: 0.9rem;
 }
 
 .how-source dt {
-  font-weight: 600;
+  color: var(--dim);
 }
 
 .how-source dd {
   margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.how .how-source-link {
+  margin: 0;
+  padding: 0.6rem 1rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+/* ---------- Cards, the picture, the landings, the case and the three questions ---------- */
+.how-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how-card {
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-step h4 {
+  margin: 0 0 0.4rem;
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.how-card p {
+  margin: 0;
+  font-size: 0.97rem;
+}
+
+.how-fig {
+  margin: 1.1rem 0;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-fig svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.how-fig figcaption {
+  margin-top: 0.5rem;
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.how-landings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  list-style: none;
+}
+
+.how-landings li {
+  padding-top: 0.5rem;
+  border-top: 3px solid var(--border);
+  font-size: 0.875rem;
+}
+
+.how-landings li[data-how='ok'] {
+  border-color: var(--how-fits);
+}
+
+.how-landings li[data-how='part'] {
+  border-color: var(--accent);
+}
+
+.how-landings li[data-how='lost'] {
+  border-color: var(--how-miss);
+}
+
+.how-landings b {
+  display: block;
+  font-size: 0.97rem;
+}
+
+.how-landings span {
+  color: var(--dim);
+}
+
+.how-landings p {
+  margin: 0.3rem 0 0;
+}
+
+.how-case {
+  margin-top: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-step .how-case h4 {
+  font-size: 1.3rem;
+}
+
+.how-case p {
+  max-width: 46rem;
+  margin: 0 0 0.6rem;
+}
+
+.how-case p:last-child {
+  margin-bottom: 0;
+}
+
+.how-questions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how .how-questions button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 1.1rem;
+  border-color: var(--accent);
+  border-radius: 12px;
+  background: var(--panel-2);
+  font-weight: 400;
+  text-align: left;
+}
+
+.how .how-questions button:hover {
+  background: #1c1d2e;
+}
+
+.how-questions i {
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.how-questions b {
+  display: block;
+  margin: 0.25rem 0 0.5rem;
+  color: var(--text);
+  font-size: 1.3rem;
+  line-height: 1.25;
+}
+
+.how-questions span {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+/* ---------- Scout: things to ask him ---------- */
+.how-asks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how .how-asks li {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.92rem;
 }
 
 .how .trust {
