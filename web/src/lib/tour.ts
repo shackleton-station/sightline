@@ -13,12 +13,22 @@ export interface TourState {
   ring?: string
   /** A strip that must be open for the step: the skyline, or the time bar. */
   show?: 'skyline' | 'time'
-  /** Something the step opens to talk about it: the Compare or Layers panel, the form for a custom point, the Share list, or the Planner on one of its tabs. */
-  open?: GuidePanel | 'planner-find' | 'planner-compare'
+  /**
+   * Something the step opens to talk about it: the Compare or Layers panel, the form for a custom
+   * point, the Share list, or the Planner on one of its tabs. The five-minute tour also opens the
+   * Landing accuracy panel, Scout's panel, and the Guide at its proof.
+   */
+  open?: GuidePanel | 'planner-find' | 'planner-compare' | 'accuracy' | 'scout' | 'proof'
   /** The step is about more than one scenario: the app's two nearby sites on one date are put in, once, for it. */
   pair?: boolean
-  /** The step is about the Long stay example: the mission is set to it for the guide, and put back on leaving. */
-  mission?: 'long'
+  /** The step is about the Long stay example: the mission is set to it for the guide, and put back on leaving. The five-minute tour sets the Short stay, so it says the same on every screen. */
+  mission?: 'long' | 'short'
+  /** The plan the step is about, put in on arriving at it: its scenarios, the first one on show. Left out, the plan stays as the step before left it. */
+  scenarios?: { site: string; landing: string }[]
+  /** The view of the Moon for the step: Orbit unless it says the Site view. */
+  stage?: 'site'
+  /** Time plays while the step is on. */
+  play?: boolean
 }
 
 /** What a feature guide can open, and so which panel offers that guide ("Show me how"). */
@@ -52,6 +62,12 @@ export interface TourStep {
   offers?: 'nearby-pair'
   /** The step is about a control only a wide window has (the zoom buttons): it is left out on a phone. */
   wide?: boolean
+  /** A short line a room can read, shown in the bubble in place of `say`, which is then only spoken. */
+  line?: string
+  /** A control the step presses itself on the first "Next" (a CSS selector), so a presenter with a clicker shows a before and an after; the next "Next" moves on. */
+  press?: string
+  /** What the step rings once that control has been pressed. */
+  after?: string[]
 }
 
 export interface TourFile {
@@ -66,8 +82,15 @@ export interface TourFile {
   steps: TourStep[]
 }
 
+/** The five-minute tour: a presenter's walk of the whole screen, in the main tour's format, with a voice of its own once its files are rendered. */
+export interface LongTourFile {
+  name: string
+  voice: { disclosure: string; files: string; from: string; rendered: boolean }
+  steps: TourStep[]
+}
+
 /** Where a step's spoken line is served from. */
-export function voiceFile(tour: TourFile, step: TourStep): string {
+export function voiceFile(tour: { voice: { files: string } }, step: TourStep): string {
   return tour.voice.files.replace('<id>', step.id)
 }
 

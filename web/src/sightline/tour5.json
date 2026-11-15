@@ -1,0 +1,239 @@
+{
+  "about": "The five-minute tour: a presenter's walk of the whole screen in twelve steps, run by the one-minute tour's engine (src/sightline/Tour.tsx). Each step puts the real screen in a prepared state, rings what it is about, shows `line` (a short line a room can read) and has `say`, the spoken line, rendered once in Scout's voice by scripts/tour-voice.mjs --tour=five. Every figure in a spoken line is on screen at that step.",
+  "name": "The five-minute tour",
+  "voice": {
+    "disclosure": "AI-generated voice",
+    "files": "/tour/voice5/<id>.mp3",
+    "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\"",
+    "rendered": false
+  },
+  "steps": [
+    {
+      "id": "challenge",
+      "title": "The challenge",
+      "line": "A lander needs the Sun for power and Earth for radio. At the pole, both come and go.",
+      "say": "This is the Moon, seen from above its south pole, with time running. A lander there needs two things from the sky: the Sun, for power, and Earth, for a direct radio link. Near the pole both sit low on the horizon, so the hills around a site decide when each is in view. NASA's own tools can answer that, but slowly. Sightline answers it on one screen.",
+      "state": {
+        "view": "watch",
+        "play": true
+      },
+      "targets": [
+        ".sl-pill",
+        ".sl-watch-key"
+      ]
+    },
+    {
+      "id": "plan",
+      "title": "Plan a landing",
+      "line": "Three choices: where, when, and which mission.",
+      "say": "A plan is three choices. Where: a site from the list, with the Apollo landings, NASA's commercial landers, other countries' landers and future targets, or any point on the Moon. When: a landing date and hour, in UTC. And the mission: here a short stay of fourteen days, which must never be more than a day without the Sun, or a day without Earth.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-05-06T13:00:00Z"
+          }
+        ]
+      },
+      "targets": [
+        ".sl-plan"
+      ]
+    },
+    {
+      "id": "verdict",
+      "title": "The verdict",
+      "line": "One answer: it fits, it fits with little margin, or it does not. And why.",
+      "say": "The answer comes first, in words. A landing fits the mission, fits with little margin, or does not fit, and Sightline says why. Under it are the numbers behind the answer: the Sun, with its elevation and the share of the mission it is in view; Earth, the same way; the two together; and the slope of the ground. This landing does not fit.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-05-06T13:00:00Z"
+          }
+        ]
+      },
+      "targets": [
+        ".sl-verdict",
+        ".sl-facts"
+      ]
+    },
+    {
+      "id": "slipped",
+      "title": "The date slipped",
+      "line": "Launches slip. One press adds the next landing that fits.",
+      "say": "Now the real problem. Launch dates slip, and a landing that worked on paper may not work a month later. So when a landing does not fit, Sightline names the next one that does. One press, and that landing is in the plan beside the first: the same site, a later date, and a green verdict. That takes seconds here. In separate tools it takes an afternoon.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-05-06T13:00:00Z"
+          }
+        ]
+      },
+      "targets": [
+        ".sl-next"
+      ],
+      "press": ".sl-next",
+      "after": [
+        ".sl-verdict"
+      ]
+    },
+    {
+      "id": "skyline",
+      "title": "What the lander sees",
+      "line": "The real skyline, from NASA's terrain, with the Sun and Earth on it.",
+      "say": "This is what the lander sees. The outline is the real skyline around the site, traced in every direction from NASA's laser-measured terrain. The Sun and Earth are drawn where they stand at the landing hour. Above the skyline, a body is in view. Below it, the ground is in the way. And the column on the left says how long until each one sets.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "show": "skyline"
+      },
+      "targets": [
+        ".sl-sky"
+      ]
+    },
+    {
+      "id": "time",
+      "title": "Time",
+      "line": "Green is the Sun and Earth together. Day, month or year.",
+      "say": "Time is the other half of the answer. The bands run on from the landing: gold for the Sun, blue for Earth, green for both at once. You can play it, move along it, or step back to see a day, a month or a whole year. Over a year the pattern shifts, because the Moon has seasons, and that is why some months have no landing that fits.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "show": "time"
+      },
+      "targets": [
+        ".sl-river"
+      ]
+    },
+    {
+      "id": "ground",
+      "title": "The ground",
+      "line": "Close on the site, with NASA's own maps over it.",
+      "say": "The Moon has three views: from orbit, close on the site, and standing on the surface. Close in, Layers puts NASA's own maps over the ground: photos, steep ground, permanent shadow, temperature. And every plan opens the same place in the three tools the challenge names, Quickmap, Moon Trek and JPL Horizons, so anyone can check our answer against the source.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "stage": "site",
+        "open": "layers"
+      },
+      "targets": [
+        ".sl-view-switch",
+        ".sl-layers",
+        ".sl-open-in"
+      ]
+    },
+    {
+      "id": "compare",
+      "title": "Compare",
+      "line": "Up to four sites and dates, side by side. A star for the best in each row. No blended score.",
+      "say": "Planners rarely have one option. Compare sets up to four scenarios side by side: different sites, or one site on different dates. Each row is one measure, and a star marks the best value in it. There is no single blended score, on purpose. The weights behind one would be invented, and the trade-offs belong to the planner.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "open": "compare",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-06-22T07:00:00Z"
+          },
+          {
+            "site": "shackleton-rim",
+            "landing": "2027-06-22T07:00:00Z"
+          },
+          {
+            "site": "peak-near-shackleton",
+            "landing": "2027-06-22T07:00:00Z"
+          },
+          {
+            "site": "de-gerlache-rim",
+            "landing": "2027-06-22T07:00:00Z"
+          }
+        ]
+      },
+      "targets": [
+        ".sl-compare"
+      ]
+    },
+    {
+      "id": "planner",
+      "title": "The Planner",
+      "line": "Every site, every month: where and when a landing fits.",
+      "say": "The Planner turns the question around. Instead of one landing, it shows every listed site against every month of the year, and counts the days with a landing that fits. The greener the cell, the more days; none means none. A site that never fits says which limit blocks it. And NASA's future landing targets can be added as rows of their own.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "open": "planner-find",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-06-22T07:00:00Z"
+          },
+          {
+            "site": "shackleton-rim",
+            "landing": "2027-06-22T07:00:00Z"
+          }
+        ]
+      },
+      "targets": [
+        ".pl-months",
+        ".pl-future"
+      ]
+    },
+    {
+      "id": "accuracy",
+      "title": "Landing accuracy",
+      "line": "No lander hits its mark. What does a miss change?",
+      "say": "No lander comes down exactly on its mark. So Landing accuracy asks what a miss would change. Say how close the lander can get to its aim point, and it gives the share of touchdowns that would still fit the mission, what goes wrong in the rest, and, where there is one, a better place to aim. A few meters can change the answer.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "open": "accuracy",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-06-22T07:00:00Z"
+          }
+        ]
+      },
+      "targets": [
+        ".sl-accuracy"
+      ]
+    },
+    {
+      "id": "trust",
+      "title": "Can it be trusted?",
+      "line": "Checked against NASA three ways. And it says what it cannot tell you.",
+      "say": "Can it be trusted? Every number is computed from public NASA data by our own code, and then checked against NASA three ways. The positions are compared with JPL Horizons at every hour. The long-run sunlight is compared with NASA's own map. And the model is tested against dated photos taken from orbit. The Guide also says plainly what Sightline cannot tell you.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "open": "proof"
+      },
+      "targets": [
+        "#how-proof .how-checks"
+      ]
+    },
+    {
+      "id": "scout",
+      "title": "Ask Scout, and try it",
+      "line": "Ask in plain words. Share a plan as a link. lunarsightline.com",
+      "say": "Last, Scout. Ask a question in plain words, and he looks the answer up in the same data. He is an AI, and he is never allowed to write a number himself: the server fills in every figure. There is a real mission to try, Canada's utility rover, and any plan can be shared as a link. It is live now, at lunar sightline dot com. Thank you.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "open": "scout"
+      },
+      "targets": [
+        ".sl-scout-panel",
+        ".sl-icon[aria-label='Share']"
+      ]
+    }
+  ]
+}
