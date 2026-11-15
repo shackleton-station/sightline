@@ -98,6 +98,8 @@ import { River } from './River'
 import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
 import { Skyline } from './Skyline'
+import { loadScenarioAt } from '../data/heights'
+import { firstFitFrom, goodLandingFrom } from './openingLanding'
 import { Stage } from './Stage'
 import { bothPct } from './plannerTable'
 import { SurfaceFrame } from './SurfaceFrame'
@@ -143,6 +145,8 @@ function useRoom(): 'phone' | 'narrow' | 'wide' {
 }
 /** Room kept under the Moon in Plan for the note that says the Moon is not showing the landing. */
 const NOTE_ROOM_PX = 30
+/** How far the tour's step about the time bar moves the bar from the landing, in hours, so the note with "Land here" is on screen. */
+const TOUR_BAR_AWAY_H = 36
 /** How long a removed scenario can be brought back. */
 const UNDO_MS = 5000
 /**
@@ -220,9 +224,18 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [scenarios, setScenarios] = useState<SightlineScenario[]>(() => linked?.scenarios ?? defaultScenarios(sites.map((site) => site.id), opening))
   /** Whether the scenarios are the visitor's own yet: a link's, or Plan has been opened once, or one was added or removed. Until then Plan opens on the default two. */
   const ownPlan = useRef(linked !== null)
+  // The landing Plan opened on by itself ("the next landing that fits from today"): said in one quiet
+  // line while scenario A is still on it. The refs let the search, which ends a moment after Plan
+  // opens, see whether the plan is still the one it was started for.
+  const [openedFrom, setOpenedFrom] = useState<number | null>(null)
+  const openedAt = useRef<number | null>(null)
+  const latestScenarios = useRef<SightlineScenario[]>([])
   const [chosen, setActive] = useState(linked?.active ?? 0)
   const active = Math.min(chosen, scenarios.length - 1)
   const scenario = scenarios[active]
+  useEffect(() => {
+    latestScenarios.current = scenarios
+  }, [scenarios])
   const setScenario = useCallback((change: (current: SightlineScenario) => SightlineScenario) => setScenarios((all) => all.map((one, i) => (i === active ? change(one) : one))), [active])
   const [mission, setMission] = useState(linked?.mission ?? DEFAULT_MISSION)
   // One panel on the right at a time. Scout's conversation lives here, so closing his panel keeps it.
@@ -618,25 +631,55 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [openLink])
 
-  /** Open Plan from Watch: at a site if one was chosen, landing at the time on the clock. */
+  /**
+   * Open Plan from Watch, at a site if one was chosen. The first time, the landing is not whatever
+   * hour the opening screen had played to (the first verdict was then luck): it is the next landing
+   * from the real hour that fits the mission with margin, at the first site; the other prospective
+   * site lands at the same hour. Plan opens at once on the first hour the hourly flags allow, and
+   * moves to the one with margin as soon as that month has loaded, unless the visitor has changed
+   * the plan meanwhile. Coming back to a plan already made keeps it as it was.
+   */
   const openPlan = useCallback(
     (chosen: SiteInfo | null) => {
       if (!plan && !ownPlan.current) {
-        // The first time into Plan: the site picked on the Moon (or the one already first) is A, the
-        // other prospective site is B, and both land at the hour on the clock.
-        setScenarios(defaultScenarios(sites.map((site) => site.id), hour, chosen ? siteValue(chosen) : scenarios[0].site))
+        const first = chosen ? siteValue(chosen) : scenarios[0].site
+        const listed = lit.flagged.find((one) => one.site.id === first)
+        // The real hour, or the data's default month where the real date is outside it.
+        const real = opening
+        const opens = listed ? (firstFitFrom(listed.flags, real, mission) ?? real) : hour
+        setScenarios(defaultScenarios(sites.map((site) => site.id), opens, first))
         setActive(0)
-      } else setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: plan ? current.landing : hour }))
-      // Plan opens resting on its landing: time stops at the hour just chosen, with play one press away.
-      if (!plan) {
         setPlaying(false)
-        setHour(hour)
+        setHour(opens)
+        setOpenedFrom(listed ? opens : null)
+        openedAt.current = opens
+        if (listed) {
+          void goodLandingFrom(listed.flags, real, mission, (month) => loadScenarioAt(listed.site, month, held, lit.applied))
+            .then((good) => {
+              // Only while the plan is still the one just opened: both scenarios on that hour.
+              if (!good || good.landing === opens || openedAt.current !== opens) return
+              if (!latestScenarios.current.every((one) => one.landing === opens)) return
+              openedAt.current = good.landing
+              setScenarios(latestScenarios.current.map((one) => ({ ...one, landing: good.landing })))
+              setHour(good.landing)
+              setOpenedFrom(good.landing)
+            })
+            // Without that month the plan stays on the first hour the flags allow.
+            .catch((reason: unknown) => console.error(reason))
+        }
+      } else {
+        setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: current.landing }))
+        // Plan opens resting on its landing: time stops there, with play one press away.
+        if (!plan) {
+          setPlaying(false)
+          setHour(scenario.landing)
+        }
       }
       ownPlan.current = true
       setPlan(true)
       setPointed(null)
     },
-    [plan, hour, setScenario, sites, scenarios, setPlaying, setHour],
+    [plan, hour, opening, setScenario, scenario.landing, sites, scenarios, setPlaying, setHour, lit.flagged, lit.applied, mission, held],
   )
   /** Add a scenario and show it, with the time bar on its landing. With four already, nothing is added. */
   /** The New Planner moved the scenario on show: the Moon, the time bar and the column follow. */
@@ -796,6 +839,28 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setHour(was.hour)
     setPlaying(was.playing)
   }, [setBare, setPillMin, setRiverMin, setSkyMin, setHour, setPlaying])
+  /**
+   * "Done" on the main tour's last step. The visitor stays on the planning screen with the tour's
+   * plan, ready to try what they were just shown: nothing is put back but what the tour folded or
+   * opened for itself. A feature guide's "Done" puts the screen back, as leaving it does.
+   */
+  const finishTour = () => {
+    if (tourGuide !== null) return endTour()
+    const was = beforeTour.current
+    beforeTour.current = null
+    setTourAt(null)
+    ownPlan.current = true
+    setOpenedFrom(null)
+    setPlan(true)
+    setDrawer(null)
+    setPlaying(false)
+    setHour(scenario.landing)
+    if (was) {
+      setSkyMin(was.skyMin)
+      setRiverMin(was.riverMin)
+    }
+    setSheet(2)
+  }
   // Each step puts the real screen in its state before Scout speaks: Watch or Plan, with nothing
   // else open and time held, so what the step rings is there and stays put.
   // A step about a control only a wide window has is left out on a phone.
@@ -826,6 +891,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     // A feature guide keeps the visitor's own plan, except for a step about several scenarios, which
     // gets the app's two nearby sites on one date, once.
     const landing = hourOf(start, TOUR.scenario.landing)
+    // The step about the time bar names "land here", which shows only while the bar is off the landing:
+    // the step moves the bar on a day and a half itself, and every other Plan step rests it on the landing.
+    if (tourGuide === null && tourPlanned.current) setHour(show === 'time' ? Math.min(scenario.landing + TOUR_BAR_AWAY_H, hours - 1) : scenario.landing)
     if (tourGuide === null) {
       if (!tourPlanned.current && sites.some((listed) => listed.id === TOUR.scenario.site) && Number.isInteger(landing) && landing >= 0 && landing < hours) {
         // Two scenarios, as Plan opens for anyone: the tour's site at A, the other prospective site at B.
@@ -1005,6 +1073,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           at={tourAt}
           onStep={setTourAt}
           onClose={endTour}
+          onDone={finishTour}
           onVideo={
             guideVideos.walkthrough && tourGuide === null
               ? () => {
@@ -1230,6 +1299,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {/* The column is about the landing; the Moon follows the time bar. When the two differ, say so,
             in the strip kept clear under the Moon, with the two ways to bring them together. */}
         {shown && !planner && fitShade && <FitLegend on={fitShade} onToggle={showFitShade} />}
+        {/* Where the date came from, while Plan is still on the landing it opened with: one quiet line in the same strip. */}
+        {shown && !planner && tourAt === null && openedFrom !== null && hour === scenario.landing && scenarios[0].landing === openedFrom && active === 0 && (
+          <p className="sl-off-landing sl-opened-from">The next landing that fits from today</p>
+        )}
         {shown && !planner && hour !== scenario.landing && (
           <p className="sl-off-landing sl-fade">
             <span>Not the landing</span>

@@ -66,7 +66,7 @@
       "title": "The month ahead",
       "say": "The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press \"land here\" to try that hour.",
       "state": { "view": "plan", "show": "time" },
-      "targets": [".sl-river"]
+      "targets": [".sl-river", "[data-tour='land']"]
     },
     {
       "id": "compare",

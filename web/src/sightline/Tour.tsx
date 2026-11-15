@@ -15,6 +15,8 @@ interface Props {
   onStep: (index: number) => void
   /** Leave the tour: the screen goes back to how the visitor had it. */
   onClose: () => void
+  /** "Done" on the last step: the tour has been taken to its end. */
+  onDone: () => void
   /** Open the Guide at the walkthrough video; null until the video exists. */
   onVideo: (() => void) | null
   /** What the step on show offers to try, as a link under its words; null when it offers nothing. */
@@ -61,7 +63,7 @@ function moonDisc(): Disc | null {
  * Moon and nothing is dimmed. Arrow keys step, Escape closes. "Listen" plays each line in Scout's
  * voice from a file rendered ahead of time: off until pressed, so there is never sound without a click.
  */
-export function Tour({ name, steps, voice, at, onStep, onClose, onVideo, tryIt, state }: Props) {
+export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo, tryIt, state }: Props) {
   const step = steps[at]
   const last = at === steps.length - 1
   const bubble = useRef<HTMLElement>(null)
@@ -186,7 +188,7 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onVideo, tryIt, 
             <button type="button" className="sl-small" disabled={at === 0} onClick={() => onStep(at - 1)}>
               Back
             </button>
-            <button ref={next} type="button" className="sl-small sl-tour-next" onClick={() => (last ? onClose() : onStep(at + 1))}>
+            <button ref={next} type="button" className="sl-small sl-tour-next" onClick={() => (last ? onDone() : onStep(at + 1))}>
               {last ? 'Done' : 'Next'}
             </button>
             <button type="button" className="sl-small" onClick={onClose}>
