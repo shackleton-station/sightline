@@ -556,6 +556,26 @@ range), run that copy with `--no-clobber` so the live files are left as they are
 (`web/server/storage.ts`). Without these files the Atlas still opens, with the plain slope-shaded Moon and a
 line saying the computed light isn't available.
 
+## After the pipeline builds the 20 m patches
+
+The patches are the light grid's calculation at the terrain's own 20 m, over about 3 km round each
+south-pole ridge site (`pipeline/src/clps/lightgrid.py`, `patch_around`). They are built only when asked
+for, and need what the light grid needs: the polar DEM and the kernels in `cache/`, and the site tracks
+from `run_all.py` for the check.
+
+```sh
+cd pipeline && uv sync
+uv run python scripts/make_light_grid.py --patches     # horizons, then every month, for each patch
+uv run python scripts/check_light_grid.py --patches    # each patch's pixel at its site against the site's track
+cd ../web && gcloud storage rsync --recursive --no-clobber public/tiles/light/patch gs://clps-compute-6z1nc-web-assets/tiles/light/patch
+```
+
+The first command writes `web/public/tiles/light/patch/<site>/<month>.bin.gz` (not in Git) and adds a
+`patches` entry for each site to `web/public/data/light/meta.json` (committed: open a pull request with
+it and with `validation.json`, which the check adds its own `patches` to). A stopped run resumes its
+horizons; `--patches --months` redoes only the months. Nothing reads the patches until the web app is
+taught to, so uploading them changes nothing a visitor sees.
+
 ## After the pipeline changes the sets for other heights
 
 ```sh

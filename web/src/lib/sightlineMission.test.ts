@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteFlags } from './flags'
 import type { SiteInfo } from '../data/contract'
-import { bestIn, betterDate, DEFAULT_MISSION, fitProblems, marginalHour, marginalWords, measureScenario, missionWords, steadierLanding, NO_LIMIT_H, PRESETS, presetOf, readScenarioLink, removeScenarioAt, restoreScenario, rowLabels, scenarioLink, type SightlineMission, surfaceLink, silenceHours, silenceStop } from './sightlineMission'
+import { bestIn, betterDate, DEFAULT_MISSION, fitProblems, landingMiss, marginalHour, marginalWords, measureScenario, missionWords, steadierLanding, NO_LIMIT_H, PRESETS, presetOf, readScenarioLink, removeScenarioAt, restoreScenario, rowLabels, scenarioLink, type SightlineMission, surfaceLink, silenceHours, silenceStop } from './sightlineMission'
 
 const START = '2027-01-01T00:00:00Z'
 
@@ -64,6 +64,34 @@ describe('fitProblems', () => {
   it('says why not: the app\'s own reasons, then the slope', () => {
     const problems = fitProblems(flags, 0, { ...mission, requirements: { ...mission.requirements, maxEarthGapH: 12 } }, 13.04)
     expect(problems).toEqual(['Earth is gone for 24 h during the mission; your limit is 12 h.', 'The ground slopes 13.0°; your limit is 10°.'])
+  })
+})
+
+describe('landingMiss', () => {
+  // Three days: the Sun down for the first hour and the last day, Earth down for the second day.
+  const day = (up: boolean) => new Array<boolean>(24).fill(up)
+  const flags: SiteFlags = { start: START, sun: [false, ...day(true).slice(1), ...day(true), ...day(false)], earth: [...day(true), ...day(false), ...day(true)], earthAbove: { 2: [...day(false), ...day(false), ...day(true)] } }
+  const two = (more: Partial<SightlineMission['requirements']> = {}): SightlineMission => ({ ...DEFAULT_MISSION, requirements: { ...DEFAULT_MISSION.requirements, missionDays: 2, ...more } })
+  it('is null exactly where fitProblems finds nothing, over every landing and several missions', () => {
+    for (const mission of [two(), two({ maxEarthGapH: 12 }), two({ maxSunGapH: 0 }), two({ sunAtLanding: false, earthAtLanding: false }), two({ minEarthClearanceDeg: 2 })]) {
+      for (const slope of [null, 4, 13]) {
+        for (let landing = 0; landing <= 24; landing += 1) {
+          expect(landingMiss(flags, landing, mission, slope) === null).toBe(fitProblems(flags, landing, mission, slope).length === 0)
+        }
+      }
+    }
+  })
+  it('names the slope first, then the limits in the verdict’s order', () => {
+    expect(landingMiss(flags, 0, two(), 13)).toBe('slope')
+    expect(landingMiss(flags, 0, two(), 4)).toBe('sunAtLanding')
+    expect(landingMiss(flags, 24, two(), 4)).toBe('earthAtLanding')
+    expect(landingMiss(flags, 24, two({ earthAtLanding: false }), 4)).toBe(null)
+    expect(landingMiss(flags, 24, two({ earthAtLanding: false, maxSunGapH: 12 }), 4)).toBe('dark')
+    expect(landingMiss(flags, 1, two({ maxEarthGapH: 12 }), 4)).toBe('silence')
+  })
+  it('gives no verdict for a mission that runs past the data', () => {
+    expect(landingMiss(flags, 24, two(), 4)).toBe('earthAtLanding')
+    expect(landingMiss(flags, 25, two(), 4)).toBeUndefined()
   })
 })
 

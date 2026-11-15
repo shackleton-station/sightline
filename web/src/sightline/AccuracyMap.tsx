@@ -1,10 +1,22 @@
 import { useEffect, useRef } from 'react'
-import { type Aim, cellAtM, cellCentreM, type FitMap, RING_SHARES, radiusHolding, sigmaM, type Spread, verdictColor } from '../lib/landingOdds'
+import { type Margins, verdictPicture } from '../lib/landingField'
+import { type Aim, cellAtM, cellCentreM, type FitMap, MISSES, RING_SHARES, radiusHolding, sigmaM, type Spread, verdictColor } from '../lib/landingOdds'
 
 const SCALE_BARS_M = [25, 50, 100, 200, 250, 500, 1000]
+/** Pixels along a side of the picture of the ground, before it is drawn at the panel's size. */
+const PICTURE_PX = 288
+
+/** Each verdict's color as red, green and blue: the fit's first, then each reason's. */
+const VERDICT_RGB = Array.from({ length: MISSES.length + 1 }, (_, code) => {
+  const hex = verdictColor(code)
+  return [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16))
+})
 
 interface Props {
+  /** The map the odds are counted on: a spot tapped is one of its cells. */
   map: FitMap
+  /** The margins the picture is drawn from, read at every pixel. */
+  margins: Margins
   /** How the lander's misses are spread, for the outlines. */
   spread: Spread
   /** How far from the target the picture reaches, each way (m). */
@@ -19,12 +31,13 @@ interface Props {
 }
 
 /**
- * The ground around the target, each cell green where a landing fits the mission and in its
- * reason's color where it does not, with the target at the centre and an outline for each share of
- * landings. Tapping a cell picks it. The picture is in the terrain's own map plane, so distances
- * on it are true.
+ * The ground around the target, green where a landing fits the mission and in its reason's color
+ * where it does not, with the target at the centre and an outline for each share of landings. The
+ * verdict is read at every pixel from the landing points' margins, so the picture has no squares
+ * in it. Tapping a spot picks it. The picture is in the terrain's own map plane, so distances on it
+ * are true.
  */
-export function AccuracyMap({ map, spread, viewM, aim, picked, onPick, label }: Props) {
+export function AccuracyMap({ map, margins, spread, viewM, aim, picked, onPick, label }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -40,15 +53,23 @@ export function AccuracyMap({ map, spread, viewM, aim, picked, onPick, label }: 
     const perM = side / (2 * viewM)
     const px = (x: number) => (x + viewM) * perM
     const py = (y: number) => (viewM - y) * perM
-    const cell = map.cellM * perM
-
-    for (let at = 0; at < map.verdict.length; at += 1) {
-      const { x, y } = cellCentreM(map, at)
-      if (Math.abs(x) > viewM + map.cellM || Math.abs(y) > viewM + map.cellM) continue
-      context.fillStyle = verdictColor(map.verdict[at])
-      // A hair of overlap, so no seams show between cells at odd sizes.
-      context.fillRect(px(x) - cell / 2, py(y) - cell / 2, cell + 0.5, cell + 0.5)
+    // The ground, a verdict a pixel, drawn up to the panel's size with its edges softened.
+    const codes = verdictPicture(margins, viewM, PICTURE_PX)
+    const picture = new ImageData(PICTURE_PX, PICTURE_PX)
+    for (let at = 0; at < codes.length; at += 1) {
+      const [red, green, blue] = VERDICT_RGB[codes[at]]
+      picture.data[4 * at] = red
+      picture.data[4 * at + 1] = green
+      picture.data[4 * at + 2] = blue
+      picture.data[4 * at + 3] = 255
     }
+    const ground = document.createElement('canvas')
+    ground.width = PICTURE_PX
+    ground.height = PICTURE_PX
+    ground.getContext('2d')?.putImageData(picture, 0, 0)
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
+    context.drawImage(ground, 0, 0, side, side)
 
     // The outlines: circles, or ellipses with the long way along the approach (clockwise from up).
     const sigma = sigmaM(spread.accuracyM)
@@ -97,9 +118,7 @@ export function AccuracyMap({ map, spread, viewM, aim, picked, onPick, label }: 
 
     if (picked !== null) {
       const { x, y } = cellCentreM(map, picked)
-      context.strokeStyle = '#fff'
-      context.lineWidth = 2
-      context.strokeRect(px(x) - cell / 2, py(y) - cell / 2, cell, cell)
+      edged(() => context.arc(px(x), py(y), 5, 0, 2 * Math.PI))
     }
 
     // A scale bar: the longest round length under a third of the picture.
@@ -112,7 +131,7 @@ export function AccuracyMap({ map, spread, viewM, aim, picked, onPick, label }: 
     context.fillRect(left, base, barM * perM, 2)
     context.font = '11px system-ui, sans-serif'
     context.fillText(`${barM} m`, left, base - 4)
-  }, [map, spread, viewM, aim, picked])
+  }, [map, margins, spread, viewM, aim, picked])
 
   const pick = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const box = event.currentTarget.getBoundingClientRect()
