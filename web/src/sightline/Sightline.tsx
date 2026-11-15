@@ -626,11 +626,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         setScenarios(defaultScenarios(sites.map((site) => site.id), hour, chosen ? siteValue(chosen) : scenarios[0].site))
         setActive(0)
       } else setScenario((current) => ({ site: chosen ? siteValue(chosen) : current.site, landing: plan ? current.landing : hour }))
+      // Plan opens resting on its landing: time stops at the hour just chosen, with play one press away.
+      if (!plan) {
+        setPlaying(false)
+        setHour(hour)
+      }
       ownPlan.current = true
       setPlan(true)
       setPointed(null)
     },
-    [plan, hour, setScenario, sites, scenarios],
+    [plan, hour, setScenario, sites, scenarios, setPlaying, setHour],
   )
   /** Add a scenario and show it, with the time bar on its landing. With four already, nothing is added. */
   /** The New Planner moved the scenario on show: the Moon, the time bar and the column follow. */
