@@ -35,6 +35,29 @@ export interface LightMeta {
    * pixels reaching farther from the pole. Its month files are read the same way.
    */
   wide?: { size: number; pixel_m: number; half_width_m: number; hours?: Record<string, number> }
+  /**
+   * Patches: squares of this grid's cells worked out again at the terrain's own pixel size, each
+   * named for the site it is round. A patch's month files are read as this grid's are.
+   */
+  patches?: Record<string, LightPatch>
+}
+
+/** A patch of the grid: whole cells, each split into `sub` pixels along a side. */
+export interface LightPatch {
+  /** Patch pixels along a side (`cells * sub`), and their size in meters. */
+  size: number
+  pixel_m: number
+  /** The grid's column and row of the patch's top-left cell, and the grid cells along a side. */
+  col: number
+  row: number
+  cells: number
+  /** Patch pixels along one grid cell. */
+  sub: number
+}
+
+/** A patch as a grid description of its own, for reading its month files: the grid's months and slots at the patch's size. */
+export function patchGrid(meta: LightMeta, patch: LightPatch): LightMeta {
+  return { ...meta, size: patch.size, pixel_m: patch.pixel_m, wide: undefined, patches: undefined }
 }
 
 /**

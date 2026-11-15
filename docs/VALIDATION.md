@@ -734,6 +734,48 @@ On the 903 pixels where NASA's map reads 50% or more:
   than that are missed or overstated; the 120 m grid covers the ridges the listed sites sit on, except IM-2 Athena's.
 - It inherits everything above: the ridge-top gap against NASA's map (§2), and the model's limits on well-lit ground.
 
+### The 20 m patches round the ridge sites (2026-11-15)
+
+Round each of the four ridge sites the same calculation is run again at the terrain's own 20 m, over the
+fine grid's cells within about 3 km of the site: 306 pixels square, 93,636 pixels a site, every hour of 2026
+to 2049 (`make_light_grid.py --patches`). 20 m is the DEM's pixel, so nothing finer would be more than
+reading between height samples. The "Landings that fit" layer and the Surface view's tint read a patch where
+there is one: each of the layer's 60 m pixels takes the share of the patch's nine pixels under it where a
+landing fits.
+
+**Each patch's pixel at its site against the site's own track**, every hour of 2026 to 2049 (210,384 hours;
+`check_light_grid.py --patches`, stored under `patches` in `validation.json`), beside the fine grid's cell
+from the table above:
+
+| Site | 20 m pixel: center from the site | Sun agrees | Earth agrees | 120 m cell: center from the site | Sun agrees | Earth agrees |
+| --- | --- | --- | --- | --- | --- | --- |
+| Connecting Ridge | 3.4 m | 99.89% | 100.00% | 54 m | 93.95% | 99.98% |
+| Shackleton Rim | 3.6 m | 99.70% | 99.90% | 15 m | 95.88% | 99.36% |
+| Peak near Shackleton | 8.0 m | 99.67% | 99.83% | 8 m | 99.53% | 99.63% |
+| de Gerlache Rim | 10.7 m | 99.87% | 100.00% | 71 m | 91.34% | 99.98% |
+
+A month's Sun share at the pixel is within 0.1 points of the site's in a typical month, and 1.3 to 6.0 points
+off in its worst month; the 120 m cell's worst month was 7.8 to 30.8 points off.
+
+**What a 120 m cell could not tell apart.** Among the 36 patch pixels inside each site's own cell, the Sun is
+up for between 45.5% and 90.9% of the 24 years at Connecting Ridge, 43.8% and 85.1% at Shackleton Rim, 80.0%
+and 88.2% at Peak near Shackleton, and 47.6% and 86.0% at de Gerlache Rim.
+
+**The browser's reading of a patch** (one-off script, 2026-11-15): at Connecting Ridge and Peak near
+Shackleton, for ten landings in November and December 2026 under the default mission, the patch pixel at the
+site read through the web app's own code gives the site's verdict every time. Laying the patch into the
+layer's picture changes a few dozen of its 10,404 pixels over each patch, and the share of the patch's ground
+that fits by under 0.3 points: the grid's cells were right on average and wrong in detail. On those dates
+0% to 14% of the ground within 3 km of either site fits, so ground shaded red round a site that fits is
+mostly what the model says, not the grid's coarseness.
+
+Measured on the pipeline VM as an `n2-standard-32` (32 vCPUs, 2026-11-15): 28 min 36 s for the four patches,
+about 3.5 min of horizons and 4 min of months each; the check, 30 s. The month files are 283 MB in all,
+190 to 287 kB a month.
+
+Not checked: the patches away from their sites (there is no track to check against); heights other than 2 m
+and any Earth clearance, which the patches do not hold, as the grid does not.
+
 ## 13. The Surface view: the picture against the track (2026-11-12)
 
 The Surface tab (`/surface/`) draws what the pipeline computed as a view from the site: the land is a shape whose
