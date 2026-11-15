@@ -1,0 +1,14 @@
+/* The way to Canada's utility rover, under the mission's examples: one quiet line across the box,
+   small enough that the limits under it stay on a laptop's screen. */
+.sl-rover-line {
+  grid-column: 1 / -1;
+  margin: 0.1rem 0 0.15rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.sl-rover-line .sl-link {
+  font-size: inherit;
+  white-space: nowrap;
+}

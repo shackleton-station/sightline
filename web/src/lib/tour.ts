@@ -17,6 +17,8 @@ export interface TourState {
   open?: GuidePanel | 'planner-find' | 'planner-compare'
   /** The step is about more than one scenario: the app's two nearby sites on one date are put in, once, for it. */
   pair?: boolean
+  /** The step is about the Long stay example: the mission is set to it for the guide, and put back on leaving. */
+  mission?: 'long'
 }
 
 /** What a feature guide can open, and so which panel offers that guide ("Show me how"). */
