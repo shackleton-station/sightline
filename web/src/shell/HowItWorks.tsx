@@ -1,5 +1,5 @@
-import type { FeatureGuide, TourFile } from '../lib/tour'
-import tourFile from '../sightline/tour.json'
+import type { FeatureGuide, LongTourFile } from '../lib/tour'
+import tourFile from '../sightline/tour5.json'
 import type { GuideVideos } from '../sightline/useGuideVideos'
 import { useEffect, useRef, useState } from 'react'
 import { useLightChecks } from '../data/lightChecks'
@@ -31,8 +31,6 @@ interface Props {
   onTour?: () => void
   /** The visitor has taken the tour before: the button offers it again. */
   tourTaken?: boolean
-  /** Start the five-minute tour, made for presenting (Sightline only). */
-  onLongTour?: () => void
   /** Open at the proof step: the five-minute tour's step about trust leads here. */
   openAtProof?: boolean
   /** The feature guides (short tours of one feature each), and how to start one by its id. Sightline only. */
@@ -53,14 +51,14 @@ interface Props {
   verdict?: VerdictOnShow | null
 }
 
-const TOUR = tourFile as TourFile
+const TOUR = tourFile as LongTourFile
 
 /**
  * The Guide, as one story: where to start (the tour and the videos), the challenge, the data, the
  * solution, the proof, Scout, and what the site runs on. A bar that stays in sight holds the way back
  * and a link to each part.
  */
-export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, onLongTour, openAtProof = false, guides = [], onGuide, videos = null, openAtVideo = false, why = null, openAtWhy = false, verdict = null }: Props) {
+export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, openAtProof = false, guides = [], onGuide, videos = null, openAtVideo = false, why = null, openAtWhy = false, verdict = null }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -184,11 +182,6 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
                 {tourTaken ? 'Take the tour again' : 'Take the tour'}
               </button>
             )}
-            {onLongTour && (
-              <button type="button" className="how-long-tour" onClick={onLongTour}>
-                Five-minute tour
-              </button>
-            )}
             {videos?.walkthrough && (
               <button type="button" className="how-watch" aria-pressed={playing === 'walkthrough'} onClick={() => watch('walkthrough')}>
                 Watch the walkthrough
@@ -203,7 +196,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         )}
         {onTour && (
           <p className="how-start-note">
-            The tour is interactive: Scout walks you through the real screen in about a minute.{onLongTour && ' The five-minute tour is the whole screen in twelve steps, made for presenting it.'}
+            Scout walks you through the real screen in {TOUR.steps.length} steps: about a minute to read through, about five to hear with “Listen”.
           </p>
         )}
         {onScreen && (
@@ -235,7 +228,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         <DataSources />
       </GuideStep>
 
-      <GuideSolution data={data} siteCount={siteCount} span={span} range={range} light={light} verdict={verdict} tour={TOUR} guides={guides} onGuide={onGuide} />
+      <GuideSolution data={data} siteCount={siteCount} span={span} range={range} light={light} verdict={verdict} steps={TOUR.steps} guides={guides} onGuide={onGuide} />
 
       <GuideProof data={data} span={span} light={light} />
 

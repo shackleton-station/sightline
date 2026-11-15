@@ -33,24 +33,35 @@ Built on our team's own pre-event practice code; reuse approved by the Bethesda 
 
 ## Using the site
 
-Scout gives a one-minute tour of the screen: its chip is in Watch on every visit, and it is
-always the first thing in the **Guide** (on a phone, also under **More**). It drives the real
-screen: each step puts the app in a state, rings the control it is about, and says one or two
-sentences. Back, Next and Close, or the arrow keys and Escape; closing at any step puts the screen back
-as it was. **Listen** plays each line in Scout's voice (AI-generated; off until pressed). The steps:
+Scout gives a tour of the whole screen in twelve steps: about a minute to read through, about five
+to hear. Its chip, "Take the tour", is in Watch on every visit, and it is always the first thing in
+the **Guide** (on a phone, also under **More**). It drives the real screen: each step puts the app in
+a prepared state, shades the page a little except what the step is about, rings that, and shows a
+short line. Back, Next and "Close the tour", the arrow keys (or a clicker's Page Down and Page Up)
+and Escape; a dot for each step goes straight to it; closing at any step puts the screen back as it
+was. **Listen** plays each step's longer spoken line in Scout's voice (AI-generated; off until
+pressed), and **Play through** moves on by itself when a line ends: 4 min 47 s in all, which is how a
+five-minute presentation runs. The steps, with the line on each card:
 
-1. **The Moon, now.** A lander needs the Sun for power and Earth for radio. This is the Moon from above its south pole, lit as it is now: press play.
-2. **The markers.** Each marker is a landing site. Its shape and color say what it can see at this moment: the Sun, Earth, both or neither.
-3. **Plan a landing.** Choose where to land, when, and which mission. Everything below answers for that plan.
-4. **The verdict.** Sightline says whether the landing fits the mission, and why. If it does not, it offers the next landing that does.
-5. **What the lander sees.** This is the real skyline around the site, with the Sun and Earth where they stand at that hour. A body below the skyline is out of view.
-6. **The month ahead.** The bands show the weeks after landing: green is the Sun and Earth both in view. Move along them, then press "land here" to try that hour.
-7. **More than one plan.** Press the plus to add another site or date, up to four. Compare sets them side by side, and the Planner gives them the whole window.
-8. **Ask Scout.** Ask Scout in plain words: he looks the answer up in the same data. Home takes you back to the Moon.
+1. **The challenge.** A lander needs the Sun for power and Earth for radio. At the pole, both come and go.
+2. **Plan a landing.** Three choices: where, when, and which mission.
+3. **The verdict.** One answer: it fits, it fits with little margin, or it does not. And why.
+4. **The date slipped.** Launches slip. One press adds the next landing that fits.
+5. **What the lander sees.** The view from the ground. Under it, the whole horizon at once.
+6. **Time.** Green is the Sun and Earth together. Day, month or year.
+7. **The ground.** Close on the site, with NASA's own maps over it.
+8. **Compare.** Up to four sites and dates, side by side. A star for the best in each row. No blended score.
+9. **The Planner.** Every site, every month: where and when a landing fits.
+10. **Landing accuracy.** It fits on the aim point. A short way off, most landings do not. A better aim helps.
+11. **Can it be trusted?.** Checked against NASA, three ways. And it says what it cannot tell you.
+12. **Ask Scout, and try it.** Ask in plain words. Share a plan as a link. lunarsightline.com
 
-The steps, their words and what each one rings are in one file, `web/src/sightline/tour.json`, which
-the tour, the Guide, the voice files (`web/public/tour/voice/`, made by `web/scripts/tour-voice.mjs`)
-and the tutorial video's recorder all read, so they say the same thing.
+The steps, their words and what each one rings are in one file, `web/src/sightline/tour5.json`, which
+the tour, the Guide and the voice files (`web/public/tour/voice5/`, made by
+`web/scripts/tour-voice.mjs --tour=five`) all read, so they say the same thing. The feature guides
+(`guides.json`) run on the same engine with the same look. The earlier eight-step tour's file,
+`tour.json`, is kept for the walkthrough video's recorder and names the Guide's videos; the screen no
+longer runs its steps.
 
 ## Where the numbers come from
 
