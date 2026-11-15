@@ -110,6 +110,27 @@ export function project(lens: Lens, azDeg: number, elDeg: number): ScreenPoint {
   }
 }
 
+/**
+ * `project` for many directions at once: the camera is worked out once, and each direction is a unit
+ * vector already (from `skyVector`), so a month of hourly positions costs a few multiplications each.
+ * Gives the same answer as `project`.
+ */
+export function projector(lens: Lens): (point: Vec3) => ScreenPoint {
+  const { right, up, forward } = cameraAxes(lens)
+  const half = Math.tan((lens.fovDeg * RAD) / 2)
+  const s = lens.stretch
+  return (point) => {
+    // Stretching heights scales "up"; the length does not matter, as x and y are divided by depth.
+    const p: Vec3 = s === 1 ? point : [point[0], point[1], point[2] * s]
+    const depth = dot(p, forward)
+    return {
+      x: dot(p, right) / (Math.abs(depth) * half * lens.aspect),
+      y: dot(p, up) / (Math.abs(depth) * half),
+      inFront: depth > 1e-9,
+    }
+  }
+}
+
 /** The direction in the sky under a point of the picture: the inverse of `project`. */
 export function unproject(lens: Lens, x: number, y: number): { az: number; el: number } {
   const { right, up, forward } = cameraAxes(lens)

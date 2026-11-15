@@ -6,10 +6,11 @@ import { acrossDeg, type BodyRadii, fovForAcross, type Lens, type Look } from '.
 import type { GroundTint, SurfaceFrame } from '../three/SurfaceViewer'
 import { CompassStrip } from './CompassStrip'
 import { LensControls } from './LensControls'
-import { type HoursNear, SkyOverlay } from './SkyOverlay'
+import type { MonthPaths } from '../lib/skyPaths'
+import { SkyOverlay } from './SkyOverlay'
 import { SurfaceCanvas } from './SurfaceCanvas'
 import { useCoveredFoot } from './useCoveredFoot'
-import type { SkyPair } from './useGlide'
+import type { SkyPair } from './useDrawnHour'
 import { type Body, useLook } from './useLook'
 import { useLookInput } from './useLookInput'
 
@@ -28,11 +29,12 @@ interface Props {
   site: SiteInfo
   horizon: HorizonPoint[]
   groundTint: GroundTint | null
-  /** This hour of the track, and where the Sun and Earth are drawn (they glide between hours). */
+  /** This hour of the track, and where the Sun and Earth are drawn (they move steadily between hours). */
   now: TrackPoint
   sky: SkyPair
   discs: BodyRadii
-  hours: HoursNear
+  /** Each body's path over the whole month. */
+  paths: MonthPaths
   still: boolean
   /** The pitch both views share while both bodies fit in one picture. */
   level: LevelPitch | null
@@ -76,7 +78,7 @@ function coveredTopPx(place: 0 | 1): number {
  * hand; a button then turns it back.
  */
 export function SurfacePane(props: Props) {
-  const { body, place, site, horizon, groundTint, now, sky, discs, hours, still, level, opening, keys, showLens, setLensAll, register, onActive, onLens, onLost } = props
+  const { body, place, site, horizon, groundTint, now, sky, discs, paths, still, level, opening, keys, showLens, setLensAll, register, onActive, onLens, onLost } = props
   const stage = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const coveredFootPx = useCoveredFoot(stage)
@@ -141,7 +143,7 @@ export function SurfacePane(props: Props) {
         {size.width > 0 && (
           <>
             <SurfaceCanvas horizon={horizon} groundTint={groundTint} latDeg={site.lat} frame={frame} onLost={onLost} />
-            <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} hours={hours} clearTopPx={coveredTopPx(place)} clearBottomPx={coveredFootPx} />
+            <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} paths={paths} clearTopPx={coveredTopPx(place)} clearBottomPx={coveredFootPx} />
           </>
         )}
       </div>

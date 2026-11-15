@@ -60,10 +60,9 @@ export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM 
           <li>Earth’s lit part is its true phase. Its face is NASA’s Blue Marble picture, for looks: which side faces the Moon is not modelled.</li>
           <li>The glow round the Sun is camera glare, to help find it. The stars are decoration, not a star map.</li>
           <li>
-            The data is hourly. The dots are where the Sun and Earth are on the hour, from a day before to two days after (every few hours where they
-            would run together): filled where the model has them up. The orange and blue lines are each one’s path over the whole month, hour
-            to hour: solid where the model has it up, dashed where it is behind the land.
-            Between two hours the disks slide in a straight line, and come to rest on the hour’s own position.
+            The data is hourly. The orange and blue lines are the Sun’s and Earth’s paths over the whole month, hour to hour: solid where the model
+            has it up, dashed where it is behind the land. Between two hours the disks move steadily along the sky from one hour’s position to the
+            next, and on the hour they are at the hour’s own position.
           </li>
         </ul>
       </details>
