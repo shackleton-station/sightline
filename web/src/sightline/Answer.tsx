@@ -4,7 +4,7 @@ import { isCustomSite } from '../data/customSite'
 import { useHorizonsCheck } from '../data/horizonsCheck'
 import type { ScenarioData } from '../data/loadSite'
 import { answerAt } from '../lib/answer'
-import { type Check, CHECK_MARK, gapCheck, landingCheck, landingWords, shareMeans, sharePct } from '../lib/columnStats'
+import { type Check, CHECK_MARK, elevationAtLanding, elevationMeans, gapCheck, landingCheck, landingWords, shareMeans, sharePct, WHILE_UP_MEANS, whileUpWords } from '../lib/columnStats'
 import { horizonAt } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
 import type { MissionHeights } from '../lib/heights'
@@ -162,11 +162,30 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Sun
           </dt>
+          {/* The Sun's elevation at the landing's hour, on the row's first line beside its name: from level, not from the skyline. */}
+          {now && data && (
+            <dd className="sl-fact-level" title={elevationMeans(heights.panelM)}>
+              {elevationAtLanding(now.sun_el)}
+            </dd>
+          )}
           <dd className="sl-fact-main">
             {sun.main}
             <small>of the mission</small>
           </dd>
-          {!limitsOpen && <dd className="sl-fact-small">{sun.small}</dd>}
+          {!limitsOpen && (
+            <dd className="sl-fact-small">
+              {sun.small}
+              {/* The Sun's elevation while it is up during the mission, from the same hourly rows as the chart. */}
+              {over?.sun.whileUp && (
+                <>
+                  ,{' '}
+                  <span className="sl-keep" title={WHILE_UP_MEANS}>
+                    {whileUpWords(over.sun.whileUp.lowDeg, over.sun.whileUp.highDeg)}
+                  </span>
+                </>
+              )}
+            </dd>
+          )}
           {sunGap && (
             <CheckLine check={sunGap.check} title={DARK_MEANS} swatch={over !== null && sunGap.hours !== null}>
               {sunGap.words} {sunGap.hours && <b>{sunGap.hours}</b>} · <span className="sl-keep">{sunGap.limit}</span>

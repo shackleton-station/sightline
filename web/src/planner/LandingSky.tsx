@@ -7,6 +7,7 @@ import { sunHeightWords } from '../lib/answer'
 import { horizonAt } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
 import { hourOf, locateHour, longestDown, missionEarth, type Requirements } from '../lib/mission'
+import { sunWhileUp } from '../lib/missionLight'
 import { hoursUntilChange } from '../lib/nextChange'
 import { splitAtWrap } from '../lib/panorama'
 import { skylineCentre, skylineDomain, skylineHorizon, skylineX } from '../lib/sightline'
@@ -42,10 +43,9 @@ function monthsBetween(start: string, from: number, to: number): string[] {
 
 function sunHeights(during: TrackPoint[], horizon: HorizonPoint[], t: string): SunHeights {
   const now = during.find((point) => point.t === t) ?? null
-  const up = during.filter((point) => point.sun_up).map((point) => point.sun_el)
   return {
     atLanding: now ? { elDeg: now.sun_el, up: now.sun_up, aboveSkylineDeg: now.sun_el - horizonAt(horizon, now.sun_az) } : null,
-    whileUp: up.length > 0 ? { lowDeg: Math.min(...up), highDeg: Math.max(...up) } : null,
+    whileUp: sunWhileUp(during),
   }
 }
 

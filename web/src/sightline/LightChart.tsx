@@ -8,6 +8,8 @@ export interface BodyOver extends SpanStats {
   limitH: number | null
   /** The share of its disc in view at each hour from the landing, in percent; null while the mission's hours load. */
   values: number[] | null
+  /** The Sun's row only: its elevation from level while it is up during the mission; null if it never is, undefined while the hours load. */
+  whileUp?: { lowDeg: number; highDeg: number } | null
 }
 
 interface Props {

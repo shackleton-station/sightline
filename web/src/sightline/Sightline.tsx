@@ -1031,6 +1031,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         ...spanStats(flags.sun, scenario.landing, end),
         limitH: maxSunGapH,
         values: missionLight?.hours.map((one) => one.sunPct) ?? null,
+        whileUp: missionLight?.sunWhileUp,
       },
       earth: { ...spanStats(missionEarth(flags, mission.requirements), scenario.landing, end), limitH: maxEarthGapH >= NO_LIMIT_H ? null : maxEarthGapH, values: missionLight?.hours.map((one) => one.earthPct) ?? null },
     }

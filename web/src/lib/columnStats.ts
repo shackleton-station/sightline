@@ -1,3 +1,4 @@
+import { degWords, elevationWords } from './sightline'
 import { EDGE_ONLY_UNDER } from './sightlineSky'
 
 /** How a figure stands against the mission: within its limit, only just, past it, or there is no limit to hold it to. */
@@ -45,6 +46,33 @@ export function landingWords(figure: string, side: string, next: string, showing
   const disc = side.startsWith('below') ? `edge showing (${showing.replace(/ of the disc showing$/, '')})` : showing
   return `At landing: center ${figure} ${side}, ${disc} · ${next}`
 }
+
+/**
+ * The Sun's elevation at the landing's hour, beside the row's name: "elevation −1.2° from level at
+ * landing". The angle is named by what it is measured from, so it is not read as "above the skyline".
+ */
+export function elevationAtLanding(elDeg: number): string {
+  return `${elevationWords(elDeg)} at landing`
+}
+
+/** Its hover text: what the angle is, and why a figure below level can still be in view. */
+export function elevationMeans(obsHeightM: number): string {
+  const up = obsHeightM === 2 ? '' : `, ${obsHeightM} m up`
+  return `The Sun’s elevation at landing: its height above a flat horizon, seen from the panel${up}. From high ground the skyline lies below 0°, so a negative figure can still be in view.`
+}
+
+/**
+ * The same angle over the mission's sunlit hours, after their count: "at −2.0° to −1.2°", or one
+ * figure when the lowest and the highest round to the same tenth.
+ */
+export function whileUpWords(lowDeg: number, highDeg: number): string {
+  const low = degWords(lowDeg)
+  const high = degWords(highDeg)
+  return low === high ? `at ${low}` : `at ${low} to ${high}`
+}
+
+/** Its hover text. */
+export const WHILE_UP_MEANS = 'The Sun’s elevation, its height above a flat horizon, over the mission’s hours with any of it in view: lowest to highest.'
 
 /** A share of the mission as the row's main figure: "61%". */
 export function sharePct(pct: number): string {
