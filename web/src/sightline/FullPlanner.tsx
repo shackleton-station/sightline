@@ -266,9 +266,10 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
             <PlannerFind start={start} hours={hours} flagged={findSites} scenarios={scenarios} shown={{ siteId: facts[active].site.id, landing: scenarios[active].landing }} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} dataYears={dataYears} onYear={onYear} />
           ) : (
             <>
+              {scenarios.length > 1 && <PlannerCompareMore part="glance" start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} active={active} onSelect={onSelect} onRemove={onRemove} />}
               <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} bounds={landingBounds} onFar={onFarLanding} />
               {scenarios.length > 1 ? (
-                <PlannerCompareMore start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} active={active} onSelect={onSelect} onRemove={onRemove} />
+                <PlannerCompareMore part="rest" start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} active={active} onSelect={onSelect} onRemove={onRemove} />
               ) : (
                 <PlannerDetail start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} landings={landings} active={active} onSelect={onSelect} />
               )}
