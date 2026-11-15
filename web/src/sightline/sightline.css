@@ -1093,6 +1093,22 @@
   row-gap: 0.35rem;
 }
 
+/* "Close" keeps the upper right corner at any width: the name gives way (its model tag wraps under it)
+   and never pushes the button to a row of its own. */
+.sl-scout-panel .sl-drawer-head {
+  align-items: flex-start;
+}
+
+.sl-scout-panel .sl-drawer-head > .sl-ask-name {
+  flex: 1 1 0;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.sl-scout-panel .sl-drawer-head > .sl-small {
+  flex: none;
+}
+
 .sl-scout-sound {
   display: flex;
   flex: 1 0 100%;
