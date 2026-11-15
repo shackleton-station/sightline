@@ -37,6 +37,13 @@ AZ_STEP_DEG: float = 0.5
 #: with 16, 0.04% do and one hour in a million changes. Earth never needed more than 4.
 SUN_SLOTS: int = 16
 EARTH_SLOTS: int = 4
+#: A patch: the same calculation at the terrain's own pixel size, over a square of the grid's
+#: cells round a site. 20 m is the DEM's pixel, so each patch pixel is one height sample and
+#: nothing finer would be more than reading between samples. ``PATCH_REACH_CELLS`` grid cells each
+#: way from the site's own cell is 3.06 km: past the 2 km the app looks round a target for a lander
+#: that misses, with room to move the target.
+PATCH_PIXEL_M: float = 20.0
+PATCH_REACH_CELLS: int = 25
 #: Most flips looked at in one pixel's month before the rest are dropped (hourly samples).
 _MAX_FLIPS: int = 512
 
@@ -116,6 +123,65 @@ def grid_xy_m(size: int = GRID_SIZE, pixel_m: float = PIXEL_M) -> tuple[FloatArr
     half = size * pixel_m / 2.0
     centers = -half + pixel_m * (np.arange(size) + 0.5)
     x, y = np.meshgrid(centers, -centers)
+    return x, y
+
+
+@dataclass(frozen=True)
+class Patch:
+    """A square of the grid's cells, each split into smaller pixels.
+
+    Attributes:
+        col, row: the grid's column and row of the patch's top-left cell.
+        cells: grid cells along a side.
+        sub: patch pixels along one grid cell.
+        pixel_m: the patch's pixel size (meters).
+        x_left_m, y_top_m: map x/y (meters) of the top-left corner of the top-left pixel.
+    """
+
+    col: int
+    row: int
+    cells: int
+    sub: int
+    pixel_m: float
+    x_left_m: float
+    y_top_m: float
+
+    @property
+    def size(self) -> int:
+        """Patch pixels along a side."""
+        return self.cells * self.sub
+
+
+def patch_around(
+    x_m: float,
+    y_m: float,
+    reach_cells: int = PATCH_REACH_CELLS,
+    patch_pixel_m: float = PATCH_PIXEL_M,
+    size: int = GRID_SIZE,
+    pixel_m: float = PIXEL_M,
+) -> Patch:
+    """The patch of whole grid cells reaching ``reach_cells`` each way from a point's own cell.
+
+    The patch's pixels divide the grid's cells exactly, so each patch pixel lies in one cell and a
+    cell's pixels are found by counting. Raises if the cell size is not a whole number of patch
+    pixels, or if the patch would reach outside the grid.
+    """
+    sub = round(pixel_m / patch_pixel_m)
+    if sub < 1 or abs(sub * patch_pixel_m - pixel_m) > 1e-9:
+        raise ValueError(f"a {pixel_m} m cell is not a whole number of {patch_pixel_m} m pixels")
+    half = size * pixel_m / 2.0
+    col = int((x_m + half) // pixel_m) - reach_cells
+    row = int((half - y_m) // pixel_m) - reach_cells
+    cells = 2 * reach_cells + 1
+    if col < 0 or row < 0 or col + cells > size or row + cells > size:
+        raise ValueError("the patch reaches outside the grid")
+    return Patch(col, row, cells, sub, patch_pixel_m, -half + col * pixel_m, half - row * pixel_m)
+
+
+def patch_xy_m(patch: Patch) -> tuple[FloatArray, FloatArray]:
+    """Map x and y (meters) of every patch pixel center, each (size, size); row 0 on top."""
+    steps = patch.pixel_m * (np.arange(patch.size) + 0.5)
+    x, y = np.meshgrid(patch.x_left_m + steps, patch.y_top_m - steps)
     return x, y
 
 

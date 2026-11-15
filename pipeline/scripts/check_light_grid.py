@@ -4,6 +4,7 @@ Usage (from pipeline/):
   uv run python scripts/check_light_grid.py             # both checks, and the web test's fixture
   uv run python scripts/check_light_grid.py --fixture   # only the fixture
   uv run python scripts/check_light_grid.py --wide      # both checks for the wide grid
+  uv run python scripts/check_light_grid.py --patches   # the 20 m patches against the site tracks
 Needs `scripts/make_light_grid.py` and `scripts/run_all.py` to have run.
 Writes web/public/data/light/validation.json and prints the tables in docs/VALIDATION.md §12. Also
 writes web/src/lib/lightGrid.fixture.json: a few cells of one month as this code has them, which a
@@ -224,6 +225,71 @@ def check_pgda(
     return out
 
 
+def check_patches(terrain: lightgrid.Terrain) -> list[dict[str, Any]]:
+    """Each patch's pixel holding its site against the site's own track, hour by hour.
+
+    The pixel's center is at most 14 m from the site, where the fine grid's cell center is up to
+    85 m away, so this should agree more often than the fine grid's cell does (``check_sites``).
+    Also counts how the patch's pixels inside the site's own fine cell differ from one another:
+    what the fine grid could not tell apart.
+    """
+    times = utc_range(config.DATA_START_UTC, config.DATA_END_UTC)
+    positions = custom.moon_centered_positions_km(to_et(times)).astype(np.float64)
+    by_id = {site.id: site for site in config.SITES}
+    out = []
+    for spec in grid.patch_grids(terrain):
+        patch = spec.patch
+        assert patch is not None
+        site = by_id[spec.name.removeprefix("patch_")]
+        cells = grid.grid_observers(terrain, spec)
+        horizon = np.load(spec.horizons_path, mmap_mode="r")
+        x, y = terrain.plane.project(unit_vector([site.lat_deg], [site.lon_deg]))
+        col = int((float(x[0]) - patch.x_left_m) // patch.pixel_m)
+        row = int((patch.y_top_m - float(y[0])) // patch.pixel_m)
+        pixel_x, pixel_y = spec.xy_m()
+        offset_m = float(np.hypot(pixel_x[row, col] - x[0], pixel_y[row, col] - y[0]))
+        # The site's own fine cell is the patch's middle one: its pixels, row by row.
+        first = (patch.cells // 2) * patch.sub
+        inside = [
+            (first + r) * spec.size + first + c for r in range(patch.sub) for c in range(patch.sub)
+        ]
+        theirs = dict(zip(("sun", "earth"), site_flags(site.id), strict=True))
+        entry: dict[str, Any] = {"site": site.id, "pixel_center_offset_m": round(offset_m, 1)}
+        for body, start, radius_km in grid.BODIES:
+            where = positions[:, start : start + 3]
+            index = row * spec.size + col
+            here = grid.part(cells, slice(index, index + 1))
+            skyline = np.ascontiguousarray(horizon[index : index + 1])
+            in_pixel = lightgrid.up_flags(skyline, here, where, radius_km)[0]
+            month_gap = np.abs(monthly_pct(in_pixel) - monthly_pct(theirs[body]))
+            shares = [
+                100.0
+                * float(
+                    lightgrid.up_flags(
+                        np.ascontiguousarray(horizon[i : i + 1]),
+                        grid.part(cells, slice(i, i + 1)),
+                        where,
+                        radius_km,
+                    )[0].mean()
+                )
+                for i in inside
+            ]
+            entry[body] = {
+                "pixel": lightgrid.agreement(in_pixel, theirs[body])
+                | {
+                    "month_pct_typical_diff": round(float(np.median(month_gap)), 1),
+                    "month_pct_largest_diff": round(float(month_gap.max()), 1),
+                },
+                "within_the_sites_cell_pct": {
+                    "lowest": round(min(shares), 1),
+                    "highest": round(max(shares), 1),
+                },
+            }
+        out.append(entry)
+        print(f"  {site.id}: {json.dumps(entry)}")
+    return out
+
+
 def site_cells(
     terrain: lightgrid.Terrain, spec: grid.Grid = grid.FINE
 ) -> list[tuple[config.Site, int, int]]:
@@ -294,6 +360,11 @@ def main() -> None:
     """Run both checks and write validation.json, or only the web test's fixture."""
     load_kernels()
     known = json.loads(OUT_PATH.read_text()) if OUT_PATH.is_file() else {}
+    if "--patches" in sys.argv:
+        terrain, _ = grid.load_terrain()
+        print(f"Patches against the site tracks, {SPAN_WORDS}, hour by hour:")
+        export.write_json(OUT_PATH, known | {"patches": check_patches(terrain)})
+        return
     if "--wide" in sys.argv:
         # The wide grid's rays can leave the polar DEM, so the whole-Moon one is loaded too.
         terrain, _ = grid.load_terrain(with_far=True)

@@ -3,12 +3,18 @@
 There are two, both 1,024 pixels square and centered on the pole: the fine grid (120 m pixels,
 61 km each way) and the wide grid (300 m pixels, 154 km each way, to 85° S).
 
+Round each south-pole ridge site there can also be a patch: the same calculation at the terrain's
+own 20 m, over the fine grid's cells within about 3 km of the site (306 pixels square). Patches are
+built only when asked for.
+
 Usage (from pipeline/):
   uv run python scripts/make_light_grid.py              # everything, both grids
   uv run python scripts/make_light_grid.py --horizons   # only each pixel's horizon (the slow part)
   uv run python scripts/make_light_grid.py --months     # only the month files, from cached horizons
   uv run python scripts/make_light_grid.py --maps       # only the close-up slope maps
   uv run python scripts/make_light_grid.py --wide ...   # only the wide grid (or --fine)
+  uv run python scripts/make_light_grid.py --patches    # only the 20 m patches round ridge sites
+  uv run python scripts/make_light_grid.py --patches --horizons   # one stage of them, as above
 
 Input: the LOLA south-polar DEM and, for the wide grid, the LOLA whole-Moon DEM (both in
 cache/dem), and the SPICE kernels (see REFERENCES.md). A ray from the wide grid can run off the
@@ -18,6 +24,8 @@ Outputs:
   cache/light/horizons_wide.npy               the same for the wide grid
   web/public/tiles/light/<month>.bin.gz       the month's Sun and Earth flips, fine grid
   web/public/tiles/light/wide/<month>.bin.gz  the same for the wide grid
+  cache/light/horizons_patch_<site>.npy       each patch's horizons (270 MB)
+  web/public/tiles/light/patch/<site>/<month>.bin.gz   the same for a patch
   web/public/tiles/light/slope_x.jpg          terrain slopes of the fine square, for close-ups
   web/public/tiles/light/slope_y.jpg
   web/public/data/light/meta.json             the grids, the months and what was counted
@@ -43,6 +51,7 @@ from rasterio.shutil import copy as copy_raster
 
 from clps import config, custom, dem, export, lightgrid, slopes
 from clps.ephemeris import EARTH_RADIUS_KM, SUN_RADIUS_KM, to_et, utc_range
+from clps.geometry import unit_vector
 from clps.horizon import sample_distances_m
 from clps.kernels import load_kernels
 
@@ -61,11 +70,16 @@ SLOPE_JPEG_QUALITY: int = 90
 
 @dataclass(frozen=True)
 class Grid:
-    """One of the two grids: its name, pixels along a side and pixel size (meters)."""
+    """A grid: its name, pixels along a side and pixel size (meters).
+
+    The fine and wide grids are centered on the pole. A patch is a square somewhere else: it says
+    where, as ``patch``.
+    """
 
     name: str
     size: int
     pixel_m: float
+    patch: lightgrid.Patch | None = None
 
     @property
     def half_m(self) -> float:
@@ -77,20 +91,46 @@ class Grid:
         """Where the grid's horizons are cached."""
         return CACHE_DIR / ("horizons.npy" if self.name == "fine" else f"horizons_{self.name}.npy")
 
+    def xy_m(self) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        """Map x and y (meters) of every pixel center, each of shape (size, size)."""
+        if self.patch:
+            return lightgrid.patch_xy_m(self.patch)
+        return lightgrid.grid_xy_m(self.size, self.pixel_m)
+
     @property
     def tiles_dir(self) -> Path:
         """Where the grid's month files go."""
+        if self.patch:
+            return TILES_DIR / "patch" / self.name.removeprefix("patch_")
         return TILES_DIR if self.name == "fine" else TILES_DIR / self.name
 
     @property
     def needs_far_terrain(self) -> bool:
         """Whether a ray of ``MAX_RANGE_M`` from a corner pixel can leave the polar DEM."""
-        return self.half_m * 2**0.5 + MAX_RANGE_M > custom.POLAR_HALF_M
+        # A patch lies inside the fine grid, so its rays reach no farther than that grid's.
+        half_m = FINE.half_m if self.patch else self.half_m
+        return half_m * 2**0.5 + MAX_RANGE_M > custom.POLAR_HALF_M
 
 
 FINE = Grid("fine", lightgrid.GRID_SIZE, lightgrid.PIXEL_M)
 #: 300 m is five pixels of NASA's 60 m map, and 1,024 of them reach 85° S, where that map ends.
 WIDE = Grid("wide", 1024, 300.0)
+
+#: The sites that get a patch: the south-pole ridge sites, which all lie inside the fine grid.
+PATCH_GROUP: str = "South pole ridges"
+
+
+def patch_grids(terrain: lightgrid.Terrain) -> list[Grid]:
+    """A 20 m patch round each ridge site, named for it: whole cells of the fine grid."""
+    grids = []
+    for site in config.SITES:
+        if site.group != PATCH_GROUP:
+            continue
+        x, y = terrain.plane.project(unit_vector([site.lat_deg], [site.lon_deg]))
+        patch = lightgrid.patch_around(float(x[0]), float(y[0]))
+        grids.append(Grid(f"patch_{site.id}", patch.size, patch.pixel_m, patch))
+    return grids
+
 
 #: Each body, where its position starts in a row of ``custom.moon_centered_positions_km``, and
 #: its radius (km).
@@ -128,7 +168,7 @@ def load_terrain(with_far: bool = False) -> tuple[lightgrid.Terrain, CRS]:
 
 def grid_observers(terrain: lightgrid.Terrain, grid: Grid = FINE) -> lightgrid.Observers:
     """An observer at every pixel center of a grid, ``config.OBS_HEIGHT_M`` above the ground."""
-    x, y = lightgrid.grid_xy_m(grid.size, grid.pixel_m)
+    x, y = grid.xy_m()
     up = terrain.plane.unproject(x.ravel(), y.ravel())
     ground = terrain.height_at(up)
     if np.isnan(ground).any():
@@ -266,6 +306,15 @@ def write_meta(
     # Written by earlier versions: every month and its hours, which grew with the range.
     known.pop("hours", None)
     known.get("wide", {}).pop("hours", None)
+    if grid.patch:
+        # A patch says where it is in the fine grid; its months are the fine grid's.
+        patch = grid.patch
+        where = {"size": grid.size, "pixel_m": grid.pixel_m, "col": patch.col, "row": patch.row}
+        where |= {"cells": patch.cells, "sub": patch.sub}
+        site = grid.name.removeprefix("patch_")
+        patches = known.get("patches", {}) | {site: where | (counted or {})}
+        export.write_json(META_PATH, known | {"patches": patches})
+        return
     shape = {"size": grid.size, "pixel_m": grid.pixel_m, "half_width_m": grid.half_m}
     if grid.name != "fine":
         export.write_json(META_PATH, known | {grid.name: shape | (counted or {})})
@@ -295,9 +344,14 @@ def main() -> None:
     """Build the stages and grids named on the command line, or all of them."""
     named = {arg.lstrip("-") for arg in sys.argv[1:]}
     stages = named & {"horizons", "months", "maps"} or {"horizons", "months", "maps"}
-    grids = [grid for grid in (FINE, WIDE) if grid.name in named] or [FINE, WIDE]
+    grids = [grid for grid in (FINE, WIDE) if grid.name in named]
+    # Patches are extra: built when asked for, never by a run that names nothing.
+    if not grids and "patches" not in named:
+        grids = [FINE, WIDE]
     load_kernels()
     terrain, _ = load_terrain(with_far=any(grid.needs_far_terrain for grid in grids))
+    if "patches" in named:
+        grids += patch_grids(terrain)
     if "maps" in stages and FINE in grids:
         build_slope_maps(terrain)
     for grid in grids:

@@ -159,6 +159,7 @@ point. `landing` is the landing time, to the hour.
 - There are no parameters. The page searches and filters what it is sent: whether a scenario fits
   depends on the visitor's own mission, which the service does not know.
 - A plan saved before the library existed is listed like any other.
+- The plans the deploy's own check saves (title `Deploy check (…)`) are left out. Their links still open them.
 - One copy of the service reads the database for this at most once in 30 seconds, so a plan saved or
   deleted through another copy can take that long to appear or go.
 - A service from before the library answers `404 {"error":"not-found"}` here (the word is not a plan's

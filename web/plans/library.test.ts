@@ -22,6 +22,12 @@ describe('a plan taken apart into its scenarios', () => {
     expect(scenariosOf(plan({ view: '#nothing' }))).toEqual([])
   })
 
+  it('leaves out the plans the deploy check saves, and keeps a plan that only mentions one', () => {
+    const now = Date.parse('2026-11-15T12:00:00Z')
+    const plans = [plan({ id: 'aaaa2222', title: 'Deploy check (64805c1c)' }), plan({ id: 'bbbb2222', title: 'After the deploy check' })]
+    expect(libraryOf(plans, now).map((one) => one.plan)).toEqual(['bbbb2222'])
+  })
+
   it('leaves out plans past their time', () => {
     const now = Date.parse('2026-11-15T12:00:00Z')
     const plans = [plan({ id: 'aaaa2222' }), plan({ id: 'cccc2222', expires: '2026-11-15T11:00:00.000Z' })]

@@ -439,3 +439,68 @@
   margin: 0.35rem 0 0.6rem;
   font-size: 0.875rem;
 }
+
+/* ---------- the Library as a page of its own ---------- */
+.lib-page .lib-page-lead {
+  max-width: 62rem;
+  margin: 0.6rem 0 0.9rem;
+  color: var(--soft);
+  font-size: 0.875rem;
+}
+
+/* ---------- your plans: the ones saved from this browser, to pick up again ---------- */
+.lib-mine {
+  margin: 0 0 1rem;
+}
+
+.lib-page .lib-mine h3,
+.lib-page .lib-all {
+  margin: 0 0 0.45rem;
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+.lib-mine ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-mine li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--gold-deep, var(--line));
+  border-radius: 12px;
+  background: #1b1723;
+}
+
+.lib-mine li > div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.lib-mine strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.lib-mine small,
+.lib-page .lib-mine-none {
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.lib-resume {
+  flex: none;
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #17120a;
+  font-weight: 700;
+}

@@ -22,6 +22,10 @@ interface Props {
   onSelect: (index: number) => void
   onRemove: (index: number) => void
   heightsNote: string | null
+  /** Show each pick in full, side by side (off inside the Planner, whose table covers it). */
+  full?: boolean
+  /** Show the scorecard (the Planner puts it above its own table instead). */
+  glance?: boolean
 }
 
 /** A landing hour of the data as ISO, to the hour. */
@@ -35,7 +39,7 @@ function isoAt(start: string, hour: number): string {
  * hour by hour, the Sun's height and the skyline), then the Sun's height for every pick on one scale
  * and a rough power budget. The columns line up row for row so the eye can run across them.
  */
-export function NewPlannerCompare({ start, scenarios, facts, mission, measures, tracks, horizons, active, onSelect, onRemove, heightsNote }: Props) {
+export function NewPlannerCompare({ start, scenarios, facts, mission, measures, tracks, horizons, active, onSelect, onRemove, heightsNote, full = true, glance = true }: Props) {
   if (scenarios.length < 2) {
     return (
       <div className="np-compare-empty" role="tabpanel" aria-label="Compare">
@@ -46,12 +50,13 @@ export function NewPlannerCompare({ start, scenarios, facts, mission, measures, 
   }
   return (
     <div className="np-compare" role="tabpanel" aria-label="Compare">
-      <PicksScorecard rows={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, measure: measures[i], track: tracks[i] }))} mission={mission} active={active} onSelect={onSelect} />
+      {glance && <PicksScorecard rows={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, measure: measures[i], track: tracks[i] }))} mission={mission} active={active} onSelect={onSelect} />}
       <MissionPlayback
         picks={scenarios.map((scenario, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, flags: facts[i].flags, t: isoAt(start, scenario.landing), track: tracks[i], horizon: horizons[i] }))}
         requirements={mission.requirements}
       />
-      <h3 className="np-compare-sub">Each pick in full</h3>
+      {full && <h3 className="np-compare-sub">Each pick in full</h3>}
+      {full && (
       <div className="np-compare-cols" style={{ gridTemplateColumns: `repeat(${scenarios.length}, minmax(17rem, 1fr))` }}>
         {scenarios.map((scenario, i) => {
           const fact = facts[i]
@@ -85,6 +90,7 @@ export function NewPlannerCompare({ start, scenarios, facts, mission, measures, 
           )
         })}
       </div>
+      )}
       <div className="np-compare-all">
         <MissionCharts
           picks={scenarios.map((scenario, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, flags: facts[i].flags, t: isoAt(start, scenario.landing), track: tracks[i] }))}

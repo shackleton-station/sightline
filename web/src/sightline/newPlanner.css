@@ -3019,6 +3019,71 @@
   margin-bottom: 0.25rem;
 }
 
+/* The New Planner's Compare set inside the Planner's Compare: no page layout of its own. */
+.sl-np.is-inset {
+  grid-area: auto;
+  overflow: visible;
+  margin-top: 1.2rem;
+  padding: 0;
+  background: none;
+}
+
+/* Inside the Planner: its flat look. No boxed panels, a hairline over each section; the scorecard
+   as plain coloured values on hairline rows, like the Planner's own table. */
+.sl-np.is-inset .np-play,
+.sl-np.is-inset .np-mc {
+  margin-top: 1.6rem;
+  padding: 0.9rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+
+.sl-np.is-inset .np-compare-sub {
+  margin-top: 1.6rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.sl-np.is-inset .np-score-grid {
+  gap: 0;
+}
+
+.sl-np.is-inset .np-score-row.is-head span {
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sl-np.is-inset .np-score-name {
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.sl-np.is-inset .np-square {
+  min-height: 2.2rem;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.sl-np.is-inset .np-square.is-good,
+.sl-np.is-inset .np-square.is-close,
+.sl-np.is-inset .np-square.is-over,
+.sl-np.is-inset .np-square.is-none {
+  background: none;
+}
+
+.sl-np.is-inset .np-square i {
+  height: 2px;
+  opacity: 0.4;
+}
+
+.sl-np.is-inset .np-key {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
 .sl-np .np-near-spots li.is-here {
   border-color: var(--gold);
 }
@@ -3028,4 +3093,8 @@
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.sl-np.is-inset.is-glance {
+  margin: 0 0 1.4rem;
 }
