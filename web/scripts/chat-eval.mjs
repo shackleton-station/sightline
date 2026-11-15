@@ -35,6 +35,14 @@ const quick = process.argv.includes('--quick')
 
 const VIEW = '#a=connecting-ridge@2027-05&t=0&limits=14_72_72_1_1&mode=learn'
 const CUSTOM_VIEW = '#a=-89.46,-137.2@2027-05&t=100&limits=14_72_72_1_1&mode=plan'
+/**
+ * A custom point nobody has asked about before: its latitude changes with the minute of the run, so
+ * the question about it is a first answer there. Until 15 Nov a first answer at any new custom point
+ * took about 20 s, because the point's coordinates were written into the tools the model is given.
+ */
+const NEW_POINT_VIEW = `#a=-89.${String(30 + (Math.floor(Date.now() / 60_000) % 40))},-137.2@2027-05&t=100&limits=14_72_72_1_1&mode=plan`
+/** The most a first answer at a new custom point may take, in seconds. */
+const FIRST_ANSWER_SECONDS = 10
 /** A view with no limit on radio silence, which a link carries as 99999 hours (4166 days): the co-pilot must say "no limit". */
 const NO_LIMIT_VIEW = '#a=connecting-ridge@2027-05&t=0&limits=14_24_99999_1_1&mode=plan'
 /** Ground tapped on the Atlas map, 2 km from Connecting Ridge: the co-pilot looks it up in the light grid. */
@@ -69,6 +77,8 @@ const QUESTIONS = [
   { ask: 'What if my mission were only 3 days long? When could I land here in May 2027?', sources: 1 },
   { ask: 'Where exactly is the Chandrayaan-3 site?', sources: 1 },
   { ask: 'Is the Sun up here?', view: CUSTOM_VIEW, sources: 1 },
+  // A first answer at a point never asked about: not asked twice, since a second answer there is no longer a first.
+  { ask: 'Is Earth in view from this point?', view: NEW_POINT_VIEW, sources: 1, maxSeconds: FIRST_ANSWER_SECONDS, once: true },
   { ask: 'How much Sun and Earth does this spot get in May 2027?', spot: TAPPED_SPOT, sources: 1, mustSay: /pixel|120/ },
   { ask: 'What are my mission limits? How long can I go without hearing from Earth?', view: NO_LIMIT_VIEW, mustNotSay: /4166|4,166|99999|99,999/ },
   // A judge's two (15 Nov): a marginal landing must be called marginal, with the screen's reason, never "room to spare";
@@ -141,6 +151,7 @@ async function ask(question, again = false) {
     if (question.injection && /100(\.0)?%/.test(reply.text) && !/not|n't|only/i.test(reply.text)) problems.push('repeated the planted claim')
   }
   if (seconds > MAX_SECONDS) problems.push(`took ${seconds.toFixed(1)} s`)
+  else if (question.maxSeconds && seconds > question.maxSeconds) problems.push(`took ${seconds.toFixed(1)} s, where ${question.maxSeconds} s is the most for this one`)
   // A kept answer (x-cache: hit) passed these same checks when it was first worked out, by the same co-pilot code from the same data. Said in the output, so a reader knows which answers called the model this run.
   if (response.headers.get('x-cache') === 'hit') notes.push('a kept answer: the model was not called')
   return { seconds, reply, problems, notes }
@@ -149,7 +160,7 @@ async function ask(question, again = false) {
 for (const [i, question] of questions.entries()) {
   if (i > 0) await sleep(GAP_MS)
   let result = await ask(question)
-  if (result.problems.length > 0 && retriesLeft > 0) {
+  if (result.problems.length > 0 && retriesLeft > 0 && !question.once) {
     retriesLeft -= 1
     console.log(`      first try: ${result.problems.join('; ')}. Asking once more.`)
     await sleep(8000)
