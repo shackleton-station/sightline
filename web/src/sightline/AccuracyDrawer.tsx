@@ -279,7 +279,7 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
         <h3>On the Moon</h3>
         <label className="sl-check" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
           <input type="checkbox" role="switch" checked={shade} onChange={() => onShade(!shade)} />
-          <span>Show the odds on the Moon</span>
+          <span>Shade the Moon by landings that fit</span>
         </label>
 
         <h3>What this does and does not say</h3>

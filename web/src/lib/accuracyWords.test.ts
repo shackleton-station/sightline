@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bearingBetweenDeg, closenessWords, compassWords, oddsTone } from './accuracyWords'
+import { bearingBetweenDeg, closenessWords, compassWords, fitsButFewLandWords, oddsTone } from './accuracyWords'
 import { type LightMeta, planeLatLon, planeXY } from './lightGrid'
 
 describe('which way a better aim point lies', () => {
@@ -68,5 +68,21 @@ describe("the odds in the verdict's colours", () => {
     expect(oddsTone(0.5)).toBe('marginal')
     expect(oddsTone(0.49)).toBe('miss')
     expect(oddsTone(0)).toBe('miss')
+  })
+})
+
+describe('a scenario that fits at its aim point while few landings aimed there do', () => {
+  it('is named in one line, and only when it fits with odds under a half', () => {
+    expect(fitsButFewLandWords([{ letter: 'A', fits: true, odds: 0.07 }, { letter: 'B', fits: true, odds: 0.8 }, { letter: 'C', fits: false, odds: 0.02 }])).toBe(
+      'A fits at its aim point, but most landings aimed there come down nearby where the mission does not fit.',
+    )
+    expect(fitsButFewLandWords([{ letter: 'A', fits: true, odds: 0.07 }, { letter: 'B', fits: true, odds: 0.3 }, { letter: 'D', fits: true, odds: 0.49 }])).toBe(
+      'A, B and D fit at their aim point, but most landings aimed there come down nearby where the mission does not fit.',
+    )
+  })
+
+  it('says nothing when no scenario is in that case, or the odds are not known', () => {
+    expect(fitsButFewLandWords([{ letter: 'A', fits: true, odds: 0.5 }, { letter: 'B', fits: false, odds: 0.1 }, { letter: 'C', fits: true, odds: null }])).toBeNull()
+    expect(fitsButFewLandWords([])).toBeNull()
   })
 })

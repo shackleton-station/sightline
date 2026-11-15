@@ -4,8 +4,8 @@ import { TREK_LAYERS, type TrekLayer, type TrekLayerId, trekGround, trekHalfWidt
 /**
  * Which of the Layers panel's layers hold the ground at a place, worked out from what each layer
  * declares about itself: a Moon Trek map is a square round the south pole whose half-width follows
- * from its own tiles and level; "Light and shadow" and the terrain behind "Mission success
- * probability" are the app's light grid, whose description gives its own extent; place names are
+ * from its own tiles and level; "Light and shadow" and the terrain behind "Landings that
+ * fit" are the app's light grid, whose description gives its own extent; place names are
  * printed all over the Moon. No latitude is written here.
  */
 export interface LayersReach {

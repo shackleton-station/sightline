@@ -100,13 +100,16 @@ export const MISS_WORDS: Record<Miss, string> = {
   silence: 'radio silence too long',
 }
 
-/** Each reason's color on the maps: warm for the Sun, cool for Earth, violet for the ground. */
+/**
+ * Each reason's color on the maps: reds for the Sun, purples for Earth, stone for the ground. None is
+ * the Sun's gold, Earth's blue or the green of both, which everywhere else on the screen mean "in view".
+ */
 export const MISS_COLORS: Record<Miss, string> = {
-  slope: '#9a7be0',
-  sunAtLanding: '#c2452d',
-  earthAtLanding: '#3f7fd9',
-  dark: '#e08a2e',
-  silence: '#2aa7b8',
+  slope: '#a89f91',
+  sunAtLanding: '#8f2d3f',
+  earthAtLanding: '#9a7be0',
+  dark: '#e8505a',
+  silence: '#d86bc0',
 }
 
 /** A cell's color from its code. */

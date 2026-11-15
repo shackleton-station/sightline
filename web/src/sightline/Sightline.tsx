@@ -517,7 +517,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // The link says so (`watch=1`): no site is on the visitor's screen, and "now" is the hour on the time bar.
   const watchView = `${scenarioLink([{ site: scenarios[0].site, landing: hour }], 0, start, mission)}&watch=1`
   // The Surface view stands at the site on show, at the hour on the time bar: the one bar on the screen
-  // moves it, as it moves the Moon. Its "Mission success probability" layer stays with the landing.
+  // moves it, as it moves the Moon. Its "Landings that fit" layer stays with the landing.
   const surfaceView = surfaceLink([{ site: scenario.site, landing: hour }], 0, start, mission)
   const surfaceTint = fitShade ? `${surfaceLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}&odds=1` : null
   // The pointer or the keyboard has been on the Surface button: its frame is loaded at once.
@@ -973,7 +973,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const closeUp = () => {
     if (mode !== 'site' && tourAt === null) setMode('site')
   }
-  // The mission's chance of success as a layer on the Moon, in every view.
+  // "Landings that fit" as a layer on the Moon, in every view.
   const showFitShade = (on: boolean) => {
     setFitShade(on)
     if (on) setAccuracyUsed(true)
@@ -1119,7 +1119,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                 />
                 {accuracyUsed && odds[active] !== null && (
                   <p className="sl-odds-line">
-                    <button type="button" className="sl-link" title="Opens Accuracy: where a lander that misses its target could come down." onClick={openAccuracy}>
+                    <button type="button" className="sl-link" title="Opens Landing accuracy: where a lander that misses its target could come down." onClick={openAccuracy}>
                       {oddsWords(odds[active])} of landings fit
                     </button>{' '}
                     at {spreadWords(spread)} accuracy
