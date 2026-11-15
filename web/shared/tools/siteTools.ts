@@ -7,6 +7,7 @@ import { formatDuration } from '../../src/lib/nextChange'
 import { panelSunlight } from '../../src/lib/power'
 import { alternativesAt, conditionsAt } from '../../src/lib/slip'
 import { degWords, stateAt } from '../../src/lib/sightline'
+import { skylineFigure } from '../../src/lib/sightlineSky'
 import { pct } from '../../src/lib/verdict'
 import { type Args, lastYear, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
 import { daysLabel, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, reasonClause, type ToolResult, whenLabel } from './facts'
@@ -49,7 +50,11 @@ export async function conditionsAtTime(args: Args, ctx: ToolContext): Promise<To
   const answer = answerAt(now, flags, lastYear(flags))
   // Two angles, with the app's two names. "Above the skyline" is measured from the terrain's outline in
   // the body's direction and decides whether it is in view; "elevation" is measured from a level horizon.
-  const aboveSkyline = (elDeg: number, azDeg: number) => degWords(elDeg - horizonAt(month.horizon, azDeg))
+  // Said with its side, as the screen says it: "0.8° below the skyline", never a figure with a minus sign.
+  const aboveSkyline = (elDeg: number, azDeg: number) => {
+    const { figure, side } = skylineFigure(elDeg - horizonAt(month.horizon, azDeg))
+    return `${figure} ${side}`
+  }
   // Earth is treated as the Sun is: when the skyline hides part of its disc it is "partly in view".
   // Its centre lower above the skyline than its radius means part is hidden; below the skyline, only an edge shows.
   const earthAbove = now.earth_el - horizonAt(month.horizon, now.earth_az)
@@ -69,8 +74,8 @@ export async function conditionsAtTime(args: Args, ctx: ToolContext): Promise<To
     fact('earth', 'Earth', earthWords),
     ...nextChange('sun', 'the Sun', conditions.sunUp ? 'sunset' : 'sunrise', answer.sun.hours, lastYear(flags)),
     ...nextChange('earth', 'Earth', conditions.earthUp ? 'earthset' : 'earthrise', answer.earth.hours, lastYear(flags)),
-    fact('sun_above_skyline', "Sun above the skyline (its centre above the terrain's outline in its direction, seen from the site; this decides whether it is in view)", aboveSkyline(now.sun_el, now.sun_az)),
-    fact('earth_above_skyline', "Earth above the skyline (its centre above the terrain's outline in its direction, seen from the site; this decides whether it is in view)", aboveSkyline(now.earth_el, now.earth_az)),
+    fact('sun_above_skyline', "Sun above the skyline: where its center is against the terrain's outline in its direction, seen from the site, said with its side (this decides whether it is in view)", aboveSkyline(now.sun_el, now.sun_az)),
+    fact('earth_above_skyline', "Earth above the skyline: where its center is against the terrain's outline in its direction, seen from the site, said with its side (this decides whether it is in view)", aboveSkyline(now.earth_el, now.earth_az)),
     fact('sun_height', 'Sun elevation (from a level horizon)', degWords(now.sun_el)),
     fact('earth_height', 'Earth elevation (from a level horizon)', degWords(now.earth_el)),
     fact('limits', 'Checked against', limitsLabel(requirements)),

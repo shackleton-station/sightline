@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
-import { filterCards, filtering, inTray, type LibraryCard, type LibraryEntry, type LibraryFilters, MAX_TRAY, NO_FILTERS } from '../lib/library'
+import { filterCards, filtering, type LibraryCard, type LibraryFilters, NO_FILTERS } from '../lib/library'
 import { LibraryCardView } from './LibraryCard'
 import type { LibraryState } from './useLibrary'
 
@@ -14,8 +14,12 @@ interface Props {
   /** The first and last month of the data, as "2026-01", for the two month fields. */
   firstMonth: string
   lastMonth: string
-  tray: LibraryEntry[]
-  onToggle: (entry: LibraryEntry) => void
+  /** Add a card's landing to the plan as its next scenario, staying here so more can be added. */
+  onAdd: (card: LibraryCard) => void
+  /** Take a card's landing out of the plan again. */
+  onRemove: (card: LibraryCard) => void
+  /** Whether a scenario can be taken out: the plan always keeps one. */
+  canRemove: boolean
   /** Put a card's landing in the plan and show it there: the plan column at the top left of the main screen. */
   onShow: (card: LibraryCard) => void
   /** The letter a card's landing has in the plan already, or null. */
@@ -31,15 +35,15 @@ interface Props {
 const MONTH_STOPS = [0, 10, 25, 50, 75]
 
 /**
- * The Library's list: every scenario in the plans people have saved, to search and filter. A card pulled
- * in goes to the tray (the lander at the top), and from there into Compare. Whether a card fits is
+ * The Library's list: every scenario in the plans people have saved, to search and filter. "Add to
+ * plan" makes a card's landing the plan's next scenario (C after A and B), where the main screen,
+ * Compare and the tray at the top all show it; pressed again, it takes it out. Whether a card fits is
  * judged against the mission on screen, not the one it was saved with.
  */
-export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMonth, tray, onToggle, onShow, letterOf, room, onReload, onOpenPlan }: Props) {
+export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMonth, onAdd, onRemove, canRemove, onShow, letterOf, room, onReload, onOpenPlan }: Props) {
   const [filters, setFilters] = useState<LibraryFilters>(NO_FILTERS)
   const set = (change: Partial<LibraryFilters>) => setFilters((before) => ({ ...before, ...change }))
   const shown = useMemo(() => filterCards(cards, filters), [cards, filters])
-  const full = tray.length >= MAX_TRAY
 
   if (state.kind === 'loading') return <p className="sl-quiet" role="tabpanel" aria-label="Library">Reading the library…</p>
   if (state.kind === 'none' || state.kind === 'failed') {
@@ -110,19 +114,25 @@ export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMon
       {cards.length > 0 && shown.length === 0 && <p className="sl-quiet">Nothing matches. Loosen a filter, or clear them all.</p>}
       <ul className="lib-grid">
         {shown.map((card) => {
-          const kept = inTray(tray, card.entry)
           const letter = letterOf(card)
           return (
             <li key={card.key}>
               <LibraryCardView card={card} start={start}>
-                <button type="button" className="sl-small lib-pull" aria-pressed={kept} disabled={!card.scenario || (!kept && full)} title={kept ? 'Take it out of the tray' : full ? `The tray holds ${MAX_TRAY}` : 'Put it in the tray, to compare'} onClick={() => onToggle(card.entry)}>
-                  {kept ? '✓ In the tray' : 'Pull in'}
+                <button
+                  type="button"
+                  className="sl-small lib-pull"
+                  aria-pressed={letter !== null}
+                  disabled={!card.scenario || (letter === null ? !room : !canRemove)}
+                  title={letter ? (canRemove ? `Scenario ${letter} of your plan. Press to take it out again` : `Scenario ${letter}, the only one in your plan`) : room ? 'Adds this landing to your plan as its next scenario' : 'The plan holds four scenarios: remove one first'}
+                  onClick={() => (letter === null ? onAdd(card) : onRemove(card))}
+                >
+                  {letter ? `✓ In plan · ${letter}` : room ? 'Add to plan' : 'Plan is full'}
                 </button>
                 <button
                   type="button"
                   className="sl-small"
                   disabled={!card.scenario || (letter === null && !room)}
-                  title={letter ? `Shows scenario ${letter} in the plan, on the main screen` : room ? 'Adds this landing to your plan and shows it there, on the main screen' : 'The plan holds four scenarios: remove one first'}
+                  title={letter ? `Goes to the main screen with scenario ${letter} on show` : room ? 'Adds this landing to your plan and goes to the main screen with it on show' : 'The plan holds four scenarios: remove one first'}
                   onClick={() => onShow(card)}
                 >
                   Show in plan

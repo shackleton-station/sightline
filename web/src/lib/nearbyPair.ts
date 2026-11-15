@@ -3,12 +3,13 @@ import { distanceKm } from './slip'
 
 /**
  * The app's ready example of why a small change of place matters: two listed sites on the south
- * pole's ridges a few kilometres apart, and one date on which the same short stay does very
- * differently at each. Picked from the pipeline's data, where on this date the difference between
- * the two is the largest of 2027; `nearbyPair.test.ts` checks the figures against that data, so a
- * new pipeline run that changes them fails there instead of leaving the example untrue.
+ * pole's ridges a few kilometres apart, and one date on which the same short stay fits at one and
+ * not at the other. Picked from the pipeline's data: of the noons of 2027 on which the short stay
+ * fits at only one of the two, this is the one where their sunlight differs most.
+ * `nearbyPair.test.ts` checks the figures against that data, so a new pipeline run that changes them
+ * fails there instead of leaving the example untrue.
  */
-export const NEARBY_PAIR = { a: 'connecting-ridge', b: 'shackleton-rim', landing: '2027-02-18T12:00:00Z' }
+export const NEARBY_PAIR = { a: 'connecting-ridge', b: 'shackleton-rim', landing: '2027-02-07T12:00:00Z' }
 
 /** How far apart the two sites are, to the kilometre; null when either is not among the sites on hand. */
 export function nearbyPairKm(sites: SiteInfo[]): number | null {

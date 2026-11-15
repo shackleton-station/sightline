@@ -56,8 +56,14 @@ the Sun quantity that fits PGDA best across terrain (section 3).
 
 - **The Sun difference has one sign:** we're higher at all four sites at 2 m. So it's a pattern, not noise.
 - **PGDA usually sits between our 0 m and 2 m values** (Sun: three of four sites; Earth: two of four).
-- **The page judges each site separately:** within the RMSE from section 3, it says the site agrees; beyond
-  that, it says "not confirmed".
+- **The page judges each site separately, at the ground:** it sets our 0 m figure (any part of the disk,
+  the figure the app shows) against the map, because PGDA gives no height and a map of lit terrain is
+  taken to be of the terrain itself. Within the 0 m RMSE from section 3 it says the site agrees, and
+  states that error; beyond it, "not confirmed, even at the ground". The 2 m figure follows in its own
+  sentence and is not set against the map. By that rule the Sun agrees at Connecting Ridge (64.8% against
+  68.5%), Shackleton Rim and de Gerlache Rim, and is not confirmed at Peak near Shackleton (69.6% against
+  58.2%); Earth is not confirmed at Shackleton Rim. Until 2026-11-15 the page set the 2 m figure against
+  the map, which read "not confirmed: 86% here, 68% on NASA's map" at Connecting Ridge.
 
 ### Sites that aren't ridge tops
 
@@ -1168,8 +1174,9 @@ within 0.6 of a point of the thrown ones in every case.
 **The grid as the layer reads it, against each ridge site's track.** `npx tsx
 scripts/success-layer-check.ts <month>` (from `web/`) reads the month from the live site and, for a
 landing at every hour of it, compares the grid's cell at the site with the site's own track, which is
-worked out at its exact point. Short stay mission (14 days, at most 24 h of dark, Sun and Earth up at
-landing). Share of hours that agree:
+worked out at its exact point. The mission is 14 days, at most 24 h of dark, no limit on radio
+silence, Sun and Earth up at landing: the Short stay as it was when this was run (it now also limits
+radio silence to 24 h; the script keeps the mission it measured). Share of hours that agree:
 
 | Month | Site | Sun up | Earth up | Verdict |
 | --- | --- | --- | --- | --- |
@@ -1248,7 +1255,8 @@ no cells. That filling-in is a way of drawing and counting between known points,
 of the ground. At the aim point itself the verdict's own answer is used, so the panel and the verdict
 cannot disagree there.
 
-**One site by hand.** Peak near Shackleton, Short stay, 100 m accuracy (one-off script, 2026-11-15):
+**One site by hand.** Peak near Shackleton, Short stay as it then was (no limit on radio silence),
+100 m accuracy (one-off script, 2026-11-15):
 landing 24 November 2026, the site fits and over 99% of landings do; 14 December 2026, the site fits
 and 80% do, the rest where Earth is out of view at landing; 16 November and 5 December, the site does
 not fit (Earth out of view) and under 1% do. Along the lattice's middle row the longest dark spell
@@ -1275,11 +1283,14 @@ points, blurred by the lander's spread, are the truth: the odds for a lander aim
 layer's picture of the same ground is made by the page's own code (`fitField`, `layPatch`,
 `flatShare`, `oddsField`) from the live site's month files. The two are compared at each of the
 picture's 60 m pixels in the middle 7 by 7 cells, for a landing every 12 hours of the month: 94,080
-pixels over the four sites and two months. Default mission (14 days, at most 24 h of dark, the Sun and
-Earth up at landing, slope at most 10°), accuracy 100 m. Odds run from 0 to 100, and "off" is how far
-the picture's are from the truth's.
+pixels over the four sites and two months. The mission is 14 days, at most 24 h of dark, the Sun and
+Earth up at landing, slope at most 10°, and the accuracy 100 m. It is scored twice: with no limit on
+radio silence, which was the default mission when the picture was first measured, and with the 24 h
+limit the default has had since later the same day. Odds run from 0 to 100, and "off" is how far the
+picture's are from the truth's.
 
-**The picture as it was and as it is**, all four sites, November 2026 and June 2027:
+**The picture as it was and as it is**, all four sites, November 2026 and June 2027, with no limit on
+radio silence:
 
 | The picture | Off, on average | Off, root mean square | Pixels more than 25 off |
 | --- | --- | --- | --- |
@@ -1316,6 +1327,14 @@ ground fits, and every picture is within 2 on average):
 - **Away from the patches the grid is still 120 m.** Round the ridge sites, which are the hardest
   ground there is for it, that is 2.4 off on average and more than 25 off on 2.7% of pixels. It was not
   measured on other ground.
+
+**With the default's 24 h of radio silence** far less ground fits: by the points, between 0.0% and
+4.0% of it in November 2026 and under 0.5% in June 2027, so there is little for a picture to get
+wrong. All four sites and both months: the 120 m grid alone is 0.3 off on average (2.7 root mean
+square, 0.3% of pixels more than 25 off), the patches laid in 0.1 (0.5, 0.0%), and the points
+themselves on 60 m pixels 0.1 (0.5, 0.0%). A patch pixel and its point agree on 100.0% of the ground
+at every site in both months, and the 120 m cell on 99.2% to 100.0%. The picture as it was is not
+scored under this mission: the softening was gone from the code by then.
 
 **The slope.** The layer has two slope images of the fine grid's square, 30 m a pixel. It used to shrink
 them to its own 60 m pixels and judge one averaged slope a pixel. It now reads them whole, and a pixel

@@ -201,7 +201,7 @@ export const DATA_SOURCES: DataSource[] = [
     does: 'The Moon’s temperature range and Earth’s tilt, for the comparison with a day on Earth.',
     fetched: 'Read from NASA’s pages and kept in the code, with the pages’ addresses.',
     credit: 'NASA NSSDCA',
-    shows: 'Earth compared with the Moon',
+    shows: 'The Guide’s first step, under “A day here, and a day on Earth”; and the earlier site’s Earth comparison, at /classic/',
     urls: ['https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html', 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html'],
     refs: ['Moon and Earth fact sheets'],
   },

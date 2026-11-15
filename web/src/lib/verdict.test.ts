@@ -26,33 +26,18 @@ const validation: Validation = {
       sun_nearby_pct: [45.36, 86.42],
       earth_nearby_pct: [51.12, 58.17],
     },
-    ours: [{ obs_height_m: 2, sun_mean_disk_pct: 85.86, sun_any_pct: 90.28, earth_any_pct: 58.08 }],
+    ours: [
+      { obs_height_m: 0, sun_mean_disk_pct: 57.59, sun_any_pct: 64.79, earth_any_pct: 56.96 },
+      { obs_height_m: 2, sun_mean_disk_pct: 85.86, sun_any_pct: 90.28, earth_any_pct: 58.08 },
+    ],
     grid: {
       step_h: 6,
       high_sun_pct: 50,
       stats: [
-        {
-          quantity: 'sun_mean_disk_pct',
-          obs_height_m: 2,
-          sample: 'all',
-          n: 80,
-          bias: 0.36,
-          median: -0.42,
-          mae: 2.51,
-          rmse: 4.15,
-          r: 0.985,
-        },
-        {
-          quantity: 'earth_any_pct',
-          obs_height_m: 2,
-          sample: 'all',
-          n: 80,
-          bias: 1.15,
-          median: 0.03,
-          mae: 1.21,
-          rmse: 2.69,
-          r: 0.995,
-        },
+        { quantity: 'sun_any_pct', obs_height_m: 0, sample: 'all', n: 80, bias: -2.84, median: -0.01, mae: 4.24, rmse: 8.66, r: 0.939 },
+        { quantity: 'earth_any_pct', obs_height_m: 0, sample: 'all', n: 80, bias: -1.84, median: -0.09, mae: 2.15, rmse: 5.08, r: 0.98 },
+        { quantity: 'sun_any_pct', obs_height_m: 2, sample: 'all', n: 80, bias: 2.73, median: 0.8, mae: 2.86, rmse: 5.29, r: 0.985 },
+        { quantity: 'earth_any_pct', obs_height_m: 2, sample: 'all', n: 80, bias: 1.15, median: 0.03, mae: 1.21, rmse: 2.69, r: 0.995 },
       ],
     },
   },
@@ -76,31 +61,60 @@ describe('a share as a whole percent', () => {
 })
 
 describe('validationNotes', () => {
-  it('states a disagreement beyond the measured error instead of claiming validation', () => {
+  // Connecting Ridge's own figures (public/data/connecting-ridge/validation.json).
+  it('compares the ground with NASA\'s map, and gives the figure 2 m up beside it, not against the map', () => {
     const { sun } = validationNotes(validation, 2)
-    expect(sun.warning).toBe(true)
-    expect(sun.text).toContain('not confirmed')
-    expect(sun.text).toContain('86% here, 68% on NASA')
-    expect(sun.text).toContain('about 17 points apart')
-    expect(sun.text).toContain('45–86%')
-    expect(sun.text).toContain('typical difference is 2.5')
+    expect(sun.warning).toBe(false)
+    expect(sun.text).toBe(
+      'Sun at the ground agrees with NASA\'s map: 65% in our model, 68% on NASA\'s PGDA map (neighboring pixels 45–86%), ' +
+        'inside the 8.7-point error measured across 80 other pixels. ' +
+        'At 2 m up, where this app reads it, our model gives 90%: a panel on a mast sees over the near ground.',
+    )
+    // The figure 2 m up is never the one set against the map: 90% and 68% are 22 points apart.
+    expect(sun.text).not.toMatch(/not confirmed|90% here/)
   })
 
-  it('says a site agrees when it is within the measured error', () => {
+  it('says the same of Earth, with an antenna on the mast', () => {
     const { earth } = validationNotes(validation, 2)
     expect(earth.warning).toBe(false)
-    expect(earth.text).toContain('agrees')
+    expect(earth.text).toBe(
+      'Earth visibility at the ground agrees with NASA\'s map: 57% in our model, 58% on NASA\'s PGDA map (neighboring pixels 51–58%), ' +
+        'inside the 5.1-point error measured across 80 other pixels. ' +
+        'At 2 m up, where this app reads it, our model gives 58%: an antenna on a mast sees over the near ground.',
+    )
   })
 
-  it('applies the threshold to each site, not just one', () => {
-    const close: Validation = {
+  it('states a disagreement at the ground beyond the measured error instead of claiming validation', () => {
+    const far: Validation = {
       ...validation,
-      pgda: {
-        ...validation.pgda,
-        map: { ...(validation.pgda.map as NonNullable<Validation['pgda']['map']>), sun_pct: 84 },
-      },
+      pgda: { ...validation.pgda, map: { ...(validation.pgda.map as NonNullable<Validation['pgda']['map']>), sun_pct: 80 } },
     }
-    expect(validationNotes(close, 2).sun.warning).toBe(false)
+    const { sun } = validationNotes(far, 2)
+    expect(sun.warning).toBe(true)
+    expect(sun.text).toBe(
+      'Sun at this site is not confirmed, even at the ground: 65% in our model, 80% on NASA\'s PGDA map (neighboring pixels 45–86%). ' +
+        'That\'s about 15 points apart; across 80 other pixels the typical difference is 4.2. ' +
+        'At 2 m up, where this app reads it, our model gives 90%: a panel on a mast sees over the near ground.',
+    )
+  })
+
+  it('applies the threshold to each site, by the error measured at the ground', () => {
+    const at = (sunPct: number) =>
+      validationNotes({ ...validation, pgda: { ...validation.pgda, map: { ...(validation.pgda.map as NonNullable<Validation['pgda']['map']>), sun_pct: sunPct } } }, 2).sun.warning
+    // 64.79 at the ground, error 8.66: the map agrees up to 73.45.
+    expect(at(73.4)).toBe(false)
+    expect(at(73.5)).toBe(true)
+  })
+
+  it('gives no reason for a figure that is not higher 2 m up, and no second figure at the ground itself', () => {
+    const level: Validation = { ...validation, pgda: { ...validation.pgda, ours: validation.pgda.ours.map((row) => ({ ...row, earth_any_pct: 56.96 })) } }
+    expect(validationNotes(level, 2).earth.text).toMatch(/other pixels\. At 2 m up, where this app reads it, our model gives 57%\.$/)
+    expect(validationNotes(validation, 0).sun.text).toMatch(/other pixels\.$/)
+  })
+
+  it('refuses a map with no figures at the ground to set against it', () => {
+    const noGround: Validation = { ...validation, pgda: { ...validation.pgda, ours: validation.pgda.ours.filter((row) => row.obs_height_m !== 0) } }
+    expect(() => validationNotes(noGround, 2)).toThrow('at the ground')
   })
 
   it('says plainly when no NASA map covers a site', () => {

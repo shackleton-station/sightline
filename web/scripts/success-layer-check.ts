@@ -31,7 +31,7 @@ import { smoothMoonFit, washPixel } from '../src/lib/moonWash'
 
 const LIVE = 'https://lunarsightline.com'
 const DATA = new URL('../public/data/', import.meta.url)
-/** The mission a first visit is judged against (Short stay). */
+/** The mission the table in docs/VALIDATION.md was measured with: the Short stay before it limited radio silence to 24 h. */
 const REQ: Requirements = { missionDays: 14, maxSunGapH: 24, maxEarthGapH: 99_999, sunAtLanding: true, earthAtLanding: true, minEarthClearanceDeg: 0 }
 
 interface Site {
@@ -87,7 +87,7 @@ async function main() {
   const first = (Date.parse(`${month}-01T00:00:00Z`) - Date.UTC(year, 0, 1)) / 3_600_000
   const positions = new Float32Array(readFileSync(new URL(`custom/ephemeris-${year}.bin`, DATA)).buffer)
 
-  console.log(`${month}, a landing at every hour (${hours}), mission: 14 days, at most 24 h of dark, Sun and Earth up at landing.`)
+  console.log(`${month}, a landing at every hour (${hours}), mission: 14 days, at most 24 h of dark, no limit on radio silence, Sun and Earth up at landing.`)
   console.log('Agreement with the site\'s own track (worked out at its exact point):\n')
   console.log('site                    in grid   Sun up   Earth up   verdict: grid   verdict: smooth Moon   landings that fit (track)')
   for (const site of sites) {

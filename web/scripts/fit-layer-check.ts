@@ -29,7 +29,7 @@ import { decodeTile, loadTiles, polarLatLon, type TileStore } from '../src/lib/c
 import { pointLight, type PointSky } from '../src/lib/landingField'
 import { DEFAULT_SPREAD, FITS, type Spread } from '../src/lib/landingOdds'
 import { cellAt, type LightMeta, lightMeta, type LightMetaFile, type LightMonth, type LightPatch, patchGrid, readMonth } from '../src/lib/lightGrid'
-import { DEFAULT_REQUIREMENTS, type Requirements } from '../src/lib/mission'
+import { DEFAULT_REQUIREMENTS, NO_GAP_LIMIT_H, type Requirements } from '../src/lib/mission'
 import { addMonth, fitField, flatShare, layPatch, lightVerdict, missionMonthsAt, oddsField, startGaps } from '../src/lib/missionGrid'
 import { AZIMUTHS, blockReachM, groundSlopeDeg, pointHorizons, polarBlock, type PolarGround } from '../src/lib/pointHorizons'
 
@@ -48,6 +48,15 @@ const EVERY_H = 12
 /** Pixels along a light cell in the layer's picture (`shadeWorker.ts`). */
 const SUB = 2
 const MAX_SLOPE_DEG = 10
+/**
+ * The missions scored: the default, and the same with no limit on radio silence, which was the
+ * default when the picture was first measured (docs/VALIDATION.md §19). Both are judged from the
+ * same hours, so the second costs nothing.
+ */
+const MISSIONS: { name: string; req: Requirements }[] = [
+  { name: 'at most 24 h of radio silence (the default)', req: DEFAULT_REQUIREMENTS },
+  { name: 'no limit on radio silence', req: { ...DEFAULT_REQUIREMENTS, maxEarthGapH: NO_GAP_LIMIT_H } },
+]
 const HEIGHT_M = 2
 /** The slope images' pixel (m), and the steepest slope (rise over run) their 8 bits hold. */
 const SLOPE_PIXEL_M = 30
@@ -203,6 +212,7 @@ const slopeDeg = (x: number, y: number) => (Math.atan(Math.hypot(((x - 128) / 12
 async function main() {
   mkdirSync(CACHE, { recursive: true })
   const months = process.argv.slice(2).length > 0 ? process.argv.slice(2) : ['2026-11', '2027-06']
+  // What every mission scored has in common: its length, and what counts as Earth in view.
   const req: Requirements = DEFAULT_REQUIREMENTS
   const spread: Spread = DEFAULT_SPREAD
   const light: LightMeta = lightMeta(json<LightMetaFile>('light/meta.json'))
@@ -219,11 +229,11 @@ async function main() {
   const tiles: TileStore = new Map()
   const readTile = async (name: string) => arrayBuffer(await live(`tiles/${name}.bin.gz`))
 
-  console.log(`Mission: ${req.missionDays} days, at most ${req.maxSunGapH} h of dark, Sun and Earth up at landing, slope at most ${MAX_SLOPE_DEG} deg; lander accuracy ${spread.accuracyM} m.`)
+  console.log(`Missions: ${req.missionDays} days, at most ${req.maxSunGapH} h of dark, Sun and Earth up at landing, slope at most ${MAX_SLOPE_DEG} deg, with and without the default's limit on radio silence; lander accuracy ${spread.accuracyM} m.`)
   console.log(`Round each site: ${cells} x ${cells} light cells (${(cells * light.pixel_m) / 1000} km), truth every ${POINT_M} m; the middle ${cells - 2 * EDGE_CELLS} x ${cells - 2 * EDGE_CELLS} cells are scored; a landing every ${EVERY_H} h.`)
   console.log('Odds are 0 to 100. Columns: the mean error, the root-mean-square error, the mean of (picture - truth), and the share of pixels more than 25 off.\n')
 
-  const total = new Map<string, Score>()
+  const total = MISSIONS.map(() => new Map<string, Score>())
   const scoreIn = (scores: Map<string, Score>, name: string) => scores.get(name) ?? (scores.set(name, new Score()), scores.get(name) as Score)
 
   for (const site of sites) {
@@ -307,29 +317,16 @@ async function main() {
         if (patch && patchHere) fine.set(name, squareOf(readMonth(arrayBuffer(await live(`tiles/light/patch/${site.id}/${name}.bin.gz`)), patchGrid(light, patch), name), (col0 - patch.col) * patch.sub, (row0 - patch.row) * patch.sub, side20))
       }
       const hours = light.hours[month]
-      const scores = new Map<string, Score>()
-      let scored = 0
-      let cellSame = 0
-      let patchSame = 0
-      let truthFits = 0
-      let cellFits = 0
-      let patchFits = 0
+      const scores = MISSIONS.map(() => new Map<string, Score>())
+      // For each mission: the 20 m points scored, those that fit by the points, the cells and the patch, and how often each agrees with the point.
+      const ground = MISSIONS.map(() => ({ scored: 0, truthFits: 0, cellFits: 0, cellSame: 0, patchFits: 0, patchSame: 0 }))
       let landings = 0
 
       for (let t = 0; t < hours; t += EVERY_H) {
         landings += 1
-        // The truth: the mission at every point.
+        // Every point's hours, once for all the missions.
         const positions = positionsFrom(Date.parse(`${month}-01T00:00:00Z`) + t * HOUR_MS, req.missionDays * 24)
-        const lit = new Uint8Array(points)
-        const truth = new Float32Array(points)
-        for (let p = 0; p < points; p += 1) {
-          const found = pointLight(skies[p], positions, req.minEarthClearanceDeg)
-          const fits = (!req.sunAtLanding || found.sunAtDeg > 0) && (!req.earthAtLanding || found.earthAtDeg > 0) && found.sunGapH <= req.maxSunGapH && found.earthGapH <= req.maxEarthGapH
-          lit[p] = fits ? 1 : 0
-          truth[p] = fits ? flat20[p] : 0
-        }
-        const truthOdds = oddsField(truth, side20, POINT_M, spread)
-
+        const found = skies.map((sky) => pointLight(sky, positions, req.minEarthClearanceDeg))
         // The grid and the patch, as the page reads them.
         const parts = missionMonthsAt(light, month, t, req.missionDays)
         if (!parts) throw new Error('the mission runs past the grid')
@@ -338,56 +335,75 @@ async function main() {
         const patchRun = patchHere ? startGaps(side20) : null
         if (patchRun) parts.forEach((part, i) => addMonth(patchRun, fine.get(part.month) as LightMonth, part, i === 0))
 
-        const pictures = new Map<string, Float32Array>()
-        for (const [slopeName, flat] of [["the truth's slope", flatShare20], ["the page's slope", pageFlat]] as const) {
-          pictures.set(`the 120 m grid alone, ${slopeName}`, oddsField(fitField(run, req, SUB, flat, true), side, pixelM, spread))
-          if (patchHere && patchRun) {
-            const laid = fitField(run, req, SUB, flat, true)
-            layPatch(laid, SUB, cells, patchHere, patchRun, req, flat)
-            pictures.set(`the 20 m patch laid in, ${slopeName}`, oddsField(laid, side, pixelM, spread))
+        MISSIONS.forEach((mission, m) => {
+          // The truth: the mission at every point.
+          const lit = new Uint8Array(points)
+          const truth = new Float32Array(points)
+          for (let p = 0; p < points; p += 1) {
+            const at = found[p]
+            const fits = (!mission.req.sunAtLanding || at.sunAtDeg > 0) && (!mission.req.earthAtLanding || at.earthAtDeg > 0) && at.sunGapH <= mission.req.maxSunGapH && at.earthGapH <= mission.req.maxEarthGapH
+            lit[p] = fits ? 1 : 0
+            truth[p] = fits ? flat20[p] : 0
           }
-        }
-        // The best a picture of these pixels can do: the truth itself, a pixel at a time.
-        const best = Float32Array.from({ length: side * side }, (_, pixel) => shareOf(truth, side20, per, pixel, side))
-        pictures.set("the points themselves, at the picture's pixels", oddsField(best, side, pixelM, spread))
+          const truthOdds = oddsField(truth, side20, POINT_M, spread)
 
-        // Score the middle of the square.
-        for (let row = EDGE_CELLS * SUB; row < side - EDGE_CELLS * SUB; row += 1) {
-          for (let col = EDGE_CELLS * SUB; col < side - EDGE_CELLS * SUB; col += 1) {
-            // A pixel is aimed at its own middle: the middle one of the 20 m points it covers.
-            const aim = (row * per + (per - 1) / 2) * side20 + col * per + (per - 1) / 2
-            for (const [name, picture] of pictures) {
-              scoreIn(scores, name).add(picture[row * side + col], truthOdds[aim])
-              scoreIn(total, name).add(picture[row * side + col], truthOdds[aim])
+          const pictures = new Map<string, Float32Array>()
+          for (const [slopeName, flat] of [["the truth's slope", flatShare20], ["the page's slope", pageFlat]] as const) {
+            pictures.set(`the 120 m grid alone, ${slopeName}`, oddsField(fitField(run, mission.req, SUB, flat, true), side, pixelM, spread))
+            if (patchHere && patchRun) {
+              const laid = fitField(run, mission.req, SUB, flat, true)
+              layPatch(laid, SUB, cells, patchHere, patchRun, mission.req, flat)
+              pictures.set(`the 20 m patch laid in, ${slopeName}`, oddsField(laid, side, pixelM, spread))
             }
           }
-        }
-        // The ground itself, the Sun and Earth alone: each 20 m point against the cell, and the patch pixel, that holds it.
-        for (let row = EDGE_CELLS * perCell; row < side20 - EDGE_CELLS * perCell; row += 1) {
-          for (let col = EDGE_CELLS * perCell; col < side20 - EDGE_CELLS * perCell; col += 1) {
-            const p = row * side20 + col
-            const byCell = lightVerdict(run, Math.floor(row / perCell) * cells + Math.floor(col / perCell), req) === FITS
-            scored += 1
-            if (lit[p] === 1) truthFits += 1
-            if (byCell) cellFits += 1
-            if (byCell === (lit[p] === 1)) cellSame += 1
-            if (patchRun) {
-              const byPatch = lightVerdict(patchRun, p, req) === FITS
-              if (byPatch) patchFits += 1
-              if (byPatch === (lit[p] === 1)) patchSame += 1
+          // The best a picture of these pixels can do: the truth itself, a pixel at a time.
+          const best = Float32Array.from({ length: side * side }, (_, pixel) => shareOf(truth, side20, per, pixel, side))
+          pictures.set("the points themselves, at the picture's pixels", oddsField(best, side, pixelM, spread))
+
+          // Score the middle of the square.
+          for (let row = EDGE_CELLS * SUB; row < side - EDGE_CELLS * SUB; row += 1) {
+            for (let col = EDGE_CELLS * SUB; col < side - EDGE_CELLS * SUB; col += 1) {
+              // A pixel is aimed at its own middle: the middle one of the 20 m points it covers.
+              const aim = (row * per + (per - 1) / 2) * side20 + col * per + (per - 1) / 2
+              for (const [name, picture] of pictures) {
+                scoreIn(scores[m], name).add(picture[row * side + col], truthOdds[aim])
+                scoreIn(total[m], name).add(picture[row * side + col], truthOdds[aim])
+              }
             }
           }
-        }
+          // The ground itself, the Sun and Earth alone: each 20 m point against the cell, and the patch pixel, that holds it.
+          const counts = ground[m]
+          for (let row = EDGE_CELLS * perCell; row < side20 - EDGE_CELLS * perCell; row += 1) {
+            for (let col = EDGE_CELLS * perCell; col < side20 - EDGE_CELLS * perCell; col += 1) {
+              const p = row * side20 + col
+              const byCell = lightVerdict(run, Math.floor(row / perCell) * cells + Math.floor(col / perCell), mission.req) === FITS
+              counts.scored += 1
+              if (lit[p] === 1) counts.truthFits += 1
+              if (byCell) counts.cellFits += 1
+              if (byCell === (lit[p] === 1)) counts.cellSame += 1
+              if (patchRun) {
+                const byPatch = lightVerdict(patchRun, p, mission.req) === FITS
+                if (byPatch) counts.patchFits += 1
+                if (byPatch === (lit[p] === 1)) counts.patchSame += 1
+              }
+            }
+          }
+        })
       }
 
-      const share = (count: number) => `${((100 * count) / scored).toFixed(1)}%`
-      console.log(`  ${month}, ${landings} landings. Sun and Earth alone, 20 m point by point: the points say ${share(truthFits)} of the ground fits; the 120 m cells say ${share(cellFits)} and agree with the point on ${share(cellSame)}${patchHere ? `; the patch says ${share(patchFits)} and agrees on ${share(patchSame)}` : ''}.`)
-      for (const [name, score] of scores) console.log(`    ${name.padEnd(50)} ${score.words()}`)
+      MISSIONS.forEach((mission, m) => {
+        const counts = ground[m]
+        const share = (count: number) => `${((100 * count) / counts.scored).toFixed(1)}%`
+        console.log(`  ${month}, ${landings} landings, ${mission.name}. Sun and Earth alone, 20 m point by point: the points say ${share(counts.truthFits)} of the ground fits; the 120 m cells say ${share(counts.cellFits)} and agree with the point on ${share(counts.cellSame)}${patchHere ? `; the patch says ${share(counts.patchFits)} and agrees on ${share(counts.patchSame)}` : ''}.`)
+        for (const [name, score] of scores[m]) console.log(`    ${name.padEnd(50)} ${score.words()}`)
+      })
     }
     console.log('')
   }
-  console.log('All sites and months:')
-  for (const [name, score] of total) console.log(`    ${name.padEnd(50)} ${score.words()}`)
+  MISSIONS.forEach((mission, m) => {
+    console.log(`All sites and months, ${mission.name}:`)
+    for (const [name, score] of total[m]) console.log(`    ${name.padEnd(50)} ${score.words()}`)
+  })
 }
 
 await main()

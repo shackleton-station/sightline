@@ -4,7 +4,7 @@ import { loadScenarioAt } from '../data/heights'
 import { loadYearPositions } from '../data/loadSite'
 import type { MissionHeights } from '../lib/heights'
 import { locateHour } from '../lib/mission'
-import { type LightHour, lightHours } from '../lib/missionLight'
+import { type LightHour, lightHours, type SunWhileUp, sunWhileUp } from '../lib/missionLight'
 import type { YearSpan } from '../lib/span'
 import { bodyRadiiDeg } from '../lib/surfaceView'
 
@@ -13,6 +13,8 @@ const HOUR_MS = 3_600_000
 /** A mission's light, hour by hour from its landing. */
 export interface MissionLight {
   hours: LightHour[]
+  /** The Sun's elevation from level while it is up during the mission: its lowest and highest; null if it never is. */
+  sunWhileUp: SunWhileUp | null
 }
 
 /**
@@ -45,7 +47,7 @@ async function loadMissionLight(site: SiteInfo, start: string, landing: number, 
     const hourOfYear = Math.round((Date.parse(point.t) - Date.UTC(year, 0, 1)) / HOUR_MS)
     return bodyRadiiDeg(ofYear, hourOfYear, site.lat, site.lon).earth
   })
-  return { hours }
+  return { hours, sunWhileUp: sunWhileUp(rows) }
 }
 
 /**

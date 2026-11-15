@@ -1,22 +1,19 @@
 import { type CSSProperties, useEffect, useRef, useState } from 'react'
-import type { LibraryCard, LibraryEntry } from '../lib/library'
+import type { LibraryCard } from '../lib/library'
+import { SCENARIO_LETTERS } from '../lib/sightlineMission'
 import { LibraryCardView } from './LibraryCard'
 
 interface Props {
   start: string
-  /** The tray's scenarios as cards; null while the sites' flags are still being read. */
+  /** The plan's scenarios as cards: the card at index i is scenario i (A, B, C, D). */
   cards: LibraryCard[]
-  /** The letter a card's scenario has in Compare, or null when it is not there. */
-  letterOf: (card: LibraryCard) => string | null
-  /** Whether Compare has room for one more. */
-  room: boolean
-  onCompare: (card: LibraryCard) => void
-  onRemove: (entry: LibraryEntry) => void
+  /** The scenario on show. */
+  active: number
+  /** Go to the main screen with this scenario on show. */
+  onShow: (index: number) => void
+  /** Take this scenario out of the plan. The plan always keeps one. */
+  onRemove: (index: number) => void
   onOpenCompare: () => void
-  /** Open the Library page; null where the tray is on that page already. */
-  onOpenLibrary: (() => void) | null
-  /** Tells the Planner the tray was looked at, so the library is read. */
-  onWanted: () => void
 }
 
 /** How long the fan stays after the pointer leaves it, in milliseconds: long enough to cross from the lander to the cards. */
@@ -34,14 +31,15 @@ function Lander() {
 }
 
 /**
- * The tray: the scenarios pulled in from the library, under a lander with their count. Pointing at
- * the lander or pressing it fans the cards out like a hand of cards; pointing at one lifts it clear
- * of the others. From a card, "Compare" puts its landing in Compare beside your own picks.
+ * The tray: the plan itself, as cards, under a lander with their count. A landing added from the
+ * library is a scenario of the plan (C after A and B), so it is here, in Compare and on the main
+ * screen at once. Pointing at the lander or pressing it fans the cards out like a hand of cards;
+ * pointing at one lifts it clear of the others. From a card, "Show" goes to the main screen with it on show.
  *
  * Pressing pins the fan open (Escape, or a press elsewhere, closes it); pointing only shows it
  * while the pointer is over it. On a phone the cards are a plain list.
  */
-export function LibraryTray({ start, cards, letterOf, room, onCompare, onRemove, onOpenCompare, onOpenLibrary, onWanted }: Props) {
+export function LibraryTray({ start, cards, active, onShow, onRemove, onOpenCompare }: Props) {
   const [pinned, setPinned] = useState(false)
   const [over, setOver] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -57,9 +55,6 @@ export function LibraryTray({ start, cards, letterOf, room, onCompare, onRemove,
   }
   useEffect(() => () => window.clearTimeout(leaving.current), [])
   const open = pinned || over
-  useEffect(() => {
-    if (open) onWanted()
-  }, [open, onWanted])
   useEffect(() => {
     if (!pinned) return
     const away = (event: PointerEvent) => {
@@ -78,44 +73,29 @@ export function LibraryTray({ start, cards, letterOf, room, onCompare, onRemove,
 
   return (
     <div ref={root} className="lib-tray" onPointerEnter={(event) => event.pointerType === 'mouse' && enter()} onPointerLeave={leave}>
-      <button type="button" className={`lib-tray-icon ${cards.length > 0 ? 'has' : ''}`} aria-expanded={open} aria-controls="lib-tray-fan" title="The landings you pulled in from the library" onClick={() => setPinned(!pinned)}>
+      <button type="button" className={`lib-tray-icon ${cards.length > 0 ? 'has' : ''}`} aria-expanded={open} aria-controls="lib-tray-fan" title="Your plan: its scenarios, with the landings you added from the library" onClick={() => setPinned(!pinned)}>
         <Lander />
-        <span>Tray</span>
-        <small aria-label={`${cards.length} pulled in`}>{cards.length}</small>
+        <span>Plan</span>
+        <small aria-label={`${cards.length} in your plan`}>{cards.length}</small>
       </button>
       {open && (
-        <div id="lib-tray-fan" className="lib-tray-fan" role="region" aria-label="Pulled in from the library" style={{ '--n': Math.max(cards.length, 2) } as CSSProperties}>
+        <div id="lib-tray-fan" className="lib-tray-fan" role="region" aria-label="Your plan" style={{ '--n': Math.max(cards.length, 2) } as CSSProperties}>
           <div className="lib-tray-box">
-          {cards.length === 0 ? (
-            <p className="lib-tray-empty">
-              Nothing pulled in yet.{' '}
-              {onOpenLibrary ? (
-                <button type="button" className="lib-link" onClick={onOpenLibrary}>
-                  Open the Library
-                </button>
-              ) : (
-                'Search below'
-              )}{' '}
-              and press “Pull in” on a landing.
-            </p>
-          ) : (
+          {(
             <>
               <ul className="lib-fan" style={{ '--n': cards.length } as CSSProperties}>
-                {cards.map((card, i) => {
-                  const letter = letterOf(card)
-                  return (
-                    <li key={card.key} style={{ '--i': i } as CSSProperties} tabIndex={0}>
-                      <LibraryCardView card={card} start={start} small>
-                        <button type="button" className="sl-small" disabled={letter !== null || !room || !card.scenario} title={letter ? `Already in Compare as ${letter}` : room ? 'Add this landing to Compare' : 'Compare holds four: remove one first'} onClick={() => onCompare(card)}>
-                          {letter ? `In Compare · ${letter}` : room ? 'Compare' : 'Compare is full'}
-                        </button>
-                        <button type="button" className="lib-x" aria-label={`Take ${card.place} out of the tray`} onClick={() => onRemove(card.entry)}>
-                          ✕
-                        </button>
-                      </LibraryCardView>
-                    </li>
-                  )
-                })}
+                {cards.map((card, i) => (
+                  <li key={card.key} style={{ '--i': i } as CSSProperties} tabIndex={0}>
+                    <LibraryCardView card={card} start={start} small>
+                      <button type="button" className="sl-small" aria-pressed={i === active} title={`Goes to the main screen with scenario ${SCENARIO_LETTERS[i]} on show`} onClick={() => onShow(i)}>
+                        {SCENARIO_LETTERS[i]} · Show
+                      </button>
+                      <button type="button" className="lib-x" disabled={cards.length < 2} aria-label={`Take scenario ${SCENARIO_LETTERS[i]}, ${card.place}, out of the plan`} onClick={() => onRemove(i)}>
+                        ✕
+                      </button>
+                    </LibraryCardView>
+                  </li>
+                ))}
               </ul>
               <p className="lib-tray-foot">
                 <button
@@ -130,11 +110,6 @@ export function LibraryTray({ start, cards, letterOf, room, onCompare, onRemove,
                 >
                   Open Compare
                 </button>
-                {onOpenLibrary && (
-                  <button type="button" className="lib-link" onClick={onOpenLibrary}>
-                    Find more
-                  </button>
-                )}
               </p>
             </>
           )}
