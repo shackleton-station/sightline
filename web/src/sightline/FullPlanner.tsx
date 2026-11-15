@@ -1,10 +1,11 @@
 import { isCustomSite } from '../data/customSite'
-import { type ReactNode, useMemo } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import type { SiteInfo, Summary } from '../data/contract'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { monthSpans } from '../lib/grid'
 import { measureScenario, missionWords, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { spanOfHours } from '../lib/span'
+import { useWidth } from '../lib/useWidth'
 import { Mascot } from '../scout/Mascot'
 import { ExportMenu } from './ExportMenu'
 import { HeaderTools } from './HeaderTools'
@@ -69,6 +70,12 @@ const TABS: { id: PlannerTab; label: string; title: string }[] = [
 ]
 
 /**
+ * Below this width of its own (px) the Planner has no room for the Mission column beside a grid whose
+ * twelve months can be read: the column's 19rem, the site names, and a month every 2.1rem.
+ */
+const ROOM_FOR_BOTH_PX = 1000
+
+/**
  * The Planner: the same scenarios and the same mission, with room to work. Mission limits down the
  * left for both tabs. Find is every site by month, where a cell adds a scenario; Compare is the
  * scenarios side by side. The Moon stays as a small live view in the corner (drawn by the screen,
@@ -117,9 +124,14 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
   // The scenario on show over its mission, hour by hour: read as the screen reads it, from the mission's heights.
   const exportHourly = () => saveHourlyCsv({ site: facts[active].site, start, landing: scenarios[active].landing, missionDays: mission.requirements.missionDays, years: spanOfHours(start, hours), heights: mission.heights })
   const days = mission.requirements.missionDays
+  // The Planner's own width, whatever else is open beside it. Too narrow for the Mission column and
+  // a readable grid side by side, the column folds away above the grid.
+  const [box, boxWidth] = useWidth()
+  const narrow = boxWidth > 0 && boxWidth < ROOM_FOR_BOTH_PX
+  const [limitsOpen, setLimitsOpen] = useState(false)
 
   return (
-    <section className="sl-full" aria-label="Planner">
+    <section className="sl-full" aria-label="Planner" ref={box} data-room={narrow ? 'narrow' : 'wide'}>
       <header className="sl-full-head pl-header">
         <button type="button" className="sl-small pl-back" title="Closes the Planner and shows the Moon again (Esc)." onClick={onBack}>
           ‹ Moon
@@ -145,8 +157,15 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
         </span>
         {banner}
       </header>
-      <div className="sl-full-body">
-        <div className="sl-full-mission">
+      <div className="sl-full-body" data-limits={limitsOpen ? 'open' : 'folded'}>
+        {/* Shown only where the Mission column is folded away: the mission in a few words, and the way to it. */}
+        <p className="pl-limits-fold">
+          <button type="button" className="sl-small" aria-expanded={limitsOpen} aria-controls="pl-limits" onClick={() => setLimitsOpen(!limitsOpen)}>
+            {limitsOpen ? 'Hide the mission' : 'Change the mission'}
+          </button>
+          <span>Mission: {missionWords(mission)}.</span>
+        </p>
+        <div className="sl-full-mission" id="pl-limits">
           <h3>Mission</h3>
           <MissionControls mission={mission} onMission={onMission} />
           <h3>Advanced</h3>

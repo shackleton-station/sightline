@@ -131,12 +131,45 @@
   color: var(--gold);
 }
 
+/* Never narrower than a month can be read at: the site names, the count, and twelve months of 34 px
+   each, which is "none" with its cell's edge. In a box with less room the grid scrolls sideways
+   inside it, and the site names stay in place. */
 .pl-months {
   width: 100%;
+  min-width: 40.5rem;
   margin-top: 0.5rem;
   border-collapse: collapse;
   font-size: 0.8125rem;
   table-layout: fixed;
+}
+
+/* A group's name stays at the left while the grid scrolls sideways. */
+.pl-months .pl-group-row th {
+  overflow: visible;
+}
+
+.pl-months .pl-group-row th > span {
+  display: inline-block;
+  position: sticky;
+  left: 0;
+}
+
+/* Only where the grid's box is narrower than the grid, so the names are held only while it scrolls. */
+.pl-find .sl-full-scroll {
+  container-type: inline-size;
+}
+
+@media (min-width: 761px) {
+  @container (max-width: 40.49rem) {
+    .pl-months thead td,
+    .pl-months tbody tr:not(.pl-group-row) th {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: #0e0c13;
+      box-shadow: 1px 0 0 var(--line);
+    }
+  }
 }
 
 .pl-months thead td {
@@ -336,8 +369,20 @@
     width: 6.5rem;
   }
 
+  /* A phone's names are narrower, so its grid can be: still 34 px a month. */
   .pl-months {
-    min-width: 34rem;
+    min-width: 35.5rem;
+  }
+
+  @container (max-width: 35.49rem) {
+    .pl-months thead td,
+    .pl-months tbody tr:not(.pl-group-row) th {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: #0e0c13;
+      box-shadow: 1px 0 0 var(--line);
+    }
   }
 
   .pl-bands {
@@ -588,5 +633,75 @@
   color: var(--soft);
   font-size: 0.8125rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- A narrow Planner: wider than a phone, with too little room for the Mission column ----------
+   Scout's panel open beside it in a 1024 px window, a tablet, a narrow laptop window. The Planner
+   says so itself (`data-room`, from its own width), so what else is open does not matter. The
+   Mission column folds away behind a button above the tab, and the small Moon moves into the header,
+   as it does in a short window, since the corner it sat in is now the grid's. */
+.pl-limits-fold {
+  display: none;
+}
+
+@media (min-width: 761px) {
+  .sl-full[data-room='narrow'] .sl-full-body {
+    display: block;
+  }
+
+  .sl-full[data-room='narrow'] p.pl-limits-fold {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3rem 0.7rem;
+    margin: 0.5rem 0 0;
+    color: var(--soft);
+  }
+
+  .sl-full[data-room='narrow'] .sl-full-body[data-limits='folded'] .sl-full-mission {
+    display: none;
+  }
+
+  .sl-full[data-room='narrow'] .sl-full-mission {
+    position: static;
+    max-width: 24rem;
+    max-height: none;
+    margin-top: 0.8rem;
+    padding: 0 0 0.9rem;
+    overflow: visible;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sightline.is-full:has(.sl-full[data-room='narrow']) .sl-stage {
+    top: 0.5rem;
+    bottom: auto;
+    left: var(--sl-edge);
+    width: 4rem;
+    height: 4rem;
+    border-radius: 10px;
+  }
+
+  .sl-full[data-room='narrow'] {
+    padding-top: 0;
+  }
+
+  .sl-full[data-room='narrow'] .sl-full-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    min-height: 5rem;
+    padding-left: 4.9rem;
+    background: var(--panel-top);
+  }
+
+  /* The header wraps on purpose: the tools take a row of their own, from the left, under the title. */
+  .sl-full[data-room='narrow'] .pl-tools {
+    flex: 1 0 100%;
+    margin-left: 0;
+  }
+
+  .sl-full[data-room='narrow'] .pl-tools .sl-head-tools {
+    margin-right: 0;
+  }
 }
 
