@@ -126,7 +126,7 @@ const CUSTOM = '__custom'
  * The plan: three compact controls, each one control with a small picture before it, one tiny word
  * inside it saying what it is ("Site", "Landing", "Mission") and no label above it. The site (a custom point is at the foot of its own list, and NASA's tools on the place are one small line of links under it), the landing's
  * date and hour, and the mission (its preset's name). The mission's control opens its limits in place,
- * under itself: while they are open the control says "Select", which closes them.
+ * under itself: while they are open the control says "Done", which closes them.
  */
 export function Fields({ held = false, onShowHow, sites, site, onSite, landing, landingField, firstField, lastField, onPickDate, missionName, mission, missionOpen, onMission, missionPanel }: FieldsProps) {
   const groups = [...new Set(sites.map((listed) => listed.group))]
@@ -216,8 +216,8 @@ export function Fields({ held = false, onShowHow, sites, site, onSite, landing, 
             Mission
           </span>
         )}
-        <button type="button" className="sl-mission-open" aria-expanded={missionOpen} aria-label={missionOpen ? `Mission: ${missionName}. Select` : `Mission: ${missionName}`} title={`${missionOpen ? 'Closes' : 'Opens'} the mission’s limits. Now: ${mission}.`} onClick={onMission}>
-          <b>{missionName}</b> {missionOpen ? <span className="sl-select">Select</span> : <span aria-hidden="true">›</span>}
+        <button type="button" className="sl-mission-open" aria-expanded={missionOpen} aria-label={missionOpen ? `Mission: ${missionName}. Done` : `Mission: ${missionName}`} title={`${missionOpen ? 'Closes' : 'Opens'} the mission’s limits. Now: ${mission}.`} onClick={onMission}>
+          <b>{missionName}</b> {missionOpen ? <span className="sl-select">Done</span> : <span aria-hidden="true">›</span>}
         </button>
       </div>
       {missionOpen && missionPanel}

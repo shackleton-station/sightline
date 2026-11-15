@@ -31,6 +31,11 @@ interface SliderProps {
   onChange: (value: number) => void
 }
 
+/** A limit in hours, as a reader says it: two or more whole days read as days ("14 days", not "336 h"). */
+function spanWords(hours: number): string {
+  return hours >= 48 && hours % 24 === 0 ? `${hours / 24} days` : `${hours} h`
+}
+
 function Slider({ id, label, value, unit, range, text, onChange }: SliderProps) {
   return (
     <div className="sl-param">
@@ -124,7 +129,7 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
       </div>
 
       <Slider id="sl-m-days" label="Mission length" value={requirements.missionDays} unit=" days" range={MISSION_RANGES.missionDays} onChange={(missionDays) => limit({ missionDays })} />
-      <Slider id="sl-m-dark" label="Longest dark spell" value={requirements.maxSunGapH} unit=" h" range={MISSION_RANGES.maxSunGapH} onChange={(maxSunGapH) => limit({ maxSunGapH })} />
+      <Slider id="sl-m-dark" label="Longest dark spell" value={requirements.maxSunGapH} unit=" h" text={spanWords(requirements.maxSunGapH)} range={MISSION_RANGES.maxSunGapH} onChange={(maxSunGapH) => limit({ maxSunGapH })} />
       <label className="sl-check sl-param">
         <input type="checkbox" checked={requirements.sunAtLanding} onChange={(event) => limit({ sunAtLanding: event.target.checked })} /> The Sun is in view at landing
       </label>
@@ -136,7 +141,7 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
         label="Radio silence"
         value={silenceStop(requirements.maxEarthGapH)}
         unit=" h"
-        text={requirements.maxEarthGapH >= NO_LIMIT_H ? 'No limit' : `${requirements.maxEarthGapH} h`}
+        text={requirements.maxEarthGapH >= NO_LIMIT_H ? 'No limit' : spanWords(requirements.maxEarthGapH)}
         range={{ ...SILENCE_RANGE, max: SILENCE_NO_LIMIT_STOP }}
         onChange={(stop) => limit({ maxEarthGapH: silenceHours(stop) })}
       />
