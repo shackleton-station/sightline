@@ -9,7 +9,7 @@ import { alternativesAt, conditionsAt } from '../../src/lib/slip'
 import { degWords, stateAt } from '../../src/lib/sightline'
 import { pct } from '../../src/lib/verdict'
 import { type Args, lastYear, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
-import { daysLabel, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, type ToolResult, whenLabel } from './facts'
+import { daysLabel, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, reasonClause, type ToolResult, whenLabel } from './facts'
 import { nextLandingOnScreen } from './nextLanding'
 import { listWords } from './ties'
 
@@ -78,7 +78,7 @@ export async function conditionsAtTime(args: Args, ctx: ToolContext): Promise<To
     fact('landing', 'A landing at this hour', conditions.problems.length === 0 ? 'meets the limits' : 'does not meet the limits'),
     ...missionGaps(flags, hourOf(flags.start, iso), requirements),
   ]
-  conditions.problems.forEach((problem, i) => facts.push(fact(`problem_${i + 1}`, 'Why it does not meet the limits', problem.replace(/\.$/, '').replace(/^The /, 'the '))))
+  conditions.problems.forEach((problem, i) => facts.push(fact(`problem_${i + 1}`, 'Why it does not meet the limits, as a clause that joins a sentence', reasonClause(problem))))
 
   if (conditions.problems.length > 0) {
     // The hour the visitor's screen offers as "Next landing that fits", by the same rule.

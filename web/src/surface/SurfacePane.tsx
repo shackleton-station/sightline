@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HorizonPoint, SiteInfo, TrackPoint } from '../data/contract'
 import { horizonAt } from '../lib/customModel'
+import type { LevelPitch } from '../lib/surfacePitch'
 import { acrossDeg, type BodyRadii, fovForAcross, type Lens, type Look } from '../lib/surfaceView'
 import type { GroundTint, SurfaceFrame } from '../three/SurfaceViewer'
 import { CompassStrip } from './CompassStrip'
 import { LensControls } from './LensControls'
 import { type HourDot, SkyOverlay } from './SkyOverlay'
 import { SurfaceCanvas } from './SurfaceCanvas'
+import { useCoveredFoot } from './useCoveredFoot'
 import type { SkyPair } from './useGlide'
 import { type Body, useLook } from './useLook'
 import { useLookInput } from './useLookInput'
@@ -32,6 +34,8 @@ interface Props {
   discs: BodyRadii
   hours: { first: number; sun: HourDot[]; earth: HourDot[] }
   still: boolean
+  /** The pitch both views share while both bodies fit in one picture. */
+  level: LevelPitch | null
   /** The lens another view already has, so a view opened beside it matches. */
   opening: { fovDeg: number; stretch: number } | null
   /** Whether the arrow keys steer this view. */
@@ -57,6 +61,9 @@ const NARROW_PX = 700
 const SHORT_PX = 520
 const NAMES: Record<Body, string> = { sun: 'the Sun', earth: 'Earth' }
 
+/** How far from the middle of the picture a faced body may sit, as a share of its height: less where the menus and compass cover the top of a short picture (a phone, or half of one). */
+export const offCenterNow = () => (window.innerWidth > NARROW_PX && window.innerHeight >= SHORT_PX ? 0.2 : 0.1)
+
 /** How much of the top of the picture the menus and compass cover (px), by layout (surface.css). */
 function coveredTopPx(place: 0 | 1): number {
   const short = window.innerHeight < SHORT_PX
@@ -70,9 +77,10 @@ function coveredTopPx(place: 0 | 1): number {
  * hand; a button then turns it back.
  */
 export function SurfacePane(props: Props) {
-  const { body, place, site, horizon, groundTint, now, sky, discs, hours, still, opening, keys, showLens, stretchBy, setLensAll, register, onActive, onLens, onLost } = props
+  const { body, place, site, horizon, groundTint, now, sky, discs, hours, still, level, opening, keys, showLens, stretchBy, setLensAll, register, onActive, onLens, onLost } = props
   const stage = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+  const coveredFootPx = useCoveredFoot(stage)
 
   useEffect(() => {
     const element = stage.current
@@ -84,18 +92,17 @@ export function SurfacePane(props: Props) {
     return () => observer.disconnect()
   }, [])
 
-  // Where the menus and compass cover the top of a short picture (a phone, or half of one), a faced body stays nearer its middle.
-  const roomy = window.innerWidth > NARROW_PX && window.innerHeight >= SHORT_PX
   const skylineAt = useCallback((azDeg: number) => horizonAt(horizon, azDeg), [horizon])
   const { look, following, steer, setLens, face } = useLook({
     sky,
     body,
     skylineAt,
     siteId: site.id,
-    offCenter: roomy ? 0.2 : 0.1,
+    offCenter: offCenterNow(),
     openingFovDeg: opening?.fovDeg ?? OPENING_FOV_DEG,
     openingStretch: opening?.stretch ?? 1,
     still,
+    level,
   })
   const input = useLookInput({ stage, steer, setLens: setLensAll, enabled: true, keys })
 
@@ -135,7 +142,7 @@ export function SurfacePane(props: Props) {
         {size.width > 0 && (
           <>
             <SurfaceCanvas horizon={horizon} groundTint={groundTint} latDeg={site.lat} frame={frame} onLost={onLost} />
-            <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} hours={hours} clearTopPx={coveredTopPx(place)} />
+            <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} hours={hours} clearTopPx={coveredTopPx(place)} clearBottomPx={coveredFootPx} />
           </>
         )}
       </div>

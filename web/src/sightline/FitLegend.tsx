@@ -1,6 +1,7 @@
-import { ODDS_RAMP } from '../lib/missionGrid'
+import { ODDS_RAMP, oddsStrength } from '../lib/missionGrid'
 
-const RAMP = `linear-gradient(to right, ${ODDS_RAMP.map((color) => `rgb(${color.join(' ')})`).join(', ')})`
+/** The ramp as the Moon is shaded with it: each color as strongly as its odds are drawn, so the red end fades as it does on the ground. */
+const RAMP = `linear-gradient(to right, ${ODDS_RAMP.map((color, i) => `rgb(${color.join(' ')} / ${oddsStrength(i / (ODDS_RAMP.length - 1))})`).join(', ')})`
 
 interface Props {
   on: boolean

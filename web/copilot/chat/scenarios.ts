@@ -8,7 +8,7 @@ import { entryAt } from '../../src/lib/shortlist'
 import { COMPARE_ROWS, measureScenario, nearestFittingSite, readScenarioLink, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../../src/lib/sightlineMission'
 import type { ViewState } from '../../src/lib/urlState'
 import type { SiteData } from '../../shared/tools/data'
-import { fact, type Fact, isoAt, whenLabel } from '../../shared/tools/facts'
+import { fact, type Fact, isoAt, reasonClause, whenLabel } from '../../shared/tools/facts'
 import { marginalReasons, skylineFigure } from '../../src/lib/sightlineSky'
 import { nextLandingOnScreen } from '../../shared/tools/nextLanding'
 
@@ -94,6 +94,13 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
  * the same landing does, found by the function the visitor's screen uses for its "Fits at … on this
  * date" line, or the plain statement that there is none. Nothing when the scenario fits.
  */
+/** One site of a group, named as it is said in a sentence: "no other south pole site fits". */
+const GROUP_SITE: Record<string, string> = {
+  'South pole ridges': 'south pole site',
+  Apollo: 'Apollo site',
+  CLPS: 'CLPS site',
+}
+
 async function elsewhere(key: string, letter: string, scenario: SightlineScenario, site: SiteInfo, sites: SiteInfo[], mission: SightlineMission, data: SiteData): Promise<Fact[]> {
   const atHeights = async (id: string) => (isBaseHeights(mission.heights) ? null : await data.flagsAt(id, mission.heights).catch(() => null))
   const flagsOf = async (id: string) => (await atHeights(id)) ?? (await data.flags(id))
@@ -116,7 +123,7 @@ async function elsewhere(key: string, letter: string, scenario: SightlineScenari
   // fits ("it fits at {{…}}"), or a clause saying that none of the group's other sites does.
   const other = found
     ? fact(`${key}_fits_at_another_site`, `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`, `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away`)
-    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on the same landing date, as a clause that stands in a sentence`, 'none of the other sites in its group fits on this date')
+    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on the same landing date, as a clause that stands in a sentence`, `no other ${GROUP_SITE[site.group] ?? 'site in its group'} fits on that date`)
   return [...nextFacts, other]
 }
 
@@ -143,7 +150,7 @@ async function figures(key: string, letter: string, scenario: SightlineScenario,
     state === 'does not fit' ? 'does not meet the mission limits' : state === 'marginal' ? 'meets the mission limits, but only as a marginal fit' : 'meets the mission limits',
   )
   const onScreen = fact(`${key}_verdict_words`, `Scenario ${letter}: the verdict's own words on the screen`, state === 'does not fit' ? 'Does not fit the mission' : state === 'marginal' ? 'Fits, marginal' : 'Fits the mission')
-  const reasons = measure.problems.map((problem, i) => fact(`${key}_reason_${i + 1}`, `Scenario ${letter}: why it does not meet the mission limits`, problem.replace(/\.$/, '').replace(/^The /, 'the ')))
+  const reasons = measure.problems.map((problem, i) => fact(`${key}_reason_${i + 1}`, `Scenario ${letter}: why it does not meet the mission limits, as a clause that joins a sentence (it holds the limit: add none after it)`, reasonClause(problem)))
   const narrow = marginal.map((reason, i) => fact(`${key}_marginal_reason_${i + 1}`, `Scenario ${letter}: why the fit is only marginal (the screen's own line)`, reason))
   const landing = edge
     ? [

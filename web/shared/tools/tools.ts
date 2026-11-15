@@ -185,7 +185,7 @@ export function toolDeclarations(siteIds: string[]): Anthropic.Beta.BetaTool[] {
         text: {
           type: 'string',
           description:
-            'Two to four plain sentences. Every number, date and time must be a reference like {{r2.pct_sun}}, copied from a tool result. Never type a digit yourself.',
+            'At most three plain sentences, about sixty words, the answer first (a fourth sentence only for a comparison or for how the numbers were checked). Every number, date and time must be a reference like {{r2.pct_sun}}, copied from a tool result. Never type a digit yourself.',
         },
         actions: {
           type: 'array',

@@ -144,7 +144,7 @@ export async function bestSitesInYear(args: Args, ctx: ToolContext): Promise<Too
     return {
       site,
       score: metric === 'landing' ? days / (hours / 24) : up / hours,
-      value: metric === 'landing' ? `${daysLabel(days)} of the year's ${hours / 24}` : `${Math.round((100 * up) / hours)}% of the year`,
+      value: metric === 'landing' ? `${days} of ${daysLabel(hours / 24)}` : `${Math.round((100 * up) / hours)}% of the year`,
       best: tiedMonths.length > 1 ? `${monthsWords(tiedMonths.map((cell) => cell.month))}, tied at ${cellValue(metric, bestMonth)}` : `${monthWords(bestMonth.month)}, with ${cellValue(metric, bestMonth)}`,
     }
   })
