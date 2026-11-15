@@ -163,3 +163,18 @@ export function useFitLevel<T extends HTMLElement>(most: number): { ref: RefObje
 export function nowIso(): string {
   return (window as { __SIGHTLINE_NOW?: string }).__SIGHTLINE_NOW ?? new Date().toISOString()
 }
+
+/** A laptop window too short to give every strip its full height (a 1366 by 768 screen): the styles use the same line. */
+const SHORT_WINDOW = '(max-height: 819px) and (min-width: 761px)'
+
+/** True in such a window, and kept up to date as the window is resized. */
+export function useShortWindow(): boolean {
+  const [short, setShort] = useState(() => window.matchMedia(SHORT_WINDOW).matches)
+  useEffect(() => {
+    const query = window.matchMedia(SHORT_WINDOW)
+    const follow = () => setShort(query.matches)
+    query.addEventListener('change', follow)
+    return () => query.removeEventListener('change', follow)
+  }, [])
+  return short
+}

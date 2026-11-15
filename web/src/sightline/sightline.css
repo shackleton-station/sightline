@@ -1194,6 +1194,58 @@
   background: var(--panel-bottom);
 }
 
+/* Folded, the strip is one thin bar in the same place: its name, the Sun and Earth above the skyline
+   at the time bar's hour, and "Open". The whole bar is the press. */
+.sl-sky.is-folded {
+  padding: 0;
+}
+
+.sl-sky-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.3rem 0.9rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sl-sky-bar:hover,
+.sl-sky-bar:focus-visible {
+  background: rgb(255 255 255 / 5%);
+}
+
+.sl-sky-readout {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-sky-bar .sl-sky-readout {
+  flex: 1 1 auto;
+}
+
+.sl-sky-open {
+  flex: none;
+  margin-left: auto;
+  color: var(--gold);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.sl-sky-bar:hover .sl-sky-open {
+  color: var(--ink);
+}
+
 .sl-strip-title {
   font-family: var(--serif);
   font-size: 0.9375rem;
@@ -2797,12 +2849,15 @@ button.sl-moment-heights[aria-expanded='true'] {
   height: 100%;
   box-sizing: border-box;
   border: 0;
-  /* The strip under the Moon that says when the time bar is not on the landing is kept clear here too. */
-  border-bottom: 1.9rem solid #000;
   background: #000;
 }
 
-/* That note lies over the strip, above the frame. */
+/* While the time bar is not on the landing, the note that says so has a strip of its own under the
+   frame, and lies over it; on the landing the frame has the stage's whole height, with no empty band. */
+.sl-stage:has(.sl-off-landing) .sl-surface {
+  border-bottom: 1.9rem solid #000;
+}
+
 .sl-stage:has(.sl-surface:not(.is-away)) .sl-off-landing {
   z-index: 5;
 }

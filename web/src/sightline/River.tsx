@@ -3,7 +3,7 @@ import { loadEarthSun } from '../data/loadSite'
 import { earthPath, EVERYDAY_LAT_DEG } from '../lib/earthSun'
 import { locateHour } from '../lib/mission'
 import type { RiverSegment, RiverState } from '../lib/river'
-import { ABOVE_SKYLINE_MEANS, bandWords, clockTime, DEFAULT_SPEED, degWords, type RiverZoom, riverTicks, riverWindow, runAt, SPEEDS, stateAt, stateRuns, TIME_KEYS_MEAN } from '../lib/sightline'
+import { bandWords, clockTime, DEFAULT_SPEED, type RiverZoom, riverTicks, riverWindow, runAt, SPEEDS, stateAt, stateRuns, TIME_KEYS_MEAN } from '../lib/sightline'
 import type { Clock } from './hooks'
 import { HourlyProblem } from './hourlyExport'
 import { axisName, flagPlaces, labelSide, missionLabel, type RiverScenario, siteRows } from './riverRows'
@@ -21,7 +21,7 @@ interface Props {
   /** The whole hour on the time bar. */
   hour: number
   /** That moment at the scenario on show: what is up, and how far the Sun's and Earth's centres are above the ridge. Null parts are still loading. */
-  moment: { state: RiverState | null; /** The chip's words: what is up, saying so when only part of Earth shows. */ words: string | null; sunAboveDeg: number | null; earthAboveDeg: number | null }
+  moment: { state: RiverState | null; /** The chip's words: what is up, saying so when only part of Earth shows. */ words: string | null }
   rows: RiverRow[]
   /** How long the mission lasts from its landing, in hours. */
   missionHours: number
@@ -29,7 +29,6 @@ interface Props {
   onFold: (folded: boolean) => void
   onSelect: (key: string) => void
   /** The skyline strip above this bar ("What the lander sees"): whether it is open, and its door, which is this bar's readout of the Sun's and Earth's heights. */
-  sky: { open: boolean; onToggle: () => void }
   /** Make and save the hour-by-hour file of the scenario on show, offered under "More"; rejects when it cannot be made. */
   onHourly: () => Promise<void>
 }
@@ -67,17 +66,13 @@ function useEarthDay(start: string, from: number, to: number, wanted: boolean): 
 }
 
 
-/** What the skyline's short door does, where the heights in full have no room. */
-const SKYLINE_DOOR_MEANS = "Shows the skyline all round the site, with the Sun's and Earth's paths."
-
 /** A flag's width and the room the selected mission's label needs, in rem; the styles use the same numbers. */
 const FLAG_REM = 1.1
 const LABEL_REM = 7.6
-/** The header's width, in rem, from which the chip, the heights in full and the tools fit one line. */
-const DOOR_ROOM_REM = 46
-/** The header's widths, in rem, under which the key does not fit beside the name, and under which the short door does not fit beside the chip and the tools. */
+/** The header's width, in rem, under which it takes its tight form. */
+const TIGHT_UNDER_REM = 46
+/** The header's width, in rem, under which the key does not fit beside the name. */
 const KEY_ROOM_REM = 32
-const SHORT_DOOR_ROOM_REM = 33.5
 
 /**
  * The time bar, "When the Sun and Earth are in view": one row per site on one time axis, coloured
@@ -86,7 +81,7 @@ const SHORT_DOOR_ROOM_REM = 33.5
  * every row is the hour on show, with a handle at its top and its date under it. Drag anywhere on
  * the rows to move time, or press a flag to choose that scenario.
  */
-export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, sky, onHourly }: Props) {
+export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, onHourly }: Props) {
   const [zoom, setZoom] = useState<RiverZoom>('month')
   const [earthRow, setEarthRow] = useState(false)
   const { from, to } = riverWindow(start, hour, zoom, hours)
@@ -118,7 +113,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
     return () => watcher.disconnect()
   }, [folded])
   const flagWidth = FLAG_REM * track.rem
-  // On a phone the styles leave the heights out of the header, so there the skyline's door is in "More".
+  // On a phone the key stays in the header, which may wrap there.
   const [phone, setPhone] = useState(() => window.matchMedia('(max-width: 760px)').matches)
   useEffect(() => {
     const narrow = window.matchMedia('(max-width: 760px)')
@@ -126,15 +121,10 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
     narrow.addEventListener('change', follow)
     return () => narrow.removeEventListener('change', follow)
   }, [])
-  // The heights in full are the skyline's door where the header's second line has room for them beside
-  // the chip and the tools; where it does not, a short door ("Skyline") stays in plain sight.
-  const doorInRow = !phone && (track.head === 0 || track.head >= DOOR_ROOM_REM * track.rem)
-  // Narrower than that the header tightens. Narrower still (a small laptop with a panel open) its key and
-  // the skyline's door go into "More", as the door does on a phone, so the header stays two lines.
-  const tight = track.head > 0 && track.head < DOOR_ROOM_REM * track.rem
+  // A narrow header tightens. Narrower still (a small laptop with a panel open) its key goes into
+  // "More", so the header stays two lines.
+  const tight = track.head > 0 && track.head < TIGHT_UNDER_REM * track.rem
   const keyInMenu = !phone && track.head > 0 && track.head < KEY_ROOM_REM * track.rem
-  const doorInMenu = phone || (track.head > 0 && track.head < SHORT_DOOR_ROOM_REM * track.rem)
-  const shortDoor = !doorInRow && !doorInMenu
   const key = (
     <span className="sl-legend">
       <i className="sl-key is-sun" /> Sun <i className="sl-key is-earth" /> Earth <i className="sl-key is-both" /> Both <i className="sl-key is-none" /> Neither
@@ -225,50 +215,42 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
               {!keyInMenu && key}
             </>
           )}
-          <span className="sl-moment">
-            <span className={`sl-chip${moment.state ? ` is-${moment.state}` : ''}`}>
-              <i className={`sl-key${moment.state ? ` is-${moment.state}` : ''}`} aria-hidden="true" /> {moment.words ?? (moment.state ? STATE_CHIP[moment.state] : '…')}
-            </span>
-            {/* The heights above the skyline are the door to the skyline itself: a press unfolds the strip above this bar, and folds it again. */}
-            {doorInRow && (
-              <button type="button" className="sl-moment-heights sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={`${ABOVE_SKYLINE_MEANS} ${sky.open ? 'Press to fold the skyline away.' : 'Press to see the skyline all round.'}`} onClick={sky.onToggle}>
-                Sun {moment.sunAboveDeg === null ? '…' : degWords(moment.sunAboveDeg)} · Earth {moment.earthAboveDeg === null ? '…' : degWords(moment.earthAboveDeg)} above the skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
-              </button>
-            )}
-            {shortDoor && (
-              <button type="button" className="sl-small sl-sky-door" aria-expanded={sky.open} aria-controls="sl-sky" title={sky.open ? 'Folds the skyline away.' : SKYLINE_DOOR_MEANS} onClick={sky.onToggle}>
-                Skyline <span aria-hidden="true">{sky.open ? '▾' : '▸'}</span>
-              </button>
-            )}
-          </span>
-          <span className="sl-river-tools">
-            {!folded && (
-              <span className="sl-zooms" role="group" aria-label="How much time the rows show">
-                {ZOOMS.map((option) => (
-                  <button key={option.id} type="button" aria-pressed={zoom === option.id} onClick={() => setZoom(option.id)}>
-                    {option.label}
-                  </button>
-                ))}
+          {/* What is in view and the tools keep together: on the name's line where there is room, else on a line of their own, the chip at its start and the tools at its end. */}
+          <span className="sl-river-second">
+            <span className="sl-moment">
+              <span className={`sl-chip${moment.state ? ` is-${moment.state}` : ''}`}>
+                <i className={`sl-key${moment.state ? ` is-${moment.state}` : ''}`} aria-hidden="true" /> {moment.words ?? (moment.state ? STATE_CHIP[moment.state] : '…')}
               </span>
-            )}
-            {/* "More" holds what is rarely needed (the hourly file, "A day on Earth") and what a narrow header has no room for: the skyline's door, and the key. */}
-            <button
-              type="button"
-              className="sl-small sl-more"
-              aria-label="More for the time bar"
-              aria-haspopup="true"
-              aria-expanded={menu === 'more'}
-              title="Opens more for the time bar: the hourly file and “A day on Earth”."
-              onClick={() => {
-                setMenu(menu === 'more' ? null : 'more')
-                if (hourly.kind === 'failed') setHourly({ kind: 'idle' })
-              }}
-            >
-              ⋯
-            </button>
-            <button type="button" className="sl-small sl-fold" aria-expanded={!folded} onClick={() => onFold(!folded)}>
-              {folded ? 'Open' : 'Fold'}
-            </button>
+            </span>
+            <span className="sl-river-tools">
+              {!folded && (
+                <span className="sl-zooms" role="group" aria-label="How much time the rows show">
+                  {ZOOMS.map((option) => (
+                    <button key={option.id} type="button" aria-pressed={zoom === option.id} onClick={() => setZoom(option.id)}>
+                      {option.label}
+                    </button>
+                  ))}
+                </span>
+              )}
+              {/* "More" holds what is rarely needed (the hourly file, "A day on Earth") and what a narrow header has no room for: the key. */}
+              <button
+                type="button"
+                className="sl-small sl-more"
+                aria-label="More for the time bar"
+                aria-haspopup="true"
+                aria-expanded={menu === 'more'}
+                title="Opens more for the time bar: the hourly file and “A day on Earth”."
+                onClick={() => {
+                  setMenu(menu === 'more' ? null : 'more')
+                  if (hourly.kind === 'failed') setHourly({ kind: 'idle' })
+                }}
+              >
+                ⋯
+              </button>
+              <button type="button" className="sl-small sl-fold" aria-expanded={!folded} onClick={() => onFold(!folded)}>
+                {folded ? 'Open' : 'Fold'}
+              </button>
+            </span>
           </span>
         </div>
         {menu === 'speed' && (
@@ -291,21 +273,6 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
         )}
         {menu === 'more' && (
           <div ref={menuBox} className="sl-menu" role="group" aria-label="More for the time bar">
-            {doorInMenu && (
-              <button
-                type="button"
-                className="sl-small sl-sky-door"
-                aria-expanded={sky.open}
-                aria-controls="sl-sky"
-                title={sky.open ? 'Folds the skyline away.' : SKYLINE_DOOR_MEANS}
-                onClick={() => {
-                  sky.onToggle()
-                  setMenu(null)
-                }}
-              >
-                {sky.open ? 'Fold the skyline' : 'Show the skyline'}
-              </button>
-            )}
             {keyInMenu && !folded && key}
             {earthDayOffered && (
               <label className="sl-check">
