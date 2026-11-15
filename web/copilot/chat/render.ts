@@ -33,6 +33,22 @@ function numberWritten(rest: string): string | null {
   return null
 }
 
+/**
+ * A listed site's name and the shorter forms of it a sentence uses: "Chandrayaan-3 (India)" is also
+ * "Chandrayaan-3", "Chang'e 4 (China, far side)" is also "Chang'e 4", "IM-2 Athena" is also "IM-2".
+ * Each is a name, not a number of the model's own, so each is taken out of a draft before it is
+ * searched for digits. Without the short forms a draft that says "the Chandrayaan-3 site" was refused,
+ * and the visitor got the raw list of facts in its place.
+ */
+export function nameForms(name: string): string[] {
+  const parts = name
+    .split(/ · |, | \(|\)/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 1 && /[A-Za-z]/.test(part))
+  const joined = name.match(/[A-Za-z][A-Za-z'’]*-\d+/g) ?? []
+  return [...new Set([name, ...parts, ...joined])]
+}
+
 /** The text with the allowed words (site names, data years) taken out, longest first so "Apollo 11" goes before a shorter name could split it. */
 function withoutAllowed(text: string, allowedWords: string[]): string {
   let rest = text
