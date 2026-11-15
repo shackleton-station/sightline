@@ -26,10 +26,10 @@ describe('a patch laid into the field of where a landing fits', () => {
     // The grid says the whole of cell (3, 3) is dark. The patch says only its left half is.
     const grid = gapsOf(SIZE, (col, row) => col === 3 && row === 3)
     const fine = gapsOf(patch.size, (col, row) => col < 3 && row < 6)
-    const field = fitField(grid, REQ, 10, SUB, null)
+    const field = fitField(grid, REQ, SUB, null)
     expect(at(field, 6, 6)).toBe(0)
     expect(at(field, 7, 6)).toBe(0)
-    layPatch(field, SUB, SIZE, patch, fine, REQ, 10, null)
+    layPatch(field, SUB, SIZE, patch, fine, REQ, null)
     // Each field pixel is three by three patch pixels: the left one is all dark, the right one all lit.
     expect(at(field, 6, 6)).toBe(0)
     expect(at(field, 7, 6)).toBe(1)
@@ -41,20 +41,21 @@ describe('a patch laid into the field of where a landing fits', () => {
     const grid = gapsOf(SIZE, () => false)
     // One column of patch pixels dark: a third of the field pixels over it.
     const fine = gapsOf(patch.size, (col) => col === 4)
-    const field = fitField(grid, REQ, 10, SUB, null)
-    layPatch(field, SUB, SIZE, patch, fine, REQ, 10, null)
+    const field = fitField(grid, REQ, SUB, null)
+    layPatch(field, SUB, SIZE, patch, fine, REQ, null)
     expect(at(field, 7, 6)).toBeCloseTo(2 / 3, 6)
     expect(at(field, 6, 6)).toBe(1)
   })
 
-  it('changes nothing outside the patch, and leaves steep ground at 0', () => {
+  it('changes nothing outside the patch, and scales a pixel by the share of it that is not too steep', () => {
     const grid = gapsOf(SIZE, (col) => col === 0)
     const fine = gapsOf(patch.size, () => false)
-    const steep = new Float32Array(side * side)
-    steep[6 * side + 6] = 25
-    const before = fitField(grid, REQ, 10, SUB, steep)
+    const flat = new Float32Array(side * side).fill(1)
+    flat[6 * side + 6] = 0
+    flat[8 * side + 8] = 0.5
+    const before = fitField(grid, REQ, SUB, flat)
     const field = Float32Array.from(before)
-    layPatch(field, SUB, SIZE, patch, fine, REQ, 10, steep)
+    layPatch(field, SUB, SIZE, patch, fine, REQ, flat)
     for (let row = 0; row < side; row += 1) {
       for (let col = 0; col < side; col += 1) {
         const inside = col >= 6 && col < 10 && row >= 6 && row < 10
@@ -63,13 +64,15 @@ describe('a patch laid into the field of where a landing fits', () => {
     }
     expect(at(field, 6, 6)).toBe(0)
     expect(at(field, 7, 6)).toBe(1)
+    // Half of a pixel level: half of what its patch pixels say.
+    expect(at(field, 8, 8)).toBe(0.5)
   })
 
   it('is left alone when the patch’s pixels do not divide the field’s, or the gaps are not the patch’s', () => {
     const grid = gapsOf(SIZE, () => true)
-    const field = fitField(grid, REQ, 10, SUB, null)
-    layPatch(field, SUB, SIZE, { ...patch, sub: 5, size: 10 }, gapsOf(10, () => false), REQ, 10, null)
-    layPatch(field, SUB, SIZE, patch, gapsOf(10, () => false), REQ, 10, null)
+    const field = fitField(grid, REQ, SUB, null)
+    layPatch(field, SUB, SIZE, { ...patch, sub: 5, size: 10 }, gapsOf(10, () => false), REQ, null)
+    layPatch(field, SUB, SIZE, patch, gapsOf(10, () => false), REQ, null)
     expect(Array.from(field).every((value) => value === 0)).toBe(true)
   })
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { cellCentreM, cellChances, erf, type FitMap, FITS, landingOdds, missCode, missOf, sigmaM } from './landingOdds'
 import { cellCenter, type LightMeta, type LightMonth, planeXY, readMonth, upSeries } from './lightGrid'
 import { landingProblems, type Requirements } from './mission'
-import { addMonth, fieldOf, fitField, fitMapAround, fitsAtTarget, type GridGaps, lightVerdict, missionMonths, oddsAlongBearings, oddsAt, oddsColor, oddsField, oddsPixels, oddsStrength, FEW_STRENGTH, slopeDegFrom, squareAround, startGaps } from './missionGrid'
+import { addMonth, fieldOf, fitField, flatShare, fitMapAround, fitsAtTarget, type GridGaps, lightVerdict, missionMonths, oddsAlongBearings, oddsAt, oddsColor, oddsField, oddsPixels, oddsStrength, FEW_STRENGTH, slopeDegFrom, squareAround, startGaps } from './missionGrid'
 
 const SIZE = 12
 const SUN_SLOTS = 6
@@ -247,10 +247,28 @@ describe('the odds of fitting, aimed at every pixel', () => {
     const gaps = startGaps(2)
     gaps.sunAt.set([1, 0, 1, 1])
     gaps.earthAt.fill(1)
-    const slope = new Float32Array(16).fill(3)
-    slope[15] = 20
-    expect(Array.from(fitField(gaps, REQ, 10, 2, slope))).toEqual([1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0])
-    expect(Array.from(fitField(gaps, REQ, 10, 1, null))).toEqual([1, 0, 1, 1])
+    const flat = new Float32Array(16).fill(1)
+    flat[15] = 0
+    expect(Array.from(fitField(gaps, REQ, 2, flat))).toEqual([1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0])
+    expect(Array.from(fitField(gaps, REQ, 1, null))).toEqual([1, 0, 1, 1])
+    // A pixel a quarter of whose ground is level fits a quarter as much, where the light fits at all.
+    flat[0] = 0.25
+    flat[2] = 0.25
+    expect(Array.from(fitField(gaps, REQ, 2, flat).slice(0, 4))).toEqual([0.25, 1, 0, 0])
+  })
+
+  it('counts the share of each pixel’s slopes under the limit, one by one', () => {
+    // A slope image of 4 by 4 values, two along each pixel: 128 is level, 150 is 9.83 degrees, 255 is 45.
+    const x = new Uint8Array([128, 255, 128, 128, 128, 128, 128, 128, 150, 150, 255, 255, 150, 150, 255, 255])
+    const y = new Uint8Array(16).fill(128)
+    expect(Array.from(flatShare(x, y, 1, 2, 10))).toEqual([0.75, 1, 1, 0])
+    // A limit under 9.83 degrees takes the third pixel away whole.
+    expect(Array.from(flatShare(x, y, 1, 2, 9))).toEqual([0.75, 1, 0, 0])
+    // The slope along y counts as the slope along x does: every value is level along x and 45 degrees along y.
+    expect(Array.from(flatShare(y, new Uint8Array(16).fill(1), 1, 2, 10))).toEqual([0, 0, 0, 0])
+    // One value to a pixel: each is level or it is not, as `slopeDegFrom` says.
+    const deg = slopeDegFrom(x, y, 1)
+    expect(Array.from(flatShare(x, y, 1, 1, 10))).toEqual(Array.from(deg, (value) => (value > 10 ? 0 : 1)))
   })
 
   it('draws odds from red through amber to green', () => {
@@ -283,8 +301,8 @@ describe('a picture with no squares', () => {
     const gaps = startGaps(2)
     gaps.sunAt.set([1, 0, 1, 0])
     gaps.earthAt.fill(1)
-    const hard = fitField(gaps, REQ, 10, 4, null)
-    const soft = fitField(gaps, REQ, 10, 4, null, true)
+    const hard = fitField(gaps, REQ, 4, null)
+    const soft = fitField(gaps, REQ, 4, null, true)
     // Cell by cell, a row is four ones and four zeros.
     expect(Array.from(hard.slice(0, 8))).toEqual([1, 1, 1, 1, 0, 0, 0, 0])
     // Between the middles it falls evenly from 1 to 0, and is flat outside them.
@@ -293,24 +311,20 @@ describe('a picture with no squares', () => {
     const sum = (field: Float32Array) => field.reduce((total, value) => total + value, 0)
     expect(sum(soft)).toBeCloseTo(sum(hard), 5)
     // Steep ground is still left out pixel by pixel.
-    const slope = new Float32Array(64).fill(2)
-    slope[0] = 30
-    expect(fitField(gaps, REQ, 10, 4, slope, true)[0]).toBe(0)
+    const flat = new Float32Array(64).fill(1)
+    flat[0] = 0
+    expect(fitField(gaps, REQ, 4, flat, true)[0]).toBe(0)
   })
 
-  it('is softened by at least as much as asked, whatever the spread', () => {
+  it('is blurred by the lander’s spread and no more: a tight lander keeps an edge sharp', () => {
     const SIDE = 40
     const edge = new Float32Array(SIDE * SIDE)
     for (let i = 0; i < edge.length; i += 1) edge[i] = i % SIDE < SIDE / 2 ? 1 : 0
-    const tight = { accuracyM: 50, stretch: 1, bearingDeg: 0 }
-    // A 50 m spread on 60 m pixels leaves the edge nearly as sharp as it was.
-    const sharp = oddsField(edge, SIDE, 60, tight)
-    expect(sharp[SIDE * 20 + 18]).toBeGreaterThan(0.99)
-    // Softened by two pixels, the same edge fades over several.
-    const softened = oddsField(edge, SIDE, 60, tight, 2)
-    expect(softened[SIDE * 20 + 18]).toBeGreaterThan(0.7)
-    expect(softened[SIDE * 20 + 18]).toBeLessThan(0.85)
-    expect(softened[SIDE * 20 + 19] + softened[SIDE * 20 + 20]).toBeCloseTo(1, 5)
+    // A 50 m lander on 60 m pixels: aimed at the middle of the last good pixel, 30 m from the edge, it misses the edge all but 1 time in 30,000.
+    const sharp = oddsField(edge, SIDE, 60, { accuracyM: 50, stretch: 1, bearingDeg: 0 })
+    expect(sharp[SIDE * 20 + 19]).toBeCloseTo(0.5 * (1 + erf(30 / (sigmaM(50) * Math.SQRT2))), 4)
+    expect(sharp[SIDE * 20 + 18]).toBeGreaterThan(0.9999)
+    expect(sharp[SIDE * 20 + 19] + sharp[SIDE * 20 + 20]).toBeCloseTo(1, 5)
   })
 })
 

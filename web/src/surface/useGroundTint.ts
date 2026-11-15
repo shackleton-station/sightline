@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { HorizonPoint, SiteInfo } from '../data/contract'
 import { loadYearPositions } from '../data/customSite'
-import { gapsAt, loadLightMeta, patchGapsAt, slopePartFor } from '../data/loadMissionGrid'
+import { gapsAt, loadLightMeta, patchGapsAt, slopePartFor, wideGapsAt } from '../data/loadMissionGrid'
 import { ACCURACY_RANGE, DEFAULT_SPREAD, readSpreadLink, type Spread } from '../lib/landingOdds'
+import { wideGrid } from '../lib/lightGrid'
 import type { Requirements } from '../lib/mission'
 import { fieldOf, fitMapAround, fitMapInPatch, oddsAlongBearings, oddsAt, oddsColor, oddsField, patchHolding, squareAround } from '../lib/missionGrid'
 import { smoothMoonFit, washPixel } from '../lib/moonWash'
@@ -55,8 +56,20 @@ async function oddsAround(link: TintLink, site: SiteInfo, horizon: HorizonPoint[
     const held = patchHolding(meta, square)
     const fine = held ? await patchGapsAt(meta, held.site, link.month, link.index, requirements.missionDays) : null
     const map = held && fine && fine !== 'past' ? fitMapInPatch(meta, held.patch, fine, square, site.lat, site.lon, requirements, link.maxSlopeDeg, slope) : fitMapAround(meta, gaps, square, site.lat, site.lon, requirements, link.maxSlopeDeg, slope)
-    // Softened by at least one slope cell's width, as before, whatever the map's own cells are.
-    const odds = oddsField(fieldOf(map), map.size, map.cellM, spread, meta.pixel_m / map.cellM / (slope?.sub ?? 1))
+    // Blurred by the lander's own spread and no more, as the picture on the Moon is.
+    const odds = oddsField(fieldOf(map), map.size, map.cellM, spread)
+    const under = oddsAt(map, odds, 0, 0) ?? 0
+    const rim = oddsAlongBearings(map, odds, site.lon, horizon.map((point) => point.az), RIM_FROM_M, RIM_TO_M)
+    return { under, rim: rim.map((value) => value ?? under) }
+  }
+  // Past the fine grid, where the wide one reaches: the terrain's own light on its larger cells. There are no slope images of that ground.
+  const wide = meta ? wideGrid(meta) : null
+  const wideSquare = wide ? squareAround(wide, site.lat, site.lon, REACH_M) : null
+  const wideGaps = meta && wide && wideSquare ? await wideGapsAt(meta, link.month, link.index, requirements.missionDays) : null
+  if (wide && wideSquare && wideGaps) {
+    if (wideGaps === 'past') return null
+    const map = fitMapAround(wide, wideGaps, wideSquare, site.lat, site.lon, requirements, link.maxSlopeDeg, null)
+    const odds = oddsField(fieldOf(map), map.size, map.cellM, spread)
     const under = oddsAt(map, odds, 0, 0) ?? 0
     const rim = oddsAlongBearings(map, odds, site.lon, horizon.map((point) => point.az), RIM_FROM_M, RIM_TO_M)
     return { under, rim: rim.map((value) => value ?? under) }

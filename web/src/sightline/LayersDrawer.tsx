@@ -24,9 +24,11 @@ interface Props {
   onShade: (on: boolean) => void
   /**
    * "Landing odds", the app's own: the odds that a lander aimed at each point comes down where the
-   * mission fits, shaded on the Moon. Whether it is on, and whether the light grid reaches the site on show.
+   * mission fits, shaded on the Moon. Whether it is on, whether the light grid reaches the site on show,
+   * how far from the pole the slope is judged (km; null until known), the lander in words, and what
+   * the mission asks that the shading cannot count near the pole (null for nothing).
    */
-  odds: { on: boolean; here: boolean; lander: string }
+  odds: { on: boolean; here: boolean; slopeKm: number | null; lander: string; leavesOut: string | null }
   onOdds: (on: boolean) => void
   /** Open Landing accuracy: the odds for this landing, the reasons and a better place to aim. */
   onOddsDetails: () => void
@@ -112,7 +114,7 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
       )}
       {odds.on && (
         <p className="sl-layer-shade sl-layer-odds" role="status">
-          Shaded for a landing at the hour on the time bar, by a lander that gets {odds.lander}. {odds.here ? 'Near the south pole it counts the hourly light on the terrain and the slope' : 'This site is outside the terrain grid near the south pole'}; elsewhere the Moon is taken as smooth.{' '}
+          Shaded for a landing at the hour on the time bar, by a lander that gets {odds.lander}. {odds.here ? `Round the south pole${lightKm ? `, out to ${lightKm} km,` : ''} it counts the hourly light on the terrain${odds.slopeKm ? `, and within ${odds.slopeKm} km the slope too` : ''}` : 'This site is outside the terrain grid round the south pole'}; elsewhere the Moon is taken as smooth.{odds.leavesOut ? ` Near the pole the light is known from 2 m up with any part of Earth counting, so the shading there does not count ${odds.leavesOut}; Landing accuracy does.` : ''}{' '}
           <button type="button" className="sl-link" onClick={onOddsDetails}>
             Details for this landing
           </button>

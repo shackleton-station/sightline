@@ -1,3 +1,4 @@
+import { isBaseHeights, type MissionHeights } from './heights'
 import type { Spread } from './landingOdds'
 
 /**
@@ -30,6 +31,18 @@ export function compassWords(bearingDeg: number): string {
 export function closenessWords(spread: Spread): string {
   const near = `within ${spread.accuracyM.toLocaleString('en-US')} m of its aim point`
   return spread.stretch === 1 ? near : `${near}, ${Math.round(spread.accuracyM * spread.stretch).toLocaleString('en-US')} m along its approach`
+}
+
+/**
+ * What a mission asks that the Moon's shading cannot count near the south pole. The terrain's light
+ * there is worked out once for every piece of ground, from 2 m up with any part of Earth counting,
+ * so other heights and an Earth clearance are not in it (Landing accuracy, which works its points
+ * out for the mission, counts both). "your panel and antenna heights and your Earth clearance of
+ * 5°", or null when the mission asks for neither.
+ */
+export function shadeLeavesOut(heights: MissionHeights, clearanceDeg: number): string | null {
+  const parts = [isBaseHeights(heights) ? null : 'your panel and antenna heights', clearanceDeg > 0 ? `your Earth clearance of ${clearanceDeg}°` : null].filter((part) => part !== null)
+  return parts.length > 0 ? parts.join(' and ') : null
 }
 
 /** The odds worth keeping: the panel's "good" line, also used for how loose the accuracy can be. */

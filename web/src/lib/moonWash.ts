@@ -5,7 +5,8 @@ import type { Requirements } from './mission'
  * a sphere with no terrain. It is the same test the light grid answers near the south pole
  * (`missionGrid.ts`), from the same hourly positions of the Sun and Earth, but with a level horizon
  * everywhere. So it knows day from night and the near side from the far side, and nothing of a
- * ridge's shadow or a crater's wall. The slope is not judged. It is for coloring the Moon away from
+ * ridge's shadow or a crater's wall. The mission's Earth clearance is counted, above that level
+ * horizon. The slope is not judged. It is for coloring the Moon away from
  * the pole, where the light grid does not reach; it is not a site's verdict.
  *
  * The picture is laid out like a map of the world: longitude across from 180° W to 180° E, latitude
@@ -53,7 +54,8 @@ export function smoothMoonFit(positions: ArrayLike<number>, from: number, req: R
       earth[3 * k + i] = positions[at + 3 + i]
     }
     const earthFar = Math.hypot(earth[3 * k], earth[3 * k + 1], earth[3 * k + 2])
-    earthLow[k] = -Math.sin(Math.asin(EARTH_RADIUS_KM / earthFar) + DIP_DEG * RAD)
+    // With a clearance asked for, Earth's center must stand that far above the level horizon (`pointLight`).
+    earthLow[k] = req.minEarthClearanceDeg > 0 ? Math.sin((req.minEarthClearanceDeg - DIP_DEG) * RAD) : -Math.sin(Math.asin(EARTH_RADIUS_KM / earthFar) + DIP_DEG * RAD)
   }
   const sunLow = -Math.sin((SUN_RADIUS_DEG + DIP_DEG) * RAD)
 
@@ -76,7 +78,9 @@ export function smoothMoonFit(positions: ArrayLike<number>, from: number, req: R
         const ex = earth[3 * k] - MOON_RADIUS_KM * x
         const ey = earth[3 * k + 1] - MOON_RADIUS_KM * y
         const ez = earth[3 * k + 2] - MOON_RADIUS_KM * z
-        const earthUp = (x * ex + y * ey + z * ez) / Math.hypot(ex, ey, ez) > earthLow[k]
+        const earthHigh = (x * ex + y * ey + z * ez) / Math.hypot(ex, ey, ez)
+        // With a clearance, Earth exactly at it counts as up (`modelFlags`).
+        const earthUp = req.minEarthClearanceDeg > 0 ? earthHigh >= earthLow[k] : earthHigh > earthLow[k]
         if (k === 0 && ((req.sunAtLanding && !sunUp) || (req.earthAtLanding && !earthUp))) ok = false
         sunRun = sunUp ? 0 : sunRun + step
         earthRun = earthUp ? 0 : earthRun + step

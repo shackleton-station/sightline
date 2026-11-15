@@ -1,5 +1,5 @@
 import { LIGHT_URLS } from '../atlas/useLightGrid'
-import { type LightMeta, lightMeta, type LightMetaFile, type LightMonth, patchGrid, readMonth } from '../lib/lightGrid'
+import { type LightMeta, lightMeta, type LightMetaFile, type LightMonth, patchGrid, readMonth, wideGrid } from '../lib/lightGrid'
 import { locateHour } from '../lib/mission'
 import { addMonth, type GridGaps, missionMonthsAt, slopeDegFrom, type SlopePart, type Square, startGaps } from '../lib/missionGrid'
 import { bytes, gunzip } from './customSite'
@@ -25,15 +25,13 @@ export async function loadGapsAt(meta: LightMeta, month: string, index: number, 
   return run
 }
 
-/** A picture's 8-bit values: a square of it as stored, or the whole of it shrunk to `side` pixels. */
-async function imageValues(url: string, side: number, crop: { left: number; top: number } | null): Promise<Uint8Array> {
+/** A picture's 8-bit values: a square of it, `side` pixels along, as stored. */
+async function imageValues(url: string, side: number, crop: { left: number; top: number }): Promise<Uint8Array> {
   const response = await fetch(url)
   if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
   const blob = await response.blob()
   // No color conversion may touch the values: they are slopes, not colors.
-  const picture = crop
-    ? await createImageBitmap(blob, crop.left, crop.top, side, side, { colorSpaceConversion: 'none' })
-    : await createImageBitmap(blob, { resizeWidth: side, resizeHeight: side, resizeQuality: 'high', colorSpaceConversion: 'none' })
+  const picture = await createImageBitmap(blob, crop.left, crop.top, side, side, { colorSpaceConversion: 'none' })
   const canvas = document.createElement('canvas')
   canvas.width = side
   canvas.height = side
@@ -73,19 +71,64 @@ export async function loadSlopePart(meta: LightMeta, square: Square): Promise<Sl
 /** Pixels along a light cell in the picture laid over the Moon: half the slope images' detail, to keep it a few megabytes. */
 export const WHOLE_SUB = 2
 
-let whole: Promise<Float32Array | null> | null = null
+/**
+ * The two slope images of the grid's whole square as they are stored, a value for each of their
+ * own pixels (row by row from the top): `per` of them along each pixel of the picture laid over
+ * the Moon, and the slope (rise over run) at the ends of their 8-bit range.
+ */
+export interface SlopeImages {
+  x: Uint8Array
+  y: Uint8Array
+  per: number
+  slopeMax: number
+}
+
+/** A picture's 8-bit values at its own size, read a quarter at a time: the whole of one is tens of megabytes as a canvas. */
+async function wholeImageValues(url: string, side: number): Promise<Uint8Array> {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
+  const blob = await response.blob()
+  const part = side / 2
+  const canvas = document.createElement('canvas')
+  canvas.width = part
+  canvas.height = part
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context) throw new Error('no canvas to read the slope image with')
+  const values = new Uint8Array(side * side)
+  for (const top of [0, part]) {
+    for (const left of [0, part]) {
+      // No color conversion may touch the values: they are slopes, not colors.
+      const picture = await createImageBitmap(blob, left, top, part, part, { colorSpaceConversion: 'none' })
+      context.drawImage(picture, 0, 0)
+      picture.close()
+      const rgba = context.getImageData(0, 0, part, part).data
+      for (let row = 0; row < part; row += 1) {
+        const to = (top + row) * side + left
+        for (let col = 0; col < part; col += 1) values[to + col] = rgba[4 * (row * part + col)]
+      }
+    }
+  }
+  return values
+}
+
+let whole: Promise<SlopeImages | null> | null = null
 
 /**
- * The whole grid's slope in degrees, `WHOLE_SUB` values along each light cell: the slope images
- * shrunk, so each value is the slope across that much ground. Read once and kept. Null if it can't be.
+ * The slope images of the whole grid at their own detail, for the picture laid over the Moon: each
+ * of its pixels is then judged by the slopes under it, one by one (`flatShare`), not by their
+ * average. Read once. Null if this build has none, they do not divide the picture's pixels, or
+ * they can't be read.
  */
-export function loadSlopeWhole(meta: LightMeta): Promise<Float32Array | null> {
+export function loadSlopeWhole(meta: LightMeta): Promise<SlopeImages | null> {
   whole ??= (async () => {
     const slopeMax = meta.slope_max
-    if (!slopePixelsPerCell(meta) || !slopeMax) return null
+    const per = slopePixelsPerCell(meta) / WHOLE_SUB
+    if (!meta.slope_map_size || !slopeMax || !Number.isInteger(per) || per < 1) return null
     try {
-      const [x, y] = await Promise.all(LIGHT_URLS.slopes.map((url) => imageValues(url, meta.size * WHOLE_SUB, null)))
-      return slopeDegFrom(x, y, slopeMax)
+      // One after the other: each is read through a canvas of sixteen megabytes.
+      const x = await wholeImageValues(LIGHT_URLS.slopes[0], meta.slope_map_size)
+      const y = await wholeImageValues(LIGHT_URLS.slopes[1], meta.slope_map_size)
+      return { x, y, per, slopeMax }
     } catch (reason) {
       console.error(reason)
       return null
@@ -188,6 +231,36 @@ export function patchGapsAt(meta: LightMeta, site: string, month: string, index:
       const run = startGaps(patch.size)
       for (const [i, part] of parts.entries()) {
         const read = await patchMonthsKept.get(`${site}/${part.month}`, async () => readMonth(await gunzip(await bytes(LIGHT_URLS.patchMonth(site, part.month))), grid, part.month))
+        addMonth(run, read, part, i === 0)
+      }
+      return run
+    } catch (reason) {
+      console.error(reason)
+      return null
+    }
+  })
+}
+
+/** The wide grid's months are as large as the fine grid's, and read the same way: the last two are kept. */
+const wideMonthsKept = keep<LightMonth>(2)
+const wideGapsKept = keep<GridGaps | 'past' | null>(4)
+
+/**
+ * The mission's gaps at every cell of the wide grid (`LightMeta.wide`: larger cells reaching
+ * farther from the pole), for a landing at hour `index` of `month`. 'past' when the mission runs
+ * past the last month; null when this build has no wide grid or its files could not be read, so
+ * the ground beyond the fine grid is left to the smooth Moon.
+ */
+export function wideGapsAt(meta: LightMeta, month: string, index: number, missionDays: number): Promise<GridGaps | 'past' | null> {
+  return wideGapsKept.get(gapsKeyAt(month, index, missionDays), async () => {
+    const grid = wideGrid(meta)
+    if (!grid) return null
+    const parts = missionMonthsAt(grid, month, index, missionDays)
+    if (!parts) return 'past'
+    try {
+      const run = startGaps(grid.size)
+      for (const [i, part] of parts.entries()) {
+        const read = await wideMonthsKept.get(part.month, async () => readMonth(await gunzip(await bytes(LIGHT_URLS.wideMonth(part.month))), grid, part.month))
         addMonth(run, read, part, i === 0)
       }
       return run

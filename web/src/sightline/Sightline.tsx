@@ -83,7 +83,7 @@ import { useMissionGrid, useMoonShade } from './useMissionGrid'
 import { useFieldReadings, useLandingFields } from './useLandingFields'
 import type { FieldAsk } from '../data/landingField'
 import { latticeFor } from '../lib/landingField'
-import { closenessWords } from '../lib/accuracyWords'
+import { closenessWords, shadeLeavesOut } from '../lib/accuracyWords'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { defaultScenarios } from '../lib/defaultPair'
 import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
@@ -1076,8 +1076,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, false)
   // The shade on the Moon follows the time bar, as the Moon does: it is for a landing at the hour on show.
   const moonShade = useMoonShade(missionGrid.meta, start, hour, mission, spread, shown && !planner && fitShade)
-  // Whether the light grid reaches the site on show: only there do the odds know the terrain.
-  const fitHere = missionGrid.meta ? cellAt(missionGrid.meta, site.lat, site.lon) !== null : shadeHere
+  // Whether a light grid, the fine one or the wide one round it, reaches the site on show: only there do the odds know the terrain.
+  const fitHere = shadeHere
+  // How far from the pole the slope is judged: the fine grid's own square, which the slope images cover.
+  const slopeKm = missionGrid.meta ? Math.round(missionGrid.meta.half_width_m / 1000) : null
   // Landing accuracy from landing points around each scenario's target, each judged as the verdict
   // judges a point: worked out once Landing accuracy is in use, or for the scenario whose panel is open.
   // A spread being dragged is worked out once it rests: its lattice of points changes with it.
@@ -1700,7 +1702,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       {shown && !planner && drawer === 'rover' && <RoverDrawer long={presetOf(mission)?.id === 'long'} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} heights={siteHeights} start={start} landing={scenario.landing} verdict={aimVerdicts[active]} spread={spread} onSpread={setSpread} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, lander: closenessWords(spread) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
+      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, slopeKm, lander: closenessWords(spread), leavesOut: shadeLeavesOut(mission.heights, mission.requirements.minEarthClearanceDeg) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
             if (next !== null) closeUp()
             // One coloring of the ground at a time: a map takes the place of "Landings that fit".
             if (next !== null) setFitShade(false)
