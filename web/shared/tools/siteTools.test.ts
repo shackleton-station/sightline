@@ -16,10 +16,10 @@ describe('conditions_at', () => {
     const fact = (key: string) => result.facts.find((item) => item.key === key)
     expect(fact('sun')?.value).toBe('up')
     expect(fact('sun_above_skyline')?.label).toMatch(/^Sun above the skyline/)
-    expect(fact('sun_above_skyline')?.value).toBe('0.6°')
+    expect(fact('sun_above_skyline')?.value).toBe('0.6° above the skyline')
     expect(fact('sun_height')?.label).toBe('Sun elevation (from a level horizon)')
     expect(fact('sun_height')?.value).toBe('−1.2°')
-    expect(fact('earth_above_skyline')?.value).toBe('7.8°')
+    expect(fact('earth_above_skyline')?.value).toBe('7.8° above the skyline')
     expect(fact('earth_height')?.value).toBe('5.9°')
     expect(fact('earth')?.value).toBe('in view')
     // No label uses "height" or "level horizon" for the figure that decides visibility.
@@ -31,7 +31,8 @@ describe('conditions_at', () => {
     const result = await runTool('conditions_at', { site: 'connecting-ridge', time: '2027-05-25T12' }, context)
     if (!result.ok) throw new Error('the tool failed')
     const fact = (key: string) => result.facts.find((item) => item.key === key)
-    expect(fact('earth_above_skyline')?.value).toBe('−0.9°')
+    // Said with its side, never as a figure with a minus sign: "sits −0.9° relative to the skyline" is what that made.
+    expect(fact('earth_above_skyline')?.value).toBe('0.9° below the skyline')
     expect(fact('earth')?.value).toMatch(/^partly in view: only its upper edge shows over the skyline/)
     expect(fact('headline')?.value).toMatch(/Earth is partly in view/)
   })
