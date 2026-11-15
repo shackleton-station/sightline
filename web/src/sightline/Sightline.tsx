@@ -62,7 +62,8 @@ import { FullPlanner } from './FullPlanner'
 import { NewPlanner } from './NewPlanner'
 import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
-import { PlanNote, SavedBrief } from './PlanNote'
+import { SavedBrief, SavedPlanCard } from './PlanNote'
+import { planTabTitle } from '../lib/planLink'
 import { usePlanLink } from './usePlanLink'
 import { HypeDrawer } from './HypeDrawer'
 import { Tips } from './Tips'
@@ -598,6 +599,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       setFull(true)
     },
   })
+  // While a saved plan's card is up the tab carries the plan's name; put away, the tab is the scenario's again.
+  const savedName = savedPlan.plan?.title ?? null
+  useEffect(() => {
+    document.title = savedName === null ? title : planTabTitle(savedName)
+  }, [savedName, title])
   // The years asked for have arrived: open the link that was waiting for them.
   useEffect(() => {
     const hash = awaited.current
@@ -933,6 +939,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     return { sun: upSeries(data, 'sun', cell)[at] === 1, earth: upSeries(data, 'earth', cell)[at] === 1 }
   }, [wantGrid, lightGrid.meta, lightGrid.month, lightGrid.wide, lightGrid.wideMeta, site.lat, site.lon, index])
   const planner = shown && full
+  const savedCard = (inHeader: boolean) => <SavedPlanCard plan={savedPlan.plan} problem={savedPlan.problem} onDismiss={savedPlan.dismiss} inHeader={inHeader} layout={shown ? 'plan' : 'watch'} />
   // Landing accuracy: the light grid read for the landing, for the panel's map and odds, and (when
   // asked for) the same verdicts shaded on the Moon. Its months are megabytes, read only then.
   const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, shown && !planner && drawer === 'accuracy')
@@ -1007,7 +1014,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               {/* The undo notice takes the title's place for a few seconds: nothing moves, and nothing is over the Moon. */}
               <h1 className="sl-title">Sightline</h1>
               <HeaderTools onBrief={() => setBrief(true)} held={tourStep?.state.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} panel={drawer} />
-              <PlanNote plan={savedPlan.plan} problem={savedPlan.problem} onDismiss={savedPlan.dismiss} />
             </div>
             {/* The scenarios, on a row of their own; the undo notice sits at the row's end for a few seconds, so nothing moves and nothing is over the Moon. */}
             <div className="sl-tabs-row">
@@ -1291,6 +1297,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           year={Number(landingAt.month.slice(0, 4))}
           summary={here?.summary ?? null}
           landings={shares}
+          banner={savedCard(true)}
         />
       )}
       {planner && !newPlanner && (
@@ -1320,8 +1327,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           summary={here?.summary ?? null}
           landings={shares}
           sunlightWm2={sunlightWm2}
+          banner={savedCard(true)}
         />
       )}
+      {/* A saved plan's name and note, in sight wherever its link opened: here over the screen, in the Planner as a row of its header. */}
+      {!planner && savedCard(false)}
       {brief && (
         <Suspense fallback={null}>
           <BriefSheet

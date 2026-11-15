@@ -1,5 +1,5 @@
 import { customSiteInfo, isCustomSite } from '../data/customSite'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SiteInfo, Summary } from '../data/contract'
 import { loadOverview } from '../data/loadSite'
 import type { FlaggedSite } from '../data/useAllFlags'
@@ -61,6 +61,8 @@ interface Props {
   summary: Summary | null
   /** Each scenario's landing hour, for the Sun's and Earth's elevations; null while its month loads. */
   landings: (LandingShares | null)[]
+  /** A notice for the header's last row: a saved plan's name and note. */
+  banner?: ReactNode
 }
 
 /** The slip first asked about: the app's shortest listed delay, a week. */
@@ -76,7 +78,7 @@ type Chosen = Pick<Plan, 'site' | 'month' | 'index'>
  * kept to compare. The brief is always the scenario on show: choosing a square, a site, a point or
  * a time moves it, and the Moon follows; moving it on the Moon moves the brief.
  */
-export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onRemove, onScenario, onBack, scoutOpen, onScout, site, month, year, summary }: Props) {
+export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onRemove, onScenario, onBack, scoutOpen, onScout, site, month, year, summary, banner = null }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -234,6 +236,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
         <button type="button" className="sl-small sl-full-back" title="Back to the Moon (Esc)" onClick={onBack}>
           Back to the Moon
         </button>
+        {banner}
       </header>
       <div className="sl-full-body np-body">
         {/* Down the left, as in the rest of the app: a new pick's place and time, then the mission. */}

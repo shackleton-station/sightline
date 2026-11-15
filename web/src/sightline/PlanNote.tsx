@@ -1,61 +1,79 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import type { Plan } from '../lib/plans'
 import './planNote.css'
 
 const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 
-interface NoteProps {
+/** Under this width the window is a phone's: the card lies along its foot. */
+const PHONE_UNDER_PX = 761
+/** The air the card keeps from the edge of what it lies in. */
+const EDGE_PX = 8
+/** In Watch, on a laptop, the card is this wide and sits this far under the window's top, beside the Moon and not on it. */
+const WATCH_WIDTH_PX = 288
+const WATCH_TOP_PX = 60
+
+interface CardProps {
   /** The plan opened from a short link; null when none is. */
   plan: Plan | null
   /** Why a short link could not be opened; null when there is nothing to say. */
   problem: string | null
   onDismiss: () => void
+  /** Drawn in the Planner's header, as a row of it. Anywhere else the card is placed over the screen. */
+  inHeader?: boolean
+  /** What the screen is showing, in a word: the card is placed again when it changes. */
+  layout?: string
 }
 
 /**
- * One quiet line beside the screen's name, for a plan opened from a short link: "Plan: <name>", and
- * a button that puts the line away. The plan's note is never in the line, so a long one cannot push
- * the column: it is in the hover text, and a press on the name (a tap, on a phone) shows it in a
- * small card under the line, over the column, until a press elsewhere or Escape. The line takes no
- * room of its own. It also says so, in plain words, when a link could not be opened.
+ * A saved plan's card: it says the screen is showing a saved plan, then the plan's name and, under
+ * it, the note its author left, with a button that puts the card away for the rest of the visit. It
+ * is in sight as the link opens, with no press: the name and the note are why the link was sent.
+ * When a short link cannot be opened, the same card says why in plain words.
+ *
+ * It never moves the screen and never lies on the Moon on a laptop. In the Planner it is a row of
+ * the Planner's header. With the plan column open it lies along the column's foot, inside it. In
+ * Watch it sits in the corner under the page's name. On a phone it lies along the window's foot,
+ * over whatever sheet is open. A long note wraps and, past a few lines, scrolls inside the card.
  */
-export function PlanNote({ plan, problem, onDismiss }: NoteProps) {
-  const [shown, setShown] = useState(false)
-  const line = useRef<HTMLParagraphElement>(null)
-  useEffect(() => {
-    if (!shown) return
-    const close = (event: Event) => {
-      if (event instanceof KeyboardEvent ? event.key === 'Escape' : !(event.target instanceof Node && line.current?.contains(event.target))) setShown(false)
+export function SavedPlanCard({ plan, problem, onDismiss, inHeader = false, layout = '' }: CardProps) {
+  const card = useRef<HTMLElement>(null)
+  const there = plan !== null || problem !== null
+  useLayoutEffect(() => {
+    if (inHeader || !there) return
+    const place = () => {
+      const el = card.current
+      if (!el) return
+      const phone = window.innerWidth < PHONE_UNDER_PX
+      const column = phone ? null : document.querySelector('.sl-col')?.getBoundingClientRect()
+      const inColumn = column !== null && column !== undefined && column.width > 0
+      const left = inColumn ? column.left + EDGE_PX : phone ? EDGE_PX : 2 * EDGE_PX
+      el.style.left = `${left}px`
+      el.style.width = `${inColumn ? column.width - 2 * EDGE_PX : phone ? window.innerWidth - 2 * EDGE_PX : WATCH_WIDTH_PX}px`
+      el.style.top = inColumn || phone ? 'auto' : `${WATCH_TOP_PX}px`
+      el.style.bottom = inColumn ? `${window.innerHeight - column.bottom + EDGE_PX}px` : phone ? `${EDGE_PX}px` : 'auto'
     }
-    window.addEventListener('pointerdown', close)
-    window.addEventListener('keydown', close)
-    return () => {
-      window.removeEventListener('pointerdown', close)
-      window.removeEventListener('keydown', close)
-    }
-  }, [shown])
-  if (!plan && !problem) return null
-  const note = plan?.note ?? ''
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [inHeader, there, layout])
+  if (!there) return null
   return (
-    <p ref={line} className={problem ? 'sl-plan-note is-problem' : 'sl-plan-note'} role="status">
-      {plan && note !== '' ? (
-        <button type="button" className="sl-plan-note-words" aria-expanded={shown} aria-controls="sl-plan-note-card" title={`${plan.title}: ${note}`} onClick={() => setShown(!shown)}>
-          Plan: {plan.title}
-        </button>
-      ) : (
-        <span className="sl-plan-note-words" title={plan ? plan.title : (problem ?? undefined)}>
-          {plan ? `Plan: ${plan.title}` : problem}
-        </span>
-      )}
-      {shown && plan && note !== '' && (
-        <span id="sl-plan-note-card" className="sl-plan-note-card">
-          {note}
-        </span>
-      )}
-      <button type="button" className="sl-plan-note-close" aria-label={plan ? 'Put away the plan’s name' : 'Put this message away'} title="Hides this line." onClick={onDismiss}>
-        ×
+    <section ref={card} className={`sl-saved-card${inHeader ? ' is-in-header' : ''}${plan ? '' : ' is-problem'}`} aria-label={plan ? 'Saved plan' : 'Saved plan link'}>
+      <div className="sl-saved-card-words" role="status">
+        {plan ? (
+          <>
+            <p className="sl-saved-card-kind">Saved plan</p>
+            <p className="sl-saved-card-name">{plan.title}</p>
+            {plan.note !== '' && <p className="sl-saved-card-note">{plan.note}</p>}
+          </>
+        ) : (
+          <p className="sl-saved-card-problem">{problem}</p>
+        )}
+      </div>
+      <button type="button" className="sl-small sl-saved-card-away" title={plan ? 'Hides the saved plan’s name and note for the rest of this visit.' : 'Hides this message.'} onClick={onDismiss}>
+        Put away
       </button>
-    </p>
+    </section>
   )
 }
 
