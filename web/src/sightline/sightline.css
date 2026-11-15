@@ -4317,16 +4317,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-size: 0.875rem;
 }
 
-.sl-accuracy-odds {
-  font-size: 0.9375rem;
-}
-
-.sl-accuracy-odds strong {
-  font-family: var(--serif);
-  font-size: 1.75rem;
-  font-variant-numeric: tabular-nums;
-}
-
 .sl-accuracy-misses,
 .sl-accuracy-notes {
   margin: 0.3rem 0 0;
@@ -4347,18 +4337,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   border: 1px solid var(--line);
   cursor: crosshair;
   touch-action: manipulation;
-}
-
-.sl-accuracy-key span {
-  display: inline-block;
-  width: 0.7rem;
-  height: 0.7rem;
-  margin-right: 0.2rem;
-  vertical-align: -0.05rem;
-}
-
-.sl-accuracy-key span + span {
-  margin-left: 0.5rem;
 }
 
 .sl-accuracy-picked {
@@ -4390,20 +4368,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   display: flex;
   flex-wrap: wrap;
   gap: 0.1rem 0.7rem;
-}
-
-.sl-accuracy-key span + span {
-  margin-left: 0;
-}
-
-.sl-accuracy-approach {
-  margin-top: 0.5rem;
-  font-size: 0.8125rem;
-}
-
-.sl-accuracy-approach summary {
-  color: var(--soft);
-  cursor: pointer;
 }
 
 .sl-accuracy-aim {

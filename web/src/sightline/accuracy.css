@@ -1,0 +1,131 @@
+/* Landing accuracy, as a first-time visitor reads it: the answer, the picture, the one control, then "More".
+   The map, the swatches and the curve keep their rules in sightline.css. */
+
+/* What the panel is about, in one line under its name. */
+.sl-accuracy .sl-accuracy-what {
+  margin: 0.35rem 0 0;
+}
+
+/* The answer: one sentence that starts with its number, big and in the verdict's three colours (sightline.css: --sl-fits, --sl-marginal, --sl-miss). */
+.sl-accuracy .sl-accuracy-answer {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.sl-accuracy .sl-accuracy-answer strong {
+  margin-right: 0.15rem;
+  font-family: var(--serif);
+  font-size: 2.125rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* When the verdict for the exact point and the ground around it disagree, that is said with the answer. */
+.sl-accuracy .sl-accuracy-differs {
+  margin: 0.4rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.sl-accuracy .sl-accuracy-answer.is-fit strong {
+  color: var(--sl-fits);
+}
+
+.sl-accuracy .sl-accuracy-answer.is-marginal strong {
+  color: var(--sl-marginal);
+}
+
+.sl-accuracy .sl-accuracy-answer.is-miss strong {
+  color: var(--sl-miss);
+}
+
+/* The reasons the rest do not fit, each a line with its share. */
+.sl-accuracy .sl-accuracy-rest {
+  margin: 0.5rem 0 0;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.sl-accuracy .sl-accuracy-misses {
+  margin-top: 0.1rem;
+}
+
+/* A better place to aim: what it gains, and the button that takes it. */
+.sl-accuracy .sl-accuracy-aim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.sl-accuracy .sl-accuracy-aim .sl-small {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* One caption under the picture: what each colour is, then how to read the rest. */
+.sl-accuracy .sl-accuracy-caption {
+  margin-top: 0.4rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.sl-accuracy .sl-accuracy-caption p {
+  margin: 0;
+}
+
+.sl-accuracy .sl-accuracy-key > span {
+  white-space: nowrap;
+}
+
+.sl-accuracy .sl-accuracy-picked {
+  min-height: 2.8em;
+  margin-top: 0.2rem;
+  color: var(--soft);
+}
+
+/* The one control: the question it answers, then the slider with its distance. */
+.sl-accuracy .sl-accuracy-close {
+  margin-top: 0.5rem;
+}
+
+.sl-accuracy .sl-accuracy-close label {
+  font-weight: 600;
+}
+
+.sl-accuracy .sl-accuracy-close-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sl-accuracy .sl-accuracy-close-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sl-accuracy .sl-accuracy-close-row output {
+  flex: none;
+  min-width: 6.2rem;
+  text-align: right;
+}
+
+/* Everything else: folded until it is asked for. */
+.sl-accuracy .sl-accuracy-more {
+  margin-top: 0.7rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+
+.sl-accuracy .sl-accuracy-more > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sl-accuracy .sl-accuracy-more > h3:first-of-type {
+  margin-top: 0.6rem;
+}

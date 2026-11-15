@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { slopePartFor, slopePartNow } from '../data/loadMissionGrid'
+import { bearingBetweenDeg, closenessWords, compassWords, GOOD_ODDS, oddsTone } from '../lib/accuracyWords'
 import { isBaseHeights } from '../lib/heights'
 import {
   ACCURACY_RANGE,
@@ -30,6 +31,7 @@ import type { SightlineMission } from '../lib/sightlineMission'
 import { AccuracyCurve } from './AccuracyCurve'
 import { AccuracyMap } from './AccuracyMap'
 import { type MissionGrid, REACH_M } from './useMissionGrid'
+import './accuracy.css'
 
 interface Props {
   site: SiteInfo
@@ -48,9 +50,6 @@ interface Props {
   onAim: (lat: number, lon: number) => void
   onClose: () => void
 }
-
-/** The odds worth keeping, for "how loose can the accuracy be". */
-const GOOD_ODDS = 0.9
 
 interface SliderProps {
   id: string
@@ -74,12 +73,24 @@ function Slider({ id, label, value, text, range, onChange }: SliderProps) {
 }
 
 /**
- * Landing accuracy: a lander aimed at the site comes down somewhere around it. A map of the ground
- * within reach, green where a landing fits the mission and in its reason's color where it does not,
- * the odds of coming down on green for the accuracy typed, and a better place to aim if there is one.
+ * Landing accuracy: a lander aimed at the site comes down somewhere around it. The panel reads from
+ * the top as a first-time visitor needs it:
+ *
+ * 1. The answer, as one sentence with its number big and in the verdict's colours: the share of
+ *    landings that come down where the mission still fits. Under it, the reasons the others do not,
+ *    each with its share, and a better place to aim when there is one.
+ * 2. The picture: the ground within reach, green where a landing fits and in its reason's colour
+ *    where it does not, with one caption that says how to read it.
+ * 3. The one control that matters: how close the lander gets to its aim point.
+ * 4. Everything else under "More": a miss longer along the approach, the curve of the miss, the
+ *    shading on the Moon, and what this does and does not say.
+ *
+ * The odds, the map and the better aim are `landingOdds`' own; nothing is worked out here.
  */
 export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, shade, onShade, onAim, onClose }: Props) {
   const [picked, setPicked] = useState<number | null>(null)
+  // "More" opens by itself when the link already stretches the miss along the approach: its sliders are in there.
+  const [more, setMore] = useState(spread.stretch > 1)
   const [, setArrived] = useState(0)
   const { meta, gaps } = grid
   const { requirements, maxSlopeDeg } = mission
@@ -146,19 +157,103 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
   const good = Math.round(100 * GOOD_ODDS)
   const takeAim = () => {
     if (!aim) return
-    const target = planeXY(meta, site.lat, site.lon)
-    const { lat, lon } = planeLatLon(meta, target.x + aim.x, target.y + aim.y)
+    const here = planeXY(meta, site.lat, site.lon)
+    const { lat, lon } = planeLatLon(meta, here.x + aim.x, here.y + aim.y)
     setPicked(null)
     onAim(Number(lat.toFixed(6)), Number(lon.toFixed(6)))
   }
 
+  const target = planeXY(meta, site.lat, site.lon)
+  const aimAt = aim ? planeLatLon(meta, target.x + aim.x, target.y + aim.y) : null
+  const aimWay = aimAt ? compassWords(bearingBetweenDeg(site, aimAt)) : null
+  // The diamond is drawn only when the better aim is on the picture.
+  const aimInView = aim !== null && Math.abs(aim.x) <= viewM && Math.abs(aim.y) <= viewM
+  const share = Math.round(100 * ACCURACY_SHARE)
+
   return frame(
     <>
-      <p className="sl-quiet">A lander aimed at {site.name} comes down somewhere around it. This is the ground within reach, and the odds of coming down where the mission still works.</p>
+      <p className="sl-quiet sl-accuracy-what">Landing accuracy is how far from its aim point a lander may come down.</p>
 
-      <Slider id="sl-accuracy-m" label={`${Math.round(100 * ACCURACY_SHARE)}% of landings fall within`} value={spread.accuracyM} text={`${spread.accuracyM} m`} range={ACCURACY_RANGE} onChange={(accuracyM) => onSpread({ ...spread, accuracyM })} />
-      <details className="sl-accuracy-approach" open={spread.stretch > 1}>
-        <summary>Longer along the approach</summary>
+      <p className={`sl-accuracy-answer is-${oddsTone(odds.fit)}`} title="The share of landings that come down on ground where the mission still fits.">
+        <strong>{oddsWords(odds.fit)}</strong>{' '}
+        <span>
+          of landings aimed at {site.name} come down where the mission still fits, for a lander that gets {closenessWords(spread)}.
+        </span>
+      </p>
+      {misses.length > 0 && (
+        <>
+          <p className="sl-accuracy-rest">Where the rest come down:</p>
+          <ul className="sl-accuracy-misses">
+            {misses.map((miss) => (
+              <li key={miss} title="The share of landings that come down where this is the reason the mission does not fit.">
+                <span className="sl-accuracy-swatch" style={{ background: MISS_COLORS[miss] }} />
+                {oddsWords(odds.misses[miss])}: {MISS_WORDS[miss]}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {fits !== null && gridFits !== null && fits !== gridFits && (
+        <p className="sl-quiet sl-accuracy-differs">The verdict on the left is worked out at the exact point; the map’s cell at the aim point reads differently. Trust the verdict for the point and this for the ground around it.</p>
+      )}
+      {odds.covered < 0.98 && <p className="sl-quiet">The map holds {Math.round(100 * odds.covered)}% of landings at this setting; the odds are among those.</p>}
+
+      {aim && (
+        <p className="sl-accuracy-aim" title="The aim point near this one with the best odds of coming down where the mission fits.">
+          <span>
+            Aim {Math.round(Math.hypot(aim.x, aim.y)).toLocaleString('en-US')} m to the {aimWay}
+            {aimInView ? ' (the diamond)' : ''}: <strong>{oddsWords(aim.fit)}</strong> fit.
+          </span>
+          <button type="button" className="sl-small" title="Moves this scenario’s target to the diamond." onClick={takeAim}>
+            Aim there
+          </button>
+        </p>
+      )}
+
+      <AccuracyMap map={map} spread={spread} viewM={viewM} aim={aim} picked={picked} onPick={setPicked} label={`The ground within ${Math.round(viewM)} m of ${site.name}: ${oddsWords(odds.fit)} of landings come down where the mission fits`} />
+      <div className="sl-accuracy-caption">
+        <p className="sl-accuracy-key">
+          <span>
+            <span className="sl-accuracy-swatch" style={{ background: FIT_COLOR }} />
+            fits
+          </span>
+          {MISSES.filter((miss) => inView.has(miss)).map((miss) => (
+            <span key={miss}>
+              <span className="sl-accuracy-swatch" style={{ background: MISS_COLORS[miss] }} />
+              {MISS_WORDS[miss]}
+            </span>
+          ))}
+        </p>
+        <p className="sl-accuracy-picked" role="status">
+          {pickedAt
+            ? `${Math.round(Math.hypot(pickedAt.x, pickedAt.y))} m from the aim point: ${pickedMiss ? MISS_WORDS[pickedMiss] : 'a landing here fits'}.`
+            : 'The cross is the aim point; the rings hold 50%, 90% and 99% of landings. Tap a spot to see why it fits or not.'}
+        </p>
+      </div>
+
+      <div className="sl-param sl-accuracy-close">
+        <label htmlFor="sl-accuracy-m">How close can the lander get to its aim point?</label>
+        <div className="sl-accuracy-close-row">
+          <input
+            id="sl-accuracy-m"
+            type="range"
+            min={ACCURACY_RANGE.min}
+            max={ACCURACY_RANGE.max}
+            step={ACCURACY_RANGE.step}
+            value={spread.accuracyM}
+            aria-valuetext={`within ${spread.accuracyM} m`}
+            onChange={(event) => onSpread({ ...spread, accuracyM: Number(event.target.value) })}
+          />
+          <output htmlFor="sl-accuracy-m" title={`Nearly all landings, ${share}%, come down within this distance of the aim point.`}>
+            within {spread.accuracyM.toLocaleString('en-US')} m
+          </output>
+        </div>
+      </div>
+
+      <details className="sl-accuracy-more" open={more} onToggle={(event) => setMore(event.currentTarget.open)}>
+        <summary>More</summary>
+
+        <h3>A longer miss along the approach</h3>
         <Slider
           id="sl-accuracy-stretch"
           label="Along the approach path"
@@ -169,74 +264,35 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
         />
         {spread.stretch > 1 && <Slider id="sl-accuracy-bearing" label="Path’s direction on the map" value={spread.bearingDeg} text={`${spread.bearingDeg}° from up`} range={BEARING_RANGE} onChange={(bearingDeg) => onSpread({ ...spread, bearingDeg })} />}
         <p className="sl-quiet">A lander scatters more along the way it flies in than across it. Up on the map is toward 0° E longitude.</p>
-      </details>
 
-      <p className="sl-accuracy-odds">
-        <strong>{oddsWords(odds.fit)}</strong> of landings fit the mission
-      </p>
-      {misses.length > 0 && (
-        <ul className="sl-accuracy-misses">
-          {misses.map((miss) => (
-            <li key={miss}>
-              <span className="sl-accuracy-swatch" style={{ background: MISS_COLORS[miss] }} />
-              {oddsWords(odds.misses[miss])}: {MISS_WORDS[miss]}
-            </li>
-          ))}
-        </ul>
-      )}
-      {odds.covered < 0.98 && <p className="sl-quiet">The map holds {Math.round(100 * odds.covered)}% of landings at this setting; the odds are among those.</p>}
-
-      {aim && (
-        <p className="sl-accuracy-aim">
-          Aim {Math.round(Math.hypot(aim.x, aim.y))} m away (the diamond) and {oddsWords(aim.fit)} fit.{' '}
-          <button type="button" className="sl-small" onClick={takeAim}>
-            Aim there
-          </button>
+        <h3>How far off, and how it fares</h3>
+        <AccuracyCurve rings={rings(map, chances, ringM, viewM)} accuracyM={spread.accuracyM} />
+        <p className="sl-quiet">Each bar is the chance of missing by that much. Its green part is the share of the ground at that distance where a landing fits.</p>
+        <p>
+          {loosest === null
+            ? `Even at ${min} m accuracy the odds are under ${good}%.`
+            : loosest >= max
+              ? `The odds stay at ${good}% or better at every accuracy up to ${max.toLocaleString('en-US')} m.`
+              : `The odds stay at ${good}% or better up to an accuracy of ${loosest} m.`}
         </p>
-      )}
 
-      <AccuracyMap map={map} spread={spread} viewM={viewM} aim={aim} picked={picked} onPick={setPicked} label={`The ground within ${Math.round(viewM)} m of ${site.name}: ${oddsWords(odds.fit)} of landings come down where the mission fits`} />
-      <p className="sl-accuracy-key">
-        <span className="sl-accuracy-swatch" style={{ background: FIT_COLOR }} />
-        fits
-        {MISSES.filter((miss) => inView.has(miss)).map((miss) => (
-          <span key={miss}>
-            <span className="sl-accuracy-swatch" style={{ background: MISS_COLORS[miss] }} />
-            {MISS_WORDS[miss]}
-          </span>
-        ))}
-      </p>
-      <p className="sl-quiet">Outlines hold 50%, 90% and 99% of landings.</p>
-      <p className="sl-accuracy-picked">
-        {pickedAt ? `${Math.round(Math.hypot(pickedAt.x, pickedAt.y))} m from the target: ${pickedMiss ? MISS_WORDS[pickedMiss] : 'a landing here fits'}.` : 'Tap the map to see why a spot fits or not.'}
-      </p>
-      <label className="sl-check" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
-        <input type="checkbox" role="switch" checked={shade} onChange={() => onShade(!shade)} />
-        <span>Show the odds on the Moon</span>
-      </label>
+        <h3>On the Moon</h3>
+        <label className="sl-check" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
+          <input type="checkbox" role="switch" checked={shade} onChange={() => onShade(!shade)} />
+          <span>Show the odds on the Moon</span>
+        </label>
 
-      <h3>How far off, and how it fares</h3>
-      <AccuracyCurve rings={rings(map, chances, ringM, viewM)} accuracyM={spread.accuracyM} />
-      <p className="sl-quiet">Each bar is the chance of missing by that much. Its green part is the share of the ground at that distance where a landing fits.</p>
-      <p>
-        {loosest === null
-          ? `Even at ${min} m accuracy the odds are under ${good}%.`
-          : loosest >= max
-            ? `The odds stay at ${good}% or better at every accuracy up to ${max.toLocaleString('en-US')} m.`
-            : `The odds stay at ${good}% or better up to an accuracy of ${loosest} m.`}
-      </p>
-
-      <h3>What this does and does not say</h3>
-      <ul className="sl-accuracy-notes">
-        <li>A miss is taken as a bell curve around the target: less likely the farther out, the same in every direction unless you stretch it along the approach. That is an assumption, not any lander’s own figures.</li>
-        <li>
-          Sun and Earth are read on {meta.pixel_m} m cells{slope ? ` and the slope on ${map.cellM} m cells` : ''}. Ground finer than that is not told apart.
-        </li>
-        {!slope && <li>The slope could not be read, so the map is Sun and Earth only.</li>}
-        {!plainLight && <li>The map reads the Sun and Earth {meta.obs_height_m} m above the ground, with any part of Earth counting. Your mission’s heights or Earth clearance are not in it.</li>}
-        {fits !== null && gridFits !== null && fits !== gridFits && <li>The verdict on the left is worked out at the exact point; the map’s cell at the target reads differently. Trust the verdict for the point and the map for the ground around it.</li>}
-        <li>The odds are of coming down on ground the model says fits. The model’s own error is not in them.</li>
-      </ul>
+        <h3>What this does and does not say</h3>
+        <ul className="sl-accuracy-notes">
+          <li>A miss is taken as a bell curve around the target: less likely the farther out, the same in every direction unless you stretch it along the approach. That is an assumption, not any lander’s own figures.</li>
+          <li>
+            Sun and Earth are read on {meta.pixel_m} m cells{slope ? ` and the slope on ${map.cellM} m cells` : ''}. Ground finer than that is not told apart.
+          </li>
+          {!slope && <li>The slope could not be read, so the map is Sun and Earth only.</li>}
+          {!plainLight && <li>The map reads the Sun and Earth {meta.obs_height_m} m above the ground, with any part of Earth counting. Your mission’s heights or Earth clearance are not in it.</li>}
+          <li>The odds are of coming down on ground the model says fits. The model’s own error is not in them.</li>
+        </ul>
+      </details>
     </>,
   )
 }
