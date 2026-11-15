@@ -45,6 +45,13 @@ interface Props {
  * Layers) is on the Moon's own stage (ViewSwitch); on a phone, where the rail is one row over the
  * stage, that row carries the three views and "More" has Layers. Nothing here leaves the screen.
  */
+/**
+ * Whether the rail offers the New Planner beside the Planner. Off since 2026-11-15 (Rodrigo): one
+ * planner in the rail, so a visitor is not asked to choose between two. The New Planner's page and
+ * code are untouched; `true` brings its button back.
+ */
+const SHOW_NEW_PLANNER: boolean = false
+
 export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onBrief, onHow, onTour, onHome, hype }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
@@ -100,9 +107,11 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
       <button type="button" data-tour="planner" title="Opens the Planner: every site by month, and your scenarios side by side." onClick={onPlanner}>
         Planner
       </button>
-      <button type="button" title="Opens the New Planner: choose a place and time, see every site by month, read the written brief." onClick={onNewPlanner}>
-        New Planner
-      </button>
+      {SHOW_NEW_PLANNER && (
+        <button type="button" title="Opens the New Planner: choose a place and time, see every site by month, read the written brief." onClick={onNewPlanner}>
+          New Planner
+        </button>
+      )}
       <button type="button" data-tour="brief" title="Opens the written brief: the scenario on show, written out in full, to read or print." onClick={onBrief}>
         Brief
       </button>
