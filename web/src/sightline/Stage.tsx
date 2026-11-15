@@ -1,4 +1,4 @@
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MoonFeatures, SiteInfo } from '../data/contract'
 import { GlobeCanvas } from '../components/GlobeCanvas'
 import type { GlobeOverlay, GlobeOverlayDetail, GlobeShade, GroundDetail } from '../three/GlobeViewer'
@@ -57,6 +57,8 @@ interface Props {
   onPoint: (site: SiteInfo | null) => void
   /** The visitor asked for the default view again (the compass): leave any close-up. */
   onRecentre: () => void
+  /** A control laid over the stage by the screen (the view switch in its top left corner): Earth's mark keeps clear of its box too. */
+  corner?: RefObject<HTMLElement | null>
   /** A Moon Trek layer laid over the ground around the south pole, or none. */
   overlay?: GlobeOverlay | null
   /** A transparent shade over the whole Moon, or none. */
@@ -131,7 +133,7 @@ function lonLatOf(direction: readonly [number, number, number]): { lon: number; 
 /** How close to a zoom limit counts as being at it, as a share of the limit. */
 const ZOOM_SLACK = 1e-6
 
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, onRingedHidden, turnTo = null, recentreWords = null, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
+export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, onRingedHidden, turnTo = null, recentreWords = null, focus, onChoose, onPoint, onPick, onRecentre, corner, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
@@ -439,7 +441,8 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
   useEffect(() => {
     const stageBox = stage.current?.getBoundingClientRect()
     const toolsBox = tools.current?.getBoundingClientRect()
-    const next = stageBox && toolsBox && toolsBox.width > 0 ? [{ left: toolsBox.left - stageBox.left, top: toolsBox.top - stageBox.top, right: toolsBox.right - stageBox.left, bottom: toolsBox.bottom - stageBox.top }] : []
+    const boxes = [toolsBox, corner?.current?.getBoundingClientRect()].flatMap((one) => (one && one.width > 0 ? [one] : []))
+    const next = stageBox ? boxes.map((one) => ({ left: one.left - stageBox.left, top: one.top - stageBox.top, right: one.right - stageBox.left, bottom: one.bottom - stageBox.top })) : []
     setKeepClear((last) => (JSON.stringify(last) === JSON.stringify(next) ? last : next))
   }, [box.width, box.height, bare, moved, focus])
 

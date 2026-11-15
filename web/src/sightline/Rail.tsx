@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RiverState } from '../lib/river'
 import { Mascot } from '../scout/Mascot'
+import { useCompact } from './hooks'
 
 export type StageMode = 'orbit' | 'site' | 'surface'
 
@@ -39,9 +40,10 @@ interface Props {
 }
 
 /**
- * The rail down the right of the Plan frame, in three named sections: View (how close the Moon is
- * seen, one grouped control, and its layers), Plan (Scout and the tools) and Help (How it works, and
- * home, to the opening screen). Nothing here leaves the screen.
+ * The rail down the right of the Plan frame, in two named sections: Plan (Scout and the tools) and
+ * Help (the Guide, and home, to the opening screen). What the Moon shows (Orbit, Site, Surface and
+ * Layers) is on the Moon's own stage (ViewSwitch); on a phone, where the rail is one row over the
+ * stage, that row carries the three views and "More" has Layers. Nothing here leaves the screen.
  */
 export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onHow, onTour, onHome, hype }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
@@ -145,10 +147,7 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
     )
   }
   return (
-    <nav className="sl-rail" aria-label="Views and tools">
-      <span className="sl-rail-label">View</span>
-      {heights}
-      {layers}
+    <nav className="sl-rail" aria-label="Tools and help">
       <span className="sl-rail-label">Plan</span>
       {scout}
       {tools}
@@ -156,15 +155,4 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
       {ways}
     </nav>
   )
-}
-
-/** Whether the window is a phone's width: the rail is one row there. */
-function useCompact(): boolean {
-  const [compact, setCompact] = useState(() => window.innerWidth < 761)
-  useEffect(() => {
-    const onResize = () => setCompact(window.innerWidth < 761)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  return compact
 }
