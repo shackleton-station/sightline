@@ -2031,3 +2031,184 @@
 .sl-np .np-accuracy .sl-accuracy-swatch {
   flex: 0 0 auto;
 }
+
+/* ---------- Find: where the lander may come down, played out ---------- */
+.sl-np .np-rain {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.9rem 1.2rem;
+  align-items: start;
+}
+
+.sl-np .np-rain-stage {
+  min-width: 0;
+}
+
+.sl-np .np-rain-stage canvas {
+  display: block;
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgb(0 0 0 / 45%);
+}
+
+.sl-np .np-rain-side {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.sl-np .np-rain-big {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.sl-np .np-rain-big strong {
+  color: var(--both);
+  font-family: var(--pl-mono);
+  font-size: 2.4rem;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-np .np-rain-big span {
+  color: var(--soft);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.sl-np .np-rain-big small {
+  color: var(--muted);
+}
+
+.sl-np .np-rain-bars {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sl-np .np-rain-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr) 2.2rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.sl-np .np-rain-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: hidden;
+  color: var(--soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sl-np .np-rain-name i {
+  flex: 0 0 auto;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 2px;
+}
+
+.sl-np .np-rain-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 7%);
+}
+
+.sl-np .np-rain-track b {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease-out;
+}
+
+.sl-np .np-rain-n {
+  color: var(--text);
+  font-family: var(--pl-mono);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-np .np-rain-acc {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.8125rem;
+}
+
+.sl-np .np-rain-acc input {
+  width: 100%;
+  accent-color: var(--gold);
+}
+
+.sl-np .np-rain-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.sl-np .np-rain-actions .is-aim {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.sl-np .np-rain-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.sl-np .np-rain-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.sl-np .np-rain-key i {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.sl-np .np-rain-key .is-ring {
+  border: 1.5px dashed rgb(255 255 255 / 80%);
+  border-radius: 50%;
+}
+
+.sl-np .np-rain-key .is-target {
+  background:
+    linear-gradient(#fff, #fff) center / 100% 2px no-repeat,
+    linear-gradient(#fff, #fff) center / 2px 100% no-repeat;
+}
+
+.sl-np .np-rain-key .is-aim {
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1.5px solid #fff;
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-np .np-rain-track b {
+    transition: none;
+  }
+}
+
+/* The map large across the column, the tally under it. */
+.sl-np .np-rain {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sl-np .np-rain-bar {
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) 2.2rem;
+}

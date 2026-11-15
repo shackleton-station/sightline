@@ -23,7 +23,7 @@ import { PlannerMore } from './PlannerMore'
 import { NewPlannerCompare } from './NewPlannerCompare'
 import { PlannerNearby } from './PlannerNearby'
 import { useHorizons, useMissionTracks } from './useMissionTracks'
-import { AccuracyDrawer } from './AccuracyDrawer'
+import { LandingRain } from './LandingRain'
 import { useMissionGrid } from './useMissionGrid'
 import { DEFAULT_SPREAD, type Spread } from '../lib/landingOdds'
 import { isBaseHeights } from '../lib/heights'
@@ -347,18 +347,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                 {accuracyWanted && (
                   <div className="np-accuracy">
                     <h5>Where the lander may come down</h5>
-                    <AccuracyDrawer
-                      site={view.row.site}
-                      mission={mission}
-                      grid={missionGrid}
-                      spread={spread}
-                      onSpread={setSpread}
-                      fits={view.landing.problems.length === 0}
-                      shade={false}
-                      onShade={() => undefined}
-                      onAim={(lat, lon) => onScenario({ site: `${lat},${lon}`, landing: hourOf(start, view.landing.t) })}
-                      onClose={() => undefined}
-                    />
+                    <LandingRain site={view.row.site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} onAim={(lat, lon) => onScenario({ site: `${lat},${lon}`, landing: hourOf(start, view.landing.t) })} />
                   </div>
                 )}
               </PlannerNearby>
