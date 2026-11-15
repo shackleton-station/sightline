@@ -22,10 +22,17 @@
   white-space: nowrap;
 }
 
-/* When the verdict for the exact point and the ground around it disagree, that is said with the answer. */
-.sl-accuracy .sl-accuracy-differs {
-  margin: 0.4rem 0 0;
+/* The verdict on the left, said again for the aim point, above the answer for the ground around it. */
+.sl-accuracy .sl-accuracy-point {
+  margin: 0.5rem 0 0;
+  padding-left: 0.5rem;
+  border-left: 3px solid var(--sl-fits);
   font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.sl-accuracy .sl-accuracy-point.is-miss {
+  border-left-color: var(--sl-miss);
 }
 
 .sl-accuracy .sl-accuracy-answer.is-fit strong {

@@ -1,49 +1,48 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
-import { slopePartFor, slopePartNow } from '../data/loadMissionGrid'
-import { bearingBetweenDeg, closenessWords, compassWords, GOOD_ODDS, oddsTone } from '../lib/accuracyWords'
-import { isBaseHeights } from '../lib/heights'
+import { bearingBetweenDeg, closenessWords, compassWords, oddsTone } from '../lib/accuracyWords'
+import { polarLatLon, polarXY } from '../lib/customModel'
+import type { MissionHeights } from '../lib/heights'
+import type { FieldReading } from '../lib/landingField'
 import {
   ACCURACY_RANGE,
   ACCURACY_SHARE,
   BEARING_RANGE,
   bestAim,
   cellCentreM,
-  cellChances,
   FIT_COLOR,
-  landingOdds,
-  loosestAccuracyM,
   type Miss,
   MISS_COLORS,
   MISS_WORDS,
   MISSES,
   missOf,
   oddsWords,
-  offeredAccuracies,
   reachM,
   rings,
   type Spread,
   STRETCH_RANGE,
 } from '../lib/landingOdds'
-import { planeLatLon, planeXY } from '../lib/lightGrid'
-import { fitMapAround, fitsAtTarget, squareAround } from '../lib/missionGrid'
 import type { SightlineMission } from '../lib/sightlineMission'
 import { AccuracyCurve } from './AccuracyCurve'
 import { AccuracyMap } from './AccuracyMap'
-import { type MissionGrid, REACH_M } from './useMissionGrid'
+import type { FieldState } from './useLandingFields'
 import './accuracy.css'
 
 interface Props {
   site: SiteInfo
   mission: SightlineMission
-  /** The light grid read for the landing on show. */
-  grid: MissionGrid
+  /** The heights the landing points are worked out at: those the verdict on the left is for. */
+  heights: MissionHeights
+  /** The landing points around the site, as far as they have been worked out. */
+  points: FieldState
+  /** Those points read under the mission and the spread: the same reading the verdict's line and Compare show. Null until there are points. */
+  reading: FieldReading | null
+  /** The verdict on the left for the aim point itself: null where it fits, the reason where it does not, undefined while unknown. */
+  verdict: Miss | null | undefined
   /** How the lander's misses are spread, and a change to it. */
   spread: Spread
   onSpread: (spread: Spread) => void
-  /** Whether the landing fits at the exact point, by the verdict on the left; null while unknown. */
-  fits: boolean | null
-  /** Whether the same verdicts are shaded on the Moon itself. */
+  /** Whether the same verdicts are shaded on the Moon. */
   shade: boolean
   onShade: (on: boolean) => void
   /** Move the scenario's target to a point. */
@@ -76,50 +75,31 @@ function Slider({ id, label, value, text, range, onChange }: SliderProps) {
  * Landing accuracy: a lander aimed at the site comes down somewhere around it. The panel reads from
  * the top as a first-time visitor needs it:
  *
- * 1. The answer, as one sentence with its number big and in the verdict's colours: the share of
- *    landings that come down where the mission still fits. Under it, the reasons the others do not,
- *    each with its share, and a better place to aim when there is one.
+ * 1. The verdict on the left, said again for the aim point, and then the answer as one sentence
+ *    with its number big and in the verdict's colours: the share of landings that come down where
+ *    the mission still fits. Under it, the reasons the others do not, each with its share, and a
+ *    better place to aim when there is one.
  * 2. The picture: the ground within reach, green where a landing fits and in its reason's colour
  *    where it does not, with one caption that says how to read it.
  * 3. The one control that matters: how close the lander gets to its aim point.
  * 4. Everything else under "More": a miss longer along the approach, the curve of the miss, the
  *    shading on the Moon, and what this does and does not say.
  *
- * The odds, the map and the better aim are `landingOdds`' own; nothing is worked out here.
+ * The ground is judged at landing points around the target, each as the verdict judges a point
+ * (`lib/landingField.ts`). The odds, the map and the better aim are `landingOdds`' own, and the
+ * reading is the one the verdict's line and Compare show; nothing is worked out here.
  */
-export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, shade, onShade, onAim, onClose }: Props) {
+export function AccuracyDrawer({ site, mission, heights, points, reading, verdict, spread, onSpread, shade, onShade, onAim, onClose }: Props) {
   const [picked, setPicked] = useState<number | null>(null)
   // "More" opens by itself when the link already stretches the miss along the approach: its sliders are in there.
   const [more, setMore] = useState(spread.stretch > 1)
-  const [, setArrived] = useState(0)
-  const { meta, gaps } = grid
-  const { requirements, maxSlopeDeg } = mission
-  const square = useMemo(() => (meta ? squareAround(meta, site.lat, site.lon, REACH_M) : null), [meta, site.lat, site.lon])
-  const squareKey = square ? `${square.col},${square.row},${square.cells}` : null
-
-  useEffect(() => {
-    if (!meta || !square) return
-    let current = true
-    void slopePartFor(meta, square).then(() => current && setArrived((count) => count + 1))
-    return () => {
-      current = false
-    }
-    // The key names the square: the same key is the same ground.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [meta, squareKey])
-
-  // Null when the slope could not be read; undefined while it has not arrived.
-  const slope = square ? slopePartNow(square) : undefined
-  const map = useMemo(
-    () => (meta && gaps && square && slope !== undefined ? fitMapAround(meta, gaps, square, site.lat, site.lon, requirements, maxSlopeDeg, slope) : null),
-    [meta, gaps, square, slope, site.lat, site.lon, requirements, maxSlopeDeg],
-  )
-  const chances = useMemo(() => (map ? cellChances(map, spread) : null), [map, spread])
-  const odds = useMemo(() => (map && chances ? landingOdds(map, chances) : null), [map, chances])
+  const { requirements } = mission
+  const map = reading?.map ?? null
+  const chances = reading?.chances ?? null
+  const longM = spread.accuracyM * spread.stretch
   // A better aim is looked for as far as the map still holds the landings of a lander aimed there.
-  const searchM = map ? Math.max(0, reachM(map) - 1.25 * spread.accuracyM * spread.stretch) : 0
+  const searchM = map ? Math.max(0, reachM(map) - 1.25 * longM) : 0
   const aim = useMemo(() => (map && chances && searchM > 0 ? bestAim(map, chances, searchM) : null), [map, chances, searchM])
-  const loosest = useMemo(() => (map ? loosestAccuracyM(map, GOOD_ODDS, offeredAccuracies(), spread) : null), [map, spread])
 
   const frame = (body: ReactNode) => (
     <aside className="sl-drawer sl-accuracy" aria-label="Landing accuracy">
@@ -132,13 +112,20 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
       {body}
     </aside>
   )
-  if (meta === null || grid.state === 'failed') return frame(<p>The light grid could not be read. Close this panel and open it again to retry.</p>)
-  if (grid.state === 'past') return frame(<p>The mission runs past the last month of the light grid, so the ground around this landing cannot be judged.</p>)
-  if (meta && !square) return frame(<p>This is worked out from the hourly light grid, which covers the ground within about {Math.round(meta.half_width_m / 1000)} km of the south pole. {site.name} is outside it, or too close to its edge.</p>)
-  if (!meta || !map || !odds || !chances) return frame(<p className="sl-quiet">Reading the ground around {site.name}…</p>)
+  const answer = points.answer
+  if (!answer && points.failed) return frame(<p>The terrain around {site.name} could not be read. Close this panel and open it again to retry.</p>)
+  if (answer?.state === 'past') return frame(<p>The mission runs past the years there are Sun and Earth positions for, so the ground around this landing cannot be judged.</p>)
+  if (answer?.state === 'outside') return frame(<p>This is worked out from the fine terrain around the south pole, which holds every skyline within about 100 km of it. {site.name} is outside that.</p>)
+  if (!answer || !reading || !map || !chances)
+    return frame(
+      <p className="sl-quiet" role="status">
+        Working out the landing points around {site.name}… {points.progress > 0 ? `${Math.round(100 * points.progress)}%` : ''}
+      </p>,
+    )
+  const { field } = answer
+  const { odds, margins } = reading
 
-  const longM = spread.accuracyM * spread.stretch
-  const viewM = Math.min(Math.max(1.5 * longM, 2 * meta.pixel_m), reachM(map))
+  const viewM = Math.min(Math.max(1.5 * longM, 100), reachM(map))
   const ringM = Math.max(map.cellM, Math.ceil(viewM / 12 / map.cellM) * map.cellM)
   const misses = MISSES.filter((miss) => odds.misses[miss] >= 0.005)
   // The key names the reasons on the picture, not every reason there is.
@@ -149,22 +136,17 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
     const { x, y } = cellCentreM(map, cell)
     if (Math.abs(x) <= viewM && Math.abs(y) <= viewM) inView.add(miss)
   }
-  const gridFits = fitsAtTarget(map)
   const pickedAt = picked === null ? null : cellCentreM(map, picked)
   const pickedMiss = picked === null ? null : missOf(map.verdict[picked])
-  const plainLight = isBaseHeights(mission.heights) && requirements.minEarthClearanceDeg === 0
-  const { min, max } = ACCURACY_RANGE
-  const good = Math.round(100 * GOOD_ODDS)
+  const target = polarXY(site.lat, site.lon)
   const takeAim = () => {
     if (!aim) return
-    const here = planeXY(meta, site.lat, site.lon)
-    const { lat, lon } = planeLatLon(meta, here.x + aim.x, here.y + aim.y)
+    const { lat, lon } = polarLatLon(target.x + aim.x, target.y + aim.y)
     setPicked(null)
     onAim(Number(lat.toFixed(6)), Number(lon.toFixed(6)))
   }
 
-  const target = planeXY(meta, site.lat, site.lon)
-  const aimAt = aim ? planeLatLon(meta, target.x + aim.x, target.y + aim.y) : null
+  const aimAt = aim ? polarLatLon(target.x + aim.x, target.y + aim.y) : null
   const aimWay = aimAt ? compassWords(bearingBetweenDeg(site, aimAt)) : null
   // The diamond is drawn only when the better aim is on the picture.
   const aimInView = aim !== null && Math.abs(aim.x) <= viewM && Math.abs(aim.y) <= viewM
@@ -174,10 +156,15 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
     <>
       <p className="sl-quiet sl-accuracy-what">Landing accuracy is how far from its aim point a lander may come down.</p>
 
+      {verdict !== undefined && (
+        <p className={`sl-accuracy-point is-${verdict === null ? 'fit' : 'miss'}`} title="The verdict on the left, for a landing exactly on the aim point. The map under the cross agrees with it.">
+          {verdict === null ? 'A landing exactly on the aim point fits your mission.' : `A landing exactly on the aim point does not fit: ${MISS_WORDS[verdict]}.`}
+        </p>
+      )}
       <p className={`sl-accuracy-answer is-${oddsTone(odds.fit)}`} title="The share of landings that come down on ground where the mission still fits.">
         <strong>{oddsWords(odds.fit)}</strong>{' '}
         <span>
-          of landings aimed at {site.name} come down where the mission still fits, for a lander that gets {closenessWords(spread)}.
+          of landings aimed at {site.name} come down where the mission {verdict === null ? 'still fits' : 'fits'}, for a lander that gets {closenessWords(spread)}.
         </span>
       </p>
       {misses.length > 0 && (
@@ -193,10 +180,12 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
           </ul>
         </>
       )}
-      {fits !== null && gridFits !== null && fits !== gridFits && (
-        <p className="sl-quiet sl-accuracy-differs">The verdict on the left is worked out at the exact point; the map’s cell at the aim point reads differently. Trust the verdict for the point and this for the ground around it.</p>
+      {points.stale && (
+        <p className="sl-quiet" role="status">
+          Working out the landing points for this accuracy… {points.progress > 0 ? `${Math.round(100 * points.progress)}%` : ''}
+        </p>
       )}
-      {odds.covered < 0.98 && <p className="sl-quiet">The map holds {Math.round(100 * odds.covered)}% of landings at this setting; the odds are among those.</p>}
+      {!points.stale && odds.covered < 0.98 && <p className="sl-quiet">The map holds {Math.round(100 * odds.covered)}% of landings at this setting; the odds are among those.</p>}
 
       {aim && (
         <p className="sl-accuracy-aim" title="The aim point near this one with the best odds of coming down where the mission fits.">
@@ -210,7 +199,7 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
         </p>
       )}
 
-      <AccuracyMap map={map} spread={spread} viewM={viewM} aim={aim} picked={picked} onPick={setPicked} label={`The ground within ${Math.round(viewM)} m of ${site.name}: ${oddsWords(odds.fit)} of landings come down where the mission fits`} />
+      <AccuracyMap map={map} margins={margins} spread={spread} viewM={viewM} aim={aim} picked={picked} onPick={setPicked} label={`The ground within ${Math.round(viewM)} m of ${site.name}: ${oddsWords(odds.fit)} of landings come down where the mission fits`} />
       <div className="sl-accuracy-caption">
         <p className="sl-accuracy-key">
           <span>
@@ -268,13 +257,6 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
         <h3>How far off, and how it fares</h3>
         <AccuracyCurve rings={rings(map, chances, ringM, viewM)} accuracyM={spread.accuracyM} />
         <p className="sl-quiet">Each bar is the chance of missing by that much. Its green part is the share of the ground at that distance where a landing fits.</p>
-        <p>
-          {loosest === null
-            ? `Even at ${min} m accuracy the odds are under ${good}%.`
-            : loosest >= max
-              ? `The odds stay at ${good}% or better at every accuracy up to ${max.toLocaleString('en-US')} m.`
-              : `The odds stay at ${good}% or better up to an accuracy of ${loosest} m.`}
-        </p>
 
         <h3>On the Moon</h3>
         <label className="sl-check" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
@@ -286,10 +268,14 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
         <ul className="sl-accuracy-notes">
           <li>A miss is taken as a bell curve around the target: less likely the farther out, the same in every direction unless you stretch it along the approach. That is an assumption, not any lander’s own figures.</li>
           <li>
-            Sun and Earth are read on {meta.pixel_m} m cells{slope ? ` and the slope on ${map.cellM} m cells` : ''}. Ground finer than that is not told apart.
+            Each landing point is judged as the aim point is: its own skyline from the {field.slope.stepM === 20 ? '20 m terrain' : 'terrain'}, the Sun seen from {heights.panelM} m up and Earth from {heights.antennaM} m
+            {requirements.minEarthClearanceDeg > 0 ? `, with Earth at least ${requirements.minEarthClearanceDeg}° above the skyline` : ''}, hour by hour through the mission.
           </li>
-          {!slope && <li>The slope could not be read, so the map is Sun and Earth only.</li>}
-          {!plainLight && <li>The map reads the Sun and Earth {meta.obs_height_m} m above the ground, with any part of Earth counting. Your mission’s heights or Earth clearance are not in it.</li>}
+          <li>
+            The points are {field.lattice.stepM} m apart, and the slope is read every {field.slope.stepM} m. Between points the picture and the odds are filled in smoothly, so ground finer than that is not told apart.
+          </li>
+          <li>At the aim point itself the verdict on the left is used, so the two never disagree.</li>
+          <li>The shading on the Moon is a coarser picture of the same question: Sun and Earth every 120 m, from 2 m up.</li>
           <li>The odds are of coming down on ground the model says fits. The model’s own error is not in them.</li>
         </ul>
       </details>

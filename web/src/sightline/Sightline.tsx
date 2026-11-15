@@ -39,6 +39,7 @@ import {
   steadierLanding,
   DEFAULT_MISSION,
   fitProblems,
+  landingMiss,
   nearestFittingSite,
   MAX_SCENARIOS,
   measureScenario,
@@ -75,7 +76,10 @@ import guidesFile from './guides.json'
 import tourFile from './tour.json'
 import { AccuracyDrawer } from './AccuracyDrawer'
 import { FitLegend } from './FitLegend'
-import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
+import { useMissionGrid, useMoonShade } from './useMissionGrid'
+import { useFieldReadings, useLandingFields } from './useLandingFields'
+import type { FieldAsk } from '../data/landingField'
+import { latticeFor } from '../lib/landingField'
 import { closenessWords } from '../lib/accuracyWords'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { defaultScenarios } from '../lib/defaultPair'
@@ -1019,23 +1023,39 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   }, [wantGrid, lightGrid.meta, lightGrid.month, lightGrid.wide, lightGrid.wideMeta, site.lat, site.lon, index])
   const planner = shown && full
   const savedCard = (inHeader: boolean) => <SavedPlanCard plan={savedPlan.plan} problem={savedPlan.problem} onDismiss={savedPlan.dismiss} inHeader={inHeader} layout={shown ? 'plan' : 'watch'} />
-  // Landing accuracy: the light grid read for the landing, for the panel's map and odds, and (when
-  // asked for) the same verdicts shaded on the Moon. Its months are megabytes, read only then.
-  const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, shown && !planner && drawer === 'accuracy')
+  // The light grid's description, for the shading of "Landings that fit" on the Moon. The panel's own
+  // map and odds no longer read the grid: they come from landing points (below).
+  const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, false)
   // The shade on the Moon follows the time bar, as the Moon does: it is for a landing at the hour on show.
   const moonShade = useMoonShade(missionGrid.meta, start, hour, mission, spread, shown && !planner && fitShade)
   // Whether the light grid reaches the site on show: only there do the odds know the terrain.
   const fitHere = missionGrid.meta ? cellAt(missionGrid.meta, site.lat, site.lon) !== null : shadeHere
-  // Each scenario's odds of landing where the mission fits: read only once Landing accuracy is in use.
-  const odds = useScenarioOdds(
-    missionGrid.meta,
-    start,
-    scenarios,
-    facts.map((fact) => fact.site),
-    mission,
-    spread,
-    shown && accuracyUsed,
-  )
+  // Landing accuracy from landing points around each scenario's target, each judged as the verdict
+  // judges a point: worked out once Landing accuracy is in use, or for the scenario whose panel is open.
+  // A spread being dragged is worked out once it rests: its lattice of points changes with it.
+  const [restedSpread, setRestedSpread] = useState(spread)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setRestedSpread(spread), 250)
+    return () => window.clearTimeout(timer)
+  }, [spread])
+  const pointsLattice = useMemo(() => latticeFor(restedSpread), [restedSpread])
+  const accuracyOpen = shown && !planner && drawer === 'accuracy'
+  const fieldAsks = scenarios.map((each, i): FieldAsk | null => {
+    if (!shown || !(accuracyUsed || (accuracyOpen && i === active))) return null
+    const at = facts[i].site
+    // The heights the scenario's verdict is for: a custom point is worked out at 2 m only.
+    const heights = isCustomSite(at) ? DEFAULT_HEIGHTS : lit.applied
+    return { lat: at.lat, lon: at.lon, panelM: heights.panelM, antennaM: heights.antennaM, startIso: start, landing: each.landing, missionDays: mission.requirements.missionDays, clearanceDeg: mission.requirements.minEarthClearanceDeg, lattice: pointsLattice }
+  })
+  const fields = useLandingFields(fieldAsks)
+  // The verdict for each scenario's aim point itself, which its landing points are made to agree with.
+  const aimVerdicts = scenarios.map((each, i) => {
+    const known = facts[i].flags
+    return known ? landingMiss(known, each.landing, mission, facts[i].slopeDeg) : undefined
+  })
+  // One reading of each scenario's points: the panel, the line under the verdict and Compare all show it.
+  const readings = useFieldReadings(fields, mission, spread, aimVerdicts)
+  const odds = readings.map((reading) => reading?.odds.fit ?? null)
   // A layer of the ground near the south pole is seen close: switching one on from Orbit or Surface
   // goes to Site in the same move. Place names, which cover the whole Moon, change no view. While a
   // tour or guide is on, the view stays where its step put it.
@@ -1560,7 +1580,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         }} />
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={shadeFromPanel} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} heights={siteHeights} points={fields[active]} reading={readings[active]} verdict={aimVerdicts[active]} spread={spread} onSpread={setSpread} shade={fitShade} onShade={shadeFromPanel} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, lander: closenessWords(spread) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeFromPanel} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
             if (next !== null) closeUp()

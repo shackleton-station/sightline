@@ -1,21 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLightGrid } from '../atlas/useLightGrid'
-import type { SiteInfo } from '../data/contract'
-import { gapsFor, gapsKey, gapsNow, loadSlopeWhole, slopePartFor, slopePartNow } from '../data/loadMissionGrid'
-import { ACCURACY_RANGE, cellChances, landingOdds, type Spread } from '../lib/landingOdds'
+import { gapsFor, gapsKey, gapsNow, loadSlopeWhole } from '../data/loadMissionGrid'
+import type { Spread } from '../lib/landingOdds'
 import type { LightMeta } from '../lib/lightGrid'
 import { locateHour } from '../lib/mission'
-import { fitMapAround, type GridGaps, squareAround } from '../lib/missionGrid'
+import type { GridGaps } from '../lib/missionGrid'
 import { hourOfYear } from '../lib/moonWash'
-import type { SightlineMission, SightlineScenario } from '../lib/sightlineMission'
+import type { SightlineMission } from '../lib/sightlineMission'
 import type { GlobeShade } from '../three/GlobeViewer'
 import { type Frame, giveSlope, keepFrame, nextWanted, pickFrames, polarPicture, washPicture } from './shadeFrames'
-/**
- * How far the ground is read around a target (m): far enough to hold nearly every landing at the
- * loosest accuracy offered, with room left to look for a better place to aim.
- */
-export const REACH_M = ACCURACY_RANGE.max * 2
-
 export interface MissionGrid {
   /** The light grid's description: undefined until known, null if this build has none. */
   meta: LightMeta | null | undefined
@@ -139,53 +132,3 @@ export function useMoonShade(meta: LightMeta | null | undefined, start: string, 
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [on, meta, hour, washSign, polarSign, arrived])
 }
-/**
- * The odds of a landing fitting, for each scenario: its own landing read from the light grid, the
- * ground around its site judged against the mission, and the spread laid on it. Null for a
- * scenario while it is read, outside the grid, or past its last month. Read only while `wanted`.
- */
-export function useScenarioOdds(meta: LightMeta | null | undefined, start: string, scenarios: SightlineScenario[], sites: SiteInfo[], mission: SightlineMission, spread: Spread, wanted: boolean): (number | null)[] {
-  const [arrived, setArrived] = useState(0)
-  const { requirements, maxSlopeDeg } = mission
-  const days = requirements.missionDays
-  const asked = scenarios.map((scenario, i) => `${sites[i].lat},${sites[i].lon}@${scenario.landing}`).join('|')
-
-  useEffect(() => {
-    if (!meta || !wanted) return
-    let current = true
-    const tell = () => current && setArrived((count) => count + 1)
-    const wait = window.setTimeout(() => {
-      scenarios.forEach((scenario, i) => {
-        const square = squareAround(meta, sites[i].lat, sites[i].lon, REACH_M)
-        if (!square) return
-        // A failure leaves the scenario without odds; the panel says why when it is opened.
-        gapsFor(meta, start, scenario.landing, days).then(tell, () => undefined)
-        void slopePartFor(meta, square).then(tell)
-      })
-    }, 250)
-    return () => {
-      current = false
-      window.clearTimeout(wait)
-    }
-    // `asked` names every scenario's site and landing: the same string is the same work.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [meta, wanted, asked, start, days])
-
-  return useMemo(
-    () =>
-      scenarios.map((scenario, i) => {
-        if (!meta || !wanted) return null
-        const { lat, lon } = sites[i]
-        const square = squareAround(meta, lat, lon, REACH_M)
-        const gaps = gapsNow(start, scenario.landing, days)
-        const slope = square ? slopePartNow(square) : undefined
-        if (!square || !gaps || gaps === 'past' || slope === undefined) return null
-        const map = fitMapAround(meta, gaps, square, lat, lon, requirements, maxSlopeDeg, slope)
-        return landingOdds(map, cellChances(map, spread)).fit
-      }),
-    // `arrived` counts what has been read since: each arrival is a reason to work the odds out again.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-    [meta, wanted, asked, start, days, requirements, maxSlopeDeg, spread, arrived],
-  )
-}
-
