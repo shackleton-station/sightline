@@ -165,11 +165,3 @@ export function filterCards(cards: LibraryCard[], filters: LibraryFilters): Libr
   return counted.filter((card) => !seen.has(landing(card)) && seen.add(landing(card)))
 }
 
-/**
- * The plan's own scenarios as entries, so the tray (the plan, as cards) is drawn and measured the
- * way the library's cards are. There is no separate tray to remember: a landing added from the
- * library is a scenario of the plan, A to D, and is on the main screen with the others.
- */
-export function planEntries(scenarios: SightlineScenario[], start: string): LibraryEntry[] {
-  return scenarios.map((scenario) => ({ plan: 'your-plan', title: 'your plan', saved: '', site: scenario.site, landing: new Date(Date.parse(start) + scenario.landing * 3_600_000).toISOString().replace('.000Z', 'Z') }))
-}
