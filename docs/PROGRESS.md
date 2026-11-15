@@ -282,6 +282,13 @@ Look at it with `cd web && node scripts/sightline-shots.mjs --out=shots`.
   - [ ] Not done: the video itself (the resources session records it from the tour); the tour held on a real phone.
   - [x] The rail's "Watch" and "Hide" are one Home button (2026-11-14, Pat's request): back to the opening screen, with the tour offered again. Not done: the tour's last line still says "Hide leaves only the Moon" (true of the H key and of "Hide all" in Watch, but nothing in Plan is ringed for it), since new words need a new voice file and a new video.
 
+## The light grid at 20 m round the ridge sites (2026-11-15, Pat, on Rodrigo's VM)
+
+- [x] `make_light_grid.py --patches`: the grid's calculation at the terrain's own 20 m over about 3 km round each ridge site, in the grid's own month format; built on `pipeline-vm` and uploaded to `tiles/light/patch/<site>/` (1,152 files, 283 MB)
+- [x] `check_light_grid.py --patches`: each patch's pixel at its site agrees with the site's track in 99.67% to 99.89% of Sun hours, where the 120 m cell agreed in 91.34% to 99.53% (`docs/VALIDATION.md` §12, "The 20 m patches")
+- [x] The "Landings that fit" layer and the Surface view's tint read a patch where `meta.json` lists one (`layPatch`, `fitMapInPatch`, `patchGapsAt`)
+- [ ] Not done: the layer is still softened by at least 75 m, so a patch's detail shows only as better averages; not looked at in a browser on the deployed site; heights other than 2 m and Earth clearance; the Atlas's tapped cell still reads the 120 m grid
+
 ## The Atlas's three looks (started 2026-11-13)
 
 Three directions from a design canvas, built on the one Atlas page and picked with `&look=a|b|c`.

@@ -1,5 +1,5 @@
 import { LIGHT_URLS } from '../atlas/useLightGrid'
-import { type LightMeta, lightMeta, type LightMetaFile, type LightMonth, readMonth } from '../lib/lightGrid'
+import { type LightMeta, lightMeta, type LightMetaFile, type LightMonth, patchGrid, readMonth } from '../lib/lightGrid'
 import { locateHour } from '../lib/mission'
 import { addMonth, type GridGaps, missionMonthsAt, slopeDegFrom, type SlopePart, type Square, startGaps } from '../lib/missionGrid'
 import { bytes, gunzip } from './customSite'
@@ -166,6 +166,36 @@ export function gapsFor(meta: LightMeta, startIso: string, landing: number, miss
 /** `gapsAtNow`, for a landing counted in hours from `startIso`. */
 export function gapsNow(startIso: string, landing: number, missionDays: number): GridGaps | 'past' | undefined {
   return gapsKept.now(gapsKey(startIso, landing, missionDays))
+}
+
+/** A patch's months are a few megabytes unpacked, and four patches may be read for one picture. */
+const patchMonthsKept = keep<LightMonth>(12)
+const patchGapsKept = keep<GridGaps | 'past' | null>(16)
+
+/**
+ * The mission's gaps at every pixel of a patch (`LightMeta.patches`), for a landing at hour `index`
+ * of `month`: the grid's own count, on the patch's finer pixels. 'past' when the mission runs past
+ * the last month; null when the patch's files could not be read, so the grid's own cells stand.
+ */
+export function patchGapsAt(meta: LightMeta, site: string, month: string, index: number, missionDays: number): Promise<GridGaps | 'past' | null> {
+  return patchGapsKept.get(`${site}/${gapsKeyAt(month, index, missionDays)}`, async () => {
+    const patch = meta.patches?.[site]
+    if (!patch) return null
+    const parts = missionMonthsAt(meta, month, index, missionDays)
+    if (!parts) return 'past'
+    const grid = patchGrid(meta, patch)
+    try {
+      const run = startGaps(patch.size)
+      for (const [i, part] of parts.entries()) {
+        const read = await patchMonthsKept.get(`${site}/${part.month}`, async () => readMonth(await gunzip(await bytes(LIGHT_URLS.patchMonth(site, part.month))), grid, part.month))
+        addMonth(run, read, part, i === 0)
+      }
+      return run
+    } catch (reason) {
+      console.error(reason)
+      return null
+    }
+  })
 }
 
 /** The light grids' description, or null when this build has none: asked for once. */

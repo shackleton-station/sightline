@@ -1,9 +1,9 @@
 import { loadYearPositions } from '../data/customSite'
-import { gapsAt } from '../data/loadMissionGrid'
+import { gapsAt, patchGapsAt } from '../data/loadMissionGrid'
 import type { Spread } from '../lib/landingOdds'
 import type { LightMeta } from '../lib/lightGrid'
 import type { Requirements } from '../lib/mission'
-import { blurReads, fitField, halved, oddsField, oddsPixels } from '../lib/missionGrid'
+import { blurReads, fitField, halved, layPatch, oddsField, oddsPixels } from '../lib/missionGrid'
 import { smoothMoonFit, softened, WASH_SIZE } from '../lib/moonWash'
 
 /**
@@ -12,7 +12,7 @@ import { smoothMoonFit, softened, WASH_SIZE } from '../lib/moonWash'
  * pixels, too much to do between two frames of a time bar being played.
  */
 
-/** Pixels along a light cell in the polar picture. */
+/** Pixels along a light cell in the polar picture. A patch's 20 m pixels are a third of these: nine to a pixel. */
 const POLAR_SUB = 2
 /** The least the polar picture is softened by, in its own pixels (60 m each at full size): the grid's 120 m cells do not show as squares. */
 const SOFTEN_PX = 1.25
@@ -44,6 +44,11 @@ async function polar(ask: Extract<ShadeAsk, { kind: 'polar' }>): Promise<{ side:
   const full = gaps.size * POLAR_SUB
   const fullM = ask.meta.pixel_m / POLAR_SUB
   const fits = fitField(gaps, ask.requirements, ask.maxSlopeDeg, POLAR_SUB, slope, true)
+  // Round the ridge sites the ground is known at the terrain's own 20 m: laid in over the grid's 120 m cells.
+  for (const [site, patch] of Object.entries(ask.meta.patches ?? {})) {
+    const fine = await patchGapsAt(ask.meta, site, ask.month, ask.index, ask.requirements.missionDays)
+    if (fine && fine !== 'past') layPatch(fits, POLAR_SUB, gaps.size, patch, fine, ask.requirements, ask.maxSlopeDeg, slope)
+  }
   // A wide spread blurs far: at half the size it reads a quarter of the pixels over half the distance.
   const small = full * full * blurReads(fullM, ask.spread) > READS_BUDGET
   const side = small ? full / 2 : full

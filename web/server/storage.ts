@@ -4,9 +4,10 @@ import { reply } from '../shared/http'
 /**
  * Names the pipeline writes: `manifest.json`, terrain tiles `<set>/<row>_<col>.bin.gz`, and the light
  * grids' months and slope maps (`light/2027-05.bin.gz`, `light/wide/2027-05.bin.gz`,
+ * `light/patch/<site>/2027-05.bin.gz`,
  * `light/slope_x.jpg`). Nothing else is served.
  */
-const TILE_KEY = /^(manifest\.json|(global|polar)\/\d+_\d+\.bin\.gz|light\/((wide\/)?\d{4}-\d{2}\.bin\.gz|slope_[xy]\.jpg))$/
+const TILE_KEY = /^(manifest\.json|(global|polar)\/\d+_\d+\.bin\.gz|light\/((wide\/|patch\/[a-z0-9-]+\/)?\d{4}-\d{2}\.bin\.gz|slope_[xy]\.jpg))$/
 
 function tileType(key: string): string {
   if (key.endsWith('.json')) return 'application/json'
