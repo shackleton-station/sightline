@@ -8,7 +8,7 @@ import type { GridGaps } from '../lib/missionGrid'
 import { hourOfYear } from '../lib/moonWash'
 import type { SightlineMission } from '../lib/sightlineMission'
 import type { GlobeShade } from '../three/GlobeViewer'
-import { type Frame, giveSlope, keepFrame, nextWanted, pickFrames, polarPicture, washPicture } from './shadeFrames'
+import { type Frame, giveSlope, keepFrame, nextWanted, pickFrames, polarPicture, washPicture, widePicture } from './shadeFrames'
 export interface MissionGrid {
   /** The light grid's description: undefined until known, null if this build has none. */
   meta: LightMeta | null | undefined
@@ -60,12 +60,14 @@ const RESTED_MS = 350
 
 /** The pictures on hand, for the one Sightline screen there is. */
 const polarFrames: Frame[] = []
+const wideFrames: Frame[] = []
 const washFrames: Frame[] = []
 let slopeGiven: Promise<void> | null = null
 
 /**
  * The shade for "Landings that fit", for a landing at the hour on the time bar: the
- * whole Moon from the smooth Moon, and round the south pole the light grid's finer picture.
+ * whole Moon from the smooth Moon, round the south pole the light grid's finer picture, and
+ * between the two, as far as the wide grid reaches, that grid's picture of the terrain's light.
  *
  * The pictures change slowly and smoothly with the hour, so they are not made for every hour.
  * Key frames some hours apart are worked out off the page's thread, and the globe blends between
@@ -90,7 +92,9 @@ export function useMoonShade(meta: LightMeta | null | undefined, start: string, 
   const { requirements, maxSlopeDeg } = mission
   const washSign = JSON.stringify(requirements)
   const polarSign = JSON.stringify([requirements, maxSlopeDeg, restedSpread])
-  const busy = useRef({ polar: false, wash: false })
+  const wideSign = JSON.stringify([requirements, restedSpread])
+  const hasWide = Boolean(meta?.wide)
+  const busy = useRef({ polar: false, wide: false, wash: false })
 
   useEffect(() => {
     if (!on) return
@@ -119,16 +123,32 @@ export function useMoonShade(meta: LightMeta | null | undefined, start: string, 
           tell()
         })
     }
+    const wideHour = meta && hasWide ? nextWanted(wideFrames, wideSign, hour, POLAR_EVERY_H, rested) : null
+    if (meta && wideHour !== null && !busy.current.wide) {
+      busy.current.wide = true
+      const { month, index } = locateHour(start, wideHour)
+      void widePicture({ meta, month, index, requirements, spread: restedSpread }).then((picture) => {
+        keepFrame(wideFrames, { sign: wideSign, hour: wideHour, picture }, 5)
+        busy.current.wide = false
+        tell()
+      })
+    }
     // `arrived` counts the pictures that have come: each arrival may leave another to ask for.
-  }, [on, meta, start, hour, rested, washSign, polarSign, requirements, maxSlopeDeg, restedSpread, arrived])
+  }, [on, meta, hasWide, start, hour, rested, washSign, polarSign, wideSign, requirements, maxSlopeDeg, restedSpread, arrived])
 
   return useMemo(() => {
     if (!on) return null
     const wash = pickFrames(washFrames, washSign, hour, WASH_EVERY_H)
     if (!wash) return null
     const polar = meta ? pickFrames(polarFrames, polarSign, hour, POLAR_EVERY_H) : null
-    return { wash, polar: polar && meta ? { ...polar, halfWidthM: meta.half_width_m, radiusM: meta.radius_m } : null, opacity: SHADE_OPACITY }
+    const wide = meta?.wide ? pickFrames(wideFrames, wideSign, hour, POLAR_EVERY_H) : null
+    return {
+      wash,
+      wide: wide && meta?.wide ? { ...wide, halfWidthM: meta.wide.half_width_m, radiusM: meta.radius_m } : null,
+      polar: polar && meta ? { ...polar, halfWidthM: meta.half_width_m, radiusM: meta.radius_m } : null,
+      opacity: SHADE_OPACITY,
+    }
     // `arrived` counts the pictures that have come: each arrival may change what there is to show.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [on, meta, hour, washSign, polarSign, arrived])
+  }, [on, meta, hour, washSign, polarSign, wideSign, arrived])
 }

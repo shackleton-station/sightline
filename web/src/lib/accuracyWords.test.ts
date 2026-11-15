@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bearingBetweenDeg, closenessWords, compassWords, fitsButFewLandWords, oddsTone } from './accuracyWords'
+import { bearingBetweenDeg, closenessWords, compassWords, fitsButFewLandWords, oddsTone, shadeLeavesOut } from './accuracyWords'
 import { type LightMeta, planeLatLon, planeXY } from './lightGrid'
 
 describe('which way a better aim point lies', () => {
@@ -57,6 +57,18 @@ describe('the accuracy in everyday words', () => {
 
   it('adds the longer reach along the approach when the miss is stretched', () => {
     expect(closenessWords({ accuracyM: 100, stretch: 2.5, bearingDeg: 30 })).toBe('within 100 m of its aim point, 250 m along its approach')
+  })
+})
+
+describe('what the shading on the Moon cannot count near the pole', () => {
+  it('is nothing for a mission at 2 m with any part of Earth counting', () => {
+    expect(shadeLeavesOut({ panelM: 2, antennaM: 2 }, 0)).toBeNull()
+  })
+
+  it('names other heights, an Earth clearance, or both', () => {
+    expect(shadeLeavesOut({ panelM: 10, antennaM: 2 }, 0)).toBe('your panel and antenna heights')
+    expect(shadeLeavesOut({ panelM: 2, antennaM: 2 }, 5)).toBe('your Earth clearance of 5°')
+    expect(shadeLeavesOut({ panelM: 5, antennaM: 4 }, 2)).toBe('your panel and antenna heights and your Earth clearance of 2°')
   })
 })
 

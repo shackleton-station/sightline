@@ -81,6 +81,19 @@ describe('a smooth Moon', () => {
     expect(smoothMoonFit(positions, -1, REQ)).toBeNull()
   })
 
+  it('counts the Earth clearance a mission asks for', () => {
+    // Earth over 0° on the equator: from 87° E it stands about 3° above level, from 80° E about 10°.
+    const positions = sky(400, () => 90)
+    const any = smoothMoonFit(positions, 0, { ...REQ, sunAtLanding: false, maxSunGapH: 99_999 })
+    const clear = smoothMoonFit(positions, 0, { ...REQ, sunAtLanding: false, maxSunGapH: 99_999, minEarthClearanceDeg: 5 })
+    if (!any || !clear) throw new Error('no picture')
+    expect(any[washPixel(0, 87)]).toBe(1)
+    expect(clear[washPixel(0, 87)]).toBe(0)
+    expect(clear[washPixel(0, 80)]).toBe(1)
+    // A clearance takes ground away and gives none.
+    for (let pixel = 0; pixel < any.length; pixel += 1) expect(clear[pixel]).toBeLessThanOrEqual(any[pixel])
+  })
+
   it('samples a long mission and still finds its long dark', () => {
     const positions = sky(90 * 24, (hour) => (-360 * hour) / LUNAR_DAY_H)
     const long: Requirements = { ...REQ, missionDays: 90, earthAtLanding: false, maxSunGapH: 300 }
