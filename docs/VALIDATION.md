@@ -56,8 +56,14 @@ the Sun quantity that fits PGDA best across terrain (section 3).
 
 - **The Sun difference has one sign:** we're higher at all four sites at 2 m. So it's a pattern, not noise.
 - **PGDA usually sits between our 0 m and 2 m values** (Sun: three of four sites; Earth: two of four).
-- **The page judges each site separately:** within the RMSE from section 3, it says the site agrees; beyond
-  that, it says "not confirmed".
+- **The page judges each site separately, at the ground:** it sets our 0 m figure (any part of the disk,
+  the figure the app shows) against the map, because PGDA gives no height and a map of lit terrain is
+  taken to be of the terrain itself. Within the 0 m RMSE from section 3 it says the site agrees, and
+  states that error; beyond it, "not confirmed, even at the ground". The 2 m figure follows in its own
+  sentence and is not set against the map. By that rule the Sun agrees at Connecting Ridge (64.8% against
+  68.5%), Shackleton Rim and de Gerlache Rim, and is not confirmed at Peak near Shackleton (69.6% against
+  58.2%); Earth is not confirmed at Shackleton Rim. Until 2026-11-15 the page set the 2 m figure against
+  the map, which read "not confirmed: 86% here, 68% on NASA's map" at Connecting Ridge.
 
 ### Sites that aren't ridge tops
 
