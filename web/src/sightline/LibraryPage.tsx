@@ -18,8 +18,10 @@ interface Props {
   onSelect: (index: number) => void
   /** Add a scenario and show it. With four already, nothing is added. */
   onAdd: (scenario: SightlineScenario) => void
+  /** Take a scenario out of the plan. */
+  onRemove: (index: number) => void
   onBack: () => void
-  /** Open the Planner on Compare, where the landings pulled in are set side by side. */
+  /** Open the Planner on Compare, where the plan's scenarios, the ones added here among them, are set side by side. */
   onCompare: () => void
   /** Put a landing in the plan (or choose it, if it is there) and go back to the main screen, where the plan column shows it. */
   onShow: (scenario: SightlineScenario) => void
@@ -30,11 +32,12 @@ interface Props {
 /**
  * The Library, a page of its own beside the Planner: every landing in the plans people have saved,
  * to search and filter. It is not part of planning one mission, which is why it is not a tab of the
- * Planner: it is where to look at what others chose. A landing pulled in goes to the tray, here and
- * in the Planner's header, and from the tray into Compare. First on the page are your own plans,
+ * Planner: it is where to look at what others chose. "Add to plan" makes a landing the plan's next
+ * scenario, so with A and B already there, two landings added are C and D, on the main screen with
+ * the others. The tray in the header is that plan, as cards. First on the page are your own plans,
  * the ones saved from this browser, each with one button to pick it up again.
  */
-export function LibraryPage({ start, hours, flagged, scenarios, mission, active, onSelect, onAdd, onBack, onCompare, onShow, onResume }: Props) {
+export function LibraryPage({ start, hours, flagged, scenarios, mission, active, onSelect, onAdd, onRemove, onBack, onCompare, onShow, onResume }: Props) {
   const library = useLibraryCards({ wanted: true, start, hours, flagged, mission, scenarios })
   return (
     <section className="sl-full lib-page" aria-label="Library">
@@ -45,26 +48,20 @@ export function LibraryPage({ start, hours, flagged, scenarios, mission, active,
         <h2>Library</h2>
         <LibraryTray
           start={start}
-          cards={library.trayCards}
-          letterOf={library.letterOf}
-          room={scenarios.length < MAX_SCENARIOS}
-          onCompare={(card) => {
-            if (!card.scenario) return
-            // Added for comparing, not opened: the scenario on show stays the one you are working on.
-            const working = active
-            onAdd(card.scenario)
-            onSelect(working)
+          cards={library.planCards}
+          active={active}
+          onShow={(index) => {
+            const picked = scenarios[index]
+            if (picked) onShow(picked)
           }}
-          onRemove={library.toggle}
+          onRemove={onRemove}
           onOpenCompare={onCompare}
-          onOpenLibrary={null}
-          onWanted={NOTHING}
         />
       </header>
       <MyPlans cards={library.cards} onResume={onResume} />
       <h3 className="lib-all">Everyone’s landings</h3>
       <p className="lib-page-lead">
-        Landings from the plans people have saved here. Each is judged against your mission ({missionWords(mission)}), not the one it was saved for. “Show in plan” puts one in your plan on the main screen; “Pull in” keeps it in the tray to set beside your own in Compare.
+        Landings from the plans people have saved here. Each is judged against your mission ({missionWords(mission)}), not the one it was saved for. “Add to plan” makes one the next scenario of your plan (C after A and B) and keeps you here to add more; “Show in plan” also goes to the main screen with it on show. The tray at the top is your plan.
       </p>
       <PlannerLibrary
         start={start}
@@ -73,8 +70,18 @@ export function LibraryPage({ start, hours, flagged, scenarios, mission, active,
         sites={flagged.map((one) => one.site)}
         firstMonth={start.slice(0, 7)}
         lastMonth={new Date(Date.parse(start) + (hours - 1) * 3_600_000).toISOString().slice(0, 7)}
-        tray={library.tray}
-        onToggle={library.toggle}
+        onAdd={(card) => {
+          if (!card.scenario) return
+          // Added, not opened: the scenario on show stays the one you are working on.
+          const working = active
+          onAdd(card.scenario)
+          onSelect(working)
+        }}
+        onRemove={(card) => {
+          const index = library.indexOf(card)
+          if (index >= 0) onRemove(index)
+        }}
+        canRemove={scenarios.length > 1}
         onShow={(card) => card.scenario && onShow(card.scenario)}
         letterOf={library.letterOf}
         room={scenarios.length < MAX_SCENARIOS}
@@ -84,6 +91,3 @@ export function LibraryPage({ start, hours, flagged, scenarios, mission, active,
     </section>
   )
 }
-
-/** The page reads the library as it opens, so the tray has nothing to ask for. */
-const NOTHING = () => {}
