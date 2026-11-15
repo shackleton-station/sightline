@@ -72,7 +72,7 @@ export default function BriefSheet({ start, scenario, site, mission, room, onLan
         <p className="sl-quiet sl-brief-heights">This brief is written for 2 m above the ground. Your heights ({heightsWords(mission.heights)}) are not applied to it.</p>
       )}
       {isCustomSite(site) ? (
-        <p className="sl-brief-wait">The brief is written for the listed sites. Choose one under "At", or the nearest listed site, to read its brief.</p>
+        <p className="sl-brief-wait">The written brief covers the listed sites. This custom point’s figures are in the column beside the Moon, and Scout can answer about it. To read a brief, go back and choose a listed site under “Site”.</p>
       ) : !view || data.status !== 'ready' ? (
         <p className="sl-brief-wait">{data.status === 'error' ? 'The brief could not be worked out. Close it and try again.' : 'Writing the brief…'}</p>
       ) : (

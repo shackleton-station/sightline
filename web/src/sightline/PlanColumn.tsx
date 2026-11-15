@@ -235,8 +235,12 @@ interface VerdictProps {
   problems: string[] | null
   /** Why a landing that fits is only marginal, one line each; empty when it is not. */
   marginal: string[]
-  /** The next landing that fits, when this one does not: how it reads ("1 June · 18:00"), and what choosing it does. */
-  next: { when: string; adds: boolean; /** No landing with margin was found: the one offered fits only marginally. */ marginal?: boolean; onTake: () => void } | null
+  /**
+   * The next landing that fits, when this one does not: how it reads ("1 June · 18:00"), and what
+   * choosing it does. Also offered when this one fits only marginally (`margin`): then it is the
+   * first later hour with more of the Sun and Earth in view.
+   */
+  next: { when: string; adds: boolean; /** No landing with margin was found: the one offered fits only marginally. */ marginal?: boolean; /** This landing fits, marginally: the one offered has margin. */ margin?: boolean; onTake: () => void } | null
   /** Another site of the same group where this date fits, when this one does not: its name, how far it is, and what choosing it does. */
   elsewhere: { name: string; km: number; adds: boolean; onTake: () => void } | null
   /** Ask Scout why, in his panel. */
@@ -253,7 +257,8 @@ const REASONS_SHOWN = 3
  * app's rules: instant, the same for the same link, never the model's. "Fits the mission" (green,
  * with a tick), "Fits, marginal" (the Sun's gold), or "Does not fit the mission" (the warning
  * colour, with a cross). Under it, up to three reasons, one line each; then, only when it does not
- * fit, the next landing that does and the nearest site of the same group where this date does.
+ * fit, the next landing that does and the nearest site of the same group where this date does;
+ * when it fits only marginally, the first later landing with margin.
  * "Why?" asks Scout to explain it.
  */
 export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission }: VerdictProps) {
@@ -297,7 +302,7 @@ export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission 
       )}
       {next && (
         <button type="button" className="sl-next" title={next.adds ? 'Adds that landing as another scenario.' : 'Moves this landing there: four scenarios is the most.'} onClick={next.onTake}>
-          {next.marginal ? 'Next landing that fits, marginally:' : 'Next landing that fits:'} {next.when} <span aria-hidden="true">›</span>
+          {next.margin ? 'A landing with more margin:' : next.marginal ? 'Next landing that fits, marginally:' : 'Next landing that fits:'} {next.when} <span aria-hidden="true">›</span>
         </button>
       )}
       {elsewhere && (

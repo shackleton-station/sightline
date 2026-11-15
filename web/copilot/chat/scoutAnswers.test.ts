@@ -245,7 +245,9 @@ describe('6. a custom point', () => {
     expect(distanceWords(0.223)).toBe('220 m')
     expect(distanceWords(2.44)).toBe('2.4 km')
     expect(distanceWords(42.3)).toBe('42 km')
-    const view = Object.fromEntries((await viewFacts(viewFrom('#a=-89.46,-137.2@2027-05&t=100&limits=14_72_72_1_1&mode=plan'), data)).map((item) => [item.key, item.value]))
+    // A store with no terrain tiles: a custom point cannot be worked out, whatever tiles this machine holds.
+    const noTiles = siteData(dataDir, { get: async () => null })
+    const view = Object.fromEntries((await viewFacts(viewFrom('#a=-89.46,-137.2@2027-05&t=100&limits=14_72_72_1_1&mode=plan'), noTiles)).map((item) => [item.key, item.value]))
     expect(view.site_nearest).toBe('Connecting Ridge')
     expect(view.site_nearest_distance).toBe('220 m')
     expect(view.site).toMatch(/the column on the visitor's screen is worked out for the exact point, and your figures are for the nearest listed site/)

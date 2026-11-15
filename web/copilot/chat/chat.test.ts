@@ -469,8 +469,10 @@ describe('tools', () => {
     expect(found.option_1_time).toBe('10 May 2027, 12:00 UTC')
   })
 
-  it("describe the visitor's view, and for a custom point name the nearest listed site", async () => {
-    const custom = await viewFacts(viewFrom('#a=-89.46,-137.2@2027-05&t=100&limits=14_72_72_1_1&mode=plan'), data)
+  it("describe the visitor's view, and for a custom point that cannot be worked out here name the nearest listed site", async () => {
+    // A store with no terrain tiles: a custom point cannot be worked out, whatever tiles this machine holds.
+    const noTiles = siteData(dataDir, { get: async () => null })
+    const custom = await viewFacts(viewFrom('#a=-89.46,-137.2@2027-05&t=100&limits=14_72_72_1_1&mode=plan'), noTiles)
     const found = Object.fromEntries(custom.map((item) => [item.key, item.value]))
     expect(found.site).toContain('custom point')
     expect(found.site_nearest).toBe('Connecting Ridge')

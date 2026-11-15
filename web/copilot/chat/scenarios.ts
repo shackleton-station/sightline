@@ -49,7 +49,10 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
   const link = readScenarioLink(hash, span.start, span.sun.length)
   if (!link) return null
   const { scenarios, active, mission } = link
-  const nameOf = (scenario: SightlineScenario) => sites.find((site) => site.id === scenario.site)?.name ?? 'a custom point'
+  // Each scenario's site: a listed one, or a custom point worked out here by the page's own code
+  // (shared/tools/customPoints.ts). Null only for a custom point that cannot be worked out here.
+  const places = await Promise.all(scenarios.map((scenario) => data.site(scenario.site).catch(() => null)))
+  const nameOf = (scenario: SightlineScenario) => places[scenarios.indexOf(scenario)]?.name ?? 'a custom point'
   // A scenario in words that sit in a sentence: "a landing at Connecting Ridge on 6 May 2027, 12:00 UTC".
   const words = (scenario: SightlineScenario) => `a landing at ${nameOf(scenario)} on ${whenLabel(isoAt(span.start, scenario.landing))}`
 
@@ -82,7 +85,7 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
     // Its site and its landing time as facts of their own, to cite in a sentence: "at {{…_site}} on {{…_landing}}".
     facts.push(fact(`${key}_site`, `Scenario ${letter}: its site`, nameOf(scenario)))
     facts.push(fact(`${key}_landing`, `Scenario ${letter}: its landing time`, whenLabel(isoAt(span.start, scenario.landing))))
-    const site = sites.find((candidate) => candidate.id === scenario.site)
+    const site = places[i]
     if (site) {
       const own = await figures(key, letter, scenario, site, mission, data)
       facts.push(...own)
@@ -94,8 +97,8 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
       facts.push(...(await elsewhere(key, letter, scenario, site, sites, mission, data, i === active)))
       if (state === 'Fits, marginal') facts.push(...(await withMargin(key, letter, scenario, site, mission, data)))
     }
-    // Only a custom point has no figures here. (A listed site that is not on show has its figures above, and nothing more to say.)
-    if (!site) facts.push(fact(`${key}_figures`, `Scenario ${letter}: its figures`, 'not available here (a custom point, not a listed site)'))
+    // Only a custom point that could not be worked out has no figures here.
+    if (!site) facts.push(fact(`${key}_figures`, `Scenario ${letter}: its figures`, 'not available here (a custom point that could not be worked out; the column on their screen has them)'))
   }
 
   // With more than one scenario: which of them fit, in one clause, so "which would you fly" starts from the verdicts.
@@ -123,7 +126,9 @@ async function elsewhere(key: string, letter: string, scenario: SightlineScenari
   const atHeights = async (id: string) => (isBaseHeights(mission.heights) ? null : await data.flagsAt(id, mission.heights).catch(() => null))
   const flagsOf = async (id: string) => (await atHeights(id)) ?? (await data.flags(id))
   // Only the scenario on show is looked for at the group's other sites; the others need their own hours alone.
-  const group = onShow ? sites.filter((other) => other.group === site.group) : [site]
+  // A custom point has no group of listed sites: it stands alone, so only its own next landing is said.
+  const alone = !sites.some((other) => other.id === site.id)
+  const group = onShow && !alone ? sites.filter((other) => other.group === site.group) : [site]
   const listed = await Promise.all(group.map(async (other) => ({ site: other, flags: await flagsOf(other.id) })))
   const own = listed.find((entry) => entry.site.id === site.id)
   if (!own || measureScenario(scenario, site, own.flags, mission, site.slope?.deg ?? null).problems.length === 0) return []
@@ -144,7 +149,7 @@ async function elsewhere(key: string, letter: string, scenario: SightlineScenari
   const other = found
     ? fact(`${key}_fits_at_another_site`, `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`, `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away`)
     : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on the same landing date, as a clause that stands in a sentence`, `no other ${GROUP_SITE[site.group] ?? 'site in its group'} fits on that date`)
-  return [...nextFacts, other]
+  return alone ? nextFacts : [...nextFacts, other]
 }
 
 /** Which scenarios meet the limits, as a clause: "neither scenario meets the mission limits", "only B meets the mission limits", "A meets the mission limits and C only marginally; B does not". */

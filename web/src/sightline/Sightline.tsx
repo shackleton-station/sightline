@@ -421,6 +421,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const landing = steadierLanding(flags, firstBetter.landing, mission, sunShares, monthStart, earthCenterAbove)
     return landing === scenario.landing ? null : { landing, waitH: landing - scenario.landing, marginal: marginalHour(mission.requirements, sunShares, earthCenterAbove, landing - monthStart) }
   }, [flags, firstBetter?.landing, firstBetter?.waitH, betterTrack, betterData, betterMonth.error, mission, betterAt.index, scenario.landing])
+  // A landing that fits only marginally is offered a steadier hour: the first one after it, in the
+  // same sunlit stretch of the same month, where at least half the Sun's disc shows and Earth's
+  // center is above the skyline (where the mission needs Earth at landing). The search is the one
+  // behind "Next landing that fits" (`steadierLanding`), so the two offers cannot disagree.
+  const steadier = useMemo(() => {
+    if (!flags || !here || marginal.length === 0) return null
+    const sunShares = here.track.map((point) => point.sun_frac)
+    const earthSkyline = here.earthHorizon ?? here.horizon
+    const earthCenterAbove = here.track.map((point) => point.earth_el - horizonAt(earthSkyline, point.earth_az) >= 0)
+    const landing = steadierLanding(flags, scenario.landing, mission, sunShares, scenario.landing - landingAt.index, earthCenterAbove)
+    return landing === scenario.landing ? null : { landing }
+    // `marginal` is a new list each time the page draws: its words say all that matters here.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [flags, here, marginal.join('|'), mission, scenario.landing, landingAt.index])
   // Another site for the same date, offered with the next landing when this one does not fit: the
   // nearest listed site of the same group where the verdict's own rules pass on this date.
   const misses = problems !== null && problems.length > 0
@@ -1179,7 +1193,21 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                             }
                           },
                         }
-                      : null
+                      : steadier
+                        ? {
+                            when: shortWhen(clockTime(start, steadier.landing), landingAt.month.slice(0, 4)),
+                            margin: true,
+                            adds: scenarios.length < MAX_SCENARIOS,
+                            onTake: () => {
+                              // As the next landing that fits: another scenario while there is room; with four already, this landing moves there.
+                              if (scenarios.length < MAX_SCENARIOS) addScenario({ site: scenario.site, landing: steadier.landing })
+                              else {
+                                setScenario((current) => ({ ...current, landing: steadier.landing }))
+                                setHour(steadier.landing)
+                              }
+                            },
+                          }
+                        : null
                   }
                   elsewhere={
                     elsewhere
@@ -1201,6 +1229,25 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                   onWhy={askWhy}
                   onMission={() => setMissionHere(true)}
                 />
+                {/* What a planner asks next when a date or a site slips: the New Planner's own list of
+                    other landings, here and nearby, within two weeks of this one. One line that opens it,
+                    shown only when the verdict offers no other landing or site itself, so the column keeps its height. */}
+                {problems && !steadier && !elsewhere && !(better && problems.length > 0) && (
+                  <p className="sl-odds-line">
+                    <button
+                      type="button"
+                      className="sl-link"
+                      title="Opens the New Planner at this landing: other landings here and at nearby sites, within two weeks either side, that meet your limits."
+                      onClick={() => {
+                        if (drawer !== 'scout') setDrawer(null)
+                        setNewPlanner(true)
+                        setFull(true)
+                      }}
+                    >
+                      If the plan has to move <span aria-hidden="true">›</span>
+                    </button>
+                  </p>
+                )}
                 {accuracyUsed && odds[active] !== null && (
                   <p className="sl-odds-line">
                     <button type="button" className="sl-link" title="Opens Landing accuracy: where a lander that misses its target could come down." onClick={openAccuracy}>
