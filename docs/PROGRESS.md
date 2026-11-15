@@ -474,3 +474,9 @@ Pat: the Library is a different thing from the Planner's tabs, and its point is 
 - [x] The tray is the plan: its scenarios as cards, A to D, in the Library's header (`LibraryTray.tsx`, `planEntries` in `web/src/lib/library.ts`). The separate tray kept in the browser (`sightline.library.tray`) is no longer read or written
 - [x] The Planner's header: a Library button in place of its tray
 - [ ] Not done: a Library card says "Fits your mission" where the plan column says "Fits, marginal" (the card has no marginal state); the tray's unused styles for its empty state are still in `library.css`; no scene for the Library in `sightline-shots.mjs`; not looked at on a phone
+
+## Scout's tour in the Atlas look (2026-11-15, Misha) — branch `feat/sightline-tour-atlas-look`
+
+- [x] The tour on the main page looks like the Atlas tour: the page dims (an SVG mask with a hole per ring, taking no clicks, so "Try it" and the screen still work), gold rings, and a card with Scout's mark in a tile, "Step N of 8", the title, step dots that jump to a step, "Listen" with its AI-generated note at the top right, Skip tour, Back (from step 2) and Next. The main tour ends on "Start exploring"; a feature guide still ends on "Done" (`web/src/sightline/Tour.tsx`, `sightline.css`)
+- [x] Checks: `tsc -b`, lint, `vitest run src/lib/tour.test.ts`; the tour scenes of `sightline-shots.mjs` at laptop, 1366 by 768 and phone pass, the card clear of the Moon and of what it rings
+- [ ] "Listen plays the step's line" fails in headless Chrome on Windows at every size, on `main` too: not looked into

@@ -31,6 +31,8 @@ const PHONE_UNDER_PX = 761
 const RING_AIR_PX = 4
 /** The closest a ring comes to the window's edge. */
 const RING_EDGE_PX = 2
+/** The corners of a ring, and of the hole it makes in the dimmed page (the same as `.sl-tour-ring`'s border-radius). */
+const RING_RADIUS_PX = 12
 /** How often the rings and the bubble are placed again, so they follow the screen as it settles or is resized. */
 const PLACE_EVERY_MS = 120
 
@@ -59,8 +61,9 @@ function moonDisc(): Disc | null {
 /**
  * Scout's tour: he walks the visitor through the real screen. Each step has already put the app in
  * its state (the screen does that); this draws a ring round what the step is about and Scout's
- * bubble with one or two sentences, "3 of 8", and Back, Next and Close. Nothing is drawn over the
- * Moon and nothing is dimmed. Arrow keys step, Escape closes. "Listen" plays each line in Scout's
+ * card, in the Atlas tour's look: the page dims except where a ring is, and the card says "Step 3 of 8"
+ * over the title, with dots to jump to a step, Skip tour, Back and Next. The card is never placed
+ * over the Moon. Arrow keys step, Escape closes. "Listen" plays each line in Scout's
  * voice from a file rendered ahead of time: off until pressed, so there is never sound without a click.
  */
 export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo, tryIt, state }: Props) {
@@ -149,18 +152,45 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo,
     }
   }, [listen, step, voice])
 
+  // The main tour (the one with a voice) ends on "Start exploring", as the Atlas's does; a feature guide on "Done".
+  const finish = voice ? 'Start exploring' : 'Done'
+
   return (
     <>
+      {/* The page dims, as in the Atlas's tour, except where a ring lights what the step is about. It takes no clicks: the screen under it still works. */}
+      <svg className="sl-tour-dim" aria-hidden="true" width="100%" height="100%">
+        <defs>
+          <mask id="sl-tour-holes">
+            <rect width="100%" height="100%" fill="white" />
+            {rings.map((ring, i) => (
+              <rect key={i} x={ring.left} y={ring.top} width={ring.width} height={ring.height} rx={RING_RADIUS_PX} fill="black" />
+            ))}
+          </mask>
+        </defs>
+        <rect width="100%" height="100%" mask="url(#sl-tour-holes)" />
+      </svg>
       {rings.map((ring, i) => (
         <div key={i} className="sl-tour-ring" style={ring} aria-hidden="true" />
       ))}
       <section ref={bubble} className="sl-tour" role="dialog" aria-label={name} data-step={step.id} style={place ? { left: place.left, top: place.top } : { visibility: 'hidden' }}>
         <header className="sl-tour-head">
-          <Mascot state={state} size={28} />
-          <h2 className="sl-tour-title">{step.title}</h2>
-          <span className="sl-tour-count">
-            {at + 1} of {steps.length}
+          <span className="sl-tour-icon" aria-hidden="true">
+            <Mascot state={state} size={30} />
           </span>
+          <span className="sl-tour-heading">
+            <span className="sl-tour-count">
+              Step {at + 1} of {steps.length}
+            </span>
+            <h2 className="sl-tour-title">{step.title}</h2>
+          </span>
+          {voice && (
+            <span className="sl-tour-voice">
+              <button type="button" className="sl-small sl-tour-listen" aria-pressed={listen} title="Plays Scout's voice for each step. The voice is AI-generated; the words stay on screen." onClick={() => setListen(!listen)}>
+                Listen
+              </button>
+              <small>{voice.voice.disclosure}</small>
+            </span>
+          )}
         </header>
         <p className="sl-tour-say" aria-live="polite">
           {step.say}
@@ -171,28 +201,34 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo,
           </button>
         )}
         <footer className="sl-tour-foot">
-          {voice && (
-            <span className="sl-tour-voice">
-              <button type="button" className="sl-small sl-tour-listen" aria-pressed={listen} title="Plays Scout's voice for each step. The voice is AI-generated; the words stay on screen." onClick={() => setListen(!listen)}>
-                Listen
-              </button>
-              <small>{voice.voice.disclosure}</small>
-            </span>
-          )}
+          <span className="sl-tour-dots">
+            {steps.map((item, i) => (
+              <button
+                key={item.id}
+                type="button"
+                className={i === at ? 'on' : i < at ? 'done' : undefined}
+                aria-label={`Step ${i + 1}: ${item.title}`}
+                aria-current={i === at ? 'step' : undefined}
+                onClick={() => onStep(i)}
+              />
+            ))}
+          </span>
           <span className="sl-tour-nav">
             {last && onVideo && (
               <button type="button" className="sl-link sl-tour-video" onClick={onVideo}>
                 Watch the walkthrough
               </button>
             )}
-            <button type="button" className="sl-small" disabled={at === 0} onClick={() => onStep(at - 1)}>
-              Back
+            <button type="button" className="sl-tour-skip" onClick={onClose}>
+              {last ? 'Close' : 'Skip tour'}
             </button>
+            {at > 0 && (
+              <button type="button" className="sl-small sl-tour-back" onClick={() => onStep(at - 1)}>
+                Back
+              </button>
+            )}
             <button ref={next} type="button" className="sl-small sl-tour-next" onClick={() => (last ? onDone() : onStep(at + 1))}>
-              {last ? 'Done' : 'Next'}
-            </button>
-            <button type="button" className="sl-small" onClick={onClose}>
-              Close
+              {last ? finish : 'Next'}
             </button>
           </span>
         </footer>
