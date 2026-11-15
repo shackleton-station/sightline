@@ -77,6 +77,8 @@ export function NearbyGround({ site, anchor, month, mission, onSpot }: Props) {
   // Your landing's own square: the map's centre for a ridge site, wherever it falls for a point of your own.
   const from = shown ? (cellAt(shown.meta, site.lat, site.lon) ?? centerCell(shown.meta)) : 0
   const spots = useMemo(() => (shown ? bestSpots(shown.meta, shown.values, metric, shown.slope, limit, SPOTS, from) : []), [shown, metric, limit, from])
+  // The numbered list is ranked from the ridge site, so it stays put when you go to one of its spots.
+  const listed = useMemo(() => (shown ? bestSpots(shown.meta, shown.values, metric, shown.slope, limit, SPOTS) : []), [shown, metric, limit])
 
   const [box, width] = useWidth()
   const side = Math.min(width, 600)
@@ -185,7 +187,6 @@ export function NearbyGround({ site, anchor, month, mission, onSpot }: Props) {
   const perM = side / (2 * reachM)
   const toPx = (offset: { x: number; y: number }) => ({ x: side / 2 + offset.x * perM, y: side / 2 - offset.y * perM })
   const hereSteep = !withinSlope(slope, meta.slope_quant_deg, center, limit)
-  const change = (value: number) => (lower ? here - value : value - here)
 
   return (
     <section className="np-near" aria-labelledby="np-near-title">
@@ -233,13 +234,13 @@ export function NearbyGround({ site, anchor, month, mission, onSpot }: Props) {
         <canvas ref={canvas} role="img" aria-label={`The ground within ${meta.half_width_m / 1000} km of ${site.name}, tinted by ${measure.words}, with the best spots marked`} />
         {side > 0 && (
           <svg className="np-near-overlay" width={side} height={side} aria-hidden="true">
-            {spots.map((cell, i) => {
+            {listed.map((cell, i) => {
               const to = toPx(cellOffsetM(meta, cell))
-              return <line key={`l${cell}`} className="np-near-arrow" x1={toPx(origin).x} y1={toPx(origin).y} x2={to.x} y2={to.y} style={{ animationDelay: `${i * 0.15}s` }} />
+              return <line key={`l${cell}`} className="np-near-arrow" x1={side / 2} y1={side / 2} x2={to.x} y2={to.y} style={{ animationDelay: `${i * 0.15}s` }} />
             })}
             <circle className="np-near-site" cx={toPx(origin).x} cy={toPx(origin).y} r={9} />
             <circle className="np-near-site-dot" cx={toPx(origin).x} cy={toPx(origin).y} r={3} />
-            {spots.map((cell, i) => {
+            {listed.map((cell, i) => {
               const to = toPx(cellOffsetM(meta, cell))
               return (
                 <g key={cell} className="np-near-spot" style={{ animationDelay: `${0.3 + i * 0.15}s` }}>
@@ -264,14 +265,15 @@ export function NearbyGround({ site, anchor, month, mission, onSpot }: Props) {
         )}
         <b className="np-near-ring" /> <span>{own ? 'Your point' : site.name}</span>
       </div>
-      {spots.length > 0 && (
-        <ol className="np-near-spots">
-          {spots.map((cell, i) => {
-            const offset = offsetOf(cell)
+      {listed.length > 0 && (
+        <ol className="np-near-spots" aria-label={`The best spots, from ${anchor.name}`}>
+          {listed.map((cell, i) => {
+            const offset = cellOffsetM(meta, cell)
             const value = cellValue(values, metric, cell)
-            const gain = change(value)
+            const gain = lower ? cellValue(values, metric, centerCell(meta)) - value : value - cellValue(values, metric, centerCell(meta))
+            const atIt = cell === from
             return (
-              <li key={cell}>
+              <li key={cell} className={atIt ? 'is-here' : undefined}>
                 <span className="np-near-num">{i + 1}</span>
                 <span className="np-near-where">
                   <b>{(Math.hypot(offset.x, offset.y) / 1000).toFixed(1)} km</b> at {clock(offset.x, offset.y)}
@@ -280,16 +282,20 @@ export function NearbyGround({ site, anchor, month, mission, onSpot }: Props) {
                 <span className="np-near-val">
                   {valueWords(metric, value)} <em>{metric === 'sunGap' ? `${gain} h less dark` : `+${gain} pts`}</em>
                 </span>
-                <button
-                  type="button"
-                  className="sl-small"
-                  onClick={() => {
-                    const { lat, lon } = cellLatLon(meta, cell)
-                    onSpot(lat, lon)
-                  }}
-                >
-                  Go there
-                </button>
+                {atIt ? (
+                  <span className="np-near-here">✓ You're here</span>
+                ) : (
+                  <button
+                    type="button"
+                    className="sl-small"
+                    onClick={() => {
+                      const { lat, lon } = cellLatLon(meta, cell)
+                      onSpot(lat, lon)
+                    }}
+                  >
+                    Go there
+                  </button>
+                )}
               </li>
             )
           })}
