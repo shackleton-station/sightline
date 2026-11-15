@@ -60,7 +60,7 @@ service_cpu_always_on = true
 # /api/chat counts, refused and malformed ones too) and Scout refused every visitor. To undo: 400.
 copilot_limits = {
   chat_each     = 15
-  chat_each_day = 100
+  chat_each_day = 250 # was 100 until 2026-11-15. One network address gets four visitors' allowance (limits.ts), so 100 meant 400 a day for a whole room: the team's own checks used it up and Scout answered "busy" to everyone on that Wi-Fi. 250 lets one address use the whole day's 1,000 (chat_all_day), so the most a day can cost is unchanged. To undo: 100.
   chat_all      = 60
   chat_all_day  = 1000
   ask_each      = 20

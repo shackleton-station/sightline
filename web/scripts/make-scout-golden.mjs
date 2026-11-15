@@ -17,8 +17,19 @@ const month = (site, m) => json(`${site}/${m}/summary.json`)
 const year = (site, y) => json(`${site}/heights.json`)[0].years.find((row) => row.year === y)
 const hour = (site, iso) => json(`${site}/${iso.slice(0, 7)}/track.json`).find((p) => p.t === iso)
 
-/** The first hour at or after `fromIso` when a landing meets the limits: brute force over the hourly tracks. */
+/**
+ * The next landing that fits, as the screen offers it: the first hour at or after `fromIso` when a
+ * landing meets the limits (brute force over the hourly tracks), moved on inside the same sunlit
+ * stretch to the first such hour with margin, where at least half the Sun's disc shows and Earth's
+ * center is above the skyline in its own direction. With no such hour in the stretch, the first one stands.
+ */
 function nextLanding(site, fromIso, { days, sunGap, earthGap }) {
+  const skyline = json(`${site}/horizon.json`)
+  const skylineAt = (az) => {
+    const at = (((az % 360) + 360) % 360) / (360 / skyline.length)
+    const i = Math.floor(at)
+    return skyline[i % skyline.length].el * (1 - (at - i)) + skyline[(i + 1) % skyline.length].el * (at - i)
+  }
   const rows = []
   let d = new Date(fromIso.slice(0, 7) + '-01T00:00:00Z')
   for (let i = 0; i < 4; i++) {
@@ -31,8 +42,14 @@ function nextLanding(site, fromIso, { days, sunGap, earthGap }) {
     return best
   }
   const start = rows.findIndex((p) => p.t === fromIso)
+  const fits = (t) => rows[t].sun_up && rows[t].earth_up && longestOff(t, 'sun_up') <= sunGap && longestOff(t, 'earth_up') <= earthGap
   for (let t = start; t + days * 24 <= rows.length; t++) {
-    if (rows[t].sun_up && rows[t].earth_up && longestOff(t, 'sun_up') <= sunGap && longestOff(t, 'earth_up') <= earthGap) return rows[t].t
+    if (!fits(t)) continue
+    // Within the month the first fit is in, as the screen reads one month's hours for this.
+    for (let later = t; later < rows.length && rows[later].sun_up && rows[later].t.slice(0, 7) === rows[t].t.slice(0, 7); later++) {
+      if (rows[later].sun_frac >= 0.5 && rows[later].earth_el - skylineAt(rows[later].earth_az) >= 0 && fits(later)) return rows[later].t
+    }
+    return rows[t].t
   }
   return null
 }

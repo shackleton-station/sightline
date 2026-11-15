@@ -22,6 +22,11 @@ import { MissionBar } from '../planner/MissionBar'
 import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { PlannerMore } from './PlannerMore'
 import { NewPlannerCompare } from './NewPlannerCompare'
+import { cardsOf, type LibraryCard } from '../lib/library'
+import { LibraryTray } from './LibraryTray'
+import { PlannerLibrary } from './PlannerLibrary'
+import { useLibrary, useTray } from './useLibrary'
+import './library.css'
 import { NearbyGround } from './NearbyGround'
 import { useHorizons, useMissionTracks } from './useMissionTracks'
 import { LandingRain } from './LandingRain'
@@ -96,7 +101,12 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
 
   const room = scenarios.length < MAX_SCENARIOS
   // Find (every site by month, the brief) or Compare (your picks side by side).
-  const [tab, setTab] = useState<'find' | 'compare'>('find')
+  const [tab, setTab] = useState<'find' | 'compare' | 'library'>('find')
+  // The library is read the first time its tab or the tray is opened, not before.
+  const [libraryWanted, setLibraryWanted] = useState(false)
+  const wantLibrary = useCallback(() => setLibraryWanted(true), [])
+  const library = useLibrary(libraryWanted || tab === 'library')
+  const [tray, toggleTray] = useTray()
   // Each pick's mission, hour by hour, for the Sun's height and the power budget under the cards.
   const tracks = useMissionTracks(
     start,
@@ -145,6 +155,19 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   const accuracyWanted = tab === 'find' && view !== null && anchor !== null
   const missionGrid = useMissionGrid(start, view ? hourOf(start, view.landing.t) : 0, mission.requirements.missionDays, accuracyWanted)
   const why = useMemo(() => (view ? briefWhy(view.row.flags, view.answer.span, view.viable, view.answer.days, mission.requirements) : null), [view, mission.requirements])
+  // The library's scenarios and the tray's, measured against the mission on screen. The grid gives each
+  // card the share of its month's days with a landing that fits.
+  const monthShare = useCallback(
+    (siteId: string, at: string) => view?.grid.rows.find((row) => row.site.id === siteId)?.cells.find((cell) => cell.month === at)?.share ?? null,
+    [view],
+  )
+  const libraryCards = useMemo(() => (library.state.kind === 'ready' ? cardsOf(library.state.entries, start, hours, flagged, mission, monthShare) : []), [library.state, start, hours, flagged, mission, monthShare])
+  const trayCards = useMemo(() => cardsOf(tray, start, hours, flagged, mission, monthShare), [tray, start, hours, flagged, mission, monthShare])
+  const letterOf = (card: LibraryCard) => {
+    const i = scenarios.findIndex((scenario) => scenario.site === card.scenario?.site && scenario.landing === card.scenario.landing)
+    return i < 0 ? null : SCENARIO_LETTERS[i]
+  }
+
   const [obsHeightM, setObsHeightM] = useState<number | null>(null)
   useEffect(() => {
     let current = true
@@ -296,7 +319,27 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
             <button type="button" role="tab" aria-selected={tab === 'compare'} title="Your picks side by side" onClick={() => setTab('compare')}>
               Compare{scenarios.length > 1 ? <small>{scenarios.length}</small> : null}
             </button>
+            <button type="button" role="tab" aria-selected={tab === 'library'} title="Landings other people saved: search them and pull them in to compare" onClick={() => setTab('library')}>
+              Library
+            </button>
           </div>
+          <LibraryTray
+            start={start}
+            cards={trayCards}
+            letterOf={letterOf}
+            room={room}
+            onCompare={(card) => {
+              if (!card.scenario) return
+              // Added for comparing, not opened: the landing on show stays the one you are working on.
+              const working = active
+              onAdd(card.scenario)
+              onSelect(working)
+            }}
+            onRemove={toggleTray}
+            onOpenCompare={() => setTab('compare')}
+            onOpenLibrary={() => setTab('library')}
+            onWanted={wantLibrary}
+          />
           {view && (
             <p className="pl-tally np-tally" aria-live="polite">
               <strong className={view.grid.tally.withLanding === 0 ? 'none' : undefined}>{view.grid.tally.withLanding}</strong>
@@ -307,7 +350,19 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
             </p>
           )}
         </div>
-        {tab === 'compare' ? (
+        {tab === 'library' ? (
+          <PlannerLibrary
+            start={start}
+            state={library.state}
+            cards={libraryCards}
+            sites={flagged.map((one) => one.site)}
+            firstMonth={start.slice(0, 7)}
+            lastMonth={new Date(Date.parse(start) + (hours - 1) * 3_600_000).toISOString().slice(0, 7)}
+            tray={tray}
+            onToggle={toggleTray}
+            onReload={library.reload}
+          />
+        ) : tab === 'compare' ? (
           <NewPlannerCompare start={start} scenarios={scenarios} facts={facts} mission={mission} measures={measures} tracks={tracks} horizons={horizons} active={active} onSelect={onSelect} onRemove={onRemove} heightsNote={heightsNote} />
         ) : (
         <>

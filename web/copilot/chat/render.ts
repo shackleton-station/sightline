@@ -6,7 +6,6 @@ export type FactBook = Map<string, Fact[]>
 export type Rendered = { ok: true; text: string } | { ok: false; problem: string }
 
 const REFERENCE = /\{\{\s*(r\d+)\.([a-z0-9_]+)\s*\}\}/g
-const MAX_CHARS = 900
 
 /**
  * Ways to write a number that are not ASCII digits. The model is told never to write a number itself
@@ -68,7 +67,6 @@ export function renderAnswer(draft: string, book: FactBook, allowedWords: string
   }
   const written = numberWritten(rest)
   if (written) return { ok: false, problem: written }
-  if (filled.length > MAX_CHARS) return { ok: false, problem: 'Too long. Five sentences at most, each under about twenty-five words: say each figure once and leave the list of limits out.' }
   return { ok: true, text: filled }
 }
 

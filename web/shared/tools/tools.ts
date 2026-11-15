@@ -185,7 +185,7 @@ export function toolDeclarations(siteIds: string[]): Anthropic.Beta.BetaTool[] {
         text: {
           type: 'string',
           description:
-            'Plain sentences, the answer first, then the reason that decides it and what to try next: two sentences for a simple question, up to five for a comparison or for how the numbers were checked. Every number, date and time must be a reference like {{r2.pct_sun}}, copied from a tool result. Never type a digit yourself.',
+            'Plain sentences, the answer first, then the reason that decides it and what to try next, as long as the question needs. Every number, date and time must be a reference like {{r2.pct_sun}}, copied from a tool result. Never type a digit yourself.',
         },
         actions: {
           type: 'array',
