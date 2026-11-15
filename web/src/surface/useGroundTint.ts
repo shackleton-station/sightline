@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { HorizonPoint, SiteInfo } from '../data/contract'
 import { loadYearPositions } from '../data/customSite'
-import { gapsAt, loadLightMeta, slopePartFor } from '../data/loadMissionGrid'
+import { gapsAt, loadLightMeta, patchGapsAt, slopePartFor } from '../data/loadMissionGrid'
 import { ACCURACY_RANGE, DEFAULT_SPREAD, readSpreadLink, type Spread } from '../lib/landingOdds'
 import type { Requirements } from '../lib/mission'
-import { fieldOf, fitMapAround, oddsAlongBearings, oddsAt, oddsColor, oddsField, squareAround } from '../lib/missionGrid'
+import { fieldOf, fitMapAround, fitMapInPatch, oddsAlongBearings, oddsAt, oddsColor, oddsField, patchHolding, squareAround } from '../lib/missionGrid'
 import { smoothMoonFit, washPixel } from '../lib/moonWash'
 import { DEFAULT_MAX_SLOPE_DEG } from '../lib/sightlineMission'
 import type { GroundTint } from '../three/SurfaceViewer'
@@ -51,9 +51,12 @@ async function oddsAround(link: TintLink, site: SiteInfo, horizon: HorizonPoint[
     // Inside the light grid: the terrain's own light and slope, for a lander this accurate.
     const [gaps, slope] = await Promise.all([gapsAt(meta, link.month, link.index, requirements.missionDays), slopePartFor(meta, square)])
     if (gaps === 'past') return null
-    const map = fitMapAround(meta, gaps, square, site.lat, site.lon, requirements, link.maxSlopeDeg, slope)
-    // Softened by at least one cell, as the picture on the Moon is.
-    const odds = oddsField(fieldOf(map), map.size, map.cellM, spread, 1)
+    // Round a ridge site the ground is known at the terrain's own 20 m: the patch's pixels, not the grid's cells.
+    const held = patchHolding(meta, square)
+    const fine = held ? await patchGapsAt(meta, held.site, link.month, link.index, requirements.missionDays) : null
+    const map = held && fine && fine !== 'past' ? fitMapInPatch(meta, held.patch, fine, square, site.lat, site.lon, requirements, link.maxSlopeDeg, slope) : fitMapAround(meta, gaps, square, site.lat, site.lon, requirements, link.maxSlopeDeg, slope)
+    // Softened by at least one slope cell's width, as before, whatever the map's own cells are.
+    const odds = oddsField(fieldOf(map), map.size, map.cellM, spread, meta.pixel_m / map.cellM / (slope?.sub ?? 1))
     const under = oddsAt(map, odds, 0, 0) ?? 0
     const rim = oddsAlongBearings(map, odds, site.lon, horizon.map((point) => point.az), RIM_FROM_M, RIM_TO_M)
     return { under, rim: rim.map((value) => value ?? under) }

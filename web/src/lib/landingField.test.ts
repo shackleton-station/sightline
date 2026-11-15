@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { enuBasis, MOON_RADIUS_M } from './customModel'
 import { fitMapOf, type LandingField, latticeFor, latticePointM, latticeReachM, marginsOf, pointLight, type PointSky, readField, slopeLatticeFor, verdictAt, verdictPicture } from './landingField'
 import { DEFAULT_SPREAD, FITS, missCode } from './landingOdds'
-import { DEFAULT_REQUIREMENTS } from './mission'
+import { DEFAULT_REQUIREMENTS, NO_GAP_LIMIT_H } from './mission'
 import { AZIMUTHS } from './pointHorizons'
 
 const REQ = DEFAULT_REQUIREMENTS
@@ -142,7 +142,7 @@ describe('reading the ground between the points', () => {
     expect(verdictAt(marginsOf(all, { ...silent, sunAtLanding: false, earthAtLanding: false }, 45), 0, 0)).toBe(missCode('dark'))
     expect(verdictAt(marginsOf(all, { ...silent, sunAtLanding: false, earthAtLanding: false, maxSunGapH: 900 }, 45), 0, 0)).toBe(missCode('silence'))
     // With no limit on radio silence, no silence is too long.
-    expect(verdictAt(marginsOf(all, { ...REQ, sunAtLanding: false, earthAtLanding: false, maxSunGapH: 900 }, 45), 0, 0)).toBe(FITS)
+    expect(verdictAt(marginsOf(all, { ...REQ, maxEarthGapH: NO_GAP_LIMIT_H, sunAtLanding: false, earthAtLanding: false, maxSunGapH: 900 }, 45), 0, 0)).toBe(FITS)
   })
 
   it('reads the slope on its own finer lattice', () => {

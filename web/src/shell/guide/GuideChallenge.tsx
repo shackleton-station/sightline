@@ -1,7 +1,11 @@
 import type { RefObject } from 'react'
+import type { ScenarioData } from '../../data/scenarioData'
+import { GuideEarthDay } from './GuideEarthDay'
 import { GuideStep, type GuideStepId } from './GuideParts'
 
 interface Props {
+  /** The site and month on show, for the comparison with a day on Earth; null while it loads. */
+  data: ScenarioData | null
   /** Why the site on show is hard, from that site's own figures; null while they load, and on a page with no scenario. */
   why: string[] | null
   /** Where "Why this site is hard" is on the page: Scout's ready idea opens the Guide there. */
@@ -72,7 +76,7 @@ const QUESTIONS = [
  * Step 1: why the south pole, why landing there is hard (a picture, then the site on show's own
  * figures), what recent landings ran into, and the challenge as three questions.
  */
-export function GuideChallenge({ why, whyHere, onGo }: Props) {
+export function GuideChallenge({ data, why, whyHere, onGo }: Props) {
   return (
     <GuideStep
       id="how-challenge"
@@ -151,6 +155,9 @@ export function GuideChallenge({ why, whyHere, onGo }: Props) {
           <p className="how-start-note">This site’s own figures, for the scenario on show.</p>
         </section>
       )}
+
+      {/* How unlike Earth it is, in the app's own figures for the month on show. */}
+      {data && <GuideEarthDay data={data} />}
 
       <h3>Recent landings toward the south pole</h3>
       <ul className="how-landings">

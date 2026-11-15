@@ -18,7 +18,7 @@ describe('the ready comparison of two nearby sites', () => {
     expect(nearbyPairKm(sites.filter((site) => site.id !== NEARBY_PAIR.b))).toBeNull()
   })
 
-  it('on its date a short stay is sunlit throughout at one and dark for 71 h at the other', async () => {
+  it('on its date a short stay fits at one, sunlit throughout, and at the other is dark for 57 h and out of contact for 32 h', async () => {
     const sites = await data.sites()
     const measure = async (id: string) => {
       const site = sites.find((one) => one.id === id)!
@@ -30,8 +30,10 @@ describe('the ready comparison of two nearby sites', () => {
     expect(a.sunPct).toBe(100)
     expect(a.sunGapH).toBe(0)
     expect(a.problems).toEqual([])
-    expect(Math.round(b.sunPct ?? 0)).toBe(68)
-    expect(b.sunGapH).toBe(71)
-    expect(b.problems.length).toBeGreaterThan(0)
+    expect(a.earthGapH).toBe(14)
+    expect(Math.round(b.sunPct ?? 0)).toBe(83)
+    expect(b.sunGapH).toBe(57)
+    expect(b.earthGapH).toBe(32)
+    expect(b.problems).toEqual(['The Sun is gone for 57 h during the mission; your limit is 24 h.', 'Earth is gone for 32 h during the mission; your limit is 24 h.'])
   })
 })

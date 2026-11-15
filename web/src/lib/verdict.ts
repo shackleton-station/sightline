@@ -27,7 +27,7 @@ export function verdict(summary: Summary): string {
 
 export interface TrustNote {
   text: string
-  /** True when this site differs from NASA's map by more than our typical error. */
+  /** True when this site, at the ground, differs from NASA's map by more than our measured error. */
   warning: boolean
 }
 
@@ -39,8 +39,28 @@ export interface ValidationNotes {
 }
 
 /**
- * States whether a long-run value agrees with NASA's map at this site, judged against the RMSE we
- * measured across many pixels. A site beyond that error says so rather than claiming validation.
+ * The height NASA's map is compared at: the ground. PGDA's page gives no height for its maps, and a
+ * map of how the terrain is lit is taken to be of the terrain itself, so the like-for-like figure of
+ * ours is the run with the observer on the surface, and the part of the disk that counts is any part
+ * (the figure the rest of the app shows). The app reads the Sun and Earth from higher up, and that
+ * figure is given beside it, never compared with the map.
+ */
+const MAP_HEIGHT_M = 0
+
+/** What stands at the visitor's height, for the sentence on why the figure is higher there. */
+type Raised = { value: number; heightM: number; mast: string } | null
+
+/** "At 2 m up, where this app reads it, our model gives 90%: a panel on a mast sees over the near ground." */
+function raisedWords(ground: number, raised: Raised): string {
+  if (!raised) return ''
+  const gives = ` At ${raised.heightM} m up, where this app reads it, our model gives ${wholePct(raised.value)}`
+  return wholePct(raised.value) !== wholePct(ground) && raised.value > ground ? `${gives}: ${raised.mast} on a mast sees over the near ground.` : `${gives}.`
+}
+
+/**
+ * States whether a long-run value at the ground agrees with NASA's map at this site, judged against
+ * the RMSE we measured across many pixels at the ground. A site beyond that error says so rather
+ * than claiming validation. The figure at the visitor's own height follows, as a separate sentence.
  */
 function compareWithMap(
   name: string,
@@ -48,18 +68,25 @@ function compareWithMap(
   map: number,
   grid: GridStats,
   [low, high]: [number, number],
+  raised: Raised,
 ): TrustNote {
   const difference = Math.abs(ours - map)
   const numbers =
-    `${wholePct(ours)} here, ${wholePct(map)} on NASA's PGDA map ` +
+    `${wholePct(ours)} in our model, ${wholePct(map)} on NASA's PGDA map ` +
     `(neighboring pixels ${low.toFixed(0)}–${high.toFixed(0)}%)`
   if (difference <= grid.rmse) {
-    return { text: `${name} agrees with NASA's map: ${numbers}.`, warning: false }
+    return {
+      text:
+        `${name} at the ground agrees with NASA's map: ${numbers}, inside the ${grid.rmse.toFixed(1)}-point ` +
+        `error measured across ${grid.n} other pixels.${raisedWords(ours, raised)}`,
+      warning: false,
+    }
   }
   return {
     text:
-      `${name} at this site is not confirmed: ${numbers}. That's about ${difference.toFixed(0)} points ` +
-      `apart; across ${grid.n} other pixels the typical difference is ${grid.mae.toFixed(1)}.`,
+      `${name} at this site is not confirmed, even at the ground: ${numbers}. That's about ` +
+      `${difference.toFixed(0)} points apart; across ${grid.n} other pixels the typical difference is ` +
+      `${grid.mae.toFixed(1)}.${raisedWords(ours, raised)}`,
     warning: true,
   }
 }
@@ -68,16 +95,15 @@ function compareWithMap(
 export function validationNotes(validation: Validation, obsHeightM: number): ValidationNotes {
   const { pgda, horizons } = validation
   const ours = pgda.ours.find((row) => row.obs_height_m === obsHeightM)
+  if (!ours) throw new Error(`no validation results for observer height ${obsHeightM} m`)
+  const ground = pgda.ours.find((row) => row.obs_height_m === MAP_HEIGHT_M)
   const gridFor = (quantity: string) =>
     pgda.grid.stats.find(
       (row) =>
-        row.quantity === quantity && row.obs_height_m === obsHeightM && row.sample === 'all',
+        row.quantity === quantity && row.obs_height_m === MAP_HEIGHT_M && row.sample === 'all',
     )
-  const sunGrid = gridFor('sun_mean_disk_pct')
+  const sunGrid = gridFor('sun_any_pct')
   const earthGrid = gridFor('earth_any_pct')
-  if (!ours || !sunGrid || !earthGrid) {
-    throw new Error(`no validation results for observer height ${obsHeightM} m`)
-  }
 
   const separation = horizons.max_sep_deg < 0.001 ? 'under 0.001' : horizons.max_sep_deg.toFixed(3)
   const unchecked = (name: string): TrustNote => ({
@@ -85,23 +111,22 @@ export function validationNotes(validation: Validation, obsHeightM: number): Val
     warning: false,
   })
   const { map } = pgda
+  if (map && (!ground || !sunGrid || !earthGrid)) throw new Error('no validation results at the ground to compare with NASA\'s map')
+  // The figure at the visitor's own height, unless that is the ground itself.
+  const raised = (value: number, mast: string): Raised => (obsHeightM === MAP_HEIGHT_M ? null : { value, heightM: obsHeightM, mast })
   return {
     horizons: `Sun and Earth positions match JPL Horizons to ${separation}° (${horizons.checks.length} checks).`,
     terrain:
       `Terrain near this site is LOLA at ${validation.terrain_resolution_m.toFixed(0)} m per pixel, ` +
       `so smaller rocks and craters aren't captured.`,
-    earth: map
-      ? compareWithMap(
-          'Earth visibility',
-          ours.earth_any_pct,
-          map.earth_pct,
-          earthGrid,
-          map.earth_nearby_pct,
-        )
-      : unchecked('Earth visibility'),
-    sun: map
-      ? compareWithMap('Sun', ours.sun_mean_disk_pct, map.sun_pct, sunGrid, map.sun_nearby_pct)
-      : unchecked('Sun'),
+    earth:
+      map && ground && earthGrid
+        ? compareWithMap('Earth visibility', ground.earth_any_pct, map.earth_pct, earthGrid, map.earth_nearby_pct, raised(ours.earth_any_pct, 'an antenna'))
+        : unchecked('Earth visibility'),
+    sun:
+      map && ground && sunGrid
+        ? compareWithMap('Sun', ground.sun_any_pct, map.sun_pct, sunGrid, map.sun_nearby_pct, raised(ours.sun_any_pct, 'a panel'))
+        : unchecked('Sun'),
   }
 }
 

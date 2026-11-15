@@ -6,6 +6,7 @@ import { loadLrocPhotos } from '../../data/loadSite'
 import type { ScenarioData } from '../../data/scenarioData'
 import { TrustNotes } from '../../components/TrustNotes'
 import { monthLabel } from '../../lib/months'
+import { degWords } from '../../lib/sightline'
 import { GuideStep } from './GuideParts'
 
 interface Props {
@@ -44,6 +45,9 @@ export function GuideProof({ data, span, light }: Props) {
   const lit = photos?.groups.well_lit?.ground.clear
   const photoPct = lit?.balanced_agreement_pct != null ? Math.round(lit.balanced_agreement_pct) : null
   const height = data ? `${data.summary.obs_height_m} m` : '2 m'
+  // The wobble in this site's own figures: how far Earth's elevation moves over the month on show.
+  const earthEls = data ? data.track.map((point) => point.earth_el) : []
+  const earthSwing = earthEls.length > 0 ? { low: degWords(Math.min(...earthEls)), high: degWords(Math.max(...earthEls)) } : null
 
   return (
     <GuideStep id="how-proof" kicker="Step 4" title="Make sure the math is right" intro="We check our numbers against NASA’s, three ways, and say so where they disagree.">
@@ -92,6 +96,14 @@ export function GuideProof({ data, span, light }: Props) {
           </p>
         </>
       )}
+
+      <h3>What the positions include</h3>
+      <p className="how-caption how-positions">
+        The Sun’s and Earth’s positions come from NASA’s SPICE kernels: one file says where the Sun, Earth and Moon are, another how the Moon is turned. So the Moon’s orbit and
+        its libration, the slow wobble that moves Earth around its place in the Moon’s sky, are in every hour. Seen from one place on the Moon, Earth otherwise stays put: it is in
+        view all the time from the Apollo sites and never from Chang’e 4, on the far side. Near the pole it sits at the skyline, so that wobble is why it rises and sets there.
+        {earthSwing && ` At ${data?.site.name} in ${monthLabel(data?.month ?? '')}, Earth’s elevation goes from ${earthSwing.low} to ${earthSwing.high} from level.`}
+      </p>
 
       <h3>{data ? `For ${data.site.name}, ${monthLabel(data.month)}` : 'For the site on show'}</h3>
       {data ? (
