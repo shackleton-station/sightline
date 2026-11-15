@@ -561,7 +561,7 @@
 }
 
 .pl-own-problem {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 .pl-nothing-host {

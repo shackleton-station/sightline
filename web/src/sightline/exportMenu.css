@@ -54,7 +54,7 @@
 .sl-export-problem {
   max-width: 17rem;
   padding: 0.3rem 0.6rem 0.4rem;
-  color: #e8915a;
+  color: var(--sl-miss);
   font-size: 0.75rem;
   line-height: 1.35;
 }
