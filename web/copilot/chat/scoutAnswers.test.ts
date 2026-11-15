@@ -4,6 +4,8 @@ import { gzipSync } from 'node:zlib'
 import { describe, expect, it, vi } from 'vitest'
 import type { OverviewYear } from '../../src/data/contract'
 import { hourOf, locateHour, NO_GAP_LIMIT_H } from '../../src/lib/mission'
+import { firstSentence, ringedSites, sitesNamedIn } from '../../src/lib/scoutRing'
+import { stateAt } from '../../src/lib/sightline'
 import { betterDate, type SightlineMission, steadierLanding } from '../../src/lib/sightlineMission'
 import type { Bucket } from '../../shared/bucket'
 import { siteData } from '../../shared/tools/data'
@@ -347,6 +349,84 @@ describe('11. a link that carries the heights without the scenario mark', () => 
   it('still leaves alone a link with neither the mark nor a height: another page\'s', async () => {
     const other = '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan'
     expect(await scenarioScene(other, viewFrom(other), high)).toBeNull()
+  })
+})
+
+describe('12. "where can a lander see Earth right now?", asked on the opening screen with no site chosen', () => {
+  /** The opening screen's link at 10 December 2026, 00:00 UTC: it names the featured site only because a link must, and says so (`watch=1`). */
+  const WATCH = '#a=connecting-ridge@2026-12&t=216&limits=14_24_99999_1_1&mode=plan&watch=1'
+  const QUESTION = 'Where can a lander see Earth right now?'
+
+  it('tells Scout that no site is chosen: nothing he is given names a site as the screen\'s', async () => {
+    const view = await viewFacts(viewFrom(WATCH), data, null, true)
+    expect(view.find((item) => item.key === 'no_site_chosen')?.value).toMatch(/no site chosen/)
+    expect(view.some((item) => item.key === 'site')).toBe(false)
+    expect(view.some((item) => /Connecting Ridge/.test(item.value))).toBe(false)
+    expect(view.find((item) => item.key === 'time')?.value).toBe('10 December 2026, 00:00 UTC')
+    // Not a scenario either, even where the link carries heights.
+    expect(await scenarioScene(`${WATCH}&hp=10`, viewFrom(WATCH), high)).toBeNull()
+  })
+
+  it('says so in the instructions: never "the site on your screen", and "now" is the hour on the time bar', () => {
+    const rules = systemPrompt({ first_year: 2026, last_year: 2049 })
+    expect(rules).toMatch(/If r0 has no_site_chosen.*Never say "the site on your screen"/)
+    expect(rules).toMatch(/"Now" and "right now" mean the hour on the visitor's time bar/)
+    expect(rules).toMatch(/call sites_in_view and lead with its list for that hour/)
+    expect(rules).toMatch(/never guess what a site "should" see/)
+  })
+
+  it.each(['2026-12-10T00', '2027-05-06T13', '2031-08-20T05'])('at %s the tool\'s lists are the markers\' states for every listed site', async (time) => {
+    const result = await runTool('sites_in_view', { time }, context)
+    if (!result.ok) throw new Error(result.error)
+    const value = (key: string) => result.facts.find((item) => item.key === key)?.value ?? ''
+    const all = await data.allFlags()
+    const sites = all.map(({ site }) => site)
+    const hour = hourOf(all[0].flags.start, `${time}:00:00Z`)
+    // What each site's marker shows at that hour, straight from its hours.
+    const marker = new Map(all.map(({ site, flags }) => [site.id, stateAt(flags, hour)]))
+    const where = (pass: (state: string) => boolean) => sites.filter((site) => pass(marker.get(site.id) ?? '')).map((site) => site.id).sort()
+    const listed = (key: string) => sitesNamedIn(value(key), sites).sort()
+    expect(listed('earth_in_view')).toEqual(where((state) => state === 'both' || state === 'earth'))
+    expect(listed('sun_in_view')).toEqual(where((state) => state === 'both' || state === 'sun'))
+    expect(listed('both_in_view')).toEqual(where((state) => state === 'both'))
+    expect(listed('neither_in_view')).toEqual(where((state) => state === 'none'))
+    expect(value('earth_in_view_count')).toBe(`${where((state) => state === 'both' || state === 'earth').length} of ${sites.length} listed sites`)
+    // And each site by itself.
+    const words = { both: 'the Sun and Earth', sun: 'the Sun only', earth: 'Earth only', none: 'neither' } as Record<string, string>
+    for (const site of sites) expect(value(`at_${site.id.replace(/[^a-z0-9]+/g, '_')}`), site.id).toBe(words[marker.get(site.id) ?? ''])
+  })
+
+  it('with no time given, is for the hour on the visitor\'s time bar, and says so', async () => {
+    const result = await runTool('sites_in_view', {}, { ...context, hourIso: '2026-12-10T00:00:00Z' })
+    if (!result.ok) throw new Error(result.error)
+    const time = result.facts.find((item) => item.key === 'time')
+    expect(time?.value).toBe('10 December 2026, 00:00 UTC')
+    expect(time?.label).toMatch(/the hour on the visitor's time bar/)
+  })
+
+  it('answers with the list for that hour, and the sites the Moon rings are the ones the first sentence names', async () => {
+    const model = scripted([{ name: 'sites_in_view', args: {} }], [answer('At the hour on the time bar, {{r0.time}}, Earth is in view {{r1.earth_in_view}}. That is {{r1.earth_in_view_count}}.')])
+    const outcome = await ask(model, WATCH, QUESTION)
+    if (!outcome.ok) throw new Error('no answer')
+    const text = outcome.reply.text
+    expect(text).toMatch(/^At the hour on the time bar, 10 December 2026, 00:00 UTC, Earth is in view /)
+    expect(text).not.toMatch(/the site on your screen/)
+    expect(text).not.toMatch(/should see/)
+    // What Scout was sent says no site is chosen, and names none as the screen's.
+    const sent = String(model.generate.mock.calls[0][0].messages[0].content)
+    expect(sent).toMatch(/- no_site_chosen: /)
+    expect(sent).not.toMatch(/^- site: /m)
+    // The Moon rings the sites the first sentence names: exactly the sites with Earth in view at that hour.
+    const all = await data.allFlags()
+    const sites = all.map(({ site }) => site)
+    const hour = hourOf(all[0].flags.start, '2026-12-10T00:00:00Z')
+    const withEarth = all.filter(({ flags }) => ['both', 'earth'].includes(stateAt(flags, hour))).map(({ site }) => site.id).sort()
+    const ringed = ringedSites(outcome.reply, sites, () => null)
+    expect([...ringed].sort()).toEqual(withEarth)
+    expect([...ringed].sort()).toEqual(sitesNamedIn(firstSentence(text), sites).sort())
+    expect(withEarth.length).toBeGreaterThan(1)
+    // Connecting Ridge has Earth out of view at that hour: it is not ringed, and not named first.
+    expect(ringed).not.toContain('connecting-ridge')
   })
 })
 

@@ -37,7 +37,8 @@ const FIGURES: Record<(typeof COMPARE_ROWS)[number]['key'], { key: string; label
 export async function scenarioScene(hash: unknown, base: ViewState, data: SiteData): Promise<ScenarioScene | null> {
   if (typeof hash !== 'string' || hash.length > 1500) return null
   const params = new URLSearchParams(hash.replace(/^#/, ''))
-  if (!params.has('sc') && !params.has('hp') && !params.has('ha')) return null
+  // The opening screen's link (`watch=1`) holds no scenario, whatever else it carries.
+  if (params.has('watch') || (!params.has('sc') && !params.has('hp') && !params.has('ha'))) return null
   const sites = await data.sites()
   const span = await data.flags(sites[0].id)
   const link = readScenarioLink(hash, span.start, span.sun.length)

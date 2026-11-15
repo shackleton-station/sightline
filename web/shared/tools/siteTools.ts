@@ -6,11 +6,12 @@ import { hourOf, locateHour, longestDown, missionEarth } from '../../src/lib/mis
 import { formatDuration } from '../../src/lib/nextChange'
 import { panelSunlight } from '../../src/lib/power'
 import { alternativesAt, conditionsAt } from '../../src/lib/slip'
-import { degWords } from '../../src/lib/sightline'
+import { degWords, stateAt } from '../../src/lib/sightline'
 import { pct } from '../../src/lib/verdict'
 import { type Args, lastYear, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
 import { daysLabel, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, type ToolResult, whenLabel } from './facts'
 import { nextLandingOnScreen } from './nextLanding'
+import { listWords } from './ties'
 
 /** From the Moon, Earth's disc is never smaller than this across its radius (it is 0.90° to 1.02° with its distance). */
 const EARTH_RADIUS_AT_LEAST_DEG = 0.9
@@ -180,3 +181,58 @@ export async function yearSummary(args: Args, ctx: ToolContext): Promise<ToolRes
     ],
   }
 }
+
+/** How each region of the site list is led into, in a sentence. */
+const REGION_WORDS: Record<string, string> = {
+  'South pole ridges': 'on the south pole ridges',
+  Apollo: 'among the Apollo sites',
+  CLPS: 'among the CLPS sites',
+  'Other countries': "among other countries' sites",
+}
+
+/** What each state of a site's marker is called, as a phrase about what is in view there. */
+const IN_VIEW = { both: 'the Sun and Earth', sun: 'the Sun only', earth: 'Earth only', none: 'neither' } as const
+
+/**
+ * Every listed site at one hour: what is in view there, the Sun, Earth, both or neither. These are
+ * the states the markers on the Moon show (`stateAt` on each site's hours), so the answer to "where
+ * can a lander see Earth right now" is read from the data for that hour, never inferred from a
+ * month's share. With no time given it is the hour on the visitor's time bar.
+ */
+export async function sitesInView(args: Args, ctx: ToolContext): Promise<ToolResult> {
+  const all = await ctx.data.allFlags()
+  const iso = args.time === undefined && ctx.hourIso ? ctx.hourIso : timeArg(args.time, all[0].flags)
+  const hour = hourOf(all[0].flags.start, iso)
+  if (hour < 0 || hour >= all[0].flags.sun.length) throw new ToolError('That time is outside the data.')
+  const states = all.map(({ site, flags }) => ({ site, state: stateAt(flags, hour) }))
+  const groups = [...new Set(states.map((entry) => entry.site.group))]
+  /** The sites that pass, by region in the order the regions are listed, as words that follow "is in view": "among the Apollo sites, Apollo 11 and Apollo 17; among the CLPS sites, IM-1 Odysseus". */
+  const grouped = (pass: (state: (typeof states)[number]['state']) => boolean) => {
+    const parts = groups.flatMap((group) => {
+      const names = states.filter((entry) => entry.site.group === group && pass(entry.state)).map((entry) => entry.site.name)
+      return names.length > 0 ? [`${REGION_WORDS[group] ?? `in the group ${group}`}, ${listWords(names)}`] : []
+    })
+    return parts.length > 0 ? parts.join('; ') : 'at none of the listed sites'
+  }
+  const count = (pass: (state: (typeof states)[number]['state']) => boolean) => `${states.filter((entry) => pass(entry.state)).length} of ${states.length} listed sites`
+  const lists: [string, string, (state: (typeof states)[number]['state']) => boolean][] = [
+    ['earth_in_view', 'Earth in view (with or without the Sun)', (state) => state === 'both' || state === 'earth'],
+    ['sun_in_view', 'the Sun in view (with or without Earth)', (state) => state === 'both' || state === 'sun'],
+    ['both_in_view', 'the Sun and Earth both in view', (state) => state === 'both'],
+    ['neither_in_view', 'neither the Sun nor Earth in view', (state) => state === 'none'],
+  ]
+  return {
+    ok: true,
+    title: `All listed sites at ${whenLabel(iso)}: what is in view`,
+    facts: [
+      fact('time', args.time === undefined && ctx.hourIso ? 'The hour this is for: the hour on the visitor\'s time bar' : 'The hour this is for', whenLabel(iso)),
+      ...lists.flatMap(([key, what, pass]) => [
+        fact(key, `Where ${what === 'neither the Sun nor Earth in view' ? 'neither the Sun nor Earth is in view' : `${what.replace(' in view', '')} ${what.startsWith('the Sun and Earth') ? 'are' : 'is'} in view`} at this hour: the listed sites, by region, as words that follow "in view"`, grouped(pass)),
+        fact(`${key}_count`, `How many listed sites have ${what} at this hour`, count(pass)),
+      ]),
+      // Each site by itself too, for a question about one of them.
+      ...states.map(({ site, state }) => fact(`at_${site.id.replace(/[^a-z0-9]+/g, '_')}`, `In view at ${site.name} at this hour`, IN_VIEW[state])),
+    ],
+  }
+}
+

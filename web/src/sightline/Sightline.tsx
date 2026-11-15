@@ -7,6 +7,7 @@ import { useScenario } from '../data/useScenario'
 import { onHypeTyped } from '../components/listenForHype'
 import { setAddressBar } from '../lib/address'
 import { HYPE_HASH, isHypeWord } from '../lib/hypeEgg'
+import { ringedSites } from '../lib/scoutRing'
 import { horizonAt } from '../lib/customModel'
 import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, marginalReasons, shortWhen } from '../lib/sightlineSky'
@@ -152,6 +153,9 @@ function forgetOldHype(): void {
   }
 }
 
+/** No sites ringed: one list for every render, so nothing downstream sees a new one each time. */
+const NO_SITES: string[] = []
+
 /** Scout's tour: its steps, words and what each rings, from the one file the video's recorder reads too. */
 const TOUR = tourFile as TourFile
 /** The feature guides: short tours of one feature each, in the main tour's format, run by the same engine. */
@@ -260,13 +264,15 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     return () => window.clearTimeout(timer)
   }, [scoutOpen])
   const room = useRoom()
-  // The site a reply of Scout's names is ringed on the Moon while that reply is the latest and his card is open.
+  // The sites a reply of Scout's leads with are ringed on the Moon while that reply is the latest and
+  // his card is open: the ones its first sentence names, so the Moon shows what the answer says first.
   const lastSaid = chat.thread.at(-1)
   const ringed = useMemo(() => {
-    if (plan || !scoutOpen || !lastSaid || lastSaid.role !== 'assistant' || lastSaid.failed) return null
-    const link = lastSaid.actions?.[0] ? readScenarioLink(lastSaid.actions[0].hash, start, hours) : null
-    const linked = link ? sites.find((listed) => listed.id === link.scenarios[link.active].site) : undefined
-    return (linked ?? sites.find((listed) => lastSaid.text.includes(listed.name)))?.id ?? null
+    if (plan || !scoutOpen || !lastSaid || lastSaid.role !== 'assistant' || lastSaid.failed) return NO_SITES
+    return ringedSites(lastSaid, sites, (hash) => {
+      const link = readScenarioLink(hash, start, hours)
+      return link ? link.scenarios[link.active].site : null
+    })
   }, [plan, scoutOpen, lastSaid, sites, start, hours])
   // The Moon Trek layer laid over the south pole, if one is switched on.
   const [layer, setLayer] = useState<TrekLayerId | null>(null)
@@ -486,7 +492,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // The address always reopens what is on screen: the scenario in Plan, nothing in Watch.
   const view = `${scenarioLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
   // In Watch there is no scenario on show: Scout is sent the featured site at the moment on the clock.
-  const watchView = scenarioLink([{ site: scenarios[0].site, landing: hour }], 0, start, mission)
+  // The link says so (`watch=1`): no site is on the visitor's screen, and "now" is the hour on the time bar.
+  const watchView = `${scenarioLink([{ site: scenarios[0].site, landing: hour }], 0, start, mission)}&watch=1`
   // The Surface view stands at the scenario on show, at its landing: the side panel's site and date.
   const surfaceView = `${surfaceLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
   // The other way: an hour or month chosen in the Surface view becomes the landing in the side panel.
@@ -1152,7 +1159,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           earth={earth}
           bare={bare || planner}
           reserveBottom={!plan && !bare ? Math.max(PLAY_CONTROL_ROOM_PX, scoutOpen && room === 'phone' && scoutHeight > 0 ? scoutHeight + SHEET_AIR_PX : 0) : shown && !planner ? NOTE_ROOM_PX : 0}
-          selectedId={shown ? site.id : (tourStep?.state.ring ?? ringed)}
+          selectedId={shown ? site.id : (tourStep?.state.ring ?? null)}
+          ringIds={shown || tourStep ? NO_SITES : ringed}
           focus={shown && !planner && mode === 'site' ? site : null}
           onChoose={openPlan}
           onPoint={setPointed}

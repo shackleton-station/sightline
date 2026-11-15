@@ -33,6 +33,12 @@ interface Props {
   bare: boolean
   /** Pixels at the bottom of the stage to keep clear of the Moon (Watch's play control sits there). */
   reserveBottom: number
+  /**
+   * Sites ringed besides: the ones a reply of Scout's leads with, in Watch. They are outlined like
+   * the selected site. The view is left where the visitor had it unless none of them can be seen
+   * from there; then the Moon turns to the first.
+   */
+  ringIds?: string[]
   /** The site of the scenario on show, outlined; null in Watch. */
   selectedId: string | null
   /** The place to fly down to and stay close on (the rail's "Site"); null shows the whole Moon. */
@@ -85,6 +91,8 @@ const SITE_M_PER_PX = 420
 const FLIGHT_MS = 1400
 /** The flight back to the whole Moon, and how long after a flight's end a change of size still counts as part of it. */
 const WHOLE_FLIGHT_MS = 600
+/** No sites ringed: one list for every render. */
+const NONE_RINGED: string[] = []
 /** The turn that brings a picked site into view, and the compass's flight back to the default view. */
 const TURN_FLIGHT_MS = 900
 const RECENTRE_FLIGHT_MS = 400
@@ -116,7 +124,7 @@ function lonLatOf(direction: readonly [number, number, number]): { lon: number; 
 /** How close to a zoom limit counts as being at it, as a share of the limit. */
 const ZOOM_SLACK = 1e-6
 
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
+export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
@@ -260,6 +268,25 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, placed])
 
+  // Scout's reply leads with some sites: they are ringed where they are. If at least one of them
+  // can be seen the view stays as the visitor had it; if none can, the Moon turns to the first.
+  const ringKey = ringIds.join('|')
+  useEffect(() => {
+    if (!placed || ringIds.length === 0 || focusLat !== undefined) return
+    const ringed = ringIds.flatMap((id) => sites.find((site) => site.id === id) ?? [])
+    const seen = (site: SiteInfo) => {
+      const p = placeOf(site.lat, site.lon)
+      const c = toCanvas(p, zoom)
+      return p.facing > 0.05 && Math.abs((c.x * side) / 2) <= box.width / 2 - 12 && Math.abs((-c.y * side) / 2) <= freeHeight / 2 - 12
+    }
+    if (ringed.length === 0 || ringed.some(seen)) return
+    const goal = { lat: ringed[0].lat, lon: ringed[0].lon }
+    flight.current = { kind: 'turn', goal, until: performance.now() + TURN_FLIGHT_MS + FLIGHT_SETTLE_MS }
+    void flyTo(goal, zoom, TURN_FLIGHT_MS)
+    // Only a new set of ringed sites starts this, with the view as it is at that moment.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [ringKey, placed])
+
   // Whether the view has been moved from the default one, and which way: for the recentre compass.
   const moved = placed && viewMoved({ center, up, zoom }, { ...DEFAULT_POSE, zoom: fit.wholeZoom })
   const needle = needleDeg({ center, up }, DEFAULT_POSE.up)
@@ -272,7 +299,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
     })
     // Sites that would print over one another at this zoom become one group marker.
     const grouped = groupOverlapping(placedSites).map((members) => {
-      const selected = members.find((member) => member.site.id === selectedId)
+      const selected = members.find((member) => member.site.id === selectedId) ?? members.find((member) => ringIds.includes(member.site.id))
       const alone = members.length === 1
       const text = alone ? members[0].site.name : selected ? `${selected.site.name} + ${members.length - 1} more` : `${members.length} sites`
       const middle = alone ? members[0] : middleOf(members)
@@ -292,7 +319,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
       side,
     )
     return grouped.map((marker) => ({ ...marker, label: shown.has(marker.key), labelSide: shown.get(marker.key) ?? 'below' }))
-  }, [sites, placeOf, zoom, side, selectedId])
+  }, [sites, placeOf, zoom, side, selectedId, ringIds])
 
   // The "Light and shadow" layer: ground the Sun cannot reach at the hour on the clock is darkened,
   // from the light grid (the same data the Atlas draws). Nothing is recolored and no cell shows.

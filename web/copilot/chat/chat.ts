@@ -67,7 +67,7 @@ export const REFUSAL_TEXT = "I can't answer that one: the language model behind 
 export const LAST_ROUND = `This is your last turn: call ${ANSWER_TOOL} now with the facts you have.`
 
 /** What the visitor is looking at, as facts the model can cite like any tool result (reference r0). */
-export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: number; lon: number } | null = null): Promise<Fact[]> {
+export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: number; lon: number } | null = null, watching = false): Promise<Fact[]> {
   const sites = await data.sites()
   const [first] = sites
   const flags = await data.flags(first.id)
@@ -84,6 +84,17 @@ export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: nu
     ]
   }
   const monthStart = hourOf(flags.start, `${view.a.month}-01T00:00:00Z`)
+  // On the opening screen (Watch) the visitor is looking at the whole Moon and has chosen no site:
+  // the link names a site only because a link must, so it is not passed on as theirs.
+  if (watching) {
+    return [
+      fact('no_site_chosen', 'The visitor\'s screen', 'the whole Moon, with no site chosen: there is no "site on your screen"'),
+      fact('time', 'The hour on the time bar (what "now" and "right now" mean to the visitor)', whenLabel(isoAt(flags.start, monthStart + view.index))),
+      fact('limits', 'Mission limits', limitsLabel(view.requirements)),
+      ...limitFacts(view.requirements),
+      ...(spot ? tappedFacts(spot, sites) : []),
+    ]
+  }
   return [
     ...describe(view.a.site, 'site', 'Site on screen'),
     ...(view.b ? describe(view.b.site, 'compared_with', 'Compared with') : []),
@@ -142,9 +153,11 @@ export async function runChat(
   // On the Sightline screen the visitor has up to four scenarios: the one on show becomes the view.
   const scene = await scenarioScene(input.viewHash, input.view, deps.data)
   const view = scene?.view ?? input.view
-  const context = { data: deps.data, requirements: view.requirements, spot: input.spot ?? null, horizons: deps.horizons }
+  // The opening screen says so in its link (`watch=1`): no site is chosen there.
+  const watching = typeof input.viewHash === 'string' && new URLSearchParams(input.viewHash.replace(/^#/, '')).has('watch')
+  const context = { data: deps.data, requirements: view.requirements, spot: input.spot ?? null, horizons: deps.horizons, hourIso: isoAt(flags.start, hourOf(flags.start, `${view.a.month}-01T00:00:00Z`) + view.index) }
 
-  const book: FactBook = new Map([['r0', [...(await viewFacts(view, deps.data, input.spot ?? null)), ...(scene?.facts ?? [])]]])
+  const book: FactBook = new Map([['r0', [...(await viewFacts(view, deps.data, input.spot ?? null, watching)), ...(scene?.facts ?? [])]]])
   const sources: string[] = []
   /** What the tools found tied for best, for the buttons: the first is offered and the button says there are others. */
   const ties: Tie[] = []
