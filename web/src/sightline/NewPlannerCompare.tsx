@@ -5,8 +5,7 @@ import { shortReason } from '../lib/sightlineSky'
 import { type ScenarioMeasure, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { MissionPlayback } from './MissionPlayback'
 import { PicksScorecard } from './PicksScorecard'
-import { PlannerPower } from './PlannerPower'
-import { PlannerSunChart } from './PlannerSunChart'
+import { MissionCharts } from './MissionCharts'
 import type { ScenarioFacts } from './useScenarioFacts'
 
 interface Props {
@@ -87,8 +86,11 @@ export function NewPlannerCompare({ start, scenarios, facts, mission, measures, 
         })}
       </div>
       <div className="np-compare-all">
-        <PlannerSunChart rows={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i] }))} missionDays={mission.requirements.missionDays} />
-        <PlannerPower columns={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i], sunGapH: measures[i]?.sunGapH ?? null }))} heightsNote={heightsNote} />
+        <MissionCharts
+          picks={scenarios.map((scenario, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, flags: facts[i].flags, t: isoAt(start, scenario.landing), track: tracks[i] }))}
+          requirements={mission.requirements}
+          heightsNote={heightsNote}
+        />
       </div>
     </div>
   )

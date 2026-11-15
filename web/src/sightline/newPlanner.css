@@ -2212,3 +2212,243 @@
 .sl-np .np-rain-bar {
   grid-template-columns: minmax(0, 13rem) minmax(0, 1fr) 2.2rem;
 }
+
+/* ---------- Compare: over the mission, side by side ---------- */
+.sl-np .np-mc {
+  margin-top: 1.2rem;
+  padding: 0.9rem 1rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 2%);
+}
+
+.sl-np .np-mc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+}
+
+.sl-np .np-mc-head h3 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1rem;
+}
+
+.sl-np .np-mc-hover {
+  margin: 0;
+  color: var(--soft);
+  font-family: var(--pl-mono);
+  font-size: 0.75rem;
+}
+
+.sl-np .np-mc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.sl-np .np-mc-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sl-np .np-mc-legend i {
+  width: 0.9rem;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.sl-np .np-mc-chart {
+  margin: 1rem 0 0;
+}
+
+.sl-np .np-mc-chart figcaption {
+  margin-bottom: 0.3rem;
+  color: var(--soft);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.sl-np .np-mc-chart figcaption b {
+  color: var(--text);
+}
+
+.sl-np .np-mc-chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.sl-np .np-mc-grid {
+  stroke: rgb(255 255 255 / 8%);
+}
+
+.sl-np .np-mc-level {
+  stroke: rgb(255 255 255 / 35%);
+  stroke-dasharray: 4 3;
+}
+
+.sl-np .np-mc-tick {
+  fill: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 10px;
+}
+
+.sl-np .np-mc-line {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.sl-np .np-mc-faint {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  opacity: 0.4;
+}
+
+.sl-np .np-mc-area {
+  fill: currentcolor;
+  opacity: 0.08;
+}
+
+.sl-np .np-mc-dot {
+  fill: currentcolor;
+  stroke: #15131a;
+  stroke-width: 1.5;
+}
+
+.sl-np .np-mc-empty {
+  fill: rgb(255 118 118 / 10%);
+}
+
+.sl-np .np-mc-empty-dot {
+  fill: #ff7676;
+  stroke: #15131a;
+  stroke-width: 1.5;
+}
+
+.sl-np .np-mc-cursor {
+  stroke: rgb(255 255 255 / 45%);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.sl-np .np-mc-axis {
+  position: relative;
+  height: 1rem;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-family: var(--pl-mono);
+  font-size: 0.6875rem;
+}
+
+.sl-np .np-mc-axis span {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.sl-np .np-mc-read {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1.2rem;
+  margin: 0.35rem 0 0;
+  font-family: var(--pl-mono);
+  font-size: 0.75rem;
+}
+
+.sl-np .np-mc-kit {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.8rem;
+  margin-top: 0.3rem;
+}
+
+.sl-np .np-mc-kit label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--soft);
+}
+
+.sl-np .np-mc-kit input {
+  width: 4.2rem;
+  height: 1.7rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #1d1826;
+  color: var(--text);
+  font: inherit;
+  font-family: var(--pl-mono);
+  font-size: 0.75rem;
+}
+
+.sl-np .np-mc-kit em {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.sl-np .np-mc-lane {
+  fill: rgb(255 255 255 / 5%);
+}
+
+.sl-np .np-mc-sun {
+  fill: var(--sun);
+  opacity: 0.85;
+}
+
+.sl-np .np-mc-earth {
+  fill: var(--earth);
+  opacity: 0.85;
+}
+
+.sl-np .np-mc-row-name {
+  font-family: var(--pl-mono);
+  font-size: 10px;
+}
+
+.sl-np .np-mc-gap {
+  fill: var(--text);
+  font-family: var(--pl-mono);
+  font-size: 10px;
+  paint-order: stroke;
+  stroke: #15131a;
+  stroke-width: 3px;
+}
+
+.sl-np .np-mc-gap.is-over {
+  fill: #ff9a62;
+}
+
+.sl-np .np-mc-note {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.sl-np .np-mc-swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.5rem;
+  margin: 0 0.25rem 0 0.4rem;
+  border-radius: 2px;
+}
+
+.sl-np .np-mc-swatch.is-sun {
+  margin-left: 0;
+  background: var(--sun);
+}
+
+.sl-np .np-mc-swatch.is-earth {
+  background: var(--earth);
+}
