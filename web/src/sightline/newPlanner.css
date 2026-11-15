@@ -2452,3 +2452,9 @@
 .sl-np .np-mc-swatch.is-earth {
   background: var(--earth);
 }
+
+.sl-np .np-rain-credit {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.6875rem;
+}

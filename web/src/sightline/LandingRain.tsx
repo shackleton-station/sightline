@@ -24,6 +24,8 @@ import {
   verdictColor,
 } from '../lib/landingOdds'
 import { planeLatLon, planeXY } from '../lib/lightGrid'
+import { type TrekWindow, trekLayer, trekWindow } from '../lib/trekLayers'
+import { useFinePhoto } from '../data/finePhoto'
 import { fitMapAround, squareAround } from '../lib/missionGrid'
 import type { SightlineMission } from '../lib/sightlineMission'
 import { useWidth } from '../lib/useWidth'
@@ -40,8 +42,8 @@ interface Props {
 }
 
 /** How many simulated landers a run drops, and how fast (landers a second). */
-const LANDERS = 400
-const PER_SECOND = 60
+const LANDERS = 150
+const PER_SECOND = 50
 /** How long a lander's touchdown flare lasts (ms). */
 const FLARE_MS = 650
 
@@ -102,11 +104,22 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
   const aim = useMemo(() => (map && chances && searchM > 0 ? bestAim(map, chances, searchM) : null), [map, chances, searchM])
   const viewM = map && meta ? Math.min(Math.max(1.6 * spread.accuracyM * spread.stretch, 2 * meta.pixel_m), reachM(map)) : 0
 
+  // The slider: shown at once, applied when it rests, so the odds and the better aim are worked out once.
+  const [draftM, setDraftM] = useState<number | null>(null)
+  useEffect(() => {
+    if (draftM === null || draftM === spread.accuracyM) return
+    const wait = window.setTimeout(() => onSpread({ ...spread, accuracyM: draftM }), 250)
+    return () => window.clearTimeout(wait)
+  }, [draftM, spread, onSpread])
+  const shownM = draftM ?? spread.accuracyM
+
   // The run: landers fall in over time; a new run starts when the ground or the accuracy changes.
   const [landers, setLanders] = useState<Lander[]>([])
-  const [playing, setPlaying] = useState(true)
+  const [playing, setPlaying] = useState(false)
   const [runKey, setRunKey] = useState(0)
   const started = useRef(0)
+  // Only the button plays landers in; anything else shows them already down.
+  const wantPlay = useRef(false)
   const runFor = `${squareKey}|${spread.accuracyM}|${spread.stretch}|${spread.bearingDeg}|${map ? map.verdict.length : 0}|${requirements.missionDays}|${requirements.maxSunGapH}|${requirements.maxEarthGapH}|${maxSlopeDeg}|${runKey}`
   const still = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -117,11 +130,13 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
       const cell = cellAtM(map, x, y)
       return { x, y, code: cell === null ? -1 : map.verdict[cell], at }
     }
-    // With reduced motion, every lander is already down.
-    if (still) {
+    // A new ground or accuracy shows its landers already down; "Drop landers" plays them in.
+    if (!wantPlay.current || still) {
       setLanders(Array.from({ length: LANDERS }, () => land(-FLARE_MS)))
+      setPlaying(false)
       return
     }
+    wantPlay.current = false
     setLanders([])
     started.current = performance.now()
     setPlaying(true)
@@ -133,6 +148,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
     if (!map || still || !playing) return
     let frame = 0
     let carried = landers.length
+    let lastDraw = 0
     const tick = (time: number) => {
       const elapsed = time - started.current
       const due = Math.min(LANDERS, Math.floor((elapsed / 1000) * PER_SECOND))
@@ -145,8 +161,9 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
         }
         carried = due
         setLanders((before) => [...before, ...fresh])
-      } else {
-        // Keep drawing while the last flares fade.
+      } else if (time - lastDraw > 50) {
+        // Keep drawing while the last flares fade, a few times a second.
+        lastDraw = time
         setLanders((before) => before.slice())
       }
       if (carried >= LANDERS && elapsed > (LANDERS / PER_SECOND) * 1000 + FLARE_MS) {
@@ -183,6 +200,60 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
     return off
   }, [map, viewM])
 
+  // The real ground under the colours: LROC's south-pole photo mosaic (our 1 m tiles round the ridge
+  // sites, Moon Trek's elsewhere), cut for this square. The light grid and Moon Trek's map share one
+  // projection (polar stereographic, x toward 90° E, y toward 0° E, the same radius), so its metres
+  // are the fit map's metres.
+  const fine = useFinePhoto(true)
+  const [photo, setPhoto] = useState<{ key: string; win: TrekWindow; image: HTMLCanvasElement } | null>(null)
+  const sidePx = Math.min(width, 600)
+  const photoKey = meta && viewM > 0 && sidePx > 0 ? `${site.id}|${Math.round(viewM)}|${Math.round(sidePx)}|${fine ? 'fine' : 'trek'}` : null
+  useEffect(() => {
+    if (!meta || !photoKey) return
+    const layer = trekLayer('photo')
+    if (!layer) return
+    const middle = planeXY(meta, site.lat, site.lon)
+    const ratio = window.devicePixelRatio || 1
+    const win = trekWindow(layer, middle, viewM * 1.05, (2 * viewM) / (sidePx * ratio), fine)
+    if (!win) return
+    let current = true
+    const load = (url: string) =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image()
+        image.onload = () => resolve(image)
+        image.onerror = reject
+        image.src = url
+      })
+    const out = document.createElement('canvas')
+    out.width = win.widthPx
+    out.height = win.heightPx
+    const g = out.getContext('2d')
+    if (!g) return
+    Promise.all(
+      win.tiles.map(async (tile) => {
+        try {
+          const image = await load(tile.url)
+          if (tile.crop) g.drawImage(image, tile.crop.sx, tile.crop.sy, tile.crop.size, tile.crop.size, tile.x, tile.y, 256, 256)
+          else g.drawImage(image, tile.x, tile.y, 256, 256)
+        } catch {
+          if (!tile.or) return
+          try {
+            const image = await load(tile.or.url)
+            g.drawImage(image, tile.or.crop.sx, tile.or.crop.sy, tile.or.crop.size, tile.or.crop.size, tile.x, tile.y, 256, 256)
+          } catch {
+            // A missing tile stays dark; the colours still say what the ground does.
+          }
+        }
+      }),
+    ).then(() => current && setPhoto({ key: photoKey, win, image: out }))
+    return () => {
+      current = false
+    }
+    // The key names the site, the square and the size.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [photoKey])
+  const shownPhoto = photo?.key === photoKey ? photo : null
+
   useEffect(() => {
     const element = canvas.current
     const context = element?.getContext('2d')
@@ -200,10 +271,29 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
 
     context.imageSmoothingEnabled = true
     context.imageSmoothingQuality = 'high'
-    context.globalAlpha = 0.78
     const cellPx = map.cellM * perM
-    context.drawImage(ground, -cellPx / 2, -cellPx / 2, side + cellPx, side + cellPx)
-    context.globalAlpha = 1
+    if (shownPhoto && meta) {
+      // The photo, placed by its own metres round the target; then the verdicts laid over it as colour
+      // only, so the craters, ridges and shadows keep their own light and dark.
+      const { win, image } = shownPhoto
+      const middle = planeXY(meta, site.lat, site.lon)
+      const left = win.centreXM - win.halfWidthM - middle.x
+      const top = win.centreYM + win.halfHeightM - middle.y
+      context.fillStyle = '#000'
+      context.fillRect(0, 0, side, side)
+      context.drawImage(image, px(left), py(top), win.widthPx * win.metresPerPixel * perM, win.heightPx * win.metresPerPixel * perM)
+      context.globalCompositeOperation = 'color'
+      context.globalAlpha = 0.85
+      context.drawImage(ground, -cellPx / 2, -cellPx / 2, side + cellPx, side + cellPx)
+      context.globalCompositeOperation = 'source-over'
+      context.globalAlpha = 0.16
+      context.drawImage(ground, -cellPx / 2, -cellPx / 2, side + cellPx, side + cellPx)
+      context.globalAlpha = 1
+    } else {
+      context.globalAlpha = 0.78
+      context.drawImage(ground, -cellPx / 2, -cellPx / 2, side + cellPx, side + cellPx)
+      context.globalAlpha = 1
+    }
     // A soft vignette, so the eye goes to the middle.
     const shade = context.createRadialGradient(side / 2, side / 2, side * 0.25, side / 2, side / 2, side * 0.75)
     shade.addColorStop(0, 'rgb(0 0 0 / 0%)')
@@ -292,7 +382,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
     context.fillRect(11, side - 12, barM * perM, 2)
     context.font = '11px system-ui, sans-serif'
     context.fillText(`${barM} m`, 11, side - 16)
-  }, [map, ground, landers, width, viewM, spread, aim, still])
+  }, [map, ground, landers, width, viewM, spread, aim, still, shownPhoto, meta, site.lat, site.lon])
 
   if (meta === null || grid.state === 'failed') return <p className="sl-quiet">The light grid could not be read.</p>
   if (grid.state === 'past') return <p className="sl-quiet">The mission runs past the last month of the light grid, so the ground around this landing can't be judged.</p>
@@ -366,14 +456,14 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
         </div>
         <label className="np-rain-acc">
           <span>
-            {Math.round(100 * ACCURACY_SHARE)}% of landings within <b>{spread.accuracyM} m</b>
+            {Math.round(100 * ACCURACY_SHARE)}% of landings within <b>{shownM} m</b>
           </span>
-          <input type="range" min={ACCURACY_RANGE.min} max={ACCURACY_RANGE.max} step={ACCURACY_RANGE.step} value={spread.accuracyM} onChange={(event) => onSpread({ ...spread, accuracyM: Number(event.target.value) })} />
+          <input type="range" min={ACCURACY_RANGE.min} max={ACCURACY_RANGE.max} step={ACCURACY_RANGE.step} value={shownM} onChange={(event) => setDraftM(Number(event.target.value))} />
         </label>
         <p className="np-rain-actions">
           {!still && (
-            <button type="button" className="sl-small" onClick={() => (playing ? setPlaying(false) : down >= LANDERS ? setRunKey((key) => key + 1) : setPlaying(true))}>
-              {playing ? '❚❚ Pause' : down >= LANDERS ? '↺ Again' : '▶ Go on'}
+            <button type="button" className="sl-small" onClick={() => (playing ? setPlaying(false) : down >= LANDERS ? ((wantPlay.current = true), setRunKey((key) => key + 1)) : setPlaying(true))}>
+              {playing ? '❚❚ Pause' : down >= LANDERS ? '▶ Drop landers' : '▶ Go on'}
             </button>
           )}
           {aim && aim.fit > odds.fit + 0.005 && (
@@ -382,6 +472,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
             </button>
           )}
         </p>
+        <p className="np-rain-credit">{shownPhoto ? `Ground: ${shownPhoto.win.title} (LROC, NASA/GSFC/Arizona State University), tinted by what a landing there does.` : 'Loading the photo of the ground…'}</p>
         <p className="np-rain-key">
           <span>
             <i className="is-ring" /> 50%, 90% and 99% of landings
