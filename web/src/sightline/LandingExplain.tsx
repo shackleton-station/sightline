@@ -89,8 +89,8 @@ export function LandingExplain({ map, viewM, odds, spread, onSpread, simulated, 
   const misses = MISSES.filter((miss) => odds.misses[miss] >= 0.005)
 
   return (
-    <section className="np-explain" aria-label="How this works">
-      <h5>How this works</h5>
+    <details className="np-explain">
+      <summary>How is this worked out?</summary>
       <div className="np-explain-cards">
         {/* 1. The ground */}
         <article className="np-explain-card">
@@ -189,6 +189,6 @@ export function LandingExplain({ map, viewM, odds, spread, onSpread, simulated, 
           </p>
         </article>
       </div>
-    </section>
+    </details>
   )
 }

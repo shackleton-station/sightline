@@ -29,6 +29,7 @@ import { useFinePhoto } from '../data/finePhoto'
 import { fitMapAround, squareAround } from '../lib/missionGrid'
 import type { SightlineMission } from '../lib/sightlineMission'
 import { useWidth } from '../lib/useWidth'
+import { clock } from './clockFace'
 import { LandingExplain } from './LandingExplain'
 import { type MissionGrid, REACH_M } from './useMissionGrid'
 
@@ -403,6 +404,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
   const offMap = landers.filter((lander) => lander.code === -1).length
   const shown = MISSES.filter((miss) => (byMiss.get(miss) ?? 0) > 0 || odds.misses[miss] >= 0.005)
   const pct = (n: number) => (down === 0 ? 0 : Math.round((100 * n) / down))
+  const better = aim && aim.fit > odds.fit + 0.005 ? aim : null
   const takeAim = () => {
     if (!aim || !meta) return
     const target = planeXY(meta, site.lat, site.lon)
@@ -412,6 +414,20 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
 
   return (
     <div className="np-rain">
+      {better ? (
+        <p className="np-act">
+          <button type="button" className="np-act-go" onClick={takeAim} title="Move the target to the better place to aim, marked with a diamond on the map">
+            ◆ Aim {Math.round(Math.hypot(better.x, better.y))} m away at {clock(better.x, better.y)}
+          </button>
+          <span>
+            <b className="is-better">{Math.round(better.fit * 100)}%</b> of landings fit instead of <b>{Math.round(odds.fit * 100)}%</b>
+          </span>
+        </p>
+      ) : (
+        <p className="np-act is-done">
+          <span>✓ Your target is already the best place to aim within reach: {Math.round(odds.fit * 100)}% of landings fit.</span>
+        </p>
+      )}
       <div className="np-rain-stage" ref={box}>
         <canvas ref={canvas} role="img" aria-label={`Simulated landings around ${site.name}: ${pct(fitCount)}% of ${down} so far came down where the mission fits; the model gives ${Math.round(odds.fit * 100)}%.`} />
       </div>
@@ -469,11 +485,6 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
               {playing ? '❚❚ Pause' : down >= LANDERS ? '▶ Drop landers' : '▶ Go on'}
             </button>
           )}
-          {aim && aim.fit > odds.fit + 0.005 && (
-            <button type="button" className="sl-small is-aim" onClick={takeAim} title="Move the target to the better place to aim, marked with a diamond">
-              ◆ Aim {Math.round(Math.hypot(aim.x, aim.y))} m away: {Math.round(aim.fit * 100)}% fit
-            </button>
-          )}
         </p>
         <p className="np-rain-credit">{shownPhoto ? `Ground: ${shownPhoto.win.title} (LROC, NASA/GSFC/Arizona State University), tinted by what a landing there does.` : 'Loading the photo of the ground…'}</p>
         <p className="np-rain-key">
@@ -483,7 +494,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
           <span>
             <i className="is-target" /> the target
           </span>
-          {aim && (
+          {better && (
             <span>
               <i className="is-aim" /> a better aim
             </span>

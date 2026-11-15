@@ -2153,11 +2153,6 @@
   margin: 0;
 }
 
-.sl-np .np-rain-actions .is-aim {
-  border-color: var(--gold);
-  color: var(--gold);
-}
-
 .sl-np .np-rain-key {
   display: flex;
   flex-wrap: wrap;
@@ -2944,4 +2939,58 @@
   .sl-np .np-near-spot {
     animation: none;
   }
+}
+
+/* ---------- Find: each section leads with what to do ---------- */
+.sl-np .np-act {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  margin: 0 0 0.7rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.sl-np .np-act b {
+  font-family: var(--pl-mono);
+}
+
+.sl-np .np-act .is-better {
+  color: var(--gold);
+}
+
+.sl-np .np-act-go {
+  padding: 0.45rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #111;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sl-np .np-act-go:hover {
+  filter: brightness(1.1);
+}
+
+.sl-np .np-act-go:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.sl-np .np-act.is-done {
+  color: var(--muted);
+}
+
+.sl-np .np-explain > summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sl-np .np-explain[open] > summary {
+  margin-bottom: 0.7rem;
 }

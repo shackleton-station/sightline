@@ -5,6 +5,7 @@ import { monthLabel } from '../lib/months'
 import { bestSpots, cellLatLon, cellOffsetM, cellValue, centerCell, type NearbyMetric, slopeDeg, withinSlope } from '../lib/nearby'
 import type { SightlineMission } from '../lib/sightlineMission'
 import { useWidth } from '../lib/useWidth'
+import { clock } from './clockFace'
 import { drawPolarPhoto, usePolarPhoto } from './usePolarPhoto'
 
 interface Props {
@@ -37,13 +38,6 @@ function ramp(good: number): string {
   const f = at - i
   const [r, g, b] = stops[i].map((c, k) => Math.round(c + (stops[i + 1][k] - c) * f))
   return `rgb(${r} ${g} ${b})`
-}
-
-/** Where a spot is from the site, as a clock face on the map (12 is up the map, toward 0° longitude). */
-function clock(x: number, y: number): string {
-  const angle = (Math.atan2(x, y) * 180) / Math.PI
-  const hour = ((Math.round(angle / 30) % 12) + 12) % 12
-  return `${hour === 0 ? 12 : hour} o'clock`
 }
 
 function valueWords(metric: NearbyMetric, value: number): string {
@@ -183,17 +177,30 @@ export function NearbyGround({ site, month, mission, onSpot }: Props) {
   return (
     <section className="np-near" aria-labelledby="np-near-title">
       <h5 id="np-near-title">Is there better ground nearby?</h5>
-      <p className="np-near-answer">
-        {site.name} gets <b>{valueWords(metric, here)}</b> {metric === 'sunGap' ? 'at most without Sun' : `${measure.words}`} in {monthLabel(month)}
-        {hereSteep ? ' (and is steeper than your limit)' : ''}.{' '}
-        {bestValue !== null && bestAt ? (
-          <>
-            The best {gentle ? `ground under ${mission.maxSlopeDeg}°` : 'ground'} within {meta.half_width_m / 1000} km gets <b className="is-better">{valueWords(metric, bestValue)}</b>, {(Math.hypot(bestAt.x, bestAt.y) / 1000).toFixed(1)} km away at {clock(bestAt.x, bestAt.y)}.
-          </>
-        ) : (
-          <>Nowhere within {meta.half_width_m / 1000} km does better this month: the site is already the best spot.</>
-        )}
-      </p>
+      {bestValue !== null && bestAt && best !== undefined ? (
+        <p className="np-act">
+          <button
+            type="button"
+            className="np-act-go"
+            onClick={() => {
+              const { lat, lon } = cellLatLon(meta, best)
+              onSpot(lat, lon)
+            }}
+          >
+            Go {(Math.hypot(bestAt.x, bestAt.y) / 1000).toFixed(1)} km at {clock(bestAt.x, bestAt.y)}
+          </button>
+          <span>
+            <b className="is-better">{valueWords(metric, bestValue)}</b> instead of <b>{valueWords(metric, here)}</b> {metric === 'sunGap' ? 'at most without Sun' : measure.words} in {monthLabel(month)}
+            {hereSteep ? `; ${site.name} is also steeper than your limit` : ''}
+          </span>
+        </p>
+      ) : (
+        <p className="np-act is-done">
+          <span>
+            ✓ Nowhere within {meta.half_width_m / 1000} km beats {site.name} this month: <b>{valueWords(metric, here)}</b> {metric === 'sunGap' ? 'at most without Sun' : measure.words}.
+          </span>
+        </p>
+      )}
       <div className="np-near-controls">
         <span className="np-near-pills" role="group" aria-label="What to compare">
           {MEASURES.map((one) => (
