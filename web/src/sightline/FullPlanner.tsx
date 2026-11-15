@@ -73,8 +73,6 @@ interface Props {
   sunlightWm2: (number | null | undefined)[]
   /** A notice for the header's last row: a saved plan's name and note. */
   banner?: ReactNode
-  /** Open the Library page, where landings are added to this plan. */
-  onLibrary: () => void
 }
 
 const TABS: { id: PlannerTab; label: string; title: string }[] = [
@@ -94,7 +92,7 @@ const ROOM_FOR_BOTH_PX = 1000
  * scenarios side by side. The Moon stays as a small live view in the corner (drawn by the screen,
  * not here), and is itself a way back.
  */
-export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, dataYears, onYear, landingBounds, onFarLanding, banner = null, onLibrary }: Props) {
+export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, dataYears, onYear, landingBounds, onFarLanding, banner = null }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -159,9 +157,6 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
             </button>
           ))}
         </div>
-        <button type="button" className="sl-small" title="Opens the Library: your saved plans, and landings other people saved, to add to this plan." onClick={onLibrary}>
-          Library
-        </button>
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
         <span className="pl-tools">
           <button type="button" className="sl-small" title="Opens a written summary of the scenario on show." onClick={onBrief}>

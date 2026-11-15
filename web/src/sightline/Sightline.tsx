@@ -1573,7 +1573,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       )}
       {planner && !library && !newPlanner && (
         <FullPlanner
-          onLibrary={openLibrary}
           start={start}
           hours={hours}
           flagged={lit.flagged}
