@@ -62,6 +62,7 @@ import { type TrekLayerId, trekLayer } from '../lib/trekLayers'
 import { layersReach, lightReachKm } from '../lib/layerReach'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
+import { BrandScale } from './BrandScale'
 import { FullPlanner } from './FullPlanner'
 import { LibraryPage } from './LibraryPage'
 import { planHash } from '../lib/plans'
@@ -1467,6 +1468,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <h1>Sightline</h1>
               <p>Where to land on the Moon, and when</p>
               <p className="sl-brand-view">Seen from above the south pole</p>
+              <BrandScale range={range} siteCount={sites.length} />
             </header>
             <div className="sl-top">
               <button type="button" className="is-main" data-tour="plan" title="Opens the plan: a site, a landing and a mission to check (P)." onClick={() => openPlan(null)}>

@@ -3,6 +3,7 @@ import type { LightChecks } from '../../data/lightChecks'
 import type { ScenarioData } from '../../data/scenarioData'
 import type { VerdictState } from '../../lib/landingVerdict'
 import type { FeatureGuide, TourStep } from '../../lib/tour'
+import { GuideNumbers } from './GuideNumbers'
 import { Flow, type FlowStep, GuideStep } from './GuideParts'
 import { advancedMeanings, ANGLES_TO_CENTER, IN_VIEW, limitMeanings, MARGINAL_MEANS, MEANING_LABELS, meaningLine, SUN_SHARE_KEPT } from '../../lib/limitMeanings'
 import { SUN_CIRCLES } from '../../lib/moonExplained'
@@ -19,7 +20,7 @@ interface Props {
   siteCount: number
   /** The years the data covers, in words. */
   span: string
-  range: { first_year: number; last_year: number } | null
+  range: { hours: number; first_year: number; last_year: number } | null
   light: LightChecks | null
   verdict: VerdictOnShow | null
   /** The tour's steps, written out: each one's title and the line on its card. */
@@ -133,6 +134,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
       <p className="how-caption">{SUN_CIRCLES}</p>
       {/* The definition the verdict rests on, where a reader sees it without opening a fold. */}
       <p className="how-caption how-in-view">{IN_VIEW}</p>
+      <GuideNumbers range={range} siteCount={siteCount} />
 
       <h3>Seven questions, seven tools</h3>
       <ul className="how-tools">

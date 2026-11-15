@@ -12,6 +12,18 @@ Built on our team's own pre-event practice code; reuse approved by the Bethesda 
 **Live:** https://lunarsightline.com (shackletonstation.dev forwards there; the site as it was before this one-screen design is kept at
 [`/classic/`](https://lunarsightline.com/classic/))
 
+**By the numbers**
+
+- **21 GB** of NASA terrain read
+- **210,384** hours covered, 2026 to 2049
+- **2,471,696** points of the south pole, each with its own skyline
+- **1.04 trillion** Sun and Earth answers computed
+- **5,469,984** checks against JPL Horizons
+- **235** dated photos from orbit compared
+
+The Guide shows the same six, worked out from the data files as the page reads them
+(`web/src/lib/dataScale.ts`); a test keeps this list the same as the data's.
+
 ## What it does
 
 - **Watch.** The Moon from over its south pole, lit as it is at this hour, with time playing. Each site's
