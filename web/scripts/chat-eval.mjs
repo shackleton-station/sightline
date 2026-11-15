@@ -74,7 +74,8 @@ const QUESTIONS = [
   { ask: 'What is the best month to land at de Gerlache Rim in 2028?', sources: 1 },
   // September to December 2027 are all at 100% there: the answer must say they are tied, not name one. Only in the full run.
   { ask: 'Which month of 2027 is the sunniest at Shackleton Rim?', sources: 1, mustSay: /\btie[ds]?\b/i },
-  { ask: 'What if my mission were only 3 days long? When could I land here in May 2027?', sources: 1 },
+  // A what-if names what was changed and what decides the answer, never the whole list of limits.
+  { ask: 'What if my mission were only 3 days long? When could I land here in May 2027?', sources: 1, mustSay: /3-day/, mustNotSay: /the Sun up at landing, Earth in view at landing|any part of Earth counting as in view/ },
   { ask: 'Where exactly is the Chandrayaan-3 site?', sources: 1 },
   { ask: 'Is the Sun up here?', view: CUSTOM_VIEW, sources: 1 },
   // A first answer at a point never asked about: not asked twice, since a second answer there is no longer a first.

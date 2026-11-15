@@ -6,6 +6,7 @@ import { wholePct } from '../../src/lib/verdict'
 import { entryAt, measureEntry, rankOptions, toIso } from '../../src/lib/shortlist'
 import { type Args, countArg, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
 import { daysLabel, fact, type Fact, isoAt, limitsLabel, monthWords, reasonClause, type ToolResult, whenLabel } from './facts'
+import { limitsChanged } from './limitsTried'
 import { nextLandingOnScreen } from './nextLanding'
 import { listWords, monthsWords, tiedWith, tieWords } from './ties'
 
@@ -46,7 +47,7 @@ export async function bestMonths(args: Args, ctx: ToolContext): Promise<ToolResu
   const tie = best.length > 1
 
   const facts: Fact[] = [fact('site', 'Site', site.name), fact('measure', 'Measured by', METRICS[metric])]
-  if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)))
+  if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)), ...limitsChanged(ctx.requirements, requirements))
   facts.push(fact('best_months', tie ? 'The months tied for best: equal at the precision shown, so name them together and never one of them alone' : 'The best month', monthsWords(best.map((cell) => cell.month))))
   facts.push(fact('best_value', tie ? 'The value they share' : 'Its value', cellValue(metric, best[0])))
   facts.push(fact('best_tie', 'Whether the best is a tie', tieWords(best.length, cells.length, 'month', 'months', 'best')))
@@ -91,7 +92,7 @@ export async function bestSites(args: Args, ctx: ToolContext): Promise<ToolResul
     fact('measure', 'Measured by', METRICS[metric]),
     fact('sites_checked', 'Listed sites checked', String(rows.length)),
   ]
-  if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)))
+  if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)), ...limitsChanged(ctx.requirements, requirements))
   facts.push(fact('best_sites', tie ? 'The sites tied for best: equal at the precision shown, so name them together and never one of them alone' : 'The best site', listWords(best.map((row) => row.site.name))))
   facts.push(fact('best_value', tie ? 'The value they share' : 'Its value', cellValue(metric, best[0].cell)))
   facts.push(fact('best_tie', 'Whether the best is a tie', tieWords(best.length, rows.length, 'site', 'sites', 'best')))
@@ -175,7 +176,7 @@ export async function bestSitesInYear(args: Args, ctx: ToolContext): Promise<Too
     fact('sites_ranked', 'The sites ranked', asked ? `${asked.words} (${rows.length})` : `all ${rows.length} listed sites`),
     fact('measure', 'Measured by', metric === 'landing' ? 'days of the year with an hour that meets the limits' : METRICS[metric]),
   ]
-  if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)))
+  if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)), ...limitsChanged(ctx.requirements, requirements))
   facts.push(fact('best_sites', tie ? 'The sites tied for best over the year: equal at the precision shown, so name them together and never one of them alone' : 'The best site over the year', listWords(best.map((row) => row.site.name))))
   facts.push(fact('best_value', tie ? 'The value they share' : 'Its value', best[0].value))
   facts.push(fact('best_tie', 'Whether the best is a tie', tieWords(best.length, rows.length, 'site', 'sites', 'best')))
@@ -215,6 +216,7 @@ export async function landingWindowsInMonth(args: Args, ctx: ToolContext): Promi
     fact('site', 'Site', site.name),
     fact('month', 'Month', monthWords(month)),
     fact('limits', 'Checked against', limitsLabel(requirements)),
+    ...limitsChanged(ctx.requirements, requirements),
     fact('window_count', 'How many stretches of hours meet the limits', `${windows.length} ${windows.length === 1 ? 'stretch' : 'stretches'}`),
   ]
   windows.slice(0, 4).forEach((window, i) => {
@@ -241,6 +243,7 @@ export async function nextLanding(args: Args, ctx: ToolContext): Promise<ToolRes
     fact('site', 'Site', site.name),
     fact('from', 'Looking from', whenLabel(iso)),
     fact('limits', 'Checked against', limitsLabel(requirements)),
+    ...limitsChanged(ctx.requirements, requirements),
     fact('next_landing', 'Next landing that fits, as the visitor\'s screen offers it', next ? whenLabel(next.t) : 'none in the data'),
   ]
   if (next) facts.push(fact('wait', 'Wait until then', next.waitH === 0 ? 'none: that hour already works' : formatDuration(next.waitH)))
@@ -300,7 +303,7 @@ export async function rankLandingOptions(args: Args, ctx: ToolContext): Promise<
       return measureEntry({ site: site.id, at: entryAt(timeArg(time, flags)) }, site, flags, requirements)
     }),
   )
-  const facts: Fact[] = [fact('limits', 'Checked against', limitsLabel(requirements))]
+  const facts: Fact[] = [fact('limits', 'Checked against', limitsLabel(requirements)), ...limitsChanged(ctx.requirements, requirements)]
   rankOptions(measured).forEach((row, i) => {
     const n = i + 1
     facts.push(fact(`option_${n}_site`, `Option ${n}`, row.site.name))
