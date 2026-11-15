@@ -102,7 +102,7 @@ const CLEAR = 8
  * Moon's disc nor anything the step rings. On a laptop that is the lower left corner, where Scout
  * lives in Watch and where Plan's column is empty (so it stands beside the column and the strips the
  * steps ring, and "Next" stays in one place from step to step), then the other corners. On a phone it is the foot
- * of the screen, then just above the lowest thing ringed, then the top. If every place covers
+ * of the screen, then just above the lowest thing ringed, then just above them all, then the top. If every place covers
  * something, the Moon's disc is the one thing still never covered; the place that hides the least
  * of what is ringed wins.
  */
@@ -110,10 +110,12 @@ export function placeBubble(size: { width: number; height: number }, window: { w
   const right = window.width - size.width - EDGE
   const bottom = window.height - size.height - EDGE
   const lowest = rings.reduce<Box | null>((low, ring) => (!low || ring.top > low.top ? ring : low), null)
+  const highest = rings.reduce<Box | null>((high, ring) => (!high || ring.top < high.top ? ring : high), null)
   const places = phone
     ? [
         { left: EDGE, top: bottom },
         ...(lowest ? [{ left: EDGE, top: lowest.top - size.height - CLEAR }] : []),
+        ...(highest && highest !== lowest ? [{ left: EDGE, top: highest.top - size.height - CLEAR }] : []),
         { left: EDGE, top: EDGE },
       ]
     : [
