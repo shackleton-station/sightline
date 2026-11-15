@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RiverState } from '../lib/river'
-import { type Box, type Disc, placeBubble, type TourFile, type TourStep, voiceFile } from '../lib/tour'
+import { type Box, type Disc, placeBubble, type TourStep, voiceFile } from '../lib/tour'
 import { Mascot } from '../scout/Mascot'
 
 interface Props {
@@ -9,7 +9,9 @@ interface Props {
   /** The steps on show: the main tour's, or a feature guide's. */
   steps: TourStep[]
   /** The tour whose voice files say these steps; null for steps that have none (the feature guides), which then offer no "Listen". */
-  voice: TourFile | null
+  voice: { voice: { disclosure: string; files: string } } | null
+  /** A tour stepped through in front of a room: larger type, and a clicker's keys (Page Down, Page Up) step it too. */
+  presenting?: boolean
   /** Which step is on show, counted from 0. */
   at: number
   onStep: (index: number) => void
@@ -63,9 +65,27 @@ function moonDisc(): Disc | null {
  * Moon and nothing is dimmed. Arrow keys step, Escape closes. "Listen" plays each line in Scout's
  * voice from a file rendered ahead of time: off until pressed, so there is never sound without a click.
  */
-export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo, tryIt, state }: Props) {
+export function Tour({ name, steps, voice, presenting = false, at, onStep, onClose, onDone, onVideo, tryIt, state }: Props) {
   const step = steps[at]
   const last = at === steps.length - 1
+  // A step may press a control itself on the first "Next", to show a before and an after: which step has done so.
+  const [pressedAt, setPressedAt] = useState<string | null>(null)
+  const pressed = pressedAt === step.id
+  const waiting = Boolean(step.press) && !pressed
+  /** Go to a step: it starts as it was written, with nothing pressed yet. */
+  const go = (index: number) => {
+    setPressedAt(null)
+    onStep(index)
+  }
+  /** "Next": the step's own press first, if it has one to do; then the next step, or the end. */
+  const forward = () => {
+    if (waiting && step.press) {
+      document.querySelector<HTMLElement>(step.press)?.click()
+      setPressedAt(step.id)
+    } else if (last) onDone()
+    else go(at + 1)
+  }
+  const targets = pressed && step.after ? step.after : step.targets
   const bubble = useRef<HTMLElement>(null)
   const next = useRef<HTMLButtonElement>(null)
   const [rings, setRings] = useState<Box[]>([])
@@ -77,7 +97,7 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo,
   // follow the screen while a step's state settles, a sheet scrolls or the window is resized.
   useEffect(() => {
     const lay = () => {
-      const found = step.targets.flatMap((selector) => [...document.querySelectorAll(selector)]).filter(onScreen)
+      const found = targets.flatMap((selector) => [...document.querySelectorAll(selector)]).filter(onScreen)
       // A ring stays inside the window: round something wider or taller than the screen (a table on a
       // phone) it rings the part that shows, and one at the screen's edge is not drawn half off it.
       const boxes = found.map((el) => {
@@ -97,7 +117,9 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo,
     lay()
     const timer = window.setInterval(lay, PLACE_EVERY_MS)
     return () => window.clearInterval(timer)
-  }, [step])
+    // The step and whether it has pressed its control decide what is ringed.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, pressed])
 
   // On a phone what a step is about may be further down whatever holds it (the sheet, a panel, the
   // Planner's page): bring it to the top of the nearest thing that scrolls, clear of the bubble at the foot.
@@ -118,16 +140,21 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo,
     const onKey = (event: KeyboardEvent) => {
       const tag = event.target instanceof HTMLElement ? event.target.tagName : ''
       if (event.metaKey || event.ctrlKey || event.altKey || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
+      // A presenter's clicker sends Page Down and Page Up; the arrow keys do the same.
+      const onward = event.key === 'ArrowRight' || (presenting && event.key === 'PageDown')
+      const back = event.key === 'ArrowLeft' || (presenting && event.key === 'PageUp')
       if (event.key === 'Escape') onClose()
-      else if (event.key === 'ArrowRight' && !last) onStep(at + 1)
-      else if (event.key === 'ArrowLeft' && at > 0) onStep(at - 1)
-      else return
+      else if (onward && (!last || waiting)) forward()
+      else if (back && at > 0) go(at - 1)
+      else if (!(presenting && (onward || back))) return
       event.preventDefault()
       event.stopPropagation()
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [at, last, onStep, onClose])
+    // `forward` and `go` are made anew each render from the same values listed here.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [at, last, waiting, presenting, onStep, onClose])
 
   // Each step hands the keyboard to "Next", so Enter carries on and a screen reader starts at the step.
   // (Once the bubble has its place: until then it is not shown, and a hidden button cannot take the focus.)
@@ -154,7 +181,7 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo,
       {rings.map((ring, i) => (
         <div key={i} className="sl-tour-ring" style={ring} aria-hidden="true" />
       ))}
-      <section ref={bubble} className="sl-tour" role="dialog" aria-label={name} data-step={step.id} style={place ? { left: place.left, top: place.top } : { visibility: 'hidden' }}>
+      <section ref={bubble} className={presenting ? 'sl-tour is-presenting' : 'sl-tour'} role="dialog" aria-label={name} data-step={step.id} data-pressed={step.press ? String(pressed) : undefined} style={place ? { left: place.left, top: place.top } : { visibility: 'hidden' }}>
         <header className="sl-tour-head">
           <Mascot state={state} size={28} />
           <h2 className="sl-tour-title">{step.title}</h2>
@@ -163,7 +190,7 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo,
           </span>
         </header>
         <p className="sl-tour-say" aria-live="polite">
-          {step.say}
+          {step.line ?? step.say}
         </p>
         {tryIt && (
           <button type="button" className="sl-link sl-tour-try" onClick={tryIt.onPick}>
@@ -185,11 +212,11 @@ export function Tour({ name, steps, voice, at, onStep, onClose, onDone, onVideo,
                 Watch the walkthrough
               </button>
             )}
-            <button type="button" className="sl-small" disabled={at === 0} onClick={() => onStep(at - 1)}>
+            <button type="button" className="sl-small" disabled={at === 0} onClick={() => go(at - 1)}>
               Back
             </button>
-            <button ref={next} type="button" className="sl-small sl-tour-next" onClick={() => (last ? onDone() : onStep(at + 1))}>
-              {last ? 'Done' : 'Next'}
+            <button ref={next} type="button" className="sl-small sl-tour-next" onClick={forward}>
+              {waiting ? 'Show it' : last ? 'Done' : 'Next'}
             </button>
             <button type="button" className="sl-small" onClick={onClose}>
               Close

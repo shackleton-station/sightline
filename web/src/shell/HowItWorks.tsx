@@ -31,6 +31,10 @@ interface Props {
   onTour?: () => void
   /** The visitor has taken the tour before: the button offers it again. */
   tourTaken?: boolean
+  /** Start the five-minute tour, made for presenting (Sightline only). */
+  onLongTour?: () => void
+  /** Open at the proof step: the five-minute tour's step about trust leads here. */
+  openAtProof?: boolean
   /** The feature guides (short tours of one feature each), and how to start one by its id. Sightline only. */
   guides?: FeatureGuide[]
   onGuide?: (id: string) => void
@@ -56,7 +60,7 @@ const TOUR = tourFile as TourFile
  * solution, the proof, Scout, and what the site runs on. A bar that stays in sight holds the way back
  * and a link to each part.
  */
-export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, guides = [], onGuide, videos = null, openAtVideo = false, why = null, openAtWhy = false, verdict = null }: Props) {
+export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, onLongTour, openAtProof = false, guides = [], onGuide, videos = null, openAtVideo = false, why = null, openAtWhy = false, verdict = null }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -95,6 +99,15 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
     whyHere.current?.focus({ preventScroll: true })
     whyHere.current?.scrollIntoView({ block: 'start' })
   }, [openAtWhy, hasWhy])
+  // From the five-minute tour's step about trust the sheet opens at "Make sure the math is right".
+  // Its three checks come to the top, under the bar; again as the parts above them arrive and take their room.
+  useEffect(() => {
+    if (!openAtProof) return
+    const show = () => page.current?.querySelector('#how-proof .how-checks')?.scrollIntoView({ block: 'start' })
+    show()
+    const timers = [300, 1000, 2200].map((ms) => window.setTimeout(show, ms))
+    return () => timers.forEach((timer) => window.clearTimeout(timer))
+  }, [openAtProof])
   /** A chapter was pressed: the video goes there and plays on. */
   const jump = (at: number) => {
     if (!film.current) return
@@ -171,6 +184,11 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
                 {tourTaken ? 'Take the tour again' : 'Take the tour'}
               </button>
             )}
+            {onLongTour && (
+              <button type="button" className="how-long-tour" onClick={onLongTour}>
+                Five-minute tour
+              </button>
+            )}
             {videos?.walkthrough && (
               <button type="button" className="how-watch" aria-pressed={playing === 'walkthrough'} onClick={() => watch('walkthrough')}>
                 Watch the walkthrough
@@ -183,7 +201,11 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
             )}
           </div>
         )}
-        {onTour && <p className="how-start-note">The tour is interactive: Scout walks you through the real screen in about a minute.</p>}
+        {onTour && (
+          <p className="how-start-note">
+            The tour is interactive: Scout walks you through the real screen in about a minute.{onLongTour && ' The five-minute tour is the whole screen in twelve steps, made for presenting it.'}
+          </p>
+        )}
         {onScreen && (
           <div ref={player} className="how-video">
             {/* Recorded from the site itself. The narration is an AI-generated voice, and the captions say every line. */}

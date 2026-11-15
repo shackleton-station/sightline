@@ -517,6 +517,11 @@
   font-size: 0.625rem;
 }
 
+/* The five-minute tour's chip stands beside the first, in the same corner. */
+.sl-tour-chip.sl-tour-chip-long {
+  left: calc(var(--sl-edge) + 10.3rem);
+}
+
 /* Until the tour has been taken the chip is outlined in gold. */
 .sl-tour-chip.is-new,
 .sl-tour-chip:hover,
@@ -4467,6 +4472,32 @@ button.sl-moment-heights[aria-expanded='true'] {
 
 .sl-tour .sl-small:disabled {
   opacity: 0.45;
+}
+
+/* Stepped through in front of a room: type that reads from the back of it, on a card no wider than
+   the plan's column, so in its corner it lies over the column's foot and not over the Moon's strips. */
+.sl-tour.is-presenting {
+  width: 19.5rem;
+  padding: 0.9rem 1rem 0.8rem;
+}
+
+.sl-tour.is-presenting .sl-tour-title {
+  font-size: 1.35rem;
+}
+
+.sl-tour.is-presenting .sl-tour-count {
+  font-size: 0.9375rem;
+}
+
+.sl-tour.is-presenting .sl-tour-say {
+  margin: 0.55rem 0 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+.sl-tour.is-presenting .sl-small {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.9375rem;
 }
 
 .sl-tour .sl-tour-next,
