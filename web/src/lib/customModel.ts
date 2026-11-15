@@ -626,9 +626,27 @@ export function nearResolutionM(meta: CustomMeta, latDeg: number, lonDeg: number
     : meta.global.res_m
 }
 
-/** Parse a coordinate typed by a user; null if it isn't a number within the limits. */
+/**
+ * Parse a coordinate typed by a user; null if it isn't a number within the limits.
+ *
+ * It reads the forms the app itself prints: a plain number ("-89.45", or with a typographic minus),
+ * with or without a degree sign, and a number with a compass letter ("89.45°S", "137.1 W"), where
+ * south and west are negative. A latitude (limits within ±90) takes N or S, a longitude E or W.
+ */
 export function parseCoordinate(text: string, min: number, max: number): number | null {
-  const value = Number(text.trim())
-  if (text.trim() === '' || !Number.isFinite(value) || value < min || value > max) return null
+  const typed = text.trim().replace(/\u2212/g, '-').replace(/°/g, '').trim()
+  const lettered = /^(.*?)\s*([nsew])$/i.exec(typed)
+  const letter = lettered ? lettered[2].toLowerCase() : null
+  const digits = lettered ? lettered[1].trim() : typed
+  if (digits === '') return null
+  let value = Number(digits)
+  if (!Number.isFinite(value)) return null
+  if (letter) {
+    const allowed = max <= 90 ? 'ns' : 'ew'
+    // A sign and a letter together say the direction twice: not read.
+    if (!allowed.includes(letter) || value < 0) return null
+    if (letter === 's' || letter === 'w') value = -value
+  }
+  if (value < min || value > max) return null
   return value
 }
