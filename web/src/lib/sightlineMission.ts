@@ -295,20 +295,39 @@ export function marginalWords(sunShare: number | null): string | null {
  * with at least half the Sun's disc in view and still meeting the Sun and Earth limits. `shares` holds
  * the Sun's share for each hour of one month, the first at clock hour `monthStart`. Returns the
  * landing itself when the stretch has no such hour inside that month.
+ *
+ * `earthCenterAbove`, when given and the mission needs Earth in view at landing, holds for the same
+ * hours whether Earth's center is above the skyline (at least half its disc shows): the hour must
+ * have that too, so a landing offered as fitting is not one on the edge of Earth alone.
  */
-export function steadierLanding(flags: SiteFlags, landing: number, mission: SightlineMission, shares: number[], monthStart: number): number {
-  return steadierHour(flags, landing, mission.requirements, shares, monthStart)
+export function steadierLanding(flags: SiteFlags, landing: number, mission: SightlineMission, shares: number[], monthStart: number, earthCenterAbove?: boolean[]): number {
+  return steadierHour(flags, landing, mission.requirements, shares, monthStart, earthCenterAbove)
 }
 
 /** `steadierLanding` from the Sun and Earth limits alone, for callers that hold no whole mission (the co-pilot's tools). */
-export function steadierHour(flags: SiteFlags, landing: number, requirements: Requirements, shares: number[], monthStart: number): number {
+export function steadierHour(flags: SiteFlags, landing: number, requirements: Requirements, shares: number[], monthStart: number, earthCenterAbove?: boolean[]): number {
   const earth = missionEarth(flags, requirements)
   for (let hour = landing; hour < flags.sun.length && flags.sun[hour]; hour += 1) {
     const share = shares[hour - monthStart]
     if (share === undefined) break
-    if (share >= MARGINAL_SUN_SHARE && landingProblems(flags.sun, earth, hour, requirements).length === 0) return hour
+    if (share >= MARGINAL_SUN_SHARE && withMargin(requirements, earthCenterAbove, hour - monthStart) && landingProblems(flags.sun, earth, hour, requirements).length === 0) return hour
   }
   return landing
+}
+
+/** Whether Earth has margin at an hour of the month: its center above the skyline, where the mission needs Earth at landing and the month's hours are on hand. */
+function withMargin(requirements: Requirements, earthCenterAbove: boolean[] | undefined, index: number): boolean {
+  return !requirements.earthAtLanding || !earthCenterAbove || earthCenterAbove[index] !== false
+}
+
+/**
+ * Whether a landing at an hour of one month fits only marginally: under half of a disc the mission
+ * needs at landing is in view. From the same month's hours `steadierLanding` reads; false where
+ * they do not reach.
+ */
+export function marginalHour(requirements: Requirements, shares: number[], earthCenterAbove: boolean[], index: number): boolean {
+  const sun = shares[index]
+  return (requirements.sunAtLanding && sun !== undefined && sun > 0 && sun < MARGINAL_SUN_SHARE) || !withMargin(requirements, earthCenterAbove, index)
 }
 
 /**

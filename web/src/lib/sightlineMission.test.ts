@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteFlags } from './flags'
 import type { SiteInfo } from '../data/contract'
-import { bestIn, betterDate, DEFAULT_MISSION, fitProblems, marginalWords, measureScenario, missionWords, steadierLanding, NO_LIMIT_H, PRESETS, presetOf, readScenarioLink, removeScenarioAt, restoreScenario, rowLabels, scenarioLink, type SightlineMission, surfaceLink, silenceHours, silenceStop } from './sightlineMission'
+import { bestIn, betterDate, DEFAULT_MISSION, fitProblems, marginalHour, marginalWords, measureScenario, missionWords, steadierLanding, NO_LIMIT_H, PRESETS, presetOf, readScenarioLink, removeScenarioAt, restoreScenario, rowLabels, scenarioLink, type SightlineMission, surfaceLink, silenceHours, silenceStop } from './sightlineMission'
 
 const START = '2027-01-01T00:00:00Z'
 
@@ -223,6 +223,26 @@ describe('steadierLanding', () => {
     const brief = { ...flags, sun: flags.sun.map((up, hour) => up && hour < 13) }
     expect(steadierLanding(brief, 10, mission, shares, 0)).toBe(10)
     expect(steadierLanding(flags, 10, mission, shares.slice(0, 13), 0)).toBe(10)
+  })
+
+  it('where the mission needs Earth at landing, also waits for Earth\'s center to clear the skyline', () => {
+    // Earth's edge shows from the start; its center is above the skyline from hour 30.
+    const earthCenterAbove = Array.from({ length: 240 }, (_, hour) => hour >= 30)
+    expect(steadierLanding(flags, 10, mission, shares, 0, earthCenterAbove)).toBe(30)
+    // A mission that does not need Earth at landing is not held back by it.
+    const noEarth = { ...mission, requirements: { ...mission.requirements, earthAtLanding: false } }
+    expect(steadierLanding(flags, 10, noEarth, shares, 0, earthCenterAbove)).toBe(14)
+  })
+
+  it('keeps the first landing, and calls it marginal, when the month has no hour with margin', () => {
+    const never = Array.from({ length: 240 }, () => false)
+    const landing = steadierLanding(flags, 10, mission, shares, 0, never)
+    expect(landing).toBe(10)
+    expect(marginalHour(mission.requirements, shares, never, landing)).toBe(true)
+    // With margin on both discs it is not.
+    expect(marginalHour(mission.requirements, shares, Array.from({ length: 240 }, () => true), 30)).toBe(false)
+    // A sliver of the Sun alone is marginal too.
+    expect(marginalHour(mission.requirements, shares, Array.from({ length: 240 }, () => true), 10)).toBe(true)
   })
 
   it('does not move to an hour that no longer meets the limits', () => {
