@@ -11,7 +11,7 @@ import { ringedSites } from '../lib/scoutRing'
 import { horizonAt } from '../lib/customModel'
 import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, shortWhen } from '../lib/sightlineSky'
-import { marginalAtLanding } from '../lib/landingVerdict'
+import { landingVerdict, marginalAtLanding } from '../lib/landingVerdict'
 import { bodyRadiiDeg } from '../lib/surfaceView'
 import { HowItWorks } from '../shell/HowItWorks'
 import { hourOf, locateHour, missionEarth } from '../lib/mission'
@@ -1564,6 +1564,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             openAtVideo={howAtVideo}
             why={why}
             openAtWhy={howAtWhy}
+            verdict={problems ? landingVerdict(problems, marginal) : null}
           />
         </div>
       )}
