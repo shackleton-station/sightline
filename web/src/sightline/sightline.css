@@ -282,6 +282,19 @@
   color: #fff;
 }
 
+/* After Scout's button has turned the Moon, the compass says where it leads: the way back is in words. */
+.sl-recentre.has-words {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: auto;
+  padding: 0 0.75rem 0 0.5rem;
+  border-color: var(--gold-deep);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
 /* Close on a site: the way to Earth across the ground, and how much ground the screen holds. Both sit with the view's buttons. */
 .sl-scale {
   /* The stage's bottom right corner, level with the note about the landing, which starts at the left. */

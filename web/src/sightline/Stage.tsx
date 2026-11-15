@@ -35,10 +35,17 @@ interface Props {
   reserveBottom: number
   /**
    * Sites ringed besides: the ones a reply of Scout's leads with, in Watch. They are outlined like
-   * the selected site. The view is left where the visitor had it unless none of them can be seen
-   * from there; then the Moon turns to the first.
+   * the selected site, where they are. An answer never moves the view: when none of them can be seen
+   * from where the visitor has the Moon, the stage says so (`onRingedHidden`) and the reply offers a
+   * button that turns it.
    */
   ringIds?: string[]
+  /** Told whether none of the ringed sites can be seen in the view as it is. */
+  onRingedHidden?: (hidden: boolean) => void
+  /** Turn the Moon to this site: asked for by a press, never by an answer alone. `n` counts the presses. */
+  turnTo?: { id: string; n: number } | null
+  /** Words beside the compass, for the way back after such a turn; without them the compass is its mark alone. */
+  recentreWords?: string | null
   /** The site of the scenario on show, outlined; null in Watch. */
   selectedId: string | null
   /** The place to fly down to and stay close on (the rail's "Site"); null shows the whole Moon. */
@@ -124,7 +131,7 @@ function lonLatOf(direction: readonly [number, number, number]): { lon: number; 
 /** How close to a zoom limit counts as being at it, as a share of the limit. */
 const ZOOM_SLACK = 1e-6
 
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
+export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, onRingedHidden, turnTo = null, recentreWords = null, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
@@ -268,24 +275,37 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, placed])
 
-  // Scout's reply leads with some sites: they are ringed where they are. If at least one of them
-  // can be seen the view stays as the visitor had it; if none can, the Moon turns to the first.
+  // Scout's reply leads with some sites: they are ringed where they are, and the view stays as the
+  // visitor had it. Whether any of them can be seen is told upward, so the reply can offer a button
+  // that turns the Moon to the first: an answer never turns it by itself.
   const ringKey = ringIds.join('|')
   useEffect(() => {
-    if (!placed || ringIds.length === 0 || focusLat !== undefined) return
+    if (!onRingedHidden) return
+    if (!placed || ringIds.length === 0 || focusLat !== undefined) {
+      onRingedHidden(false)
+      return
+    }
     const ringed = ringIds.flatMap((id) => sites.find((site) => site.id === id) ?? [])
     const seen = (site: SiteInfo) => {
       const p = placeOf(site.lat, site.lon)
       const c = toCanvas(p, zoom)
       return p.facing > 0.05 && Math.abs((c.x * side) / 2) <= box.width / 2 - 12 && Math.abs((-c.y * side) / 2) <= freeHeight / 2 - 12
     }
-    if (ringed.length === 0 || ringed.some(seen)) return
-    const goal = { lat: ringed[0].lat, lon: ringed[0].lon }
+    onRingedHidden(ringed.length > 0 && !ringed.some(seen))
+    // The ringed sites, and the view they are looked for in.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [ringKey, placed, placeOf, zoom, side, box.width, freeHeight, focusLat])
+  // A press asked for a site to be shown: the Moon turns to bring it to the middle.
+  const turnN = turnTo?.n ?? 0
+  useEffect(() => {
+    const site = turnTo ? sites.find((one) => one.id === turnTo.id) : undefined
+    if (!placed || !site || focusLat !== undefined) return
+    const goal = { lat: site.lat, lon: site.lon }
     flight.current = { kind: 'turn', goal, until: performance.now() + TURN_FLIGHT_MS + FLIGHT_SETTLE_MS }
     void flyTo(goal, zoom, TURN_FLIGHT_MS)
-    // Only a new set of ringed sites starts this, with the view as it is at that moment.
+    // Only a new press starts this, with the view as it is at that moment.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [ringKey, placed])
+  }, [turnN])
 
   // Whether the view has been moved from the default one, and which way: for the recentre compass.
   const moved = placed && viewMoved({ center, up, zoom }, { ...DEFAULT_POSE, zoom: fit.wholeZoom })
@@ -473,7 +493,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
           {moved && (
             <button
               type="button"
-              className="sl-recentre"
+              className={recentreWords ? 'sl-recentre has-words' : 'sl-recentre'}
               aria-label="Recenter the Moon"
               title="Turns the Moon back to the view from over its south pole."
               onClick={() => {
@@ -490,6 +510,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
                   <path d="M12 20.5 L9 12 L12 13.4 L15 12 Z" fill="currentColor" opacity="0.45" />
                 </g>
               </svg>
+              {recentreWords && <span>{recentreWords}</span>}
             </button>
           )}
         </div>

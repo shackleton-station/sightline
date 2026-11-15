@@ -276,6 +276,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       return link ? link.scenarios[link.active].site : null
     })
   }, [plan, scoutOpen, lastSaid, sites, start, hours])
+  // An answer never moves the view. When none of the sites it leads with can be seen where the Moon is
+  // turned, the reply offers one button that turns it to the first; after that press the compass
+  // carries words, so the way back to the south pole is in plain sight.
+  const [ringedHidden, setRingedHidden] = useState(false)
+  const [turnTo, setTurnTo] = useState<{ id: string; n: number } | null>(null)
+  const [scoutTurned, setScoutTurned] = useState(false)
+  const firstRinged = ringed.length > 0 ? sites.find((one) => one.id === ringed[0]) : undefined
   // The Moon Trek layer laid over the south pole, if one is switched on.
   const [layer, setLayer] = useState<TrekLayerId | null>(null)
   // The app's own computed light, as a layer: off by default, so Site view opens on the Moon's own picture.
@@ -1165,10 +1172,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           reserveBottom={!plan && !bare ? Math.max(PLAY_CONTROL_ROOM_PX, scoutOpen && room === 'phone' && scoutHeight > 0 ? scoutHeight + SHEET_AIR_PX : 0) : shown && !planner ? NOTE_ROOM_PX : 0}
           selectedId={shown ? site.id : (tourStep?.state.ring ?? null)}
           ringIds={shown || tourStep ? NO_SITES : ringed}
+          onRingedHidden={setRingedHidden}
+          turnTo={turnTo}
+          recentreWords={scoutTurned ? 'Back to the south pole' : null}
           focus={shown && !planner && mode === 'site' ? site : null}
           onChoose={openPlan}
           onPoint={setPointed}
-          onRecentre={() => setMode('orbit')}
+          onRecentre={() => {
+            setMode('orbit')
+            setScoutTurned(false)
+          }}
           overlay={shown ? trek.overlay : null}
           shade={shown ? moonShade : null}
           layer={shown ? trekLayer(layer) : null}
@@ -1244,6 +1257,17 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               }}
               onPlan={openLink}
               onHeight={setScoutHeight}
+              turn={
+                firstRinged && ringedHidden
+                  ? {
+                      label: `Show ${firstRinged.name} on the Moon`,
+                      onPress: () => {
+                        setTurnTo((before) => ({ id: firstRinged.id, n: (before?.n ?? 0) + 1 }))
+                        setScoutTurned(true)
+                      },
+                    }
+                  : null
+              }
             />}
           </>
         )}
