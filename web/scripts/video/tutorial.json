@@ -126,15 +126,16 @@
           "id": "team",
           "say": "We're Shackleton Station, answering the Lunar Landing Site Navigator challenge.",
           "acts": [
-            {"at": 0.42, "zoom": "frame", "frame": [0.2, 0, 0.74], "over": 0.9},
+            {"at": 0.42, "zoom": "frame", "frame": [0.2, 0, 0.745], "over": 0.9},
             {"at": 0.55, "click": "label:Play", "over": 0.6},
-            {"at": 0.8, "rest": [0.82, 0.7], "over": 0.6}
+            {"at": 0.8, "rest": [0.82, 0.3], "over": 0.6}
           ]
         },
         {
           "id": "problem",
           "say": "At the Moon's south pole the Sun skims the horizon and Earth slips behind ridges, so power and radio come and go.",
           "acts": [
+            {"at": 0.05, "ring": "#sl-sky", "until": 0.58, "pad": -4},
             {"at": 0.62, "zoom": "out", "over": 1},
             {"at": 0.7, "click": "label:Pause", "over": 0.6},
             {"at": 0.88, "click": "label:Back to landing", "over": 0.5}
