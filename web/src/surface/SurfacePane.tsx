@@ -8,6 +8,7 @@ import { CompassStrip } from './CompassStrip'
 import { LensControls } from './LensControls'
 import { type HourDot, SkyOverlay } from './SkyOverlay'
 import { SurfaceCanvas } from './SurfaceCanvas'
+import { useCoveredFoot } from './useCoveredFoot'
 import type { SkyPair } from './useGlide'
 import { type Body, useLook } from './useLook'
 import { useLookInput } from './useLookInput'
@@ -69,9 +70,6 @@ function coveredTopPx(place: 0 | 1): number {
   return short ? 52 : 150
 }
 
-/** How much of the foot of the picture the answer's band covers (px): it lies over the picture except on a phone. */
-const coveredBottomPx = () => (window.innerWidth > NARROW_PX ? 140 : 8)
-
 /**
  * One of the two views from the site: the picture, the lines and names over it, and its compass.
  * It keeps its body, the Sun or Earth, in the middle as time moves, until the visitor steers it by
@@ -81,6 +79,7 @@ export function SurfacePane(props: Props) {
   const { body, place, site, horizon, groundTint, now, sky, discs, hours, still, level, opening, keys, showLens, setLensAll, register, onActive, onLens, onLost } = props
   const stage = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+  const coveredFootPx = useCoveredFoot(stage)
 
   useEffect(() => {
     const element = stage.current
@@ -142,7 +141,7 @@ export function SurfacePane(props: Props) {
         {size.width > 0 && (
           <>
             <SurfaceCanvas horizon={horizon} groundTint={groundTint} latDeg={site.lat} frame={frame} onLost={onLost} />
-            <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} hours={hours} clearTopPx={coveredTopPx(place)} clearBottomPx={coveredBottomPx()} />
+            <SkyOverlay lens={lens} width={size.width} height={size.height} sun={sun} earth={earth} hours={hours} clearTopPx={coveredTopPx(place)} clearBottomPx={coveredFootPx} />
           </>
         )}
       </div>

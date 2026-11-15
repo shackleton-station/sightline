@@ -9,7 +9,7 @@ import { stateAt } from '../../src/lib/sightline'
 import { betterDate, type SightlineMission, steadierLanding } from '../../src/lib/sightlineMission'
 import type { Bucket } from '../../shared/bucket'
 import { siteData } from '../../shared/tools/data'
-import { distanceWords, isoAt, limitFacts, whenLabel } from '../../shared/tools/facts'
+import { distanceWords, isoAt, limitFacts, reasonClause, whenLabel } from '../../shared/tools/facts'
 import { runTool } from '../../shared/tools/tools'
 import type { Model } from '../model'
 import { claudeMessage, toolUse } from '../standIns'
@@ -192,8 +192,8 @@ describe('4. facts that drop into a sentence', () => {
     const scene = await scenarioScene(two, viewFrom(two), data)
     const value = (key: string) => scene?.facts.find((item) => item.key === key)?.value
     expect(value('scenario_a_verdict')).toBe('does not meet the mission limits')
-    expect(value('scenario_a_reason_1')).toBe('the Sun is gone for 95 h during the mission; your limit is 24 h')
-    expect(value('scenario_b_reason_1')).toBe('the Sun is gone for 79 h during the mission; your limit is 24 h')
+    expect(value('scenario_a_reason_1')).toBe('the Sun is gone for 95 h, past the 24 h limit')
+    expect(value('scenario_b_reason_1')).toBe('the Sun is gone for 79 h, past the 24 h limit')
     // A listed site that is not on show has its figures and nothing that says they are missing.
     expect(value('scenario_b_figures')).toBeUndefined()
     expect(value('scenario_b_longest_time_without_sun')).toBe('79 h')
@@ -214,10 +214,26 @@ describe('5. one fact for each limit', () => {
     expect((await facts('conditions_at', { site: 'connecting-ridge', time: '2027-05-06T13' })).values.dark_limit).toBe('24 h')
   })
 
-  it('is asked for in the instructions: the full list once, in a sentence of its own', () => {
+  it('is asked for in the instructions: the full list only when the visitor asks for it, once and in a sentence of its own; otherwise one limit at most', () => {
     const rules = systemPrompt({ first_year: 2026, last_year: 2049 })
-    expect(rules).toMatch(/Give the full list \(the limits fact\) at most once, as a sentence of its own/)
-    expect(rules).toMatch(/To name one limit, cite its own fact: mission_length, dark_limit or silence_limit/)
+    expect(rules).toMatch(/Do not recite the mission limits\. Give the full list \(the limits fact\), once and as a sentence of its own, only when the visitor asks/)
+    expect(rules).toMatch(/Otherwise name at most one limit, the one that decides the answer, by its own fact: mission_length, dark_limit or silence_limit/)
+  })
+
+  it('asks for short answers: three sentences and about sixty words, the answer first, a fourth only for a comparison or a proof', () => {
+    const rules = systemPrompt({ first_year: 2026, last_year: 2049 })
+    expect(rules).toMatch(/At most three sentences and about sixty words in all\. The first sentence is the answer\./)
+    expect(rules).toMatch(/A fourth sentence is allowed only when the visitor asks to compare sites or scenarios, or asks how the numbers were checked\./)
+    expect(rules).toMatch(/Say each figure, date and reason once\./)
+    // The rule that every number is a filled reference stands exactly as it was.
+    expect(rules).toMatch(/In your answer, every number, percentage, duration, date and time is a reference: write \{\{r2\.pct_sun\}\}, not the value\. The app fills in the value\. Never type a digit yourself, and never spell a number out in words\./)
+  })
+
+  it('gives a verdict\'s reason as a clause that joins a sentence, with its limit said in passing', () => {
+    expect(reasonClause('The Sun is gone for 95 h during the mission; your limit is 24 h.')).toBe('the Sun is gone for 95 h, past the 24 h limit')
+    expect(reasonClause('Earth is less than 2° above the terrain for 40 h during the mission; your limit is 24 h.')).toBe('Earth is less than 2° above the terrain for 40 h, past the 24 h limit')
+    expect(reasonClause('The ground slopes 12.3°; your limit is 10°.')).toBe('the ground slopes 12.3°, past the 10° limit')
+    expect(reasonClause('Earth is out of view at landing.')).toBe('Earth is out of view at landing')
   })
 })
 
@@ -288,7 +304,7 @@ describe('9. a button that changes the limits', () => {
     const hash = '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&sc=0'
     const offer = { actions: [{ type: 'limits', max_sun_gap_h: 96 }] }
     const why = await ask(scripted([answer('It fails because {{r0.scenario_a_reason_1}}.', offer)]), hash, "Why doesn't this landing fit?")
-    expect(why.ok && why.reply.text).toBe('It fails because the Sun is gone for 95 h during the mission; your limit is 24 h.')
+    expect(why.ok && why.reply.text).toBe('It fails because the Sun is gone for 95 h, past the 24 h limit.')
     expect(why.ok && why.reply.actions).toEqual([])
     const whatIf = await ask(scripted([answer('With more battery it could fit.', offer)]), hash, 'What if the lander survived more darkness?')
     expect(whatIf.ok && whatIf.reply.actions.map((action) => action.label)).toEqual(['Change the limits: at most 4 days without the Sun'])
@@ -303,7 +319,7 @@ describe('10. the fact that no other site fits', () => {
 
   it('is a clause that stands in a sentence: the old label-like value, with its colon, is gone from every fact Scout is given', async () => {
     const scene = await scenarioScene(APOLLO, viewFrom(APOLLO), data)
-    expect(scene?.facts.find((item) => item.key === 'scenario_a_no_other_site_fits')?.value).toBe('none of the other sites in its group fits on this date')
+    expect(scene?.facts.find((item) => item.key === 'scenario_a_no_other_site_fits')?.value).toBe('no other Apollo site fits on that date')
     // The exact fragment that reached a visitor ("On the date of scenario A, none: on this date no other site of the group meets them.").
     for (const item of scene?.facts ?? []) {
       expect(item.value, item.key).not.toMatch(/none: on this date/)
@@ -313,7 +329,7 @@ describe('10. the fact that no other site fits', () => {
 
   it('reads as a sentence when Scout uses it', async () => {
     const outcome = await ask(scripted([answer('The next landing at Apollo 11 that fits is {{r0.scenario_a_next_landing}}, and {{r0.scenario_a_no_other_site_fits}}.')]), APOLLO, 'When is the next landing here that fits?')
-    expect(outcome.ok && outcome.reply.text).toBe('The next landing at Apollo 11 that fits is 11 May 2027, 13:00 UTC, and none of the other sites in its group fits on this date.')
+    expect(outcome.ok && outcome.reply.text).toBe('The next landing at Apollo 11 that fits is 11 May 2027, 13:00 UTC, and no other Apollo site fits on that date.')
   })
 
   it('where another site does fit, names the place and its distance, and says nothing of "none"', async () => {
@@ -522,7 +538,7 @@ describe('13. words about the present mean the real date; words about the screen
     const plan = '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&sc=0'
     const model = scripted([answer('It fails because {{r0.scenario_a_reason_1}}.')])
     const outcome = await ask(model, plan, "Why doesn't this landing fit?")
-    expect(outcome.ok && outcome.reply.text).toBe('It fails because the Sun is gone for 95 h during the mission; your limit is 24 h.')
+    expect(outcome.ok && outcome.reply.text).toBe('It fails because the Sun is gone for 95 h, past the 24 h limit.')
     expect(sentTo(model)).toMatch(/- time: 6 May 2027, 13:00 UTC/)
   })
 })
@@ -583,7 +599,7 @@ describe('15. "which of the four south-pole sites is best in 2027, and when?" is
     const places = [1, 2, 3, 4].map((i) => values[`place_${i}_site`])
     expect([...places].sort()).toEqual(['Connecting Ridge', 'Peak near Shackleton', 'Shackleton Rim', 'de Gerlache Rim'].sort())
     for (const i of [1, 2, 3, 4]) {
-      expect(values[`place_${i}_value`]).toMatch(/^\d+ days of the year's 365$/)
+      expect(values[`place_${i}_value`]).toMatch(/^\d+ of 365 days$/)
       expect(values[`place_${i}_best_month`]).toMatch(/2027/)
     }
     // Ranked: each place has at least as many days as the next.
