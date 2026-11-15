@@ -333,7 +333,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                 }}
               />
             )}
-            {view ? <WindowGrid grid={view.grid} siteId={view.row.site.id} month={view.month} listed={listed} onPick={pick} keptWords="kept to compare" /> : <p className="pl-grid sl-quiet">Reading every site and month…</p>}
+            {view ? <WindowGrid grid={view.grid} siteId={view.row.site.id} month={view.month} listed={listed} onPick={pick} keptWords="kept to compare" hideEmpty /> : <p className="pl-grid sl-quiet">Reading every site and month…</p>}
             {view && (
               <>
                 {accuracyWanted && (

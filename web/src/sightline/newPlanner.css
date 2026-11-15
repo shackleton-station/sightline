@@ -2994,3 +2994,9 @@
 .sl-np .np-explain[open] > summary {
   margin-bottom: 0.7rem;
 }
+
+.sl-np .pl-grid-empty {
+  justify-self: start;
+  width: max-content;
+  margin: 0.4rem 0 0;
+}

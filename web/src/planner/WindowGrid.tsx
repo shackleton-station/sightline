@@ -16,6 +16,8 @@ interface Props {
   onPick: (siteId: string, month: string, byPointer: boolean) => void
   /** What the violet line on a month means here, for the key. */
   keptWords?: string
+  /** Fold away the sites with no landing in any month, behind a "Show" button. */
+  hideEmpty?: boolean
 }
 
 interface RowProps {
@@ -82,13 +84,18 @@ const GridRow = memo(function GridRow({ row, r, largestShare, chosen, column, li
  * Every site against every month, as one table: the page's main control. Arrow keys move between
  * cells, Home and End go to a row's ends, Page Up and Page Down move a year; Enter chooses a cell.
  */
-export function WindowGrid({ grid, siteId, month, listed, onPick, keptWords }: Props) {
+export function WindowGrid({ grid, siteId, month, listed, onPick, keptWords, hideEmpty = false }: Props) {
   const scroller = useRef<HTMLDivElement>(null)
   const [pointed, setPointed] = useState<string | null>(null)
+  const [showEmpty, setShowEmpty] = useState(false)
   const years = useMemo(() => [...new Set(grid.months.map((m) => m.slice(0, 4)))], [grid.months])
-  const groups = useMemo(() => [...new Set(grid.rows.map((row) => row.site.group))], [grid.rows])
+  // A site with no landing all year is folded away, unless it is the one on show or on the short list.
+  const isEmpty = (row: PlannerRow) => row.monthsWithLanding === 0 && row.site.id !== siteId && !grid.months.some((m) => listed.has(`${row.site.id}@${m}`))
+  const emptyCount = hideEmpty ? grid.rows.filter(isEmpty).length : 0
+  const rows = hideEmpty && !showEmpty ? grid.rows.filter((row) => !isEmpty(row)) : grid.rows
+  const groups = [...new Set(rows.map((row) => row.site.group))]
   // Rows in the order drawn, so the arrow keys follow what is on screen.
-  const ordered = useMemo(() => groups.flatMap((group) => grid.rows.filter((row) => row.site.group === group)), [groups, grid.rows])
+  const ordered = groups.flatMap((group) => rows.filter((row) => row.site.group === group))
   const chosenRow = ordered.find((row) => row.site.id === siteId)
   const chosenCell = chosenRow?.cells.find((cell) => cell.month === month)
 
@@ -197,6 +204,11 @@ export function WindowGrid({ grid, siteId, month, listed, onPick, keptWords }: P
           ))}
         </table>
       </div>
+      {emptyCount > 0 && (
+        <button type="button" className="sl-small pl-grid-empty" aria-expanded={showEmpty} onClick={() => setShowEmpty((shown) => !shown)}>
+          {showEmpty ? `Hide the ${emptyCount} sites with no landing` : `Show ${emptyCount} more sites with no landing this year`}
+        </button>
+      )}
       <p className="pl-readout" aria-hidden="true">
         {pointed ?? (chosenRow && chosenCell ? cellWords(chosenRow.site.name, chosenCell.month, chosenCell.days) : '')}
       </p>
