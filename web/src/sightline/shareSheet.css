@@ -185,25 +185,9 @@
   }
 }
 
-/* ---------- the share sheet's line about the library, and "Private" ---------- */
+/* ---------- the share sheet's line about the library ---------- */
 .sl-share-listed {
   margin: 0;
   color: var(--soft);
   font-size: 0.75rem;
-}
-
-.sl-share-save .sl-share-private {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.sl-share-save .sl-share-private input {
-  width: auto;
-  padding: 0;
-}
-
-.sl-share-save .sl-share-private > span {
-  color: var(--ink);
-  font-size: 0.8125rem;
 }

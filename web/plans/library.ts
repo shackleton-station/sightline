@@ -47,7 +47,7 @@ export function scenariosOf(plan: Plan): LibraryScenario[] {
   return places.slice(0, PER_PLAN).map((place) => ({ plan: plan.id, title: plan.title, saved: plan.created, ...place }))
 }
 
-/** The library made from the newest plans: private and expired ones left out, the rest taken apart, newest plan first. */
+/** The library made from the newest plans: expired ones left out, the rest taken apart, newest plan first. */
 export function libraryOf(plans: Plan[], now: number): LibraryScenario[] {
-  return plans.filter((plan) => !plan.private && !(Date.parse(plan.expires) <= now)).flatMap(scenariosOf)
+  return plans.filter((plan) => !(Date.parse(plan.expires) <= now)).flatMap(scenariosOf)
 }

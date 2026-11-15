@@ -56,10 +56,9 @@ export function keyOf(request: Request): { kind: 'none' } | { kind: 'bad' } | { 
  * Two requests with the same fingerprint are the same save. It is taken after the server has
  * cleaned the title, the note and the view, so a retry that differs only in spacing still matches.
  */
-export function fingerprintOf(plan: { title: string; note: string; view: string; owner?: string; private?: true }): string {
+export function fingerprintOf(plan: { title: string; note: string; view: string; owner?: string }): string {
   return createHash('sha256')
-    // "private" is added only when asked for, so a listed plan's fingerprint is what it was before plans could be private.
-    .update(JSON.stringify([plan.title, plan.note, plan.view, plan.owner ?? '', ...(plan.private ? ['private'] : [])]))
+    .update(JSON.stringify([plan.title, plan.note, plan.view, plan.owner ?? '']))
     .digest('hex')
     .slice(0, 32)
 }

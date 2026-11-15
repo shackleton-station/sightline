@@ -131,7 +131,7 @@ async function savePlan(request: Request, deps: PlansDeps, limits: PlanLimits, d
   if (who.kind === 'invalid') return reply({ error: 'sign-in' }, 401)
 
   const text = await request.text()
-  let body: { title?: unknown; note?: unknown; view?: unknown; private?: unknown }
+  let body: { title?: unknown; note?: unknown; view?: unknown }
   try {
     body = text.length <= MAX_BODY_CHARS ? JSON.parse(text) : null
   } catch {
@@ -152,9 +152,7 @@ async function savePlan(request: Request, deps: PlansDeps, limits: PlanLimits, d
 
   const now = deps.now?.() ?? Date.now()
   const owner = who.kind === 'owner' ? { owner: who.owner } : {}
-  // Private is for a signed-in visitor only: a plan nobody owns could never be listed again or deleted, so the request is read past.
-  const hidden = who.kind === 'owner' && body.private === true ? { private: true as const } : {}
-  const asked = { title, note, view: cleaned.view, ...owner, ...hidden }
+  const asked = { title, note, view: cleaned.view, ...owner }
   const fingerprint = fingerprintOf(asked)
   /** The answer for a key that is already on record: the first answer again, or a refusal if this is a different save. */
   const again = (kept: KeptKey) => (kept.fingerprint === fingerprint ? reply({ id: kept.plan }, 201, { [REPLAYED_HEADER]: 'true' }) : reply({ error: 'key-reused' }, 422))

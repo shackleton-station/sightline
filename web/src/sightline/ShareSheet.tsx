@@ -1,6 +1,5 @@
-import { type FormEvent, type KeyboardEvent, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { type FormEvent, type KeyboardEvent, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { currentAccount, subscribe } from '../lib/account'
 import { copyWhenKnown } from '../lib/copyText'
 import { planLink } from '../lib/planLink'
 import { markSightline } from '../lib/planView'
@@ -70,10 +69,6 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
   const marker = useRef<HTMLSpanElement>(null)
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
-  // Keeping a plan out of the library is offered only to a signed-in visitor: the service honors it only for one (web/plans/API.md).
-  const signedIn = useSyncExternalStore(subscribe, () => currentAccount() !== null)
-  const [hidden, setHidden] = useState(false)
-  const unlisted = signedIn && hidden
   const savedCopy = useRef<HTMLButtonElement>(null)
   const [state, setState] = useState<{ kind: 'idle' } | { kind: 'saving' } | { kind: 'saved'; link: string; copied: boolean } | { kind: 'failed'; message: string }>({ kind: 'idle' })
   // The saved link's own button was pressed: it says so.
@@ -144,8 +139,8 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
     event.preventDefault()
     if (name === '' || state.kind === 'saving') return
     // The stored view says it was saved from this screen, so its short link opens here wherever it is opened.
-    const plan = { title: name, note: note.replace(/\s+/g, ' ').trim(), view: markSightline(view()), ...(unlisted ? { private: true } : {}) }
-    attempt.current = attemptFor(attempt.current, plan, signedIn)
+    const plan = { title: name, note: note.replace(/\s+/g, ' ').trim(), view: markSightline(view()) }
+    attempt.current = attemptFor(attempt.current, plan, false)
     setState({ kind: 'saving' })
     const saving = savePlan(plan, attempt.current.key)
     // The copy is asked for now, while this press still counts, with the link as a promise: the browser waits for the save.
@@ -184,7 +179,7 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
                 <p className="sl-share-kept">
                   It opens with the name and note on show. Kept {KEPT_DAYS} days, for anyone with the link.
                 </p>
-                <p className="sl-share-listed">{unlisted ? 'Private: not in the library.' : 'Its name and landings are in the Planner’s library, for anyone to find.'}</p>
+                <p className="sl-share-listed">Its name and landings are in the Planner’s library, for anyone to find.</p>
               </div>
               <button ref={first} type="button" className="sl-share-plain" onClick={onCopy}>
                 Copy link without the name or note
@@ -213,15 +208,7 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
                   <textarea name="plan-note" value={note} maxLength={MAX_NOTE} rows={2} onChange={(event) => setNote(event.target.value)} />
                 </label>
                 <p className="sl-share-listed" id="sl-share-listed">
-                  {unlisted ? 'Private: it stays out of the library.' : 'Its name and landings join the Planner’s library, for anyone to find. The note does not.'}
-                </p>
-                {signedIn && (
-                  <label className="sl-share-private">
-                    <input type="checkbox" name="plan-private" checked={hidden} aria-describedby="sl-share-listed" onChange={(event) => setHidden(event.target.checked)} />
-                    <span>Private</span>
-                  </label>
-                )}
-                <div className="sl-share-row">
+(m) => m                <div className="sl-share-row">
                   <p className="sl-share-kept" id="sl-share-kept">
                     Kept {KEPT_DAYS} days, for anyone with the link.
                   </p>

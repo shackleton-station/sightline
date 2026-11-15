@@ -417,11 +417,10 @@ point, so its numbers were not the screen's.
 
 Every scenario in the saved plans, to search, filter and pull into Compare. Touches `web/` (Misha's): ask before merging.
 
-- [x] Plans service: `GET /api/plans/library` (the newest 200 listed plans, each taken apart into its scenarios; title sent, note not), and `private` on save for a signed-in visitor (`web/plans/library.ts`, `handler.ts`, `store.ts`, `firestorePlans.ts`). Written into `web/plans/API.md` first; the contract test covers it. No new index and no Terraform change.
+- [x] Plans service: `GET /api/plans/library` (the newest 200 listed plans, each taken apart into its scenarios; title sent, note not) (`web/plans/library.ts`, `handler.ts`, `store.ts`, `firestorePlans.ts`). Written into `web/plans/API.md` first; the contract test covers it. No new index and no Terraform change.
 - [x] New Planner: a Library tab (`PlannerLibrary.tsx`) with search and filters, one card per landing with a dial of the mission (`LibraryCard.tsx`), and a tray under a lander icon whose cards fan out (`LibraryTray.tsx`). The logic is `src/lib/library.ts`, tested.
-- [x] Share sheet: a line saying the plan is listed, and "Private" for a signed-in visitor. Privacy page updated.
+- [x] Share sheet: a line saying the plan is listed. Privacy page updated. There is no way to keep a plan out of the library for now (Pat, 2026-11-15); a "private" flag was built and taken out again before merging, and can come back as an additive change.
 - [x] Checks: `tsc -b`, lint (no new errors), `vitest run` (all pass). Tried in a browser against the plans service in memory: list, filter, pull in, fan, add to Compare.
-- [ ] Not checked: a phone-width window; the "Private" box in a browser (no sign-in on one machine; the service's side is tested); the real Firestore query (`newest`), which only the emulator test or the live database can show.
-- [ ] The new share sheet has no sign-in of its own, so "Private" shows only to someone who signed in on a classic page in the same tab. Decide whether to add sign-in there.
+- [ ] Not checked: a phone-width window; the real Firestore query (`newest`), which only the emulator test or the live database can show.
 - [x] The Library tab and the tray are in the Planner too (`FullPlanner.tsx`), since the rail now offers only that one (#181). There the tab is not held in the link: a saved plan opens on Find or Compare. Tried in a browser the same way.
 - [ ] Three test plans were saved to the live database by mistake while checking this (`pqhmpa9q`, `ppvz82jv`, `uwqvs23j`; the dev server forwards `/api` to the live site unless `BACKEND` is set). They have no owner, so the API cannot delete them: delete the three documents in the `plans` database before the library is live, or they are listed in it.

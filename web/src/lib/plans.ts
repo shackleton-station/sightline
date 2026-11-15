@@ -75,9 +75,8 @@ function newKey(): string {
  * with the plan it already saved instead of saving another. Any change to the plan, or signing in or
  * out, makes it a new attempt with a new key. (The agreement with the server is in web/plans/API.md.)
  */
-export function attemptFor(previous: SaveAttempt | null, plan: { title: string; note: string; view: string; private?: boolean }, signedIn: boolean): SaveAttempt {
-  // "private" is added only when asked for, so a listed plan's attempt is named as it always was.
-  const what = JSON.stringify([plan.title, plan.note, plan.view, signedIn, ...(plan.private ? ['private'] : [])])
+export function attemptFor(previous: SaveAttempt | null, plan: { title: string; note: string; view: string }, signedIn: boolean): SaveAttempt {
+  const what = JSON.stringify([plan.title, plan.note, plan.view, signedIn])
   return previous?.what === what ? previous : { what, key: newKey() }
 }
 
@@ -91,11 +90,8 @@ export const RETRY_AFTER_MS = 800
  * an answer that leaves open whether the plan was saved (502 or 504), is tried once more by itself:
  * the server gives the first answer again if the plan was saved, and saves it if it was not.
  * Without a key nothing is retried, because a retry could save the plan twice.
- *
- * `private: true` keeps the plan out of the library. The service honors it only for a signed-in
- * visitor (web/plans/API.md), so the page offers it only to one.
  */
-export async function savePlan(plan: { title: string; note: string; view: string; private?: boolean }, key?: string, wait: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms))): Promise<PlanResult<string>> {
+export async function savePlan(plan: { title: string; note: string; view: string }, key?: string, wait: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms))): Promise<PlanResult<string>> {
   const send = async (): Promise<{ status: number; id: string | null } | null> => {
     try {
       // The key is written as a quoted string, the form the IETF draft for this header gives.

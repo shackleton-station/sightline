@@ -24,7 +24,7 @@ const OLD_WAY_MAX = 200
  */
 const PATIENCE_MS = 5000
 
-type Fields = Record<string, { stringValue?: string; timestampValue?: string; booleanValue?: boolean }>
+type Fields = Record<string, { stringValue?: string; timestampValue?: string }>
 interface FirestoreError {
   error?: { status?: string }
 }
@@ -59,8 +59,6 @@ export function firestorePlans(options: FirestoreOptions, token: TokenSource): P
     created: { timestampValue: plan.created },
     expires: { timestampValue: plan.expires },
     ...(plan.owner ? { owner: { stringValue: plan.owner } } : {}),
-    // Written only when true, so a plan from before the library reads as listed.
-    ...(plan.private ? { private: { booleanValue: true } } : {}),
   })
 
   const fromFields = (id: string, fields: Fields | undefined): Plan => {
@@ -80,7 +78,6 @@ export function firestorePlans(options: FirestoreOptions, token: TokenSource): P
       created: fields?.created?.timestampValue ?? '',
       expires: fields?.expires?.timestampValue ?? '',
       ...(fields?.owner?.stringValue ? { owner: fields.owner.stringValue } : {}),
-      ...(fields?.private?.booleanValue === true ? { private: true as const } : {}),
     }
   }
 
