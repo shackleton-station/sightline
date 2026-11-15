@@ -3436,8 +3436,8 @@ button.sl-moment-heights[aria-expanded='true'] {
 .sl-over-plot {
   position: relative;
   grid-column: 1 / -1;
-  height: 2.9rem;
-  margin: 0.35rem 0 0;
+  height: 2.6rem;
+  margin: 0.2rem 0 0;
   border-bottom: 1px solid var(--line);
   cursor: crosshair;
   touch-action: pan-y;
@@ -3465,7 +3465,7 @@ button.sl-moment-heights[aria-expanded='true'] {
 /* The longest time down: shaded quietly, and in the warning colour when it breaks the mission's limit. */
 .sl-over-gap {
   fill: var(--soft);
-  opacity: 0.12;
+  opacity: 0.2;
 }
 
 .sl-over-gap.is-miss {
@@ -3479,29 +3479,38 @@ button.sl-moment-heights[aria-expanded='true'] {
   opacity: 0.7;
 }
 
-/* Its name, on its own side of the chart: in ink, with the colour on its edge and a cross when it breaks the limit. */
+/* Its name, in a line of its own above the chart: a swatch of the band's shading, then how long it lasts against the limit. Never over the chart. */
 .sl-over-note {
-  position: absolute;
-  top: 0.15rem;
-  right: 0.2rem;
-  padding: 0 0.35rem;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: var(--panel-bottom);
-  color: var(--ink);
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0;
+  color: var(--soft);
   font-size: 0.75rem;
-  line-height: 1.35;
-  white-space: nowrap;
-  pointer-events: none;
+  line-height: 1rem;
 }
 
-.sl-over-note.is-left {
-  right: auto;
-  left: 0.2rem;
+.sl-over-note i {
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--soft) 34%, transparent);
 }
 
-.sl-over-note.is-miss {
-  border-color: #e8915a;
+.sl-over-note b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-over-note.is-miss i {
+  background: color-mix(in srgb, #e8915a 55%, transparent);
+}
+
+.sl-over-note.is-miss > span > span {
+  color: #e8915a;
 }
 
 /* Days since landing, under the chart. */

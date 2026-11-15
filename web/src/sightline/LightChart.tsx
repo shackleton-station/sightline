@@ -22,7 +22,10 @@ interface Props {
   onAt: (hour: number | null) => void
 }
 
-const WORDS = { sun: { whose: "the Sun's", down: 'dark', gap: 'longest dark spell' }, earth: { whose: "Earth's", down: 'radio silence', gap: 'longest radio silence' } }
+const WORDS = {
+  sun: { whose: "the Sun's", gap: 'Longest dark spell', none: 'No dark spell' },
+  earth: { whose: "Earth's", gap: 'Longest radio silence', none: 'No radio silence' },
+}
 
 /** How many days apart the labels under a chart are, so about five fit the column. */
 function dayStep(missionDays: number): number {
@@ -31,8 +34,9 @@ function dayStep(missionDays: number): number {
 
 /**
  * The Sun or Earth over the whole mission, drawn under its row's figures: the share of its disc in
- * view at every hour from the landing to the mission's end, with its longest time down shaded and
- * named against the mission's limit, in the warning colour when it breaks it. The row's own figures
+ * view at every hour from the landing to the mission's end, with its longest time down shaded. A
+ * line above the chart names that time against the mission's limit, with a cross when it breaks it;
+ * it is above the chart, never over it, so it cannot lie on the chart's line. The row's own figures
  * (the body at the landing's hour) are untouched above it. The longest time down is from the same
  * hourly flags as the verdict. The pointer over the chart gives that hour where the days are.
  */
@@ -51,20 +55,29 @@ export function OverChart({ kind, over, start, landing, missionDays, at, onAt }:
   }
   return (
     <>
+      {/* The longest time down, in a line of its own above the chart, so nothing lies over the chart's line: a swatch of the band's shading, then its length against the mission's limit. */}
+      <dd className={breaks ? 'sl-over-note is-miss' : 'sl-over-note'}>
+        {gap ? (
+          <>
+            <i aria-hidden="true" />
+            <span>
+              {breaks && <span aria-hidden="true">✗ </span>}
+              {words.gap} <b>{gap.hours} h</b> · {over.limitH === null ? 'no limit set' : breaks ? `over the ${over.limitH} h limit` : `limit ${over.limitH} h`}
+            </span>
+          </>
+        ) : (
+          <span>
+            {words.none} in these {missionDays} {missionDays === 1 ? 'day' : 'days'}
+          </span>
+        )}
+      </dd>
       <dd className="sl-over-plot" onPointerMove={point} onPointerDown={point} onPointerLeave={() => onAt(null)}>
-        <svg viewBox={`0 0 ${last} 100`} preserveAspectRatio="none" role="img" aria-label={`The share of ${words.whose} disc in view at each hour of the ${missionDays}-day mission${gap ? `. The ${words.gap}, ${gap.hours} hours, is shaded` : ''}`}>
+        <svg viewBox={`0 0 ${last} 100`} preserveAspectRatio="none" role="img" aria-label={`The share of ${words.whose} disc in view at each hour of the ${missionDays}-day mission${gap ? `. The ${words.gap.toLowerCase()}, ${gap.hours} hours, is shaded` : ''}`}>
           {gap && <rect className={breaks ? 'sl-over-gap is-miss' : 'sl-over-gap'} x={gap.start} y={0} width={Math.min(gap.hours, last - gap.start)} height={100} />}
           {paths && <path className="sl-over-area" d={paths.area} />}
           {paths && <path className="sl-over-line" d={paths.line} vectorEffect="non-scaling-stroke" />}
           {at !== null && <line className="sl-over-cross" x1={at} x2={at} y1={0} y2={100} vectorEffect="non-scaling-stroke" />}
         </svg>
-        {/* The longest time down, named on its own side of the chart, where the line is at the bottom. */}
-        {gap && (
-          <span className={`sl-over-note${breaks ? ' is-miss' : ''}${gap.start + gap.hours / 2 < hours / 2 ? ' is-left' : ''}`}>
-            {breaks && <span aria-hidden="true">✗ </span>}
-            {gap.hours} h {words.down} · {over.limitH === null ? 'no limit set' : `limit ${over.limitH} h`}
-          </span>
-        )}
       </dd>
       {here !== null && at !== null ? (
         <dd className="sl-over-axis is-at" role="status">
