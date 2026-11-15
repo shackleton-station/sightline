@@ -1339,6 +1339,24 @@ const SCENES = [
     ],
   },
   {
+    // Misha: a custom point could be picked on the Moon only once Plan was open. A click on the Moon
+    // away from any dot is a custom point from Watch too: it opens Plan there, as a dot opens Plan at its site.
+    name: 'watch-pick',
+    hash: '',
+    still: true,
+    noChat: true,
+    checks: [
+      ['Watch opens with the Moon alone: no scenario in the address', "document.querySelector('.sightline.is-watch') !== null && location.hash === ''", 900],
+      { press: [-0.6, -0.3] },
+      ['a click on the Moon in Watch opens Plan at that point: scenario A is a custom point with a dot of its own, and B is the first prospective site', `(() => { const at = (() => { const site = document.querySelector('#sl-site')?.selectedOptions[0]?.textContent ?? ''; const dot = document.querySelector('.sl-dot.is-selected')?.getAttribute('aria-label') ?? ''; const a = /^#a=(-?[0-9.]+),(-?[0-9.]+)@/.exec(location.hash); return (document.querySelector('.sightline.is-plan') !== null && /^Custom point /.test(site) && a !== null && dot.startsWith(site)) ? a[1] + ',' + a[2] : 'not a custom point: ' + site + ' // ' + dot + ' // ' + location.hash.slice(0, 60) })(); window.__picked = at; const tabs = document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length; return (/^-?[0-9.]+,-?[0-9.]+$/.test(at) && tabs === 2 && /list=connecting-ridge@/.test(location.hash)) || at + ' // ' + tabs + ' tabs' })()`],
+      { press: [-0.3, -0.6] },
+      ['in Plan a second click moves scenario A to the new point, and adds no scenario', `(() => { const at = (() => { const site = document.querySelector('#sl-site')?.selectedOptions[0]?.textContent ?? ''; const dot = document.querySelector('.sl-dot.is-selected')?.getAttribute('aria-label') ?? ''; const a = /^#a=(-?[0-9.]+),(-?[0-9.]+)@/.exec(location.hash); return (document.querySelector('.sightline.is-plan') !== null && /^Custom point /.test(site) && a !== null && dot.startsWith(site)) ? a[1] + ',' + a[2] : 'not a custom point: ' + site + ' // ' + dot + ' // ' + location.hash.slice(0, 60) })(); const tabs = document.querySelectorAll('.sl-tabs button[aria-label^="Scenario"]').length; const moved = /^-?[0-9.]+,-?[0-9.]+$/.test(at) && at !== window.__picked; window.__picked = at; return (moved && tabs === 2) || at + ' // ' + tabs + ' tabs' })()`],
+      ['with the controls hidden (H) the Moon is only looked at', `(${key('h')}, true) && ${after(600, "document.querySelector('.sl-handle') !== null")}`],
+      { press: [-0.6, -0.3] },
+      ['a click then picks nothing: the controls stay hidden and the scenario stays where it was', `(() => { const a = /^#a=(-?[0-9.]+),(-?[0-9.]+)@/.exec(location.hash); const at = a ? a[1] + ',' + a[2] : location.hash; return (document.querySelector('.sl-handle') !== null && document.querySelector('.sl-col') === null && at === window.__picked) || at + ' is not ' + window.__picked })()`],
+    ],
+  },
+  {
     // Rodrigo: a first visit's Plan has the two prospective sites up as A and B, so Compare can be used at once.
     name: 'two-by-default',
     hash: '',
@@ -2404,6 +2422,16 @@ try {
         // An entry that is not a check: drag the Moon with the mouse, as a visitor would, and let it come to rest.
         if (!Array.isArray(entry)) {
           const { cx, cy, r } = await evaluate("(() => { const globe = document.querySelector('.scout-globe'); const box = globe.getBoundingClientRect(); return { cx: (box.left + box.right) / 2, cy: (box.top + box.bottom) / 2, r: Number(globe.dataset.discPx) / 2 } })()")
+          // Or one press on the Moon, at a share of its disc's radius right of and below its middle: a click, not a drag.
+          if (entry.press) {
+            const [x, y] = [cx + r * entry.press[0], cy + r * entry.press[1]]
+            const under = await evaluate(`(() => { const el = document.elementFromPoint(${x}, ${y}); return el instanceof HTMLCanvasElement && el.closest('.scout-globe') !== null ? '' : (el ? el.tagName + '.' + el.className : 'nothing') })()`)
+            check('  the press lands on the Moon itself, away from any dot', under === '', under)
+            await page('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
+            await page('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 })
+            await sleep(900)
+            continue
+          }
           const [fromX, fromY, toX, toY] = [cx + r * 0.1, cy + r * 0.45, cx + r * 0.45, cy + r * 0.25]
           await page('Input.dispatchMouseEvent', { type: 'mousePressed', x: fromX, y: fromY, button: 'left', clickCount: 1 })
           for (let step = 1; step <= 8; step += 1) {

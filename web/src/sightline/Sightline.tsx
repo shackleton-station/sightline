@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DataRange, SiteInfo } from '../data/contract'
-import { isCustomSite } from '../data/customSite'
+import { customSiteInfo, isCustomSite } from '../data/customSite'
 import type { ScenarioData } from '../data/scenarioData'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { useScenario } from '../data/useScenario'
@@ -1128,7 +1128,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           layer={shown ? trekLayer(layer) : null}
           fine={shown ? finePhoto : null}
           grid={{ meta: lightGrid.meta, month: lightGrid.month, wide: lightGrid.wide, hour: wantGrid ? index : null, atSite: gridAtSite }}
-          onPick={shown ? (lat, lon) => setScenario((current) => ({ ...current, site: `${Number(lat.toFixed(6))},${Number(lon.toFixed(6))}` })) : undefined}
+          // A click on the Moon away from any dot is a custom point. In Plan it moves the scenario on show
+          // there. In Watch it opens Plan at that point, as a dot opens Plan at its site. Nothing with the
+          // controls hidden, where the Moon is only looked at, or in Watch while a tour holds the screen.
+          onPick={
+            shown
+              ? (lat, lon) => setScenario((current) => ({ ...current, site: `${Number(lat.toFixed(6))},${Number(lon.toFixed(6))}` }))
+              : !plan && !bare && tourAt === null
+                ? (lat, lon) => openPlan(customSiteInfo(lat, lon))
+                : undefined
+          }
         />
         {/* The column is about the landing; the Moon follows the time bar. When the two differ, say so,
             in the strip kept clear under the Moon, with the two ways to bring them together. */}
