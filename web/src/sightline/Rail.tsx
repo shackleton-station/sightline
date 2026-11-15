@@ -61,24 +61,24 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen
 
   const heights = (
     <div className="sl-heights" role="group" aria-label="How close the Moon is seen">
-      <button type="button" aria-pressed={mode === 'orbit'} title="The whole Moon, from above" onClick={() => onMode('orbit')}>
+      <button type="button" aria-pressed={mode === 'orbit'} title="Shows the whole Moon, from over its south pole." onClick={() => onMode('orbit')}>
         Orbit
       </button>
-      <button type="button" aria-pressed={mode === 'site'} title="Close on the site" onClick={() => onMode('site')}>
+      <button type="button" aria-pressed={mode === 'site'} title="Moves in close on the landing site." onClick={() => onMode('site')}>
         Site
       </button>
-      <button type="button" aria-pressed={mode === 'surface'} title="Stand there and look around" onClick={() => onMode('surface')}>
+      <button type="button" aria-pressed={mode === 'surface'} title="Shows the view from the ground at the site: the skyline, the Sun and Earth." onClick={() => onMode('surface')}>
         Surface
       </button>
     </div>
   )
   const scout = (
-    <button type="button" className="sl-rail-scout" data-tour="scout" aria-pressed={scoutOpen} title="Ask Scout about the scenario on show" onClick={onScout}>
+    <button type="button" className="sl-rail-scout" data-tour="scout" aria-pressed={scoutOpen} title="Opens Scout, an AI guide, to ask about the scenario on show." onClick={onScout}>
       <Mascot state={scoutState} size={16} /> Scout
     </button>
   )
   const layers = (
-    <button type="button" aria-pressed={layersOpen} title="NASA's maps of the south pole, from Moon Trek" onClick={onLayers}>
+    <button type="button" aria-pressed={layersOpen} title="Lays one of NASA's maps of the south pole over the Moon: slope, shadow, sunlight and more." onClick={onLayers}>
       Layers
       {/* The credit stays on screen for as long as a layer is on the Moon, with the panel open or shut. */}
       {layerOn && <small className="sl-rail-credit">Moon Trek</small>}
@@ -86,22 +86,22 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen
   )
   const tools = (
     <>
-      <button type="button" data-tour="compare" aria-pressed={compareOpen} title="The scenarios side by side" onClick={onCompare}>
+      <button type="button" data-tour="compare" aria-pressed={compareOpen} title="Opens the scenarios side by side, row by row." onClick={onCompare}>
         Compare
       </button>
-      <button type="button" aria-pressed={accuracyOpen} title="The ground around the target, and the odds of landing where the mission fits" onClick={onAccuracy}>
+      <button type="button" aria-pressed={accuracyOpen} title="Shows how likely a lander that misses its target still comes down where the mission fits." onClick={onAccuracy}>
         Accuracy
         {/* Says why the Moon is green and red, with the panel open or shut. */}
         {accuracyOn && <small className="sl-rail-credit">Shading on</small>}
       </button>
-      <button type="button" data-tour="planner" title="Every scenario, every site and month, with the whole window to work in" onClick={onPlanner}>
+      <button type="button" data-tour="planner" title="Opens the Planner: every site by month, and your scenarios side by side." onClick={onPlanner}>
         Planner
       </button>
-      <button type="button" title="The Planner page's look on these scenarios: where and when at the top, every site by month, and the brief beside it" onClick={onNewPlanner}>
+      <button type="button" title="Opens the New Planner: choose a place and time, see every site by month, read the written brief." onClick={onNewPlanner}>
         New Planner
       </button>
       {hype && (
-        <button type="button" className="sl-rail-hype" aria-pressed={hype.open} title="The landing party" onClick={hype.onOpen}>
+        <button type="button" className="sl-rail-hype" aria-pressed={hype.open} title="Opens the team's hype video." onClick={hype.onOpen}>
           Hype
         </button>
       )}
@@ -109,11 +109,11 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen
   )
   const ways = (
     <>
-      <button type="button" data-tour="guide" title="The tour, the videos and how it works" onClick={onHow}>
+      <button type="button" data-tour="guide" title="Opens the Guide: the tour, the videos, and how the numbers are made." onClick={onHow}>
         Guide
       </button>
       {/* A house, with the word beside it only in a phone's menu, where every other row is a word. */}
-      <button type="button" className="sl-rail-home" title="Home: back to the opening screen" onClick={onHome}>
+      <button type="button" className="sl-rail-home" title="Goes back to the opening screen." onClick={onHome}>
         <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
           <path d="M2 7.5 8 2.5l6 5M3.5 6.5v7h3.25v-4h2.5v4h3.25v-7" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
@@ -135,7 +135,7 @@ export function Rail({ mode, onMode, scoutOpen, scoutState, onScout, compareOpen
           {layers}
           {tools}
           {ways}
-          <button type="button" title="Scout walks you through the screen, in about a minute" onClick={onTour}>
+          <button type="button" title="Scout shows you round the screen, one step at a time." onClick={onTour}>
             Tour
           </button>
         </div>

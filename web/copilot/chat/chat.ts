@@ -6,16 +6,17 @@ import { parseCustomSite, type ViewState } from '../../src/lib/urlState'
 import type { Model } from '../model'
 import { callModel, fallbackRan, MODEL_CALL_TIMEOUT_MS, type ModelGuard, modelGuard } from '../modelCall'
 import { span } from '../../shared/trace'
-import { buildActions, type ChatAction } from './actions'
+import { asksToChangeLimits, buildActions, type ChatAction, LIMIT_ARGS } from './actions'
 import type { Args } from '../../shared/tools/args'
 import type { SiteData } from '../../shared/tools/data'
-import { fact, type Fact, isoAt, latitudeLabel, limitsLabel, longitudeLabel, monthWords, whenLabel } from '../../shared/tools/facts'
+import { distanceWords, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, whenLabel } from '../../shared/tools/facts'
 import { yearsOf } from '../../src/lib/span'
 import { buildPrompt, systemPrompt } from './prompt'
 import { cleanFollowup, type FactBook, fallbackAnswer, renderAnswer } from './render'
 import { scenarioScene } from './scenarios'
 import type { HorizonsAsk } from '../../shared/tools/horizonsTool'
 import { kmLabel } from '../../shared/tools/spotTools'
+import type { Tie } from '../../shared/tools/ties'
 import { ANSWER_TOOL, runTool, toolDeclarations } from '../../shared/tools/tools'
 
 export interface ChatTurn {
@@ -77,9 +78,9 @@ export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: nu
     if (!point) return []
     const nearest = sites.map((site) => ({ site, km: distanceKm(point, site) })).sort((a, b) => a.km - b.km)[0]
     return [
-      fact(key, label, 'a custom point (not a listed site, so the tools cannot look it up)'),
+      fact(key, label, 'a custom point (not a listed site, so the tools cannot look it up; the column on the visitor\'s screen is worked out for the exact point, and your figures are for the nearest listed site)'),
       fact(`${key}_nearest`, 'Nearest listed site', nearest.site.name),
-      fact(`${key}_nearest_distance`, 'Its distance from the custom point', `${nearest.km.toFixed(0)} km`),
+      fact(`${key}_nearest_distance`, 'Its distance from the custom point', distanceWords(nearest.km)),
     ]
   }
   const monthStart = hourOf(flags.start, `${view.a.month}-01T00:00:00Z`)
@@ -89,6 +90,7 @@ export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: nu
     fact('month', 'Month on screen', monthWords(view.a.month)),
     fact('time', 'Hour on screen', whenLabel(isoAt(flags.start, monthStart + view.index))),
     fact('limits', 'Mission limits', limitsLabel(view.requirements)),
+    ...limitFacts(view.requirements),
     ...(spot ? tappedFacts(spot, sites) : []),
   ]
 }
@@ -144,6 +146,11 @@ export async function runChat(
 
   const book: FactBook = new Map([['r0', [...(await viewFacts(view, deps.data, input.spot ?? null)), ...(scene?.facts ?? [])]]])
   const sources: string[] = []
+  /** What the tools found tied for best, for the buttons: the first is offered and the button says there are others. */
+  const ties: Tie[] = []
+  // A button that changes the limits is offered only when the visitor asked what would change the
+  // verdict: in so many words, or so that a tool had to try other limits to answer.
+  let limitsAsked = asksToChangeLimits(input.turns.filter((turn) => turn.role === 'user').at(-1)?.text ?? '')
   const declarations = toolDeclarations(sites.map((site) => site.id))
   const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: buildPrompt(input.turns, book.get('r0') ?? [], sites) }]
   let retriesLeft = ANSWER_RETRIES
@@ -156,7 +163,7 @@ export async function runChat(
     ...(servedBy ? { servedBy } : {}),
     reply: {
       text,
-      actions: buildActions(answer?.actions, view, sites, flags),
+      actions: buildActions(answer?.actions, view, sites, flags, ties, limitsAsked),
       sources,
       followups: (Array.isArray(answer?.followups) ? answer.followups : [])
         .map((item) => cleanFollowup(item, allowedWords))
@@ -217,10 +224,12 @@ export async function runChat(
         continue
       }
       const tool = use.name
+      if (LIMIT_ARGS.some((name) => name in args)) limitsAsked = true
       const result = await span(`tool ${tool}`, () => runTool(tool, args, context))
       const ref = `r${book.size}`
       if (result.ok) {
         book.set(ref, result.facts)
+        if (result.ties) ties.push(...result.ties)
         if (!sources.includes(result.title)) sources.push(result.title)
         deps.onStep?.(result.title)
       }

@@ -1567,3 +1567,44 @@
 .sl-np .np-side .pl-segments button {
   min-height: 1.75rem;
 }
+
+/* The small uppercase labels in the left column (MISSION LENGTH, LOCATION, …): a size smaller. */
+.sl-np .np-side .pl-where .pl-label,
+.sl-np .np-side .pl-mission .pl-label,
+.sl-np .np-side .pl-more .pl-label {
+  font-size: 0.5625rem;
+  letter-spacing: 0.08em;
+}
+
+/* In Compare's narrow columns the sky's big figures come down a size, so two sit side by side. */
+.sl-np .np-pick .pl-sky-main {
+  font-size: 0.9375rem;
+}
+
+.sl-np .np-pick .pl-sky-facts {
+  gap: 0.5rem 0.7rem;
+}
+
+/* The count lines up with the brief: the top bar takes the same two columns as the body under it. */
+.sl-np .np-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(24rem, 1fr);
+  column-gap: 2.25rem;
+}
+
+.sl-np .np-topbar .np-tally {
+  justify-content: flex-start;
+  max-width: none;
+}
+
+@media (max-width: 1180px) {
+  .sl-np .np-topbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The Find | Compare pill keeps its own width inside the top bar's grid cell. */
+.sl-np .np-topbar .np-tabs {
+  justify-self: start;
+  width: max-content;
+}

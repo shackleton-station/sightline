@@ -3,9 +3,10 @@ import { type GridCell, type GridMetric, gridRow, metricFlags, monthSpans } from
 import { landingWindows, missionEarth } from '../../src/lib/mission'
 import { formatDuration } from '../../src/lib/nextChange'
 import { entryAt, measureEntry, rankOptions, toIso } from '../../src/lib/shortlist'
-import { nextViable } from '../../src/lib/slip'
 import { type Args, countArg, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
 import { daysLabel, fact, type Fact, isoAt, limitsLabel, monthWords, type ToolResult, whenLabel } from './facts'
+import { nextLandingOnScreen } from './nextLanding'
+import { listWords, monthsWords, tiedWith, tieWords } from './ties'
 
 const METRICS: Record<GridMetric, string> = {
   landing: 'days with an hour that meets the limits',
@@ -21,6 +22,9 @@ function metricArg(value: unknown): GridMetric {
 
 const cellValue = (metric: GridMetric, cell: GridCell) => (metric === 'landing' ? daysLabel(cell.days) : `${cell.text}%`)
 
+/** What the screen prints for a cell: two cells that print the same are tied (whole percent for a share, whole days for landing days). */
+const printed = (metric: GridMetric) => (cell: GridCell) => cellValue(metric, cell)
+
 /** The months that do best, and the one that does worst, at one site. */
 export async function bestMonths(args: Args, ctx: ToolContext): Promise<ToolResult> {
   const site = await siteArg(ctx, args.site)
@@ -35,16 +39,33 @@ export async function bestMonths(args: Args, ctx: ToolContext): Promise<ToolResu
   const ranked = [...cells].sort((a, b) => b.share - a.share)
   const top = ranked.slice(0, countArg(args.count, 3, 1, 6))
   const worst = ranked[ranked.length - 1]
+  // Every month that prints the same as the best is a best month too, in calendar order; the same for the worst.
+  const best = tiedWith(cells, ranked[0], printed(metric))
+  const worstTied = tiedWith(cells, worst, printed(metric))
+  const tie = best.length > 1
 
   const facts: Fact[] = [fact('site', 'Site', site.name), fact('measure', 'Measured by', METRICS[metric])]
   if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)))
+  facts.push(fact('best_months', tie ? 'The months tied for best: equal at the precision shown, so name them together and never one of them alone' : 'The best month', monthsWords(best.map((cell) => cell.month))))
+  facts.push(fact('best_value', tie ? 'The value they share' : 'Its value', cellValue(metric, best[0])))
+  facts.push(fact('best_tie', 'Whether the best is a tie', tieWords(best.length, cells.length, 'month', 'months', 'best')))
   top.forEach((cell, i) => {
-    facts.push(fact(`best_${i + 1}_month`, `Best month, place ${i + 1}`, monthWords(cell.month)))
+    const shared = tie && best.includes(cell) ? ' (one of the months tied for best: see best_months)' : ''
+    facts.push(fact(`best_${i + 1}_month`, `Best month, place ${i + 1}${shared}`, monthWords(cell.month)))
     facts.push(fact(`best_${i + 1}_value`, 'Its value', cellValue(metric, cell)))
   })
-  facts.push(fact('worst_month', 'Worst month', monthWords(worst.month)))
+  facts.push(fact('worst_month', worstTied.length > 1 ? 'Worst month (one of several tied for worst: see worst_months)' : 'Worst month', monthWords(worst.month)))
   facts.push(fact('worst_value', 'Its value', cellValue(metric, worst)))
-  return { ok: true, title: `${site.name}: best months${year ? ` of ${year}` : ''}`, facts }
+  if (worstTied.length > 1 && worstTied.length < cells.length) {
+    facts.push(fact('worst_months', 'The months tied for worst: equal at the precision shown, so name them together', monthsWords(worstTied.map((cell) => cell.month))))
+    facts.push(fact('worst_tie', 'Whether the worst is a tie', tieWords(worstTied.length, cells.length, 'month', 'months', 'worst')))
+  }
+  return {
+    ok: true,
+    title: `${site.name}: best months${year ? ` of ${year}` : ''}`,
+    facts,
+    ...(tie ? { ties: [{ kind: 'months' as const, site: site.id, months: best.map((cell) => cell.month) }] } : {}),
+  }
 }
 
 /** The listed sites that do best in one month. */
@@ -58,6 +79,10 @@ export async function bestSites(args: Args, ctx: ToolContext): Promise<ToolResul
     const spans = monthSpans(flags.start, flags.sun.length).filter((span) => span.month === month)
     return { site, cell: gridRow(metricFlags(metric, flags, requirements), spans, metric)[0] }
   })
+  // Every site that prints the same as the best is a best site too, in the order the sites are listed.
+  const leader = rows.reduce((top, row) => (row.cell.share > top.cell.share ? row : top))
+  const best = tiedWith(rows, leader, (row) => cellValue(metric, row.cell))
+  const tie = best.length > 1
   rows.sort((a, b) => b.cell.share - a.cell.share)
 
   const facts: Fact[] = [
@@ -66,11 +91,20 @@ export async function bestSites(args: Args, ctx: ToolContext): Promise<ToolResul
     fact('sites_checked', 'Listed sites checked', String(rows.length)),
   ]
   if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)))
-  rows.slice(0, countArg(args.count, 5, 1, 8)).forEach(({ site, cell }, i) => {
-    facts.push(fact(`place_${i + 1}_site`, `Place ${i + 1}`, site.name))
-    facts.push(fact(`place_${i + 1}_value`, 'Its value', cellValue(metric, cell)))
+  facts.push(fact('best_sites', tie ? 'The sites tied for best: equal at the precision shown, so name them together and never one of them alone' : 'The best site', listWords(best.map((row) => row.site.name))))
+  facts.push(fact('best_value', tie ? 'The value they share' : 'Its value', cellValue(metric, best[0].cell)))
+  facts.push(fact('best_tie', 'Whether the best is a tie', tieWords(best.length, rows.length, 'site', 'sites', 'best')))
+  rows.slice(0, countArg(args.count, 5, 1, 8)).forEach((row, i) => {
+    const shared = tie && best.includes(row) ? ' (one of the sites tied for best: see best_sites)' : ''
+    facts.push(fact(`place_${i + 1}_site`, `Place ${i + 1}${shared}`, row.site.name))
+    facts.push(fact(`place_${i + 1}_value`, 'Its value', cellValue(metric, row.cell)))
   })
-  return { ok: true, title: `All listed sites, ${monthWords(month)}: ranking`, facts }
+  return {
+    ok: true,
+    title: `All listed sites, ${monthWords(month)}: ranking`,
+    facts,
+    ...(tie ? { ties: [{ kind: 'sites' as const, month, sites: best.map((row) => row.site.id) }] } : {}),
+  }
 }
 
 /** When, in one month, a landing meets the limits. */
@@ -97,8 +131,8 @@ export async function landingWindowsInMonth(args: Args, ctx: ToolContext): Promi
     facts.push(fact(`window_${i + 1}_length`, 'Its length', formatDuration(window.to - window.from)))
   })
   if (windows.length === 0) {
-    const next = nextViable(flags, isoAt(flags.start, span.from), requirements)
-    facts.push(fact('next_landing', 'Next hour that meets the limits', next ? whenLabel(next.t) : 'none in the data'))
+    const next = await nextLandingOnScreen(ctx.data, site.id, flags, isoAt(flags.start, span.from), requirements)
+    facts.push(fact('next_landing', 'Next landing that fits, as the visitor\'s screen offers it', next ? whenLabel(next.t) : 'none in the data'))
   }
   return { ok: true, title: `${site.name}, ${monthWords(month)}: landing windows`, facts }
 }
@@ -109,12 +143,13 @@ export async function nextLanding(args: Args, ctx: ToolContext): Promise<ToolRes
   const flags = await ctx.data.flags(site.id)
   const iso = timeArg(args.time, flags)
   const requirements = limitsArg(ctx, args)
-  const next = nextViable(flags, iso, requirements)
+  // The hour the visitor's screen offers as "Next landing that fits", by the same rule.
+  const next = await nextLandingOnScreen(ctx.data, site.id, flags, iso, requirements)
   const facts: Fact[] = [
     fact('site', 'Site', site.name),
     fact('from', 'Looking from', whenLabel(iso)),
     fact('limits', 'Checked against', limitsLabel(requirements)),
-    fact('next_landing', 'Next hour that meets the limits', next ? whenLabel(next.t) : 'none in the data'),
+    fact('next_landing', 'Next landing that fits, as the visitor\'s screen offers it', next ? whenLabel(next.t) : 'none in the data'),
   ]
   if (next) facts.push(fact('wait', 'Wait until then', next.waitH === 0 ? 'none: that hour already works' : formatDuration(next.waitH)))
   return { ok: true, title: `${site.name}: next landing after ${whenLabel(iso)}`, facts }

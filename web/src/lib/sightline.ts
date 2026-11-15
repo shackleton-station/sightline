@@ -55,13 +55,17 @@ export function elevationWords(elevationDeg: number): string {
   return `elevation ${degWords(elevationDeg)} from level`
 }
 
-/** What "above the skyline" and "elevation" mean, for tooltips, seen from `obsHeightM` above the ground. */
-export function aboveSkylineMeans(obsHeightM: number): string {
-  return `Height of the disc's centre above the terrain's skyline in that direction, seen from the landing site ${obsHeightM} m above the ground. Elevation is measured from a level horizon; on high ground the skyline sits below level, so a body can be below level and still in view.`
+/**
+ * What a row's "above the skyline" figure is, for its tooltip: one idea, then how to read it. The
+ * height above the ground is said only when it is not the screen's own 2 m, where it changes the figure.
+ */
+export function aboveSkylineMeans(body: 'the Sun' | 'Earth', obsHeightM: number): string {
+  const from = obsHeightM === 2 ? '' : `, seen from ${obsHeightM} m up`
+  return `How far ${body}'s center is above the skyline in its direction, at landing${from}. Above 0° its center clears the terrain.`
 }
 
-/** The same, where the height above the ground is not to hand. */
-export const ABOVE_SKYLINE_MEANS = "Height of the disc's centre above the terrain's skyline in that direction. Elevation is measured from a level horizon; on high ground the skyline sits below level, so a body can be below level and still in view."
+/** The same for the time bar's readout of both, at the hour on show. */
+export const ABOVE_SKYLINE_MEANS = "How far the Sun's and Earth's centers are above the skyline, at the hour on the time bar."
 
 /** The ISO time of a clock hour, to the whole hour. */
 export function isoAt(startIso: string, hour: number): string {
@@ -181,7 +185,7 @@ export function riverWindow(startIso: string, hour: number, zoom: RiverZoom, hou
 }
 
 /** What the keyboard does to time, for the play button's hover text. */
-export const TIME_KEYS_MEAN = 'Play or pause (Space). The left and right arrows move one hour; with Shift, one day.'
+export const TIME_KEYS_MEAN = 'Plays or pauses time (Space). The arrow keys move one hour; with Shift, one day.'
 
 /**
  * The whole stretch around one hour in which the same things are in view, over all the flags on

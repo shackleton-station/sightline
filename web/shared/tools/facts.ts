@@ -1,5 +1,6 @@
 import { isNoGapLimit, type Requirements } from '../../src/lib/mission'
 import { formatDuration } from '../../src/lib/nextChange'
+import type { Tie } from './ties'
 
 /**
  * One thing a tool found, already worded for a person: "59.5%", "4 d 22 h", "3 May 2027, 12:00 UTC".
@@ -12,8 +13,11 @@ export interface Fact {
   value: string
 }
 
-/** What a tool hands back: facts to cite, or a reason it couldn't answer. */
-export type ToolResult = { ok: true; title: string; facts: Fact[] } | { ok: false; error: string }
+/**
+ * What a tool hands back: facts to cite, or a reason it couldn't answer. `ties` is set when the best
+ * it found is shared by several months or sites, for the buttons under the answer (tools/ties.ts).
+ */
+export type ToolResult = { ok: true; title: string; facts: Fact[]; ties?: Tie[] } | { ok: false; error: string }
 
 export const fact = (key: string, label: string, value: string): Fact => ({ key, label, value })
 
@@ -67,6 +71,24 @@ export function limitWords(req: Requirements): Record<keyof Requirements, string
     minEarthClearanceDeg:
       req.minEarthClearanceDeg > 0 ? `Earth at least ${req.minEarthClearanceDeg}° above the terrain` : 'any part of Earth counting as in view',
   }
+}
+
+/**
+ * Each limit as a fact of its own, so one of them can be named without the whole list: the mission's
+ * length, the longest darkness it survives, and the longest radio silence it allows.
+ */
+export function limitFacts(req: Requirements): Fact[] {
+  return [
+    fact('mission_length', 'Mission length', daysLabel(req.missionDays)),
+    fact('dark_limit', 'Longest time without the Sun the mission survives', gapLabel(req.maxSunGapH)),
+    fact('silence_limit', 'Longest time without Earth the mission allows', gapLabel(req.maxEarthGapH)),
+  ]
+}
+
+/** A distance across the ground in words: meters under a kilometer ("220 m"), one decimal under ten ("2.4 km"), whole kilometers from there. */
+export function distanceWords(km: number): string {
+  if (km < 1) return `${Math.round((km * 1000) / 10) * 10} m`
+  return `${km.toFixed(km < 10 ? 1 : 0)} km`
 }
 
 /** The mission limits in one line, so every landing answer can say what it was checked against. */

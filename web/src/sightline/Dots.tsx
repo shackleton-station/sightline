@@ -59,7 +59,7 @@ interface DotProps {
 /** One site: its colour and shape say what is up there now, and so do its words. */
 function Dot({ marker, side, state, onChoose, onPoint, ringPx }: DotProps) {
   const site = marker.sites[0]
-  const where = ringPx === null ? '' : '. Within about 50 m: this picture is not tied to the marker’s coordinates'
+  const where = ringPx === null ? '' : '. On this photo the marker may be up to about 50 m off.'
   const words = `${state ? `${site.name}: ${STATE_WORDS[state]}` : site.name}${where}`
   return (
     <button

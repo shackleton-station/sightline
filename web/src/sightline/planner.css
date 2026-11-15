@@ -55,13 +55,6 @@
   margin-left: auto;
 }
 
-/* A plain link out to the detailed planner page, quieter than the buttons beside it. */
-.pl-detailed {
-  margin-right: 0.3rem;
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
 /* ---------- Find ---------- */
 .pl-find-bar {
   display: flex;
@@ -449,3 +442,151 @@
   border-color: var(--gold);
   color: var(--gold);
 }
+
+/* ---------- Find: the tally, each site's count of months, and a point of the visitor's own ---------- */
+.pl-tally-line {
+  margin: 0.1rem 0 0.35rem;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.pl-tally-line b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The count at the end of a site's row: how many of the year's months have a landing that fits. */
+.pl-months .pl-months-count-head,
+.pl-months .pl-months-count {
+  width: 3.4rem;
+  padding-left: 0.5rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* The box for a point of the visitor's own, opened from the bar: one row of a latitude, a longitude, the landing and "Add". */
+.pl-own-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.4rem 0.8rem;
+  margin: 0.2rem 0 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.pl-own-form label,
+.pl-own-when {
+  display: grid;
+  gap: 0.15rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.pl-own-form input[type='text'] {
+  width: 7rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1d1826;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pl-own-when .sl-pick {
+  min-height: 0;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  color: var(--ink);
+  font-size: 0.8125rem;
+}
+
+.pl-own-form > .sl-quiet,
+.pl-own-problem {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.pl-own-problem {
+  color: #e8915a;
+}
+
+.pl-nothing-host {
+  margin: 0.2rem 0 0.6rem;
+}
+
+/* ---------- Compare: the scenario on show, in depth, under the table ---------- */
+.pl-detail {
+  margin-top: 1.4rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.pl-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.pl-detail-head h3 {
+  margin: 0;
+}
+
+.pl-detail-head h3 small {
+  margin-left: 0.6rem;
+  color: var(--soft);
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+.pl-detail-pick {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.pl-detail-pick button[aria-pressed='true'] {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+/* The Sun's height at the landing on show: the height above the skyline leads. */
+.pl-detail-sun {
+  margin-top: 0.8rem;
+}
+
+.pl-detail-sun h4,
+.plh-sunchart > h4 {
+  margin: 0 0 0.2rem;
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.pl-detail-main {
+  margin: 0;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pl-detail-small {
+  margin: 0.1rem 0 0;
+  color: var(--soft);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+

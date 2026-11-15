@@ -1,6 +1,7 @@
 import { type FormEvent, type KeyboardEvent, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { planLink } from '../lib/planLink'
+import { markSightline } from '../lib/planView'
 import { attemptFor, MAX_NOTE, MAX_TITLE, type SaveAttempt, savePlan } from '../lib/plans'
 import './shareSheet.css'
 
@@ -121,7 +122,8 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
   const save = async (event: FormEvent) => {
     event.preventDefault()
     if (name === '' || state.kind === 'saving') return
-    const plan = { title: name, note: note.replace(/\s+/g, ' ').trim(), view: view() }
+    // The stored view says it was saved from this screen, so its short link opens here wherever it is opened.
+    const plan = { title: name, note: note.replace(/\s+/g, ' ').trim(), view: markSightline(view()) }
     attempt.current = attemptFor(attempt.current, plan, false)
     setState({ kind: 'saving' })
     const result = await savePlan(plan, attempt.current.key)

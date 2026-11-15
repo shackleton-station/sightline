@@ -1,3 +1,4 @@
+import { TOO_CLOSE_NOTE } from '../lib/starTie'
 import { type CSSProperties, useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
@@ -152,7 +153,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
                     <button
                       type="button"
                       className="sl-small pl-add-button"
-                      title={addLanding === null && next !== null ? 'This site at its next landing that fits the mission' : undefined}
+                      title={addLanding === null && next !== null ? 'Adds this site at its next landing that fits the mission.' : undefined}
                       onClick={() => {
                         onAdd({ site: site.id, landing })
                         setAddSite(null)
@@ -192,7 +193,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
                         )}
                         {cell ?? '…'}
                         {row.best[i] && (
-                          <span className="sl-best" title="Best in this row">
+                          <span className="sl-best" title="The best of the scenarios in this row.">
                             {' '}
                             ★
                           </span>
@@ -209,6 +210,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
         </table>
       </div>
       <p className="sl-quiet">★ best in its row</p>
+      {groups.some((group) => group.rows.some((row) => row.tooClose)) && <p className="sl-quiet sl-too-close">{TOO_CLOSE_NOTE}</p>}
 
       <h3>Each mission from its own landing</h3>
       <p className="sl-quiet">Days since landing. Every row starts at its own landing, so two landings can be compared band for band.</p>
@@ -218,7 +220,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
           const end = Math.min(scenario.landing + missionH, hours)
           return (
             <div key={i} className="sl-row sl-aligned-row" data-first-hour={scenario.landing} data-hours={end - scenario.landing}>
-              <span className="sl-row-name" title={`${SCENARIO_LETTERS[i]} · ${facts[i].site.name}, from ${clockTime(start, scenario.landing)}`}>
+              <span className="sl-row-name" title={`Scenario ${SCENARIO_LETTERS[i]} at ${facts[i].site.name}: its mission, from its landing on ${clockTime(start, scenario.landing)}.`}>
                 {SCENARIO_LETTERS[i]} · {facts[i].site.name}
               </span>
               <div className="sl-track">

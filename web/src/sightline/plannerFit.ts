@@ -18,10 +18,10 @@ import type { SightlineMission } from '../lib/sightlineMission'
 export type FindMeasure = 'fit' | 'sun' | 'earth' | 'both'
 
 export const FIND_MEASURES: { id: FindMeasure; label: string; legend: string; title: string }[] = [
-  { id: 'fit', label: 'Landings that fit', legend: 'Days with a landing that fits', title: 'How many days of the month have at least one hour when a landing fits the mission on the left' },
-  { id: 'sun', label: 'Sun', legend: 'Sun in view, % of the month', title: 'Share of the month with the Sun in view' },
-  { id: 'earth', label: 'Earth', legend: 'Earth in view, % of the month', title: 'Share of the month with Earth in view' },
-  { id: 'both', label: 'Sun and Earth', legend: 'Sun and Earth together, % of the month', title: 'Share of the month with the Sun and Earth in view at the same hour' },
+  { id: 'fit', label: 'Landings that fit', legend: 'Days with a landing that fits', title: 'Counts the days in each month with at least one hour when a landing fits the mission.' },
+  { id: 'sun', label: 'Sun', legend: 'Sun in view, % of the month', title: 'Shows the share of each month’s hours with the Sun in view.' },
+  { id: 'earth', label: 'Earth', legend: 'Earth in view, % of the month', title: 'Shows the share of each month’s hours with Earth in view.' },
+  { id: 'both', label: 'Sun and Earth', legend: 'Sun and Earth together, % of the month', title: 'Shows the share of each month’s hours with the Sun and Earth in view together.' },
 ]
 
 /**
@@ -53,6 +53,29 @@ export function findRow(measure: FindMeasure, flags: SiteFlags, fit: Uint8Array,
 export function cellWords(measure: FindMeasure, cell: GridCell): string {
   if (measure === 'fit') return cell.days === 0 ? 'none' : String(cell.days)
   return cell.text
+}
+
+/** How many of a row's months have at least one day when a landing fits. */
+export function monthsWithFit(cells: GridCell[]): number {
+  return cells.filter((cell) => cell.days > 0).length
+}
+
+/** The grid in one line: how many of its site-and-month cells have a landing that fits, and how many of those on one or two days only. */
+export interface FindTally {
+  withLanding: number
+  /** Of those, the cells with only one or two days. */
+  tight: number
+  total: number
+  sites: number
+}
+
+/** A month with a landing on this many days or fewer is a tight one: the detailed planner's own line. */
+export const TIGHT_DAYS = 2
+
+/** The tally of a year's grid, from each site's row of "landings that fit" cells. */
+export function findTally(rows: GridCell[][]): FindTally {
+  const cells = rows.flat()
+  return { withLanding: cells.filter((cell) => cell.days > 0).length, tight: cells.filter((cell) => cell.days > 0 && cell.days <= TIGHT_DAYS).length, total: cells.length, sites: rows.length }
 }
 
 /** A stretch of hours, counted from the month's first: `from` is in it, `to` is not. */

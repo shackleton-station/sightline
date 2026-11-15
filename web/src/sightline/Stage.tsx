@@ -1,5 +1,5 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { SiteInfo } from '../data/contract'
+import type { MoonFeatures, SiteInfo } from '../data/contract'
 import { GlobeCanvas } from '../components/GlobeCanvas'
 import type { GlobeOverlay, GlobeOverlayDetail, GlobeShade, GroundDetail } from '../three/GlobeViewer'
 import { loadTrekWindow } from '../data/trekPicture'
@@ -18,6 +18,7 @@ import { scaleBar, scaleWords } from '../lib/scaleBar'
 import { needleDeg, refitZoom, viewMoved } from '../lib/sightlineView'
 import { poseAt } from '../lib/trackball'
 import { Dots, type Marker } from './Dots'
+import { PlaceNames } from './PlaceNames'
 import { Sky } from './Sky'
 
 interface Props {
@@ -57,6 +58,8 @@ interface Props {
    * the clock (null leaves the grid off), and what the grid says of the site itself at that hour.
    */
   grid: { meta: LightMeta | null | undefined; month: LightMonth | null; wide: LightMonth | null; hour: number | null; atSite: { sun: boolean; earth: boolean } | null }
+  /** The "Place names" layer: the Moon's named places, printed on it; null while the layer is off. */
+  names?: MoonFeatures | null
 }
 
 /**
@@ -80,6 +83,12 @@ const CLOSEST_M_PER_PX = 250
  */
 const SITE_M_PER_PX = 420
 const FLIGHT_MS = 1400
+/** The flight back to the whole Moon, and how long after a flight's end a change of size still counts as part of it. */
+const WHOLE_FLIGHT_MS = 600
+/** The turn that brings a picked site into view, and the compass's flight back to the default view. */
+const TURN_FLIGHT_MS = 900
+const RECENTRE_FLIGHT_MS = 400
+const FLIGHT_SETTLE_MS = 250
 
 /**
  * The Moon, and only the Moon: one globe seen from over the south pole, lit as the ephemeris has it
@@ -107,7 +116,7 @@ function lonLatOf(direction: readonly [number, number, number]): { lon: number; 
 /** How close to a zoom limit counts as being at it, as a share of the limit. */
 const ZOOM_SLACK = 1e-6
 
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid }: Props) {
+export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, focus, onChoose, onPoint, onPick, onRecentre, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
@@ -191,9 +200,31 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
   // screen. Nothing flies anywhere, and nothing waits on an animation. (An effect, not a layout
   // effect: the camera learns its new zoom limits in an effect of its own, which must run first.)
   const [fit, setFit] = useState({ side: 0, wholeZoom: 1 })
+  // The flight last asked for and when it is due to have landed: to one of the two resting places
+  // ("rest"), back to the whole Moon from the compass ("whole"), or a turn to bring a picked site
+  // into view at the zoom as it is ("turn").
+  const flight = useRef<{ until: number; kind: 'rest' | 'whole' | 'turn'; goal?: { lat: number; lon: number } } | null>(null)
+  const flyToRest = () => {
+    const whole = focusLat === undefined || focusLon === undefined
+    flight.current = { kind: 'rest', until: performance.now() + (whole ? WHOLE_FLIGHT_MS : FLIGHT_MS) + FLIGHT_SETTLE_MS }
+    if (whole) void flyTo(OVER_THE_POLE, wholeZoom, WHOLE_FLIGHT_MS)
+    else void flyTo({ lat: focusLat, lon: focusLon }, siteZoom, FLIGHT_MS)
+  }
   useEffect(() => {
     if (side === 0) return
-    setZoom(refitZoom(zoom, fit, { side, wholeZoom, farZoom }))
+    // The stage often changes size in the same move that starts a flight: a panel opening as the
+    // view goes to Site, a guide going back to the whole Moon, the column and the time bar taking
+    // their new height when a site is picked. Refitting stops whatever flight is under way, and
+    // with motion reduced it undoes one that has just landed. So a flight still under way is flown
+    // again for the new size: the Moon always ends where the press said it would.
+    const going = flight.current && performance.now() < flight.current.until ? flight.current : null
+    if (going?.kind === 'rest') flyToRest()
+    else if (going?.kind === 'whole') void flyTo(OVER_THE_POLE, wholeZoom, RECENTRE_FLIGHT_MS)
+    else {
+      const refit = refitZoom(zoom, fit, { side, wholeZoom, farZoom })
+      setZoom(refit)
+      if (going?.kind === 'turn' && going.goal) void flyTo(going.goal, refit, TURN_FLIGHT_MS)
+    }
     setFit({ side, wholeZoom })
     setPlaced(true)
     // Only a change of size starts this, with the zoom as it is at that moment.
@@ -203,8 +234,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
   // The visitor chose the whole Moon or a site (the rail's Orbit and Site): fly there.
   useEffect(() => {
     if (!placed) return
-    if (focusLat === undefined || focusLon === undefined) void flyTo(OVER_THE_POLE, wholeZoom, 600)
-    else void flyTo({ lat: focusLat, lon: focusLon }, siteZoom, FLIGHT_MS)
+    flyToRest()
     // The sizes are read as they are when the choice is made; a change of size is the effect above.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [focusLat, focusLon, flyTo])
@@ -221,7 +251,11 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
     const x = (c.x * side) / 2
     const y = (-c.y * side) / 2
     const inView = p.facing > 0.05 && Math.abs(x) <= box.width / 2 - 12 && Math.abs(y) <= freeHeight / 2 - 12
-    if (!inView) void flyTo({ lat: selected.lat, lon: selected.lon }, zoom, 900)
+    if (!inView) {
+      const goal = { lat: selected.lat, lon: selected.lon }
+      flight.current = { kind: 'turn', goal, until: performance.now() + TURN_FLIGHT_MS + FLIGHT_SETTLE_MS }
+      void flyTo(goal, zoom, TURN_FLIGHT_MS)
+    }
     // Only a new choice of site starts this, with the view as it is at that moment.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, placed])
@@ -390,6 +424,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
             <GlobeCanvas view={view} up={up} zoom={zoom} sun={sun} earth={earth} color terrain overlay={overlay} shade={shade} overlayDetail={shownDetail?.picture ?? null} ground={shownGround?.picture ?? null} lightMeta={grid.meta} lightMonth={grid.month} lightWide={grid.wide} lightShow={gridShow} onLost={onLost} onDrawn={onDrawn} />
           )
         )}
+        {!bare && placed && names && <PlaceNames features={names} place={placeOf} zoom={zoom} side={side} markers={markers} />}
         {!bare && placed && <Dots markers={markers} side={side} states={states} onChoose={onChoose} onPoint={onPoint} within={within} />}
       </div>
       {!bare && (
@@ -397,7 +432,7 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
           {/* The camera stops a rounding error short of its limit at some stage sizes: "at the limit" allows for it. */}
           <ZoomButtons zoom={zoom} onZoom={zoomTo} min={farZoom * (1 + ZOOM_SLACK)} max={closestAt(center) * (1 - ZOOM_SLACK)} />
           {earthDeg !== null && (
-            <p className="sl-to-earth" role="img" aria-label="The way to Earth across the ground, at the moment on the time bar" title="The way to Earth across the ground, at the moment on the time bar">
+            <p className="sl-to-earth" role="img" aria-label="The way to Earth across the ground, at the moment on the time bar" title="Points along the ground toward Earth, at the hour on the time bar.">
               <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                 <g transform={`rotate(${earthDeg.toFixed(1)} 12 12)`}>
                   <path d="M12 2.5 L17 11 L13.2 11 L13.2 21 L10.8 21 L10.8 11 L7 11 Z" fill="#5aa9ff" />
@@ -412,10 +447,11 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
             <button
               type="button"
               className="sl-recentre"
-              aria-label="Recentre the Moon"
-              title="Recentre the Moon: back to the view from over the south pole"
+              aria-label="Recenter the Moon"
+              title="Turns the Moon back to the view from over its south pole."
               onClick={() => {
-                void flyTo(OVER_THE_POLE, wholeZoom, 400)
+                flight.current = { kind: 'whole', until: performance.now() + RECENTRE_FLIGHT_MS + FLIGHT_SETTLE_MS }
+                void flyTo(OVER_THE_POLE, wholeZoom, RECENTRE_FLIGHT_MS)
                 onRecentre()
               }}
             >

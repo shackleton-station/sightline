@@ -266,6 +266,7 @@ Look at it with `cd web && node scripts/sightline-shots.mjs --out=shots`.
 - [x] Advanced in the Mission panel (2026-11-14, Rodrigo: "shouldnt it be under advanced in mission tab too?"): the main screen's Mission panel holds the Planner's Advanced controls behind a fold that starts closed (Earth's clearance, the panel's and the antenna's heights, and the note on landing accuracy), on the same mission as the Planner; the separate Advanced panel is gone. Open, the presets go to one row so the panel fits 1366 by 768 with no scrolling. A custom point's heights are off, with the reason.
 - [x] The screen explains itself (2026-11-14, from the audit and Rodrigo's "make it more intuitive"): a tiny word inside each plan control ("Site", "Landing", "Mission"); the play button's hover text says what the keys do; a band of the time bar says what it is, from when to when and for how long, on hover or keyboard focus, inside the time bar; the three views' hover text in five words or fewer; the skyline's two thin lines say what they are (Earth's loop is its path over the month, because the Moon rocks slightly as it orbits).
 - [x] Why a small change of place matters (2026-11-14, from the audit against the challenge's list): a ready comparison of two ridge sites 10 km apart on one date (Connecting Ridge and Shackleton Rim, 18 February 2027 12:00 UTC: a short stay is sunlit throughout at one and dark for 71 h at the other), opened from Scout's card in Watch ("Two sites 10 km apart, same date") and from the tour's step on scenarios. The pair is in `web/src/lib/nearbyPair.ts`, with a test against the pipeline's data. Moving a custom point by 100 m and recomputing was not started (asked not to without a decision).
+- [x] Science beside engineering (2026-11-14, from the audit against the challenge's "coordination between science and engineering teams"): the main screen's Compare panel has a third fold, "Science", with one row, "Shadowed ground, km": the site's distance to permanently shadowed ground in NASA's LOLA maps (`shadow.json`), or "none" where the maps hold none, said in full under the table. Loaded only when the fold is first opened; not in the verdict. The Planner's own copy belongs to the Planner's rebuild.
 - [x] The Guide (2026-11-14, Rodrigo: "Yes, build both"): the rail's "How it works" is "Guide"; its sheet opens with "Start here" (the tour, the walkthrough video with its chapters, the 30-second demo), then "How to use Sightline", then how it works. The videos are `/media/sightline-walkthrough.mp4` and `/media/sightline-demo-30s.mp4`, each with `-poster.jpg` and `.vtt` beside it; the walkthrough's chapters come from `/media/sightline-walkthrough-chapters.vtt` or, without it, from `/media/sightline-walkthrough.json` (the recorder's list of steps). A player shows only when its file answers. Feature guides (short tours from the Guide and from each panel) are next.
 - [x] Feature guides (2026-11-14): "Compare scenarios", "Views and layers", "A custom point" and "Share a plan", each two or three steps on the real screen, in `web/src/sightline/guides.json` (the main tour's format), run by the tour's engine. Reached from the Guide ("Feature guides") and from the panel each is about ("Show me how" in Layers' header, in the Share list and beside the custom point's form; Compare's header gets it once that panel's own fix has landed). No voice. "The Planner" was added once its two tabs were live: four steps (the tabs, Find, Compare, the way back), reached from the Guide.
 - [x] Science beside engineering (2026-11-14, from the audit against the challenge's "coordination between science and engineering teams"): the main screen's Compare panel has a "Science" group with one row, "Shadowed ground, km": the site's distance to permanently shadowed ground in NASA's LOLA maps (`shadow.json`), or "none" where the maps hold none, said in full under the table. Loaded only when Compare opens; not in the verdict. The Planner's own copy belongs to the Planner's rebuild.
@@ -315,7 +316,7 @@ Local Lead.
 
 - [x] Find: the header (back, tabs, scenario tray, Brief, Share, Export, Scout), the tab in the link (`&planner=find`), and every site by month with the days a landing fits (`web/src/sightline/plannerFit.ts`, `PlannerFind.tsx`; checks in `sightline-shots.mjs`, scene `planner-find`)
 - [x] Compare: a column per scenario with its site and date changed in place, rows in groups (verdict first), the science rows from `shadow.json`, and "Add scenario" as the last column (`PlannerCompare.tsx`, `plannerTable.ts`, `useShadow.ts`; scene `planner-compare`)
-- [x] The header links to the detailed planner page (`/planner/`), opened on the scenario on show (`FullPlanner.tsx`)
+- [x] The header's link to the detailed planner page was taken out again (2026-11-14): two planners, "Planner" and "New Planner" in the rail; the `/planner/` page still answers
 
 ## Landing accuracy (2026-11-14)
 
@@ -361,3 +362,30 @@ Local Lead.
 - [x] The default mission is written once, `DEFAULT_REQUIREMENTS` in `web/src/lib/mission.ts` (14 days, 24 h of dark, no limit on radio silence, the Sun and Earth up at landing), and read by the front page, the co-pilot's tools (`web/shared/tools/defaults.ts`), saved plans, Scout's page, Atlas, Briefing, Surface, Classic and the Planner page; the tabs' default view carries the same limits and a test holds the two together. Before, everything but the front page fell back to 72 h / 72 h
 - [x] Scout's page keeps the limits its link came with, where it used to write the 72 h ones over them
 - [ ] Not done: Classic and the Planner page have no "no limit" control, so the default radio silence shows there as a number of hours (99999 on Classic, 8760 on the Planner page; the verdicts are the same). Atlas still writes the default limits over a link's. Links that carry `limits=14_72_72_1_1` (the pitch's, the check scripts') still mean 72 h, as written
+
+## The time bar, "When the Sun and Earth are in view" (2026-11-14)
+
+- [x] One row per site; each scenario a lettered flag on its site's row at its landing hour, pressed to select it (`web/src/sightline/River.tsx`, `riverRows.ts`, `river.css`)
+- [x] The selected mission lit from landing to end with a short label, the rest of its row dimmed; other missions outlined
+- [x] One line for the hour on show, with a handle at its top and its date under it, written once; the note beside the Moon says only "Not the landing"
+- [x] The header: play with the speeds in its menu, the name and its key, what is in view and the skyline's door, Day, Month, Year and Fold
+- [x] Checks: scenes `time-bar` and `time-bar-sites` in `web/scripts/sightline-shots.mjs`, at three sizes
+
+## Hover text, one idea each (2026-11-14)
+
+- [x] Every `title` on the Sightline screen's own files rewritten: two sentences at most, never the label again, no "elevation" without what it is measured from; the Sun's W/m² has its own tip on its line
+- [x] One spelling, American, in the screen's tips and visible labels (the tour's sentence about a marker's color too, in `tour.json`, the voice index and the README)
+- [x] The mission in words says "in view at landing" (`missionWords`), in the column, the Planner and the CSV
+- [x] Check `TIPS_KEEP_RULES` in `web/scripts/sightline-shots.mjs`, in seven scenes
+- [ ] Teammates' files (Scout's panel, the brief, the Surface view): a separate pull request, left open for them
+- [ ] Not changed: the New Planner's own tips (it is being merged into the Planner), "A few metres make a difference" there, and "grey" on the Classic page
+
+## The New Planner's detail inside the Planner (2026-11-14)
+
+- [x] Find: each site's count of months with a landing, the tally line, "Your own point" (latitude and longitude, a row of its own once added), and "nothing works" when no month fits (`PlannerFind.tsx`, `plannerFit.ts`)
+- [x] Find's strip: the month's days with their landing hours, "if the landing slips", suggestions near the landing ("Open", "Add as C"), and the ground nearby (`PlannerFindMore.tsx`, the detailed planner's components imported unchanged inside `plannerHost.css`'s wrapper)
+- [x] Checks: scene `planner-find-more` at three sizes; a cell's count equals the brief's count for that site and month
+- [x] Compare: the scenario on show in depth under the table, one at a time (`PlannerDetail.tsx`: the detailed planner's `LandingSky`, then `PlannerSunChart` and `PlannerPower` for every scenario); scene `planner-compare-detail`
+- [x] The imported parts take the Planner's own type and words (`plannerHost.css`); "Your own point" is the Planner's own box (`PlannerOwnPoint.tsx`)
+- [ ] Left as they are until Rodrigo has seen this: the New Planner button and page
+- [ ] Would change in the detailed planner's own files, if they were ours to change: a prop for the suggestion button's words and one to leave out its cards for the scenarios; the slope limit in its grid and brief (they ignore it, so a site too steep shows no detail here)

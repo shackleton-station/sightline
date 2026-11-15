@@ -24,6 +24,10 @@ async function loadMissionLight(site: SiteInfo, start: string, landing: number, 
   let earthHorizon: { az: number; el: number }[] | null = null
   while (rows.length < missionH) {
     const { month, index } = locateHour(start, landing + rows.length)
+    // A mission that runs past the years on hand (a landing in the data's last days) has no chart:
+    // that is expected, not a failure, so no month is asked for and nothing is logged as an error.
+    const year = Number(month.slice(0, 4))
+    if (year < years.from || year > years.to) return null
     const data = await loadScenarioAt(site, month, years, heights)
     earthHorizon ??= data.earthHorizon ?? data.horizon
     const part = data.track.slice(index, index + missionH - rows.length)

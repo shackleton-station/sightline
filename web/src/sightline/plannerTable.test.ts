@@ -173,7 +173,7 @@ describe('compareGroups', () => {
     expect(row('shadow-region').cells).toEqual(['2.6 km', 'none mapped within 1,951 km', 'not worked out for a custom point'])
     // One number in the row: nothing for it to be the best of.
     expect(row('shadow-patch').best).toEqual([false, false, false])
-    expect(row('shadow-patch').title).toMatch(/never reaches.*Source: NASA GSFC PGDA; Mazarico et al\. \(2011\)\./)
+    expect(row('shadow-patch').title).toMatch(/never reaches.*From NASA’s map of permanent shadow \(LOLA; Mazarico et al\. 2011\)\.$/)
   })
 
   it('marks the nearest shadow as the best in its row when two scenarios have one', () => {

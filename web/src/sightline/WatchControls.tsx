@@ -167,10 +167,10 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
                   <p className={message.failed ? 'is-warn' : undefined}>{message.text}</p>
                   {place && (
                     <>
-                      <button type="button" className="sl-small" title={`Put the time bar on ${place.label}`} onClick={() => onShow(place.hash)}>
+                      <button type="button" className="sl-small" title={`Moves the time bar to ${place.label}.`} onClick={() => onShow(place.hash)}>
                         Show me
                       </button>
-                      <button type="button" className="sl-small" title={`Open the planner on ${place.label}`} onClick={() => onPlan(place.hash)}>
+                      <button type="button" className="sl-small" title={`Opens the plan on ${place.label}.`} onClick={() => onPlan(place.hash)}>
                         Plan this
                       </button>
                     </>
@@ -216,7 +216,7 @@ export function PlayControl({ clock, date, span, minimised, onMinimise }: PlayPr
   if (minimised) {
     return (
       <div className="sl-pill sl-fade is-min">
-        <button type="button" className="sl-round" aria-label={`Show the date control. ${date}`} title={date} onClick={() => onMinimise(false)}>
+        <button type="button" className="sl-round" aria-label={`Show the date control. ${date}`} title={`Shows the date control. Now ${date}.`} onClick={() => onMinimise(false)}>
           {clock.playing ? '▶' : '❚❚'}
         </button>
       </div>

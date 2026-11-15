@@ -65,7 +65,9 @@ The same limits apply as before the service was split out: 5 saves or deletes a 
 the part of a page's address after `#`, at most 1,500 characters. The service stores a view only after
 reading it and writing it out again: the app's own link (`a`, `b`, `t`, `limits`, `view`, `mode`, `list`) and the
 values the Sightline screen adds to it, each checked (`slope`, `hp`, `ha`, `sc`, `acc`, `accs`, `accd`, `sky`,
-`planner`, `panel`; `web/src/lib/planView.ts` holds the list). Anything else in a view is dropped. The whole body is at most 4,000
+`planner`, `panel`, `sl`; `web/src/lib/planView.ts` holds the list). Anything else in a view is dropped. `sl=1` marks a
+plan saved from the Sightline screen, so the page that opens a short link can tell it from a plan an older page
+saved. Plans stored before a value was added are returned as they were stored: nothing is rewritten on read. The whole body is at most 4,000
 characters. A plan is kept for 180 days.
 
 **The idempotency key.** The page makes up a random key for each attempt to save and sends the same

@@ -1,0 +1,38 @@
+/* The "Place names" layer: names printed on the Moon, under the site markers (PlaceNames.tsx). */
+.sl-place-names {
+  position: absolute;
+  inset: 0;
+  /* A press on a name reaches the Moon under it. */
+  pointer-events: none;
+}
+
+.sl-place-name {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  color: #f2efe8;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  /* Readable on lit ground and on dark. */
+  text-shadow:
+    0 0 2px #000,
+    0 0 3px #000,
+    0 1px 4px rgb(0 0 0 / 80%);
+  user-select: none;
+}
+
+/* Seas in the blue maps print them in, mountains in an earth colour, earlier landings in the app's gold. */
+.sl-place-name.is-mare {
+  color: #b5d0ff;
+  font-style: italic;
+}
+
+.sl-place-name.is-mountains {
+  color: #e0b98a;
+}
+
+.sl-place-name.is-landing {
+  color: var(--gold, #e9b44c);
+}

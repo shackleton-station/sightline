@@ -25,14 +25,14 @@ export function ScenarioTabs({ count, active, onSelect, onAdd, onRemove }: TabsP
             {SCENARIO_LETTERS[i]}
           </button>
           {count > 1 && (
-            <button type="button" className="sl-tab-remove" aria-label={`Remove scenario ${SCENARIO_LETTERS[i]}`} title={`Remove scenario ${SCENARIO_LETTERS[i]}`} onClick={() => onRemove(i)}>
+            <button type="button" className="sl-tab-remove" aria-label={`Remove scenario ${SCENARIO_LETTERS[i]}`} title={`Removes scenario ${SCENARIO_LETTERS[i]}. “Undo” brings it back.`} onClick={() => onRemove(i)}>
               −
             </button>
           )}
         </span>
       ))}
       {count < MAX_SCENARIOS && (
-        <button type="button" data-tour="add" aria-label="Add a scenario" title="Add this site, at the time shown, as another scenario to compare" onClick={onAdd}>
+        <button type="button" data-tour="add" aria-label="Add a scenario" title="Adds this site, at the hour on the time bar, as another scenario to compare." onClick={onAdd}>
           +
         </button>
       )}
@@ -52,7 +52,7 @@ interface BetterDateProps {
 /** A better date nearby, when the landing doesn't meet the Sun and Earth limits and a later one does. */
 export function BetterDate({ when, waitH, adds, onTake }: BetterDateProps) {
   return (
-    <button type="button" className="sl-suggest" title="The first landing after this one that meets the Sun and Earth limits." onClick={onTake}>
+    <button type="button" className="sl-suggest" title="The first later landing that meets the mission's Sun and Earth limits." onClick={onTake}>
       <b>Better date nearby:</b> {when}, {formatDuration(waitH)} later. <span>{adds ? 'Add it to compare ›' : 'Move the landing there ›'}</span>
     </button>
   )

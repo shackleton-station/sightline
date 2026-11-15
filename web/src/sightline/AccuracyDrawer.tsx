@@ -210,7 +210,7 @@ export function AccuracyDrawer({ site, mission, grid, spread, onSpread, fits, sh
       <p className="sl-accuracy-picked">
         {pickedAt ? `${Math.round(Math.hypot(pickedAt.x, pickedAt.y))} m from the target: ${pickedMiss ? MISS_WORDS[pickedMiss] : 'a landing here fits'}.` : 'Tap the map to see why a spot fits or not.'}
       </p>
-      <label className="sl-check" title="Shades the Moon by the odds that a lander aimed at each point comes down where the mission fits: green, through amber, to red">
+      <label className="sl-check" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
         <input type="checkbox" role="switch" checked={shade} onChange={() => onShade(!shade)} />
         <span>Show the odds on the Moon</span>
       </label>

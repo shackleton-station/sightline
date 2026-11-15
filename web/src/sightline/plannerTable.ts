@@ -5,6 +5,7 @@ import type { RiverState } from '../lib/river'
 import { degWords, isoAt, stateAt } from '../lib/sightline'
 import { bestIn, COMPARE_ROWS, type ScenarioMeasure, SCENARIO_LETTERS, shareHours, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { shortReason } from '../lib/sightlineSky'
+import { bestByPair, type ShareQuantity, type ShareTies } from '../lib/starTie'
 import { STATE_CHIP } from './states'
 import type { LandingShares } from './useScenarioFacts'
 
@@ -23,6 +24,8 @@ export interface PlannerRow {
   states?: (RiverState | null)[]
   /** For the verdict: whether each scenario fits; null while it is being worked out. */
   fits?: (boolean | null)[]
+  /** True when a star in this row was shared or withheld because two sites are closer than the model's measured error. */
+  tooClose?: boolean
 }
 
 /** Rows that belong together, under one name: the verdict, then what it rests on. */
@@ -51,24 +54,29 @@ export function bothPct(flags: SiteFlags, landing: number, mission: SightlineMis
  * undefined while its months load, null if it cannot be worked out). `compareGroups` puts them
  * under their headings, with the verdict, the landing hour and the science rows.
  */
-export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioMeasure | null)[], flags: (SiteFlags | null)[], mission: SightlineMission, sunlightWm2?: (number | null | undefined)[]): PlannerRow[] {
+export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioMeasure | null)[], flags: (SiteFlags | null)[], mission: SightlineMission, sunlightWm2?: (number | null | undefined)[], ties?: ShareTies): PlannerRow[] {
+  // The three shares of the mission: between two different sites a lead inside the model's measured error earns no star (lib/starTie.ts).
+  const starFor = (quantity: ShareQuantity, values: (number | null)[], tie: number) => (ties ? bestByPair(values, 'high', (i, j) => ties(quantity, i, j)) : { best: bestIn(values, 'high', tie), tooClose: false })
   const write = (value: number | null, known: boolean, digits: number) => (value === null ? (known ? '?' : null) : value.toFixed(digits))
   const hours = (value: number | null) => (value === null ? null : shareHours(value, mission.requirements.missionDays))
   const rows: PlannerRow[] = COMPARE_ROWS.map((row) => {
     const values = measures.map((measure) => measure?.[row.key] ?? null)
+    const star = row.key === 'sunPct' ? starFor('sun', values, row.tie) : row.key === 'earthPct' ? starFor('earth', values, row.tie) : { best: bestIn(values, row.better, row.tie), tooClose: false }
     return {
       key: row.key,
       label: row.label,
       cells: values.map((value, i) => write(value, measures[i] !== null, row.digits)),
       notes: values.map((value) => (row.share ? hours(value) : null)),
-      best: bestIn(values, row.better, row.tie),
+      best: star.best,
+      tooClose: star.tooClose,
     }
   })
   const both = scenarios.map((scenario, i) => {
     const site = flags[i]
     return site ? bothPct(site, scenario.landing, mission) : null
   })
-  rows.splice(4, 0, { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), notes: both.map(hours), best: bestIn(both, 'high', 0.5) })
+  const bothStar = starFor('both', both, 0.5)
+  rows.splice(4, 0, { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), notes: both.map(hours), best: bothStar.best, tooClose: bothStar.tooClose })
   if (sunlightWm2) {
     const sunlight = sunlightWm2.map((value) => value ?? null)
     rows.splice(5, 0, {
@@ -85,13 +93,13 @@ export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioM
 
 /** What the sunlight row is, in its name's hover text: the app has no panel of its own, so it gives sunlight, not electrical power. */
 const SUNLIGHT_MEANS =
-  'Average over the mission on a vertical panel that turns to face the Sun, counting how much of the Sun is in view each hour. Before any panel losses: multiply by the panel\'s area and efficiency for electrical power.'
+  'Average sunlight over the mission on a panel that turns to face the Sun. Multiply by the panel\'s area and efficiency for electrical power.'
 /** Sunlight this close shares the best mark: about the half point the Sun's share of the mission ties at, of the Sun's full 1361 W/m². */
 const SUNLIGHT_TIE_W_M2 = 7
 
 /** How the two angles at landing are measured, for their names' hover text. */
-const FROM_LEVEL = 'At landing, measured from a level horizon.'
-const ABOVE_SKYLINE = 'At landing: how far its centre is above the skyline in its own direction. Negative when the skyline hides its centre.'
+const FROM_LEVEL = 'Its height at landing above a flat horizon. From high ground the skyline lies below 0°, so a negative figure can still be in view.'
+const ABOVE_SKYLINE = 'How far its center is above the skyline at landing. Below 0° the terrain hides its center.'
 
 /**
  * The Sun's and Earth's angles at each landing: from level, and above the skyline. Units in the
@@ -135,6 +143,12 @@ export function plannerCsv(start: string, scenarios: SightlineScenario[], siteNa
   return `${lines.map((line) => line.map(field).join(',')).join('\n')}\n`
 }
 
+/** The two shadow rows' hover text: what the distance is to, how it is measured, and whose map it is. The fuller wording stays in `shadow.json`. */
+const SHADOW_TIP = {
+  patch: 'Distance to the nearest ground that sunlight never reaches, however small the patch, straight over the surface. From NASA’s map of permanent shadow (LOLA; Mazarico et al. 2011).',
+  region: 'Distance to the nearest shadowed region of 10 km² or more, straight over the surface. From NASA’s map of permanent shadow (LOLA; Mazarico et al. 2011).',
+}
+
 /** What a scenario's cell says of the distance to permanent shadow, from `shadow.json`. */
 export function shadowWords(answer: ShadowAnswer | null): string | null {
   if (!answer) return null
@@ -157,6 +171,8 @@ export interface CompareInput {
   sunlightWm2?: (number | null | undefined)[]
   /** The distances to permanent shadow; null until the file has loaded. */
   shadow: ShadowDistances | null
+  /** How close two scenarios' shares of the mission must be to share the star; without it, half a point for every pair. */
+  ties?: ShareTies
 }
 
 /**
@@ -164,8 +180,8 @@ export interface CompareInput {
  * reasons, in the column's short words), then at landing, power, radio, the ground and science.
  * Every figure is one the app already measures; none is blended into a score.
  */
-export function compareGroups({ scenarios, siteIds, measures, flags, mission, landings, sunlightWm2, shadow }: CompareInput): PlannerGroup[] {
-  const numbers = plannerRows(scenarios, measures, flags, mission, sunlightWm2)
+export function compareGroups({ scenarios, siteIds, measures, flags, mission, landings, sunlightWm2, shadow, ties }: CompareInput): PlannerGroup[] {
+  const numbers = plannerRows(scenarios, measures, flags, mission, sunlightWm2, ties)
   const rows = (...keys: string[]) => keys.flatMap((key) => numbers.filter((one) => one.key === key))
   const none = scenarios.map(() => false)
   const blank = scenarios.map(() => null)
@@ -189,7 +205,7 @@ export function compareGroups({ scenarios, siteIds, measures, flags, mission, la
   const sunDisc: PlannerRow = {
     key: 'sunAtLanding',
     label: 'Sun in view at landing, %',
-    title: "How much of the Sun's disc is above the skyline at the landing hour.",
+    title: "The share of the Sun's disc above the skyline at landing. 100 means the whole Sun is in view.",
     cells: sunAtLanding.map((value) => (value === null ? null : value.toFixed(0))),
     notes: blank,
     best: bestIn(sunAtLanding, 'high', 0.5),
@@ -201,7 +217,7 @@ export function compareGroups({ scenarios, siteIds, measures, flags, mission, la
     return {
       key: `shadow-${kind}`,
       label,
-      title: shadow ? `${shadow.what} ${shadow[kind]} ${shadow.measure} Source: ${shadow.source.name}; ${shadow.source.cite}.` : undefined,
+      title: shadow ? SHADOW_TIP[kind] : undefined,
       // A custom point is in no file of distances: its cell says so once the file is here.
       cells: found.map((answer, i) => (!shadow ? null : siteIds[i] === null ? 'not worked out for a custom point' : shadowWords(answer))),
       notes: blank,

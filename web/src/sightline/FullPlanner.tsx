@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import type { SiteInfo, Summary } from '../data/contract'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { monthSpans } from '../lib/grid'
-import { measureScenario, missionWords, SCENARIO_LETTERS, scenarioLink, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { measureScenario, missionWords, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { spanOfHours } from '../lib/span'
 import { Mascot } from '../scout/Mascot'
 import { ExportMenu } from './ExportMenu'
@@ -11,9 +11,12 @@ import { HeaderTools } from './HeaderTools'
 import { saveHourlyCsv, saveText } from './hourlyExport'
 import { AdvancedControls, MissionControls } from './MissionDrawer'
 import { PlannerCompare } from './PlannerCompare'
-import { PlannerFind } from './PlannerFind'
+import { PlannerDetail } from './PlannerDetail'
+import { type FindSite, PlannerFind } from './PlannerFind'
 import type { PlannerTab } from './plannerFit'
 import { compareGroups, plannerCsv } from './plannerTable'
+import { useSiteValidations } from '../data/useSiteValidations'
+import { shareTies } from '../lib/starTie'
 import { ScenarioTabs } from './Scenarios'
 import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
 import { useShadow } from './useShadow'
@@ -59,8 +62,8 @@ interface Props {
 }
 
 const TABS: { id: PlannerTab; label: string; title: string }[] = [
-  { id: 'find', label: 'Find', title: 'Where and when could I land? Every site, month by month' },
-  { id: 'compare', label: 'Compare', title: 'Which of my picks is best? The scenarios side by side' },
+  { id: 'find', label: 'Find', title: 'Shows every site by month: where and when a landing fits the mission.' },
+  { id: 'compare', label: 'Compare', title: 'Shows your scenarios side by side, row by row.' },
 ]
 
 /**
@@ -74,22 +77,29 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
   })
+  // Find's rows: the listed sites, then each point of the visitor's own that a scenario is at, once its hours are worked out.
+  const findSites: FindSite[] = useMemo(() => {
+    const seen = new Set(flagged.map((one) => one.site.id))
+    const own = facts.flatMap((fact) => (isCustomSite(fact.site) && fact.flags !== null && !seen.has(fact.site.id) && seen.add(fact.site.id) ? [{ site: fact.site, flags: fact.flags, slopeDeg: fact.slopeDeg }] : []))
+    return [...flagged, ...own]
+  }, [flagged, facts])
   // The distances to permanent shadow are Compare's alone: fetched when it first opens, never for Find.
   const shadow = useShadow(tab === 'compare')
+  const siteIds = facts.map((fact) => (isCustomSite(fact.site) ? null : fact.site.id))
+  // For the star in the three rows that are a share of the mission, between two different sites (lib/starTie.ts).
+  const validations = useSiteValidations(siteIds)
   const groups = compareGroups({
     scenarios,
-    siteIds: facts.map((fact) => (isCustomSite(fact.site) ? null : fact.site.id)),
+    siteIds,
     measures,
     flags: facts.map((fact) => fact.flags),
     mission,
     landings,
     sunlightWm2,
     shadow,
+    ties: shareTies(scenarios.map((scenario, i) => ({ site: scenario.site, siteId: siteIds[i], validation: siteIds[i] === null ? undefined : validations[siteIds[i]] }))),
   })
   const spans = useMemo(() => monthSpans(start, hours), [start, hours])
-  // The detailed planner is a page of its own that reads the app's view link: it opens on the scenario
-  // on show, with the mission's limits, and keeps the other scenarios in its shortlist.
-  const detailed = `/planner/${scenarioLink([scenarios[active], ...scenarios.filter((_, i) => i !== active)], 0, start, mission)}`
 
   const exportTable = () => {
     const csv = plannerCsv(
@@ -109,7 +119,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
   return (
     <section className="sl-full" aria-label="Planner">
       <header className="sl-full-head pl-header">
-        <button type="button" className="sl-small pl-back" title="Back to the Moon (Esc)" onClick={onBack}>
+        <button type="button" className="sl-small pl-back" title="Closes the Planner and shows the Moon again (Esc)." onClick={onBack}>
           ‹ Moon
         </button>
         <h2>Planner</h2>
@@ -122,15 +132,12 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
         </div>
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
         <span className="pl-tools">
-          <a className="sl-link pl-detailed" href={detailed} title="The detailed planner, a page of its own, opened on the scenario on show">
-            Detailed planner
-          </a>
-          <button type="button" className="sl-small" title="The written brief for the scenario on show" onClick={onBrief}>
+          <button type="button" className="sl-small" title="Opens a written summary of the scenario on show." onClick={onBrief}>
             Brief
           </button>
           <HeaderTools onBrief={onBrief} />
           <ExportMenu onTable={exportTable} onHourly={exportHourly} hourlyOf={`Scenario ${SCENARIO_LETTERS[active]} over its ${days} ${days === 1 ? 'day' : 'days'}`} />
-          <button type="button" className="sl-small sl-rail-scout" aria-pressed={scoutOpen} title="Ask Scout about these scenarios" onClick={onScout}>
+          <button type="button" className="sl-small sl-rail-scout" aria-pressed={scoutOpen} title="Opens Scout, an AI guide, to ask about these scenarios." onClick={onScout}>
             <Mascot state={null} size={16} /> Scout
           </button>
         </span>
@@ -153,9 +160,12 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
 
         <div className="sl-full-main">
           {tab === 'find' ? (
-            <PlannerFind start={start} flagged={flagged} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} />
+            <PlannerFind start={start} hours={hours} flagged={findSites} scenarios={scenarios} shown={{ siteId: facts[active].site.id, landing: scenarios[active].landing }} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} />
           ) : (
-            <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} />
+            <>
+              <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} />
+              <PlannerDetail start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} landings={landings} active={active} onSelect={onSelect} />
+            </>
           )}
         </div>
       </div>

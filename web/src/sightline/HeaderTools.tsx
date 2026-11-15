@@ -52,7 +52,7 @@ export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = n
 
   return (
     <span ref={box} className="sl-head-tools">
-      <button type="button" className="sl-icon" aria-label="Share" aria-haspopup="true" aria-expanded={open} title={copied ? 'Link copied' : 'Share: copy the link, save with a name, or the written brief'} onClick={() => setOpen(!open)}>
+      <button type="button" className="sl-icon" aria-label="Share" aria-haspopup="true" aria-expanded={open} title={copied ? 'Link copied.' : 'Opens the ways to share: copy the link, save the plan with a name, or open the written brief.'} onClick={() => setOpen(!open)}>
         {copied ? (
           <span aria-hidden="true">✓</span>
         ) : (

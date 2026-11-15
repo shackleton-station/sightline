@@ -4,7 +4,7 @@ import { decodeRuns, type SiteFlags } from '../lib/flags'
 import { monthSpans } from '../lib/grid'
 import { DEFAULT_MISSION, fitProblems, PRESETS, type SightlineMission } from '../lib/sightlineMission'
 import { checkOverview, dataFile } from '../lib/testData'
-import { cellDetail, cellWords, findRow, fitHours, nextFit, plannerTabIn, runningTotals, withPlannerTab } from './plannerFit'
+import { cellDetail, cellWords, findRow, fitHours, nextFit, plannerTabIn, runningTotals, withPlannerTab , findTally, monthsWithFit } from './plannerFit'
 
 const overview = checkOverview()
 const sites = dataFile<SiteInfo[]>('sites.json')
@@ -131,5 +131,18 @@ describe('the next landing that fits', () => {
   it('is nothing when no later landing fits', () => {
     expect(nextFit(fit, 5)).toBeNull()
     expect(nextFit(fit, 7)).toBeNull()
+  })
+})
+
+describe('monthsWithFit and findTally', () => {
+  const cell = (days: number) => ({ month: '2027-01', days, share: days / 31, text: String(days) }) as never
+  it('counts the months of a row with a landing that fits', () => {
+    expect(monthsWithFit([cell(0), cell(3), cell(1), cell(0)])).toBe(2)
+    expect(monthsWithFit([])).toBe(0)
+  })
+
+  it('adds the grid up: cells with a landing, the tight ones among them, and all of them', () => {
+    expect(findTally([[cell(0), cell(3), cell(1)], [cell(2), cell(0), cell(9)]])).toEqual({ withLanding: 4, tight: 2, total: 6, sites: 2 })
+    expect(findTally([])).toEqual({ withLanding: 0, tight: 0, total: 0, sites: 0 })
   })
 })

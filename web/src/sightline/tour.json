@@ -36,7 +36,7 @@
     {
       "id": "markers",
       "title": "The markers",
-      "say": "Each marker is a landing site. Its shape and colour say what it can see at this moment: the Sun, Earth, both or neither.",
+      "say": "Each marker is a landing site. Its shape and color say what it can see at this moment: the Sun, Earth, both or neither.",
       "state": { "view": "watch", "ring": "connecting-ridge" },
       "targets": [".sl-watch-key"]
     },

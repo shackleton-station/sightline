@@ -84,6 +84,10 @@ const cut = whole.chapters
 const tour = cut.script ? null : JSON.parse(readFileSync(resolve(args.get('tour') || join(webDir, 'src/sightline/tour.json')), 'utf8'))
 const voiceName = args.get('voice') || /\(([a-z]{2}-[A-Z]{2}-[^)]+)\)/.exec(tour?.voice?.from ?? '')?.[1] || directions.voice
 const disclosure = directions.disclosure
+/** What each file says of itself, in its description and comment tags and at the top of its captions: how its sound and its picture were made. */
+function madeHow() {
+  return `${directions.acknowledgement} The picture was recorded from the live site, ${base.replace(/^https?:\/\//, '')}.`
+}
 
 // ---- The words ----
 
@@ -252,7 +256,7 @@ writeWav(soundFile, track, rate)
 const stamp = (seconds) => `${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor(seconds / 60) % 60).padStart(2, '0')}:${(seconds % 60).toFixed(3).padStart(6, '0')}`
 const cues = steps.flatMap((step) => step.lines.map((line, index) => ({ from: step.speechStart + (index === 0 ? 0 : step.ends[index - 1]), to: step.speechStart + step.ends[index], text: line })))
 const captionsFile = join(outDir, `${cut.file}.vtt`)
-writeFileSync(captionsFile, `WEBVTT\n\nNOTE ${disclosure}\n\n${cues.map((cue) => `${stamp(cue.from)} --> ${stamp(cue.to)}\n${cue.text}`).join('\n\n')}\n`)
+writeFileSync(captionsFile, `WEBVTT\n\nNOTE ${madeHow()}\n\n${cues.map((cue) => `${stamp(cue.from)} --> ${stamp(cue.to)}\n${cue.text}`).join('\n\n')}\n`)
 
 // ---- Chrome ----
 
@@ -335,6 +339,9 @@ try {
   await page('Emulation.setDeviceMetricsOverride', { width: WIDTH, height: VIEW, deviceScaleFactor: DENSITY, mobile: false })
   await page('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }, { name: 'prefers-reduced-motion', value: 'no-preference' }] })
   await page('Page.addScriptToEvaluateOnNewDocument', { source: readFileSync(join(here, 'page.js'), 'utf8') })
+  // A cut can open as the page does for a visitor who has shut Scout's panel before: the page keeps
+  // that in the tab's own storage, and this writes the same note there before the page reads it.
+  if (cut.scoutShut) await page('Page.addScriptToEvaluateOnNewDocument', { source: "try { sessionStorage.setItem('sightline.scoutShut', '1') } catch {}" })
   await page('Page.navigate', { url: `${base}${cut.open ?? directions.open}` })
   // The page as a visitor gets it: wait for the Moon and whatever it loads first, with the clock still real.
   for (let tries = 0; ; tries += 1) {
@@ -412,7 +419,7 @@ try {
           '-map', '[picture]', '-map', '2:a',
           '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-profile:v', 'high', '-r', String(FPS), '-g', String(FPS * 2), '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-color_range', 'tv',
           '-c:a', 'aac', '-b:a', '160k', '-ar', '48000', '-ac', '2', '-metadata:s:a:0', 'language=eng',
-          '-metadata', `title=${cut.title}`, '-metadata', `comment=${disclosure}. Recorded from ${base}.`,
+          '-metadata', `title=${cut.title}`, '-metadata', `description=${madeHow()}`, '-metadata', `comment=${madeHow()}`,
           '-t', length.toFixed(3), '-movflags', '+faststart', join(outDir, `${cut.file}.mp4`)],
         { stdio: ['pipe', 'inherit', 'inherit', 'pipe'] },
       )
@@ -644,9 +651,9 @@ function joinChapters(group) {
   const list = join(dir, 'chapters.txt')
   writeFileSync(list, have.map((chapter) => `file '${chapter.file}.mp4'`).join('\n'))
   const marks = join(dir, 'chapters.ffmeta')
-  writeFileSync(marks, `;FFMETADATA1\ntitle=${group.title}\ncomment=${directions.disclosure}.\n${have.map((chapter) => `[CHAPTER]\nTIMEBASE=1/1000\nSTART=${Math.round(chapter.start * 1000)}\nEND=${Math.round(chapter.end * 1000)}\ntitle=${chapter.title}`).join('\n')}\n`)
+  writeFileSync(marks, `;FFMETADATA1\ntitle=${group.title}\ndescription=${madeHow()}\ncomment=${madeHow()}\n${have.map((chapter) => `[CHAPTER]\nTIMEBASE=1/1000\nSTART=${Math.round(chapter.start * 1000)}\nEND=${Math.round(chapter.end * 1000)}\ntitle=${chapter.title}`).join('\n')}\n`)
   execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', list, '-i', marks, '-map', '0', '-map_metadata', '1', '-map_chapters', '1', '-c', 'copy', '-movflags', '+faststart', `${out}.mp4`])
-  writeFileSync(`${out}.vtt`, `WEBVTT\n\nNOTE ${directions.disclosure}\n\n${have.flatMap((chapter) => chapter.made.cues.map((cue) => `${stamp(chapter.start + cue.from)} --> ${stamp(chapter.start + cue.to)}\n${cue.text}`)).join('\n\n')}\n`)
+  writeFileSync(`${out}.vtt`, `WEBVTT\n\nNOTE ${madeHow()}\n\n${have.flatMap((chapter) => chapter.made.cues.map((cue) => `${stamp(chapter.start + cue.from)} --> ${stamp(chapter.start + cue.to)}\n${cue.text}`)).join('\n\n')}\n`)
   writeFileSync(`${out}-chapters.vtt`, `WEBVTT\n\n${have.map((chapter, index) => `${index + 1}\n${stamp(chapter.start)} --> ${stamp(chapter.end)}\n${chapter.title}`).join('\n\n')}\n`)
   if (existsSync(`${have[0].file}-poster.jpg`)) writeFileSync(`${out}-poster.jpg`, readFileSync(`${have[0].file}-poster.jpg`))
   const report = measure(`${out}.mp4`, null, FPS)

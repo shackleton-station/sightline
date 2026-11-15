@@ -6,7 +6,7 @@ import type { FlaggedSite } from '../data/useAllFlags'
 import { useScenario } from '../data/useScenario'
 import { onHypeTyped } from '../components/listenForHype'
 import { setAddressBar } from '../lib/address'
-import { HYPE_HASH } from '../lib/hypeEgg'
+import { HYPE_HASH, isHypeWord } from '../lib/hypeEgg'
 import { horizonAt } from '../lib/customModel'
 import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, marginalReasons, shortWhen } from '../lib/sightlineSky'
@@ -38,11 +38,11 @@ import {
   fitProblems,
   nearestFittingSite,
   MAX_SCENARIOS,
+  measureScenario,
   missionWords,
   NO_LIMIT_H,
   presetOf,
   readScenarioLink,
-  rowLabels,
   type RemovedScenario,
   removeScenarioAt,
   restoreScenario,
@@ -51,8 +51,10 @@ import {
   surfaceLink,
   type SightlineScenario,
 } from '../lib/sightlineMission'
+import { whyHard } from '../lib/explainer'
 import { ROVER_PRESET } from '../lib/csaRover'
 import { type TrekLayerId, trekLayer } from '../lib/trekLayers'
+import { layersReach, lightReachKm } from '../lib/layerReach'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
@@ -80,12 +82,14 @@ import { useLightGrid } from '../atlas/useLightGrid'
 import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
 import { LayersDrawer } from './LayersDrawer'
+import { usePlaceNames } from './usePlaceNames'
 import { RoverDrawer } from './RoverDrawer'
 import { MissionInline } from './MissionDrawer'
 import { useMissionLight } from './useMissionLight'
 import { useTrekOverlay } from './useTrekOverlay'
 import { Fields, PlanColumn, Verdict } from './PlanColumn'
 import { Rail, type StageMode } from './Rail'
+import { saveHourlyCsv } from './hourlyExport'
 import { River } from './River'
 import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
@@ -134,13 +138,17 @@ function useRoom(): 'phone' | 'narrow' | 'wide' {
 const NOTE_ROOM_PX = 30
 /** How long a removed scenario can be brought back. */
 const UNDO_MS = 5000
-/** Whether the easter egg was found earlier in this visit (kept for the tab's life, not beyond it: it stays an egg). */
-const HYPE_KEY = 'sightline.hype'
-function hypeRemembered(): boolean {
+/**
+ * The easter egg is found for the visit only: nothing is stored, so a reload starts without its
+ * button. Earlier versions kept a mark under this key; what is left of it is cleared.
+ */
+const OLD_HYPE_KEY = 'sightline.hype'
+function forgetOldHype(): void {
   try {
-    return window.sessionStorage.getItem(HYPE_KEY) === '1'
+    window.sessionStorage.removeItem(OLD_HYPE_KEY)
+    window.localStorage.removeItem(OLD_HYPE_KEY)
   } catch {
-    return false
+    // A private window may refuse storage altogether: then there is nothing to clear.
   }
 }
 
@@ -167,9 +175,6 @@ interface Props {
   openHow?: boolean
 }
 
-/** The light grid reaches from the pole to about here: south of it, a site's close-up is lit from the grid. */
-const GRID_FROM_LAT_DEG = -85
-
 /**
  * The one screen. Watch is the Moon playing with everything else hideable; Plan puts a frame round
  * the Moon with the question (At, On, For) and the answer. One clock drives both.
@@ -193,9 +198,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const { setPlaying, setHour, playing } = clock
 
   // The easter egg: the word typed here, or on another page (which opens this one at "#hype"),
-  // puts a Hype button in the rail and opens its panel. The button stays for the visit.
+  // or sent to Scout as a message of its own, puts a Hype button in the rail and opens its panel.
+  // The button stays until the page is reloaded or left: nothing is stored.
   const [arrivedForHype] = useState(() => window.location.hash === HYPE_HASH)
-  const [hypeFound, setHypeFound] = useState(() => arrivedForHype || hypeRemembered())
+  const [hypeFound, setHypeFound] = useState(arrivedForHype)
+  useEffect(forgetOldHype, [])
   const [plan, setPlan] = useState(linked !== null || arrivedForHype)
   // Up to four scenarios, A to D; the column, the skyline and the answer are about the active one.
   // With none in the address, Plan starts with two: the two prospective sites at the same hour, so
@@ -210,7 +217,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [mission, setMission] = useState(linked?.mission ?? DEFAULT_MISSION)
   // One panel on the right at a time. Scout's conversation lives here, so closing his panel keeps it.
   const [drawer, setDrawer] = useState<'scout' | 'mission' | 'advanced' | 'compare' | 'layers' | 'rover' | 'accuracy' | 'hype' | null>(arrivedForHype ? 'hype' : null)
-  const chat = useScoutChat()
+  // The word sent to Scout as a message of its own (any case, spaces or not) is the easter egg: it is
+  // not a question, so it is not sent to the co-pilot or added to the conversation. The only way to
+  // it on a phone, which has no keyboard outside a text box.
+  const hypeFromScout = useRef<() => void>(() => {})
+  const takenByScreen = useCallback((message: string) => {
+    if (!isHypeWord(message)) return false
+    hypeFromScout.current()
+    return true
+  }, [])
+  const chat = useScoutChat(takenByScreen)
   // The Planner takes the whole window, with the Moon kept small in a corner; How it works opens as a sheet over the scene.
   // A link that names a Planner tab opens the Planner on it.
   const [full, setFull] = useState(() => linked !== null && plannerTabIn(window.location.hash) !== null)
@@ -258,6 +274,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [shade, setShade] = useState(false)
   // Where a landing fits the mission, shaded on the Moon: on from the first time Landing accuracy is opened.
   const [fitShade, setFitShade] = useState(false)
+  // The "Place names" layer: off until switched on in Layers; its names are fetched then.
+  const [namesOn, setNamesOn] = useState(false)
+  const placeNames = usePlaceNames(namesOn)
   // How the lander's misses are spread. Once Landing accuracy has been used, or a link carries it,
   // its odds show under the verdict and in Compare, and the spread rides in the link.
   const [spread, setSpread] = useState<Spread>(() => readSpreadLink(window.location.hash) ?? DEFAULT_SPREAD)
@@ -293,6 +312,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const guideVideos = useGuideVideos(TOUR, tourAt !== null || how)
   /** How it works opens at its video when the tour's last step asks for it. */
   const [howAtVideo, setHowAtVideo] = useState(false)
+  // The Guide opened at "Why this site is hard": Scout's ready idea leads there.
+  const [howAtWhy, setHowAtWhy] = useState(false)
 
   // The listed sites' flags with the Sun seen from the panel's height and Earth from the antenna's.
   // At 2 m and 2 m they are the flags given, and nothing more is loaded.
@@ -406,6 +427,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       chat.say(own)
     })
   }
+  // Why the site on show is hard, for the Guide: the site's own figures for the landing's month and
+  // year, and the mission's longest dark spell from this landing, the hours the verdict judges.
+  const why = useMemo(() => {
+    if (!here) return null
+    const onMission = flags ? { days: mission.requirements.missionDays, sunGapH: measureScenario(scenario, site, flags, mission, facts[active].slopeDeg).sunGapH } : null
+    return whyHard(here, onMission)
+  }, [here, flags, mission, scenario, site, facts, active])
   // Three questions to tap while Scout has said nothing, written for the scenario on show.
   const ideas = [
     problems && problems.length > 0 ? "Why doesn't this landing fit?" : 'How much margin does this landing have?',
@@ -692,11 +720,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const revealHype = useCallback(() => {
     if (tourAt !== null) return
     setHypeFound(true)
-    try {
-      window.sessionStorage.setItem(HYPE_KEY, '1')
-    } catch {
-      // A private window may refuse; the button still shows until the page is left.
-    }
     setBare(false)
     setFull(false)
     setHow(false)
@@ -705,6 +728,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setDrawer('hype')
   }, [tourAt, setBare])
   useEffect(() => onHypeTyped(revealHype), [revealHype])
+  useEffect(() => {
+    hypeFromScout.current = revealHype
+  }, [revealHype])
   useEffect(() => {
     if (arrivedForHype) revealHype()
     // Once, on arriving at "#hype".
@@ -835,12 +861,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     return () => window.removeEventListener('keydown', onKey)
   }, [tourAt, playing, bare, plan, clock.hour, setPlaying, setHour, setBare, openPlan, closePlan, showControls])
 
-  // The river's rows are named by what differs between them: the date, the site, or both.
-  const labels = rowLabels(
-    scenarios,
-    facts.map((fact) => fact.site.name),
-    start,
-  )
   // Escape leaves the How sheet, then the Planner.
   useEffect(() => {
     if (!how && !full && !brief) return
@@ -883,7 +903,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // Close on a site near the pole, the ground is lit from the pipeline's light grid for the hour on
   // the bar: the same grid the Atlas draws. Its months are large, so they are fetched only then.
   // The "Light and shadow" layer, off until asked for: the light grid's months are megabytes, fetched only then.
-  const shadeHere = site.lat <= GRID_FROM_LAT_DEG
+  // Which layers hold the ground at the site on show, each from what it declares about itself: the
+  // Moon Trek maps from their own tiles, the light grid from its own description (a small file, read
+  // once; its months are not). Until that description has arrived the grid counts as not reaching.
+  const gridMeta = useLightGrid(month, true, false).meta
+  const layerReach = useMemo(() => layersReach(site, gridMeta), [site, gridMeta])
+  const shadeHere = layerReach.light === true
   // Our own finer photo tiles round the ridge sites: looked up once the photo is switched on, or close on a
   // ridge site with no layer on, where the Moon's own picture gets sharper from the same tiles.
   const finePhoto = useFinePhoto(layer === 'photo' || (shown && mode === 'site' && shadeHere))
@@ -918,6 +943,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     spread,
     shown && accuracyUsed,
   )
+  // A layer of the ground near the south pole is seen close: switching one on from Orbit or Surface
+  // goes to Site in the same move. Place names, which cover the whole Moon, change no view. While a
+  // tour or guide is on, the view stays where its step put it.
+  const closeUp = () => {
+    if (mode !== 'site' && tourAt === null) setMode('site')
+  }
   // The mission's chance of success as a layer on the Moon, in every view.
   const showFitShade = (on: boolean) => {
     setFitShade(on)
@@ -986,6 +1017,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               heightsLine={heightsLine}
               earthShare={shares[active]?.earth ?? null}
               over={over}
+              limitsOpen={missionHere}
               plan={
                 <Fields
                   held={tourStep?.state.open === 'custom'}
@@ -1062,7 +1094,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                 />
                 {accuracyUsed && odds[active] !== null && (
                   <p className="sl-odds-line">
-                    <button type="button" className="sl-link" title="Open Landing accuracy" onClick={openAccuracy}>
+                    <button type="button" className="sl-link" title="Opens Accuracy: where a lander that misses its target could come down." onClick={openAccuracy}>
                       {oddsWords(odds[active])} of landings fit
                     </button>{' '}
                     at {spreadWords(spread)} accuracy
@@ -1094,7 +1126,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             rows={scenarios.map((one, i) => ({
               key: String(i),
               letter: SCENARIO_LETTERS[i],
-              label: labels[i],
+              site: one.site,
+              siteName: facts[i].site.name,
               full: `${facts[i].site.name} · ${clockTime(start, one.landing)}`,
               flags: facts[i].flags,
               landing: one.landing,
@@ -1102,6 +1135,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             }))}
             missionHours={mission.requirements.missionDays * 24}
             sky={{ open: !skyMin, onToggle: () => setSkyMin(!skyMin) }}
+            onHourly={() => saveHourlyCsv({ site, start, landing: scenario.landing, missionDays: mission.requirements.missionDays, years: held, heights: mission.heights })}
             folded={riverMin}
             onFold={setRiverMin}
             onSelect={(key) => setActive(Number(key))}
@@ -1127,6 +1161,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           shade={shown ? moonShade : null}
           layer={shown ? trekLayer(layer) : null}
           fine={shown ? finePhoto : null}
+          names={shown ? placeNames.features : null}
           grid={{ meta: lightGrid.meta, month: lightGrid.month, wide: lightGrid.wide, hour: wantGrid ? index : null, atSite: gridAtSite }}
           // A click on the Moon away from any dot is a custom point. In Plan it moves the scenario on show
           // there. In Watch it opens Plan at that point, as a dot opens Plan at its site. Nothing with the
@@ -1144,11 +1179,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {shown && !planner && fitShade && <FitLegend on={fitShade} onToggle={showFitShade} spread={spread} onSpread={setSpread} detailed={fitHere} onDetails={() => setDrawer('accuracy')} />}
         {shown && !planner && mode !== 'surface' && hour !== scenario.landing && (
           <p className="sl-off-landing sl-fade">
-            <span>Showing {clockTime(start, hour)}, not the landing</span>
-            <button type="button" className="sl-link" title="Put the time bar back on the landing" onClick={() => setHour(scenario.landing)}>
+            <span>Not the landing</span>
+            <button type="button" className="sl-link" title="Moves the time bar back to the landing hour." onClick={() => setHour(scenario.landing)}>
               Back to landing
             </button>
-            <button type="button" className="sl-link" data-tour="land" title="Make this moment the landing" onClick={() => setScenario((current) => ({ ...current, landing: hour }))}>
+            <button type="button" className="sl-link" data-tour="land" title="Makes the hour on the time bar the landing." onClick={() => setScenario((current) => ({ ...current, landing: hour }))}>
               Land here
             </button>
           </p>
@@ -1157,10 +1192,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {shown && !planner && mode === 'surface' && <iframe ref={surfaceFrame} className="sl-surface" title="Standing at the site, looking around" src={`/surface/${surfaceSrc}${fitShade ? '&odds=1' : ''}`} />}
         {/* In the Planner the Moon is a small live view: pressing it comes back. */}
         {planner && (
-          <button type="button" className="sl-mini-back" aria-label="Back to the Moon" title="Back to the Moon (Esc)" onClick={() => setFull(false)} />
+          <button type="button" className="sl-mini-back" aria-label="Back to the Moon" title="Closes the Planner and shows the Moon again (Esc)." onClick={() => setFull(false)} />
         )}
         {bare && (
-          <button type="button" className="sl-handle" title="Show the controls (H)" onClick={showControls}>
+          <button type="button" className="sl-handle" title="Brings the controls back (H)." onClick={showControls}>
             Show controls
           </button>
         )}
@@ -1171,10 +1206,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <p>Where to land on the Moon, and when</p>
             </header>
             <div className="sl-top sl-fade">
-              <button type="button" className="is-main" data-tour="plan" title="Open the planner (P)" onClick={() => openPlan(null)}>
+              <button type="button" className="is-main" data-tour="plan" title="Opens the plan: a site, a landing and a mission to check (P)." onClick={() => openPlan(null)}>
                 Plan a landing
               </button>
-              <button type="button" title="Hide everything but the Moon (H)" onClick={() => setBare(true)}>
+              <button type="button" title="Hides everything but the Moon (H)." onClick={() => setBare(true)}>
                 Hide all
               </button>
             </div>
@@ -1219,7 +1254,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         )}
         {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
         {!bare && !plan && tourAt === null && !(scoutOpen && room === 'phone') && (
-          <button type="button" className={tourTaken ? 'sl-tour-chip sl-fade' : 'sl-tour-chip sl-fade is-new'} title="Scout walks you through the screen, in about a minute" onClick={() => startTour()}>
+          <button type="button" className={tourTaken ? 'sl-tour-chip sl-fade' : 'sl-tour-chip sl-fade is-new'} title="Scout shows you round the screen, one step at a time." onClick={() => startTour()}>
             <span aria-hidden="true">▶</span> One-minute tour
           </button>
         )}
@@ -1306,6 +1341,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             onBack={() => {
               setHow(false)
               setHowAtVideo(false)
+              setHowAtWhy(false)
             }}
             onTour={() => startTour()}
             tourTaken={tourTaken}
@@ -1313,6 +1349,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             onGuide={startTour}
             videos={guideVideos}
             openAtVideo={howAtVideo}
+            why={why}
+            openAtWhy={howAtWhy}
           />
         </div>
       )}
@@ -1331,6 +1369,18 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               setDrawer('rover')
             },
           }}
+          why={
+            why
+              ? {
+                  label: 'Why is landing here hard?',
+                  done: `The Guide is open at “Why this site is hard”, with ${site.name}’s own figures.`,
+                  onPick: () => {
+                    setHowAtWhy(true)
+                    setHow(true)
+                  },
+                }
+              : undefined
+          }
           onOpen={openAsScenario}
           onClose={toggleScoutPanel}
           onTour={() => startTour()}
@@ -1349,7 +1399,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere }} onOdds={showFitShade} layer={layer} onLayer={setLayer} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={setShade} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere }} onOdds={(on) => {
+            if (on) closeUp()
+            showFitShade(on)
+          }} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
+            if (next !== null) closeUp()
+            setLayer(next)
+          }} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={(on) => {
+            if (on) closeUp()
+            setShade(on)
+          }} onClose={() => setDrawer(null)} />}
       {shown && !planner && (
         <Rail
           mode={mode}

@@ -24,6 +24,13 @@ export interface PlanLinkState {
 }
 
 /**
+ * The plan the page was opened on, read as this file loads. The screen writes its own address as
+ * it opens, before anything here runs, and that takes a short link out of the address: so the link
+ * is read first, and opened once the screen is up.
+ */
+let openedOn: string | null = typeof window === 'undefined' ? null : planIdFrom(window.location.hash)
+
+/**
  * Opens a saved plan from its short link ("#plan=<id>"), when the page opens on one or the address
  * changes to one: fetches the plan, shows its view on the Sightline screen with everything the
  * screen had when it was saved, and keeps its name for one quiet line. A view the Sightline screen
@@ -39,7 +46,9 @@ export function usePlanLink(openers: PlanOpeners): PlanLinkState {
   useEffect(() => {
     let asked: string | null = null
     const look = () => {
-      const id = planIdFrom(window.location.hash)
+      const id = planIdFrom(window.location.hash) ?? openedOn
+      // The link the page opened on is opened once: after that only the address says which plan.
+      openedOn = null
       if (!id || id === asked) return
       asked = id
       void loadPlan(id).then((result) => {

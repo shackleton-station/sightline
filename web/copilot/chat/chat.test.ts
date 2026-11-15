@@ -74,6 +74,32 @@ describe('the co-pilot', () => {
     expect(sentBack(model, 0)[0].response).toMatchObject({ ref: 'r1', facts: { pct_sun: { value: '59.5%', means: 'Sun up' } } })
   })
 
+  it('says a tie as a tie: the months come from the tool, and one button offers the first and says there are others', async () => {
+    // Ravi's question: the sunniest month of 2027 at Shackleton Rim. September to December are all at 100%.
+    const model = scripted(
+      [call('best_months', { site: 'shackleton-rim', measure: 'sun', year: 2027 })],
+      [
+        answer('At Shackleton Rim, {{r1.best_months}} are tied at {{r1.best_value}}: none of them is sunnier than the others.', {
+          actions: [
+            { type: 'open', site: 'shackleton-rim', month: '2027-11' },
+            { type: 'open', site: 'shackleton-rim', month: '2027-12' },
+          ],
+        }),
+      ],
+    )
+    const outcome = await ask(model, 'Which month of 2027 is sunniest at Shackleton Rim?')
+    if (!outcome.ok) throw new Error('no answer')
+    expect(outcome.reply.text).toBe('At Shackleton Rim, September to December 2027 are tied at 100%: none of them is sunnier than the others.')
+    expect(outcome.reply.actions.map((action) => action.label)).toEqual(['Open Shackleton Rim, September 2027 (first of 4 tied months)'])
+    // The model is told it is a tie, and what the list means, with the result.
+    expect(sentBack(model, 0)[0].response).toMatchObject({
+      facts: {
+        best_months: { value: 'September to December 2027', means: expect.stringContaining('tied for best') },
+        best_tie: { value: '4 months are tied for best' },
+      },
+    })
+  })
+
   it('sends a draft with a typed number back once, then accepts the corrected one', async () => {
     const model = scripted([MONTH], [answer('The Sun is up about 60% of the time.')], [answer('The Sun is up {{r1.pct_sun}} of the time.')])
     const outcome = await ask(model)

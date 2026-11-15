@@ -9,7 +9,7 @@ import type { SiteFlags } from '../lib/flags'
 import type { MissionHeights } from '../lib/heights'
 import { horizonsQueryUrl, withinWords } from '../lib/horizonsLink'
 import { panelSunlight } from '../lib/power'
-import { aboveSkylineMeans, elevationWords } from '../lib/sightline'
+import { aboveSkylineMeans } from '../lib/sightline'
 import { earthLine, groundLine, landingSentence, showingWords, skylineFigure, sunLine } from '../lib/sightlineSky'
 import { HorizonsLive } from './HorizonsLive'
 import { type BodyOver, OverChart } from './LightChart'
@@ -39,16 +39,16 @@ interface Props {
    * then their figures alone.
    */
   over: { start: string; landing: number; missionDays: number; sun: BodyOver; earth: BodyOver } | null
+  /**
+   * The mission's limits are open in the column. Like the charts, the one-line sentence about the
+   * landing and the line about Horizons step aside while they are, so the verdict, the limits and the
+   * Sun, Earth and ground all stay on a small laptop's screen (1366 by 768) without scrolling.
+   */
+  limitsOpen?: boolean
 }
 
-/** What the Sun's small line means, for its tooltip. */
-const SUNLIGHT_MEANS = 'W/m² is the sunlight reaching a surface that faces the Sun, from the share of its disc in view: what is available, not a power figure.'
-
-/** "Elevation −1.0° from level.", to lead a row's hover text: the conventional figure, kept out of the row itself. */
-function elevationLead(elevationDeg: number): string {
-  const words = elevationWords(elevationDeg)
-  return `${words[0].toUpperCase()}${words.slice(1)}. `
-}
+/** What the W/m² on the Sun's small line is, for that line's own tooltip. */
+const SUNLIGHT_MEANS = 'Sunlight on a surface facing the Sun, in watts per square meter. Full sunlight is 1361 W/m²; less means part of the Sun is hidden.'
 
 /**
  * The answer for the landing. The verdict leads, with the plan's three controls under it. Then one line: what is in view at landing
@@ -57,7 +57,7 @@ function elevationLead(elevationDeg: number): string {
  * landing's hour (the countdowns run from the landing) from the pipeline's track, horizon and flags,
  * through the functions the rest of the app uses. It does not follow the time bar.
  */
-export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsLine, earthShare, verdict, plan, over }: Props) {
+export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsLine, earthShare, verdict, plan, over, limitsOpen = false }: Props) {
   // The hour under the pointer, on either row's chart: one crosshair runs through both.
   const [at, setAt] = useState<number | null>(null)
   // The hour-for-hour comparison with JPL Horizons for a listed site; a custom point has none.
@@ -79,8 +79,8 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
   const slope = data?.slope ?? null
   const ground = slope ? groundLine(slope.deg, maxSlopeDeg) : null
   // The Sun is seen from the panel's height and Earth from the antenna's: each row's hover text says its own.
-  const aboveMeans = data ? aboveSkylineMeans(heights.panelM) : undefined
-  const earthAboveMeans = data ? aboveSkylineMeans(heights.antennaM) : undefined
+  const aboveMeans = data ? aboveSkylineMeans('the Sun', heights.panelM) : undefined
+  const earthAboveMeans = data ? aboveSkylineMeans('Earth', heights.antennaM) : undefined
   // A disc the skyline cuts gets a second small line; a whole or hidden one has none.
   const sunShowing = now ? showingWords(now.sun_frac, now.sun_up) : null
   const earthShowing = now ? showingWords(earthShare, now.earth_up) : null
@@ -89,12 +89,14 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
     <div className="sl-answer">
       {verdict}
       {plan}
-      <p className="sl-sentence" role="status">
-        {now ? landingSentence(now.sun_frac, earthShare, now.earth_up) : 'Working out the light here…'}
-      </p>
+      {!limitsOpen && (
+        <p className="sl-sentence" role="status">
+          {now ? landingSentence(now.sun_frac, earthShare, now.earth_up) : 'Working out the light here…'}
+        </p>
+      )}
       {heightsLine && <p className="sl-heights-line">{heightsLine}</p>}
       <dl className="sl-facts">
-        <div className="sl-fact is-sun" tabIndex={0} title={aboveMeans && now ? `${elevationLead(now.sun_el)}${aboveMeans} ${SUNLIGHT_MEANS}` : undefined}>
+        <div className="sl-fact is-sun" tabIndex={0} title={aboveMeans && now ? aboveMeans : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Sun
           </dt>
@@ -102,11 +104,14 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
             {sunAbove ? sunAbove.figure : '…'}
             <small>{sunAbove ? sunAbove.side : 'above the skyline'}</small>
           </dd>
-          <dd className="sl-fact-small">{now && next ? sunLine(now.sun_up, next.sun.hours, panelSunlight([now]).vertical) : '…'}</dd>
+          {/* The small line has its own explanation, for its W/m²: one idea to a tip. */}
+          <dd className="sl-fact-small" title={now && next ? SUNLIGHT_MEANS : undefined}>
+            {now && next ? sunLine(now.sun_up, next.sun.hours, panelSunlight([now]).vertical) : '…'}
+          </dd>
           {sunShowing && <dd className="sl-fact-small is-showing">{sunShowing}</dd>}
           {over && <OverChart kind="sun" over={over.sun} start={over.start} landing={over.landing} missionDays={over.missionDays} at={at} onAt={setAt} />}
         </div>
-        <div className="sl-fact is-earth" tabIndex={0} title={earthAboveMeans && now ? `${elevationLead(now.earth_el)}${earthAboveMeans}` : undefined}>
+        <div className="sl-fact is-earth" tabIndex={0} title={earthAboveMeans && now ? earthAboveMeans : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Earth
           </dt>
@@ -118,7 +123,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
           {earthShowing && <dd className="sl-fact-small is-showing">{earthShowing}</dd>}
           {over && <OverChart kind="earth" over={over.earth} start={over.start} landing={over.landing} missionDays={over.missionDays} at={at} onAt={setAt} />}
         </div>
-        <div className="sl-fact is-ground" tabIndex={0} title={slope ? `The ground's slope over ${slope.baseline_m} m, from the LOLA terrain, against the steepest ground your mission allows.` : undefined}>
+        <div className="sl-fact is-ground" tabIndex={0} title={slope ? `How steep the ground is, measured across ${slope.baseline_m} m of NASA's LOLA terrain map. Lower is safer for a lander.` : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Ground
           </dt>
@@ -129,15 +134,15 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
           <dd className={ground?.fails ? 'sl-fact-small is-warn' : 'sl-fact-small'}>{ground ? ground.text : data ? 'not known for this point' : '…'}</dd>
         </div>
       </dl>
-      {/* Always there, so nothing moves when the comparison arrives. */}
-      {horizons && data && now ? (
-        <p className="sl-horizons" title={`The Sun's and Earth's directions at every hour of the data at this site (${horizons.hours.toLocaleString('en-US')} hours each), compared with NASA JPL's Horizons service. The largest gap is the rounding of the numbers shown here.`}>
+      {/* Always there, so nothing moves when the comparison arrives; out of the way while the mission's limits are open. */}
+      {limitsOpen ? null : horizons && data && now ? (
+        <p className="sl-horizons" title={`Our directions to the Sun and Earth agree with NASA JPL's Horizons service at every hour for this site (${horizons.hours.toLocaleString('en-US')} hours each). The largest gap is rounding.`}>
           <span aria-hidden="true">✓</span> Matches Horizons within {withinWords(horizons.max_deg)} · Reproduce:{' '}
-          <a href={horizonsQueryUrl('sun', data.site.lat, data.site.lon, horizons.alt_km, now.t)} target="_blank" rel="noreferrer" title="Reproduce in Horizons: opens NASA's own answer for the Sun at this site and hour. The last two numbers are its azimuth and its height">
+          <a href={horizonsQueryUrl('sun', data.site.lat, data.site.lon, horizons.alt_km, now.t)} target="_blank" rel="noreferrer" title="Opens NASA's own answer for the Sun at this site and hour. Its last two numbers are the compass bearing and the height above a flat horizon.">
             Sun
           </a>
           ,{' '}
-          <a href={horizonsQueryUrl('earth', data.site.lat, data.site.lon, horizons.alt_km, now.t)} target="_blank" rel="noreferrer" title="Reproduce in Horizons: opens NASA's own answer for Earth at this site and hour. The last two numbers are its azimuth and its height">
+          <a href={horizonsQueryUrl('earth', data.site.lat, data.site.lon, horizons.alt_km, now.t)} target="_blank" rel="noreferrer" title="Opens NASA's own answer for Earth at this site and hour. Its last two numbers are the compass bearing and the height above a flat horizon.">
             Earth
           </a>
         </p>

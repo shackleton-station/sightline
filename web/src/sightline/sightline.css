@@ -1750,7 +1750,23 @@ button.sl-moment-heights[aria-expanded='true'] {
   margin-bottom: 0.2rem;
 }
 
-.sl-layer-own input:disabled + span {
+/* The panel's two groups, each under a plain heading: what covers the whole Moon, and what is of the ground near the south pole. */
+.sl-layer-group {
+  margin: 0.7rem 0 0.3rem;
+  color: var(--soft);
+  /* 12 px: the smallest type the screen sets. */
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sl-drawer-head + .sl-layer-group {
+  margin-top: 0;
+}
+
+.sl-layer-own input:disabled + span,
+.sl-layer-list input:disabled + span {
   color: var(--soft);
 }
 
@@ -3174,11 +3190,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   line-height: 1.4;
 }
 
-/* The date changes as time plays; its room does not, so the two links stay where they are. */
-.sl-off-landing > span {
-  min-width: 21.5rem;
-}
-
 @media (max-width: 760px) {
   .sl-off-landing {
     border-radius: 10px;
@@ -3187,10 +3198,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   /* On a phone the note runs the stage's width, up to three lines: the scale bar sits just above it, in the same corner. */
   .sl-stage:has(.sl-off-landing) .sl-scale {
     bottom: 4.4rem;
-  }
-
-  .sl-off-landing > span {
-    min-width: 0;
   }
 }
 
@@ -3466,12 +3473,14 @@ button.sl-moment-heights[aria-expanded='true'] {
   height: 1rem;
   margin: 0;
   color: var(--soft);
-  font-size: 0.6875rem;
+  /* 12 px: the smallest type the screen sets. */
+  font-size: 0.75rem;
 }
 
 .sl-over-axis span {
   position: absolute;
-  top: 0.1rem;
+  top: 0;
+  line-height: 1rem;
   white-space: nowrap;
   transform: translateX(-50%);
 }
@@ -3999,6 +4008,10 @@ button.sl-moment-heights[aria-expanded='true'] {
 
 .sl-hype .sl-hype-note {
   margin: 0.5rem 0 0;
+}
+
+.sl-hype .sl-hype-lede {
+  margin: 0;
 }
 
 /* ---------- Scout's tour: a ring round what a step is about, and his bubble. Nothing is dimmed,

@@ -33,6 +33,13 @@ interface Props {
   videos?: GuideVideos | null
   /** Open with the walkthrough on screen: the tour's last step leads here. */
   openAtVideo?: boolean
+  /**
+   * Why the site of the scenario on show is hard: a few sentences from that site's own figures
+   * (lib/explainer.ts `whyHard`); null while they load, and on a page with no scenario.
+   */
+  why?: string[] | null
+  /** Open at "Why this site is hard": Scout's ready idea leads here. */
+  openAtWhy?: boolean
 }
 
 const TOUR = tourFile as TourFile
@@ -119,7 +126,7 @@ const STACK: { layer: string; items: string[] }[] = [
  * The Guide: where to start (the tour and the videos), how to use the screen, then how it works: how
  * the numbers are made, why to trust them, what the site runs on, and how the co-pilot stays honest.
  */
-export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, guides = [], onGuide, videos = null, openAtVideo = false }: Props) {
+export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, guides = [], onGuide, videos = null, openAtVideo = false, why = null, openAtWhy = false }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -150,6 +157,14 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
     start.current = true
     setPlaying('walkthrough')
   }, [openAtVideo, hasWalkthrough])
+  // From Scout's idea the sheet opens at "Why this site is hard": in view, and where the keyboard is.
+  const whyHere = useRef<HTMLElement>(null)
+  const hasWhy = Boolean(why && why.length > 0)
+  useEffect(() => {
+    if (!openAtWhy || !hasWhy) return
+    whyHere.current?.focus({ preventScroll: true })
+    whyHere.current?.scrollIntoView({ block: 'start' })
+  }, [openAtWhy, hasWhy])
   /** A chapter was pressed: the video goes there and plays on. */
   const jump = (at: number) => {
     if (!film.current) return
@@ -248,6 +263,19 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         </section>
       )}
 
+      {/* Why the site on show is hard, in a few sentences made of that site's own figures. */}
+      {why && why.length > 0 && (
+        <section ref={whyHere} className="how-why" aria-labelledby="how-why-title" tabIndex={-1}>
+          <h2 id="how-why-title">Why this site is hard</h2>
+          <ul className="how-why-lines">
+            {why.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <p className="how-start-note">This site’s own figures, for the scenario on show.</p>
+        </section>
+      )}
+
       {/* Then one feature at a time: short tours on the real screen, run by the tour's own engine. */}
       {onGuide && guides.length > 0 && (
         <section className="how-guides" aria-labelledby="how-guides-title">
@@ -315,17 +343,17 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         <p className="how-caption how-heights">
           Every number is for a point 2 m above the ground, a small lander’s deck. Sightline’s Planner can read the Sun at a solar panel’s height instead (5 m or 10 m, the
           middle and top of NASA’s vertical solar array) and Earth at an antenna’s (4 m, the top of a Nova-C class lander, or 10 m), from the same model run again for those
-          heights at the listed sites. From higher up the terrain sits lower in the sky, so the Sun and Earth are never in view less. A few metres do not move them in the sky
+          heights at the listed sites. From higher up the terrain sits lower in the sky, so the Sun and Earth are never in view less. A few meters do not move them in the sky
           by more than the 0.01° our tracks are rounded to, so the comparison with JPL Horizons holds at every height.
         </p>
         <p className="how-caption">
-          Where a page shows power in watts per square metre, it is the sunlight reaching a panel before any panel losses: the Sun’s full strength (1361 W/m²) times the share of
+          Where a page shows power in watts per square meter, it is the sunlight reaching a panel before any panel losses: the Sun’s full strength (1361 W/m²) times the share of
           its disc in view and how squarely the light meets the panel. Near the pole the Sun stays low, so an upright panel that turns to face it gets nearly all of that, and a
           panel lying flat gets almost none. Sightline’s “Sunlight at landing” is that figure for a surface facing the Sun: the sunlight available, not the power a lander
           would make from it.
         </p>
         <p className="how-caption">
-          Where landings are compared, a star marks the best value in each row. There is no single blended score: the weights behind one would be invented.
+          Where landings are compared, a star marks the best value in each row. Between two different sites, a share of the mission (sunlit, Earth in view, or the two together) earns the star only when it leads by more than the model&apos;s measured error against NASA&apos;s maps for that pair of sites: inside it, the sites share the star or none is shown. There is no single blended score: the weights behind one would be invented.
         </p>
       </Act>
 
@@ -354,7 +382,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
             {light.worstAgreePct === 100 ? 'the site’s own answer in every one' : `the site’s own answer in at least ${light.worstAgreePct}%`} of {light.hours.toLocaleString('en-US')} hours. Across{' '}
             {light.pixels.toLocaleString('en-US')} pixels its long-run Sun is within {light.meanAbs.toFixed(1)} points of NASA’s own map on average (correlation{' '}
             {light.r.toFixed(2)}); turn the sky half way round and that falls to {light.rTurned.toFixed(2)}, take the terrain away and it falls to{' '}
-            {light.rNoTerrain.toFixed(2)}. On the brightest ground this check says little, and a pixel is one point: a neighbour {light.pixelM} m away can differ, so the page
+            {light.rNoTerrain.toFixed(2)}. On the brightest ground this check says little, and a pixel is one point: a neighbor {light.pixelM} m away can differ, so the page
             gives a range.
           </p>
         ) : (

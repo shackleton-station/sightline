@@ -14,6 +14,7 @@ import type {
   MoonFeatures,
   Overview,
   OverviewYear,
+  ShadowDistances,
   SiteInfo,
   SiteSpread,
   Summary,
@@ -42,6 +43,11 @@ function getJson<T>(path: string): Promise<T> {
   request.catch(() => requests.delete(path))
   requests.set(path, request)
   return request
+}
+
+/** A listed site's comparison with NASA's maps and with Horizons (`<site>/validation.json`), fetched once. */
+export function loadValidation(siteId: string): Promise<Validation> {
+  return getJson<Validation>(`${siteId}/validation.json`)
 }
 
 export function loadMapMeta(): Promise<MapMeta> {
@@ -159,6 +165,11 @@ export function loadSummary(site: SiteInfo, month: string): Promise<Summary> {
 
 export function loadSpread(site: SiteInfo): Promise<SiteSpread | null> {
   return site.nearby_half_m ? getJson<SiteSpread>(`${site.id}/spread.json`) : Promise.resolve(null)
+}
+
+/** Each listed site's distance to permanently shadowed ground, from NASA's maps. Asked for only by the view that shows it. */
+export function loadShadow(): Promise<ShadowDistances> {
+  return getJson<ShadowDistances>('shadow.json')
 }
 
 /** The model and NASA's map, compared with real photos of sunlight near the south pole. */

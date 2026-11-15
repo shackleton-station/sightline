@@ -492,6 +492,33 @@ affinity, which keeps a visitor on one version (one line in `infra/`, but to be 
 not keep an answer that sets a cookie, and Google's page does not say which answers carry it). Neither is
 done. The traffic steps are unchanged.
 
+## A green deploy that still serves the commit before it
+
+Known behaviour, seen on 2026-11-14: when two pull requests merge within a minute or two of each other,
+the Deploy run for the first can end green while the site still serves the commit before it. The run for
+the second merge then brings both. Nothing is lost and nothing needs re-running, but a check made right
+after the first run turns green can look at the old page.
+
+So after a merge, check what the site serves, not the run's colour:
+
+- **The services** say which commit they were built from: `https://lunarsightline.com/api/plans/status` and
+  `/api/chat/status` each return a `version` (the first seven characters of the commit).
+- **The page** is whatever the front door's script holds. Look in it for something only your change has, a
+  class name or a phrase:
+
+```bash
+curl -s https://lunarsightline.com/sightline/ | grep -o '/assets/main-[A-Za-z0-9_.-]*\.js' | sort -u
+```
+
+```bash
+curl -s https://lunarsightline.com/assets/main-<the name printed above>.js | LC_ALL=C grep -c 'sl-place-names'
+```
+
+  A count of 0 means that build is not the live one yet. Wait for the newest Deploy run on `main` to end
+  (`gh run list --branch main --workflow Deploy --limit 3`), then look again.
+- **The check script** against the live site (`node scripts/sightline-shots.mjs --base=https://lunarsightline.com
+  --only=<scene>`) is the last word: it opens the page the way a visitor's browser does.
+
 ## After the pipeline changes the terrain tiles
 
 ```sh

@@ -16,8 +16,12 @@ import { decodeView, encodeView, type ViewState } from './urlState'
  * open panel to the view it saves and to read it back.
  */
 
-/** The side panels a saved plan can reopen. The easter egg's panel is not one of them. */
-export const PLAN_PANELS = ['scout', 'mission', 'advanced', 'compare', 'layers', 'rover', 'accuracy'] as const
+/**
+ * The side panels a saved plan can reopen: the ones the screen has. The mission's limits open in
+ * place in the column and are no panel; the easter egg's panel is not kept. A plan saved with a
+ * panel that is no longer one opens with none.
+ */
+export const PLAN_PANELS = ['scout', 'compare', 'layers', 'rover', 'accuracy'] as const
 export type PlanPanel = (typeof PLAN_PANELS)[number]
 
 const WHOLE = /^\d{1,5}$/
@@ -43,6 +47,9 @@ const KEPT: [name: string, ok: (value: string) => boolean][] = [
   ['planner', oneOf(['find', 'compare'])],
   // The side panel that was open.
   ['panel', oneOf(PLAN_PANELS)],
+  // The plan was saved from the Sightline screen, which opens it again; a plan without the mark
+  // came from an older page, and is opened here only if nothing it held would be lost.
+  ['sl', (value) => value === '1'],
 ]
 
 /** A view as a plan stores it, with what the app's own link said; null if the app cannot open it. */
@@ -61,6 +68,16 @@ export function cleanPlanView(view: string, fallback: Requirements): { state: Vi
 export function withPanel(view: string, panel: string | null): string {
   const base = view.replace(/&panel=[^&]*/g, '')
   return panel !== null && (PLAN_PANELS as readonly string[]).includes(panel) ? `${base}&panel=${panel}` : base
+}
+
+/** A view marked as saved from the Sightline screen, for saving. */
+export function markSightline(view: string): string {
+  return `${view.replace(/&sl=[^&]*/g, '')}&sl=1`
+}
+
+/** Whether a stored view says it was saved from the Sightline screen. */
+export function savedBySightline(view: string): boolean {
+  return new URLSearchParams(view.replace(/^#/, '')).get('sl') === '1'
 }
 
 /** The side panel a view asks for; null if it names none, or one a plan does not keep. */
