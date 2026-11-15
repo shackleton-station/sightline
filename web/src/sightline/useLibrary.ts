@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FlaggedSite } from '../data/useAllFlags'
-import { cardsOf, type LibraryCard, type LibraryEntry, planEntries } from '../lib/library'
+import { cardsOf, type LibraryCard, type LibraryEntry } from '../lib/library'
 import { SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { buildGrid } from '../planner/plannerModel'
 import { loadLibrary } from '../lib/plans'
@@ -43,9 +43,8 @@ interface LibraryCardsInput {
 }
 
 /**
- * The library and the tray as cards, measured against the mission on screen. The tray is the plan
- * itself: its scenarios, A to D, in their order, so a landing added from the library is on the main
- * screen with the others and nothing is kept anywhere else. The month grid gives each card the share of its month's days
+ * The library as cards, measured against the mission on screen. A landing added from it is a
+ * scenario of the plan, A to D, on the main screen with the others: nothing is kept anywhere else. The month grid gives each card the share of its month's days
  * with a landing that fits; it is built only once the library is wanted.
  */
 export function useLibraryCards({ wanted, start, hours, flagged, mission, scenarios }: LibraryCardsInput) {
@@ -53,8 +52,6 @@ export function useLibraryCards({ wanted, start, hours, flagged, mission, scenar
   const grid = useMemo(() => (wanted ? buildGrid(flagged, mission.requirements) : null), [wanted, flagged, mission.requirements])
   const monthShare = useCallback((siteId: string, month: string) => grid?.rows.find((row) => row.site.id === siteId)?.cells.find((cell) => cell.month === month)?.share ?? null, [grid])
   const cards = useMemo(() => (state.kind === 'ready' ? cardsOf(state.entries, start, hours, flagged, mission, monthShare) : []), [state, start, hours, flagged, mission, monthShare])
-  /** The plan's scenarios as cards: the card at index i is scenario i. */
-  const planCards = useMemo(() => cardsOf(planEntries(scenarios, start), start, hours, flagged, mission, monthShare), [scenarios, start, hours, flagged, mission, monthShare])
   /** The letter a card's scenario has in the plan, or null when it is not there. */
   const letterOf = (card: LibraryCard) => {
     const i = scenarios.findIndex((scenario) => scenario.site === card.scenario?.site && scenario.landing === card.scenario.landing)
@@ -62,5 +59,5 @@ export function useLibraryCards({ wanted, start, hours, flagged, mission, scenar
   }
   /** Where a card's scenario is in the plan, or -1. */
   const indexOf = (card: LibraryCard) => scenarios.findIndex((scenario) => scenario.site === card.scenario?.site && scenario.landing === card.scenario.landing)
-  return { state, reload, cards, planCards, letterOf, indexOf }
+  return { state, reload, cards, letterOf, indexOf }
 }

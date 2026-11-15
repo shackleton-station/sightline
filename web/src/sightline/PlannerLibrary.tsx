@@ -37,7 +37,7 @@ const MONTH_STOPS = [0, 10, 25, 50, 75]
 /**
  * The Library's list: every scenario in the plans people have saved, to search and filter. "Add to
  * plan" makes a card's landing the plan's next scenario (C after A and B), where the main screen,
- * Compare and the tray at the top all show it; pressed again, it takes it out. Whether a card fits is
+ * Compare and the letters at the top all show it; pressed again, it takes it out. Whether a card fits is
  * judged against the mission on screen, not the one it was saved with.
  */
 export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMonth, onAdd, onRemove, canRemove, onShow, letterOf, room, onReload, onOpenPlan }: Props) {

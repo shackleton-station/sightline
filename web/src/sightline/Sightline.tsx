@@ -1529,13 +1529,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           active={active}
           onSelect={setActive}
           onAdd={addScenario}
+          onAddShown={() => addScenario({ site: scenario.site, landing: hour })}
           onRemove={removeScenario}
           onBack={() => setFull(false)}
-          onCompare={() => {
-            setLibrary(false)
-            setNewPlanner(false)
-            setPlannerTab('compare')
-          }}
           onResume={(id) => {
             // The Library closes, and then the address becomes the plan's short link, which opens it.
             setFull(false)
