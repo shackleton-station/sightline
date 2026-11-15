@@ -3951,6 +3951,70 @@ button.sl-moment-heights[aria-expanded='true'] {
   margin-top: 0;
 }
 
+/* "What each limit means": a link on the row "Advanced" is on, so the box is no taller for it.
+   Pressed, the box holds one plain line a limit in place of the controls, with the way back at its top. */
+.sl-inline-links {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.sl-inline-links .sl-advanced-link {
+  margin-top: 0;
+}
+
+.sl-means-link {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.sl-mission-inline.is-advanced > .sl-means-link {
+  float: right;
+}
+
+.sl-mission-inline.is-means {
+  display: block;
+}
+
+.sl-means {
+  margin: 0.3rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.sl-means > div + div {
+  margin-top: 0.3rem;
+}
+
+.sl-means dt {
+  font-weight: 600;
+}
+
+.sl-means dd {
+  margin: 0;
+  color: var(--soft);
+}
+
+/* In the column each line runs on from its limit's name, to keep the box short. */
+.sl-mission-inline .sl-means dt,
+.sl-mission-inline .sl-means dd {
+  display: inline;
+}
+
+.sl-mission-inline .sl-means dt::after {
+  content: ': ';
+}
+
+/* While the lines are being read on a laptop, the Sun, Earth and ground under the box step aside, as
+   the charts do when the limits open: the verdict stays, and the column still does not scroll. */
+@media (min-width: 761px) {
+  .sl-col:has(.sl-mission-inline.is-means) .sl-facts {
+    display: none;
+  }
+}
+
 /* The verdict: the column's headline. Green with a tick when it fits, orange with a diamond when it
    fits only marginally, red with a cross when it does not. */
 .sl-answer > .sl-verdict {

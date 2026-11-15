@@ -569,6 +569,26 @@
   font-size: 0.97rem;
 }
 
+/* What each of the mission's limits means: the limit's own label, then its line, as the mission's controls give it. */
+.how-limit-means {
+  max-width: 46rem;
+  padding: 0;
+  font-size: 0.97rem;
+}
+
+.how-limit-means > div + div {
+  margin-top: 0.5rem;
+}
+
+.how-limit-means dt {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.how-limit-means dd {
+  margin: 0;
+}
+
 
 /* ---------- Today's question counts ---------- */
 .how-counts {
