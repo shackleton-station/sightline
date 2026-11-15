@@ -1,20 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { axisName, flagPlaces, labelSide, missionLabel, type RiverScenario, siteRows } from './riverRows'
+import { axisName, flagPlaces, labelSide, missionLabel, MOST_ROWS, type RiverScenario, scenarioRows } from './riverRows'
 
 const scenario = (letter: string, site: string, landing: number, active = false): RiverScenario => ({ key: letter, letter, site, siteName: `Site ${site}`, full: `Site ${site} · hour ${landing}`, flags: null, landing, active })
 
-describe('siteRows', () => {
-  it('gives four scenarios at one site one row with four flags', () => {
-    const rows = siteRows([scenario('A', 'x', 10), scenario('B', 'x', 20), scenario('C', 'x', 30), scenario('D', 'x', 40)])
-    expect(rows).toHaveLength(1)
-    expect(rows[0].name).toBe('Site x')
-    expect(rows[0].scenarios.map((one) => one.letter)).toEqual(['A', 'B', 'C', 'D'])
+describe('scenarioRows', () => {
+  it('gives four scenarios at one site four rows, one each', () => {
+    const rows = scenarioRows([scenario('A', 'x', 10), scenario('B', 'x', 20), scenario('C', 'x', 30), scenario('D', 'x', 40)])
+    expect(rows.map((row) => row.letter)).toEqual(['A', 'B', 'C', 'D'])
+    expect(rows.map((row) => row.site)).toEqual(['x', 'x', 'x', 'x'])
   })
 
-  it('gives each site a row, in the order the sites first appear, whatever order the scenarios are in', () => {
-    const rows = siteRows([scenario('A', 'x', 10), scenario('B', 'y', 10), scenario('C', 'x', 50), scenario('D', '-88.5,40', 5)])
-    expect(rows.map((row) => row.site)).toEqual(['x', 'y', '-88.5,40'])
-    expect(rows.map((row) => row.scenarios.map((one) => one.letter).join(''))).toEqual(['AC', 'B', 'D'])
+  it('puts the rows in letter order, whatever order the scenarios are in and wherever they land', () => {
+    const rows = scenarioRows([scenario('C', 'x', 50), scenario('A', 'x', 10), scenario('D', '-88.5,40', 5), scenario('B', 'y', 10)])
+    expect(rows.map((row) => `${row.letter} ${row.site}`)).toEqual(['A x', 'B y', 'C x', 'D -88.5,40'])
+  })
+
+  it('draws four rows at most', () => {
+    expect(scenarioRows(['A', 'B', 'C', 'D', 'E'].map((letter) => scenario(letter, 'x', 10)))).toHaveLength(MOST_ROWS)
   })
 })
 

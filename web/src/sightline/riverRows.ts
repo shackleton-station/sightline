@@ -2,8 +2,9 @@ import type { SiteFlags } from '../lib/flags'
 import type { RiverZoom } from '../lib/sightline'
 
 /**
- * How the time bar lays its rows out: one row for each site, with the scenarios at that site
- * standing on it as lettered flags. Pure arithmetic, so it can be tested without a page.
+ * How the time bar lays its rows out: one row for each scenario, in letter order, with its lettered
+ * flag standing on it at its landing. Two scenarios at one site get a row each, with the same bands.
+ * Pure arithmetic, so it can be tested without a page.
  */
 
 /** One scenario, as the time bar is given it. */
@@ -11,7 +12,7 @@ export interface RiverScenario {
   key: string
   /** The scenario's letter, "A". */
   letter: string
-  /** Its site: a listed site's id, or a custom point's "lat,lon". Scenarios at one site share a row. */
+  /** Its site: a listed site's id, or a custom point's "lat,lon". */
   site: string
   siteName: string
   /** The whole of it, "Connecting Ridge · 6 May 2027 · 13:00 UTC", for the flag's hover text and its accessible name. */
@@ -23,29 +24,19 @@ export interface RiverScenario {
   active: boolean
 }
 
-/** One row of the time bar: a site, and the scenarios that land there. */
-export interface SiteRow {
-  site: string
-  name: string
-  flags: SiteFlags | null
-  scenarios: RiverScenario[]
-}
+/** The most rows the time bar draws: one for each scenario a plan can hold. */
+export const MOST_ROWS = 4
 
-/** The rows, one for each site, in the order the sites first appear among the scenarios. */
-export function siteRows(scenarios: RiverScenario[]): SiteRow[] {
-  const rows: SiteRow[] = []
-  for (const scenario of scenarios) {
-    const row = rows.find((one) => one.site === scenario.site)
-    if (row) row.scenarios.push(scenario)
-    else rows.push({ site: scenario.site, name: scenario.siteName, flags: scenario.flags, scenarios: [scenario] })
-  }
-  return rows
+/** The rows, one for each scenario, in letter order (A to D). */
+export function scenarioRows(scenarios: RiverScenario[]): RiverScenario[] {
+  return [...scenarios].sort((a, b) => a.letter.localeCompare(b.letter)).slice(0, MOST_ROWS)
 }
 
 /**
  * Where each flag's box starts along a row, in pixels from the row's left edge. A flag is centred
  * on its landing; one whose landing is before or after the hours on show stands at that edge. Flags
- * that would overlap are moved apart, keeping their order, and none leaves the row.
+ * that would overlap are moved apart, keeping their order, and none leaves the row. (A row holds
+ * one flag now; the arithmetic still takes several.)
  * `centres` are the landings' positions in pixels (they may be outside 0 to `width`).
  */
 export function flagPlaces(centres: number[], width: number, flagWidth: number, gap = 2): number[] {

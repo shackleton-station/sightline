@@ -6,7 +6,7 @@ import type { RiverSegment, RiverState } from '../lib/river'
 import { bandWords, clockTime, DEFAULT_SPEED, type RiverZoom, riverTicks, riverWindow, runAt, SPEEDS, stateAt, stateRuns, TIME_KEYS_MEAN } from '../lib/sightline'
 import type { Clock } from './hooks'
 import { HourlyProblem } from './hourlyExport'
-import { axisName, flagPlaces, labelSide, missionLabel, type RiverScenario, siteRows } from './riverRows'
+import { axisName, flagPlaces, labelSide, missionLabel, type RiverScenario, scenarioRows } from './riverRows'
 import { BAND, STATE_CHIP } from './states'
 import './river.css'
 
@@ -75,11 +75,12 @@ const TIGHT_UNDER_REM = 46
 const KEY_ROOM_REM = 32
 
 /**
- * The time bar, "When the Sun and Earth are in view": one row per site on one time axis, coloured
- * by what is in view there. Each scenario is a lettered flag standing on its site's row at its
- * landing hour; the selected scenario's mission is the lit stretch of its row. One line through
- * every row is the hour on show, with a handle at its top and its date under it. Drag anywhere on
- * the rows to move time, or press a flag to choose that scenario.
+ * The time bar, "When the Sun and Earth are in view": one row per scenario on one time axis, in
+ * letter order, coloured by what is in view at its site. Each row has its scenario's lettered flag
+ * at its landing hour and its mission as a box from there, with the row dimmed outside it; the
+ * scenario on show has the marked box. One line through every row is the hour on show, with a
+ * handle at its top and its date under it. Drag anywhere on the rows to move time, or press a flag
+ * to choose that scenario.
  */
 export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, onHourly }: Props) {
   const [zoom, setZoom] = useState<RiverZoom>('month')
@@ -90,9 +91,9 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
   // At a year's width an Earth day is narrower than a pixel, so the row is offered up to a month.
   const earthDay = useEarthDay(start, from, to, earthRow && zoom !== 'year' && !folded)
   const at = (sample: number) => `${(100 * sample) / count}%`
-  const sites = siteRows(rows)
-  // The label column is as wide as its longest site's name needs, up to a limit (set in the styles); past it a name is shortened.
-  const longest = Math.max(...sites.map((site) => site.name.length))
+  const lanes = scenarioRows(rows)
+  // The label column is as wide as its longest label needs (a letter, then the site's name), up to a limit (set in the styles); past it a name is shortened.
+  const longest = Math.max(...lanes.map((lane) => lane.siteName.length)) + 2
 
   // The rows' and the header's widths in pixels and the size of 1rem: to stand flags side by side where
   // their landings are close, and to know whether the header has room for the heights in full.
@@ -175,21 +176,19 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
   // row of the scenario on show: which row, and the whole stretch it belongs to. Its words show over its own row.
   const [pointed, setPointed] = useState<({ row: number } & RiverSegment) | null>(null)
   const [focused, setFocused] = useState(false)
-  // The flag under the pointer or the keyboard: its mission is previewed as a thin outline on its row.
-  const [previewed, setPreviewed] = useState<string | null>(null)
   const point = (event: PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect()
     const tracks = [...(event.currentTarget.parentElement?.querySelectorAll('.sl-site-row .sl-track') ?? [])]
     const row = tracks.findIndex((one) => event.clientY >= one.getBoundingClientRect().top - 3 && event.clientY <= one.getBoundingClientRect().bottom + 3)
-    const flags = row >= 0 ? sites[row].flags : null
+    const flags = row >= 0 ? lanes[row].flags : null
     if (!flags) return setPointed(null)
     const fraction = Math.min(Math.max((event.clientX - box.left) / box.width, 0), 1)
     const run = runAt(flags, Math.min(from + Math.floor(fraction * count), to - 1))
     // Moving along the same band changes nothing: the words are drawn again only for another band.
     setPointed((before) => (before && before.row === row && before.from === run.from ? before : { row, ...run }))
   }
-  const onShow = sites.findIndex((site) => site.scenarios.some((one) => one.active))
-  const shownFlags = onShow >= 0 ? sites[onShow].flags : null
+  const onShow = lanes.findIndex((lane) => lane.active)
+  const shownFlags = onShow >= 0 ? lanes[onShow].flags : null
   const band = pointed ?? (focused && shownFlags ? { row: onShow, ...runAt(shownFlags, Math.floor(hour)) } : null)
   const seek = (event: PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect()
@@ -311,84 +310,65 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
             <span />
             <span />
           </div>
-          {sites.map((site, s) => {
-            // Each flag is centred on its landing; one that lands outside the hours on show stands at that edge.
-            const centres = site.scenarios.map((one) => ((one.landing + 0.5 - from) / count) * track.width)
-            const places = track.width > 0 ? flagPlaces(centres, track.width, flagWidth) : null
-            const selected = site.scenarios.findIndex((one) => one.active)
-            const side = places && selected >= 0 ? labelSide(places, selected, track.width, flagWidth, LABEL_REM * track.rem) : 'right'
+          {lanes.map((one, n) => {
+            // The flag is centred on its landing; one that lands outside the hours on show stands at that edge.
+            const place = track.width > 0 ? flagPlaces([((one.landing + 0.5 - from) / count) * track.width], track.width, flagWidth)[0] : null
+            const side = place !== null ? labelSide([place], 0, track.width, flagWidth, LABEL_REM * track.rem) : 'right'
+            const where = one.landing < from ? 'before' : one.landing >= to ? 'after' : null
+            const state = one.flags ? stateAt(one.flags, one.landing) : null
+            const first = Math.max(one.landing, from)
+            const end = Math.min(one.landing + missionHours, to)
             return (
-              <div key={site.site} className={band && band.row === s ? 'sl-row sl-site-row is-pointed' : 'sl-row sl-site-row'} data-site={site.site}>
-                <span className="sl-site-name" title={`${site.name}: what is in view there, hour by hour.`}>
-                  {site.name}
+              <div key={one.key} className={`sl-row sl-site-row${one.active ? ' is-on-show' : ''}${band && band.row === n ? ' is-pointed' : ''}`} data-site={one.site} data-scenario={one.letter}>
+                <span className="sl-site-name" title={`Scenario ${one.letter}, at ${one.siteName}: what is in view there, hour by hour.`}>
+                  <b className="sl-row-letter">{one.letter}</b> {one.siteName}
                 </span>
                 <div className="sl-site-track">
                   <div className="sl-flags">
-                    {site.scenarios.map((one, i) => {
-                      const where = one.landing < from ? 'before' : one.landing >= to ? 'after' : null
-                      const state = one.flags ? stateAt(one.flags, one.landing) : null
-                      return (
-                        <button
-                          key={one.key}
-                          type="button"
-                          className={`sl-flag${state ? ` is-${state}` : ''}${where ? ` is-${where}` : ''}`}
-                          aria-pressed={one.active}
-                          aria-label={`Scenario ${one.letter}: ${one.full}`}
-                          title={`Scenario ${one.letter}: lands at ${one.siteName} on ${one.full.replace(`${one.siteName} · `, '')}${where ? `, ${where} the days shown` : ''}. ${one.active ? 'Press to move the time bar back to its landing.' : 'Press to select it and move the time bar to its landing.'}`}
-                          data-hour={one.landing}
-                          onPointerEnter={() => setPreviewed(one.key)}
-                          onPointerLeave={() => setPreviewed((current) => (current === one.key ? null : current))}
-                          onFocus={() => setPreviewed(one.key)}
-                          onBlur={() => setPreviewed((current) => (current === one.key ? null : current))}
-                          style={{ left: places ? `${places[i]}px` : `calc(${at(Math.min(Math.max(one.landing + 0.5 - from, 0), count))} - ${FLAG_REM / 2}rem)` }}
-                          onClick={() => {
-                            // A flag is its landing's mark: a press selects the scenario and goes to that hour.
-                            onSelect(one.key)
-                            clock.setHour(one.landing)
-                          }}
-                        >
-                          {where === 'before' && '‹'}
-                          {one.letter}
-                          {where === 'after' && '›'}
-                        </button>
-                      )
-                    })}
-                    {/* The selected mission, named beside its flag. */}
-                    {selected >= 0 && places && side && (
-                      <span className={`sl-span-label is-${side}`} style={{ left: `${side === 'right' ? places[selected] + flagWidth : places[selected]}px` }}>
-                        {missionLabel(site.scenarios[selected].letter, missionHours)}
+                    <button
+                      type="button"
+                      className={`sl-flag${state ? ` is-${state}` : ''}${where ? ` is-${where}` : ''}`}
+                      aria-pressed={one.active}
+                      aria-label={`Scenario ${one.letter}: ${one.full}`}
+                      title={`Scenario ${one.letter}: lands at ${one.siteName} on ${one.full.replace(`${one.siteName} · `, '')}${where ? `, ${where} the days shown` : ''}. ${one.active ? 'Press to move the time bar back to its landing.' : 'Press to select it and move the time bar to its landing.'}`}
+                      data-hour={one.landing}
+                      style={{ left: place !== null ? `${place}px` : `calc(${at(Math.min(Math.max(one.landing + 0.5 - from, 0), count))} - ${FLAG_REM / 2}rem)` }}
+                      onClick={() => {
+                        // A flag is its landing's mark: a press selects the scenario and goes to that hour.
+                        onSelect(one.key)
+                        clock.setHour(one.landing)
+                      }}
+                    >
+                      {where === 'before' && '‹'}
+                      {one.letter}
+                      {where === 'after' && '›'}
+                    </button>
+                    {/* The mission on show, named beside its flag. */}
+                    {one.active && place !== null && side && (
+                      <span className={`sl-span-label is-${side}`} style={{ left: `${side === 'right' ? place + flagWidth : place}px` }}>
+                        {missionLabel(one.letter, missionHours)}
                       </span>
                     )}
                   </div>
                   <div className="sl-track">
                     <svg viewBox={`0 0 ${count} 12`} preserveAspectRatio="none" aria-hidden="true">
-                      {site.flags &&
-                        stateRuns(site.flags, from, to).map((run) => (
+                      {one.flags &&
+                        stateRuns(one.flags, from, to).map((run) => (
                           <rect key={run.from} className={`sl-run is-${run.state}`} x={run.from} y={BAND[run.state].y} width={run.to - run.from} height={BAND[run.state].height} />
                         ))}
                     </svg>
-                    {/* One mission is drawn on a row, from its landing to its end: the selected one, lit, with the row dimmed on
-                        either side of it. Every other scenario is its flag alone, so two missions at one site never lie over each
-                        other; pointing at a flag, or reaching it with the keyboard, previews its mission as a thin outline. */}
-                    {site.scenarios.map((one) => {
-                      if (!one.active && one.key !== previewed) return null
-                      const first = Math.max(one.landing, from)
-                      const end = Math.min(one.landing + missionHours, to)
-                      if (end <= first) return null
-                      return (
-                        <span
-                          key={one.key}
-                          className={`sl-span${one.active ? ' is-lit' : ' is-preview'}${one.landing >= from ? ' has-start' : ''}${one.landing + missionHours <= to ? ' has-end' : ''}`}
-                          data-scenario={one.letter}
-                          data-hours={end - first}
-                          style={{ left: at(first - from), width: at(end - first) }}
-                        />
-                      )
-                    })}
-                    {selected >= 0 && site.scenarios[selected].landing > from && <span className="sl-dim" style={{ left: 0, width: at(Math.min(site.scenarios[selected].landing, to) - from) }} />}
-                    {selected >= 0 && site.scenarios[selected].landing + missionHours < to && (
-                      <span className="sl-dim" style={{ left: at(Math.max(site.scenarios[selected].landing + missionHours, from) - from), right: 0 }} />
+                    {/* Every row draws its own mission, from its landing to its end, and is dimmed on either side of it: bright
+                        inside the mission, dim outside. The scenario on show has the full outline; the others a thin one. */}
+                    {end > first && (
+                      <span
+                        className={`sl-span${one.active ? ' is-lit' : ''}${one.landing >= from ? ' has-start' : ''}${one.landing + missionHours <= to ? ' has-end' : ''}`}
+                        data-scenario={one.letter}
+                        data-hours={end - first}
+                        style={{ left: at(first - from), width: at(end - first) }}
+                      />
                     )}
+                    {one.landing > from && <span className="sl-dim" style={{ left: 0, width: at(Math.min(one.landing, to) - from) }} />}
+                    {one.landing + missionHours < to && <span className="sl-dim" style={{ left: at(Math.max(one.landing + missionHours, from) - from), right: 0 }} />}
                   </div>
                 </div>
               </div>
