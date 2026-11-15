@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SiteFlags } from './flags'
-import { bandWords, clockDate, clockTime, fieldAt, hourFromField, isoAt, degWords, elevationWords, tabTitle, monthSpan, riverTicks, riverWindow, runAt, skylineCentre, skylineDomain, skylineHorizon, skylineStretch, skylineX, smoothHorizonDeg, stateAt, stateRuns, stretchWords, sunDirection, wholeHour, yearHour } from './sightline'
+import { bandWords, clockDate, clockTime, fieldAt, hourFromField, isoAt, degWords, elevationWords, tabTitle, monthSpan, riverTicks, riverWindow, runAt, skylineCentre, skylineDomain, skylineHorizon, skylineReadout, skylineStretch, skylineX, smoothHorizonDeg, stateAt, stateRuns, stretchWords, sunDirection, wholeHour, yearHour } from './sightline'
 
 const START = '2027-01-01T00:00:00Z'
 
@@ -176,5 +176,26 @@ describe('the skyline strip', () => {
     expect(stretchWords(3.84)).toBe('height stretched 3.8 times')
     expect(stretchWords(0.25)).toBe('height squeezed to 1/4')
     expect(stretchWords(1.1)).toBe('close to true proportions')
+  })
+})
+
+describe('skylineReadout', () => {
+  it('says the side once when the Sun and Earth are on the same side of the skyline', () => {
+    expect(skylineReadout(3.04, 0.94)).toBe('Sun 3.0° · Earth 0.9° above the skyline')
+    expect(skylineReadout(-26.5, -3.2)).toBe('Sun 26.5° · Earth 3.2° below the skyline')
+  })
+
+  it('says each side, and never a negative amount above, when they differ', () => {
+    expect(skylineReadout(0.7, -1.1)).toBe('Sun 0.7° above · Earth 1.1° below the skyline')
+    expect(skylineReadout(-0.4, 7.9)).toBe('Sun 0.4° below · Earth 7.9° above the skyline')
+  })
+
+  it('counts a body on the skyline, or within the rounding of it, as above', () => {
+    expect(skylineReadout(-0.04, 2)).toBe('Sun 0.0° · Earth 2.0° above the skyline')
+  })
+
+  it('shows "…" for a figure that has not loaded', () => {
+    expect(skylineReadout(null, null)).toBe('Sun … · Earth … above the skyline')
+    expect(skylineReadout(null, -1.1)).toBe('Sun … · Earth 1.1° below the skyline')
   })
 })

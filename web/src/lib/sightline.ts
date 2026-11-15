@@ -64,8 +64,25 @@ export function aboveSkylineMeans(body: 'the Sun' | 'Earth', obsHeightM: number)
   return `How far ${body}'s center is above the skyline in its direction, at landing${from}. Above 0° its center clears the terrain.`
 }
 
-/** The same for the time bar's readout of both, at the hour on show. */
-export const ABOVE_SKYLINE_MEANS = "How far the Sun's and Earth's centers are above the skyline, at the hour on the time bar."
+/** The same for the skyline strip's readout of both, at the hour on show. */
+export const ABOVE_SKYLINE_MEANS = "How far the Sun's and Earth's centers are from the skyline, and on which side, at the hour on the time bar."
+
+/**
+ * The skyline strip's readout of the Sun and Earth at the hour on show. It says which side of the
+ * skyline each is on, never a negative amount "above": "Sun 0.7° above · Earth 1.1° below the
+ * skyline". When both are on one side the side is said once: "Sun 3.0° · Earth 0.9° above the
+ * skyline". A body exactly on the skyline counts as above, as in the column's rows. "…" stands for a
+ * figure that has not loaded.
+ */
+export function skylineReadout(sunDeg: number | null, earthDeg: number | null): string {
+  const tenths = (deg: number | null) => (deg === null ? null : Math.round(deg * 10) / 10)
+  const sun = tenths(sunDeg)
+  const earth = tenths(earthDeg)
+  const amount = (value: number | null) => (value === null ? '…' : degWords(Math.abs(value)))
+  const side = (value: number) => (value < 0 ? 'below' : 'above')
+  if (sun !== null && earth !== null && side(sun) !== side(earth)) return `Sun ${amount(sun)} ${side(sun)} · Earth ${amount(earth)} ${side(earth)} the skyline`
+  return `Sun ${amount(sun)} · Earth ${amount(earth)} ${side(sun ?? earth ?? 0)} the skyline`
+}
 
 /** The ISO time of a clock hour, to the whole hour. */
 export function isoAt(startIso: string, hour: number): string {
