@@ -429,8 +429,9 @@ describe('tools', () => {
       earth: 'out of view',
       landing: 'does not meet the limits',
       problem_1: 'Earth is out of view at landing',
-      next_landing: '21 June 2027, 17:00 UTC',
-      next_landing_wait: '41 h',
+      // The hour the screen offers: the first that fits with Earth's center above the skyline, not the edge of Earth alone.
+      next_landing: '22 June 2027, 07:00 UTC',
+      next_landing_wait: '2 d 7 h',
     })
   })
 
