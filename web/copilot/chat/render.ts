@@ -81,10 +81,20 @@ export function cleanFollowup(value: unknown, allowedWords: string[]): string | 
   return LINK.test(rest) || numberWritten(rest) ? null : text
 }
 
-/** What the server says when the model couldn't produce a clean answer: the facts themselves. */
+/**
+ * What the server says when the model couldn't produce a clean answer: the facts themselves. The
+ * latest tool result, if a tool ran; otherwise the figures the view already holds for the scenario
+ * on the visitor's screen (the ones its Compare table shows), so a question about that scenario is
+ * never answered with a bare apology while its figures are in hand.
+ */
 export function fallbackAnswer(book: FactBook): string {
   const latest = [...book.entries()].filter(([ref]) => ref !== 'r0').at(-1)?.[1]
-  if (!latest) return "Sorry, I couldn't answer that. Try asking about a site, a month or a landing date."
-  const lines = latest.slice(0, 8).map((fact) => `${fact.label}: ${fact.value}.`)
-  return `Here is what the data says. ${lines.join(' ')}`
+  const said = (facts: Fact[]) => facts.map((fact) => `${fact.label}: ${fact.value.replace(/\.$/, '')}.`).join(' ')
+  if (latest) return `Here is what the data says. ${said(latest.slice(0, 8))}`
+  const view = book.get('r0') ?? []
+  const letter = /^([A-D]):/.exec(view.find((fact) => fact.key === 'scenario_on_screen')?.value ?? '')?.[1]
+  const own = letter ? view.filter((fact) => fact.key.startsWith(`scenario_${letter.toLowerCase()}_`)) : []
+  if (own.length === 0) return "Sorry, I couldn't answer that. Try asking about a site, a month or a landing date."
+  const heights = view.filter((fact) => fact.key === 'panel_height' || fact.key === 'antenna_height')
+  return `Here is what the data says for the scenario on your screen. ${said([...heights, ...own].slice(0, 10))}`
 }

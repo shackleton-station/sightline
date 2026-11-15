@@ -297,11 +297,16 @@ export function marginalWords(sunShare: number | null): string | null {
  * landing itself when the stretch has no such hour inside that month.
  */
 export function steadierLanding(flags: SiteFlags, landing: number, mission: SightlineMission, shares: number[], monthStart: number): number {
-  const earth = missionEarth(flags, mission.requirements)
+  return steadierHour(flags, landing, mission.requirements, shares, monthStart)
+}
+
+/** `steadierLanding` from the Sun and Earth limits alone, for callers that hold no whole mission (the co-pilot's tools). */
+export function steadierHour(flags: SiteFlags, landing: number, requirements: Requirements, shares: number[], monthStart: number): number {
+  const earth = missionEarth(flags, requirements)
   for (let hour = landing; hour < flags.sun.length && flags.sun[hour]; hour += 1) {
     const share = shares[hour - monthStart]
     if (share === undefined) break
-    if (share >= MARGINAL_SUN_SHARE && landingProblems(flags.sun, earth, hour, mission.requirements).length === 0) return hour
+    if (share >= MARGINAL_SUN_SHARE && landingProblems(flags.sun, earth, hour, requirements).length === 0) return hour
   }
   return landing
 }

@@ -33,7 +33,7 @@ describe('horizons_check, Scout’s way to check an hour with NASA JPL Horizons'
     expect(value('sun_elevation_ours')).toBe(deg(mine.sun_el))
     expect(value('earth_azimuth_ours')).toBe(deg(mine.earth_az))
     expect(value('earth_elevation_nasa')).toBe(deg(Math.round((mine.earth_el + 0.02) * 100) / 100))
-    expect(value('largest_difference')).toBe('0.02°')
+    expect(value('agreement')).toBe('within 0.02°')
     expect(value('ephemeris')).toBe('DE441')
     expect(value('height')).toBe('1.958 km')
   })

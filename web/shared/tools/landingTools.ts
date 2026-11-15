@@ -3,9 +3,9 @@ import { type GridCell, type GridMetric, gridRow, metricFlags, monthSpans } from
 import { landingWindows, missionEarth } from '../../src/lib/mission'
 import { formatDuration } from '../../src/lib/nextChange'
 import { entryAt, measureEntry, rankOptions, toIso } from '../../src/lib/shortlist'
-import { nextViable } from '../../src/lib/slip'
 import { type Args, countArg, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
 import { daysLabel, fact, type Fact, isoAt, limitsLabel, monthWords, type ToolResult, whenLabel } from './facts'
+import { nextLandingOnScreen } from './nextLanding'
 import { listWords, monthsWords, tiedWith, tieWords } from './ties'
 
 const METRICS: Record<GridMetric, string> = {
@@ -131,8 +131,8 @@ export async function landingWindowsInMonth(args: Args, ctx: ToolContext): Promi
     facts.push(fact(`window_${i + 1}_length`, 'Its length', formatDuration(window.to - window.from)))
   })
   if (windows.length === 0) {
-    const next = nextViable(flags, isoAt(flags.start, span.from), requirements)
-    facts.push(fact('next_landing', 'Next hour that meets the limits', next ? whenLabel(next.t) : 'none in the data'))
+    const next = await nextLandingOnScreen(ctx.data, site.id, flags, isoAt(flags.start, span.from), requirements)
+    facts.push(fact('next_landing', 'Next landing that fits, as the visitor\'s screen offers it', next ? whenLabel(next.t) : 'none in the data'))
   }
   return { ok: true, title: `${site.name}, ${monthWords(month)}: landing windows`, facts }
 }
@@ -143,12 +143,13 @@ export async function nextLanding(args: Args, ctx: ToolContext): Promise<ToolRes
   const flags = await ctx.data.flags(site.id)
   const iso = timeArg(args.time, flags)
   const requirements = limitsArg(ctx, args)
-  const next = nextViable(flags, iso, requirements)
+  // The hour the visitor's screen offers as "Next landing that fits", by the same rule.
+  const next = await nextLandingOnScreen(ctx.data, site.id, flags, iso, requirements)
   const facts: Fact[] = [
     fact('site', 'Site', site.name),
     fact('from', 'Looking from', whenLabel(iso)),
     fact('limits', 'Checked against', limitsLabel(requirements)),
-    fact('next_landing', 'Next hour that meets the limits', next ? whenLabel(next.t) : 'none in the data'),
+    fact('next_landing', 'Next landing that fits, as the visitor\'s screen offers it', next ? whenLabel(next.t) : 'none in the data'),
   ]
   if (next) facts.push(fact('wait', 'Wait until then', next.waitH === 0 ? 'none: that hour already works' : formatDuration(next.waitH)))
   return { ok: true, title: `${site.name}: next landing after ${whenLabel(iso)}`, facts }

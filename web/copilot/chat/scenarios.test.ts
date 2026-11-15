@@ -37,7 +37,8 @@ describe('scenarioScene', () => {
     expect(value('scenario_a_ground_slope')).toBe('1.2°')
     expect(value('scenario_b_sunlit_share_of_mission')).toBe('66%')
     expect(value('scenario_b_longest_time_without_sun')).toBe('79 h')
-    expect(value('scenario_b_verdict')).toMatch(/^does not meet the mission limits: The Sun is gone for 79 h/)
+    expect(value('scenario_b_verdict')).toBe('does not meet the mission limits')
+    expect(value('scenario_b_reason_1')).toMatch(/^the Sun is gone for 79 h/)
   })
 
   it('with one scenario still says which is on screen', async () => {
