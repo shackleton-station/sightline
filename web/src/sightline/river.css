@@ -116,9 +116,9 @@
   margin-top: 0.25rem;
 }
 
-/* Room above the first row for the line's handle. */
+/* Room above the first row for the line's handle: all of it, clear of the ring round the flag on show. */
 .sl-row.sl-lane {
-  height: 0.55rem;
+  height: 1.15rem;
   margin-top: 0;
 }
 
@@ -259,9 +259,9 @@
   margin-top: 0.3rem;
 }
 
-/* Two lines: the axis's labels, then the date of the hour on show under them. */
+/* Two lines: the axis's labels, then the date of the hour on show under them, with its ring, all inside the box. */
 .sl-river .sl-axis .sl-track {
-  height: 2.25rem;
+  height: 2.65rem;
 }
 
 .sl-river .sl-axis {
@@ -282,7 +282,7 @@
 
 /* The layer that takes a drag covers the handle's lane and every row, down to the axis. */
 .sl-river .sl-seek {
-  bottom: 2.55rem;
+  bottom: 2.95rem;
   z-index: 1;
 }
 
@@ -318,14 +318,14 @@
   pointer-events: none;
 }
 
-/* The line's handle, at its top. */
+/* The line's handle, at its top: a whole disc (a flat-topped one read as a disc with its top cut off). */
 .sl-line-handle {
   position: absolute;
   top: 0;
   left: 50%;
   width: 0.8rem;
-  height: 0.6rem;
-  border-radius: 3px 3px 50% 50%;
+  height: 0.8rem;
+  border-radius: 50%;
   background: var(--gold);
   box-shadow: 0 0 0 1px #000;
   transform: translateX(-50%);

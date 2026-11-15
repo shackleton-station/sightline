@@ -795,7 +795,10 @@ the name is shown, and for the Sun the answer says "under 1%".
 
 ### Stretching heights changes nothing that is hidden
 
-"Stretch heights ×5" scales the whole scene along "up": every height above or below eye level (the tangent of the
+*The page no longer offers a height stretch (removed 2026-11-15): the Surface picture is always at true scale. The
+geometry below is still in `lib/surfaceView.ts` and its tests, which is what this section checked.*
+
+The stretch (it was five times) scaled the whole scene along "up": every height above or below eye level (the tangent of the
 elevation) is multiplied by five. Eye level stays put, straight up stays straight up, and a point of a disk and the
 point of land in front of it stay on the same line from the eye, so the same part of each disk is covered, stretched or
 not. The tests check that the stretch multiplies heights and undoes exactly, that a hill one degree up is drawn five
