@@ -2059,12 +2059,20 @@
 
 /* The panel's one figure: first, large, and in the text's own color. It is not green or gold, which
    elsewhere mean "fits" and "better": a low share in green would read as good news. */
+.sl-np .np-rain-ask {
+  grid-column: 1 / -1;
+  margin: 0.7rem 0 0;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
 .sl-np .np-rain-big {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  margin: 0.6rem 0 0;
+  margin: 0;
 }
 
 .sl-np .np-rain-big strong {

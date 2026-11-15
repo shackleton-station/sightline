@@ -426,32 +426,31 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
 
   return (
     <div className="np-rain">
-      {/* The one figure the panel is about, first and once: every other line refers to it without writing it again. */}
+      {/* In reading order: the question, its answer (the one figure the panel is about, written once), what to do about it, then how to read the map. */}
+      <p className="np-rain-ask">Will your mission still work if the lander misses its mark?</p>
       <p className="np-rain-big">
         <strong>{oddsWords(odds.fit)}</strong>
         <span>of landings come down where the mission fits</span>
       </p>
-      <p className="np-lead">
-        <b>Will your mission still work if the lander misses its mark?</b>{' '}
-        {compact
-          ? `A lander comes down anywhere within about ${shownM} m of its aim. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails.`
-          : `The brief judges one exact point, but a lander comes down anywhere within about ${shownM} m of its aim, and on a ridge the Sun and Earth can be lost within that distance. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails.`}{' '}
-        <b>Aim</b> moves your target so more landings fit.
-      </p>
       {better ? (
         <p className="np-act">
-          <button type="button" className="np-act-go" onClick={takeAim} title="Move the target to the better place to aim, marked with a diamond on the map">
-            ◆ Aim {Math.round(Math.hypot(better.x, better.y))} m away at {clock(better.x, better.y)}
-          </button>
           <span>
-            Aiming there raises it to <b>{Math.round(better.fit * 100)}%</b>.
+            A better aim makes it <b>{Math.round(better.fit * 100)}%</b>.
           </span>
+          <button type="button" className="np-act-go" onClick={takeAim} title="Move the target to the better place to aim, marked with a diamond on the map">
+            ◆ Move the aim {Math.round(Math.hypot(better.x, better.y))} m, toward {clock(better.x, better.y)}
+          </button>
         </p>
       ) : (
         <p className="np-act is-done">
           <span>✓ Your target is already the best place to aim within reach.</span>
         </p>
       )}
+      <p className="np-lead">
+        {compact
+          ? `A lander comes down anywhere within about ${shownM} m of its aim. Each dot is one simulated landing: green ground keeps power and radio for your whole mission; the other colours say what fails.`
+          : `The brief judges one exact point, but a lander comes down anywhere within about ${shownM} m of its aim, and on a ridge the Sun and Earth can be lost within that distance. Each dot is one simulated landing: green ground keeps power and radio for your whole mission; the other colours say what fails.`}
+      </p>
       <div className="np-rain-stage" ref={box}>
         <canvas ref={canvas} role="img" aria-label={`Simulated landings around ${site.name}: ${pct(fitCount)}% of ${down} so far came down where the mission fits; the model gives ${Math.round(odds.fit * 100)}%.`} />
       </div>
