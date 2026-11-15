@@ -117,12 +117,12 @@
   fill: var(--text);
 }
 
-/* The month's path: a thin line under the hour dots, solid where the body is up, dashed behind the land. */
+/* The month's path: a thin line, solid where the body is up, dashed behind the land. */
 .sf-path {
   fill: none;
   stroke-width: 1.5;
   stroke-linejoin: round;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .sf-path.sun {
@@ -138,24 +138,6 @@
   opacity: 0.45;
 }
 
-.sf-hour {
-  opacity: 0.75;
-}
-
-.sf-hour.sun {
-  fill: var(--sun);
-  stroke: var(--sun);
-}
-
-.sf-hour.earth {
-  fill: var(--earth);
-  stroke: var(--earth);
-}
-
-.sf-hour.hidden {
-  fill: none;
-  opacity: 0.5;
-}
 
 .sf-tag text {
   font: 700 13px var(--sans);
@@ -249,6 +231,17 @@
   border-bottom: 0;
   background: rgb(238 241 248 / 9%);
   transform: translateX(-50%);
+}
+
+/* The compass's marks, drawn once: the tape slides under the needle as the view turns. */
+.sf-compass-slide,
+.sf-compass-ticks {
+  position: absolute;
+  inset: 0;
+}
+
+.sf-compass-slide {
+  will-change: transform;
 }
 
 .sf-tick {

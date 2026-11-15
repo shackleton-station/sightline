@@ -6,7 +6,8 @@ import type { BodyRadii, Look } from '../lib/surfaceView'
 import type { GroundTint } from '../three/SurfaceViewer'
 import { StageActions } from './StageActions'
 import { offCenterNow, type PaneControls, SurfacePane } from './SurfacePane'
-import { useGlide } from './useGlide'
+import { monthPaths } from '../lib/skyPaths'
+import { useDrawnHour } from './useDrawnHour'
 import type { Body } from './useLook'
 import { hasTouchPointer, useMotionLook } from './useMotionLook'
 
@@ -29,9 +30,6 @@ interface Props {
 // The flat chart (and the charting library under it) is fetched only where the picture can't be drawn.
 const HorizonPanorama = lazy(() => import('../components/HorizonPanorama').then((module) => ({ default: module.HorizonPanorama })))
 
-/** The path dots cover the day before the hour on screen and the two days after. */
-const HOURS_BEFORE = 24
-const HOURS_AFTER = 48
 /** The two views, in the order they sit: side by side, or one above the other on a phone. */
 const VIEWS: Body[] = ['sun', 'earth']
 
@@ -46,21 +44,10 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
 
   const now = track[Math.min(index, track.length - 1)]
   const discs = radii[Math.min(index, radii.length - 1)]
-  const sky = useGlide({ sunAz: now.sun_az, sunEl: now.sun_el, earthAz: now.earth_az, earthEl: now.earth_el }, `${site.id}@${month}`, still)
+  // Where the Sun and Earth are drawn: following the hour on show steadily, between hours too.
+  const sky = useDrawnHour(track, index, `${site.id}@${month}`, still)
   // Each body's path over the whole month, drawn as a line across the picture.
-  const wholeMonth = useMemo(
-    () => ({
-      sun: track.map((point) => ({ azDeg: point.sun_az, elDeg: point.sun_el, up: point.sun_up })),
-      earth: track.map((point) => ({ azDeg: point.earth_az, elDeg: point.earth_el, up: point.earth_up })),
-    }),
-    [track],
-  )
-  // The hours either side of this one, as dots along that path.
-  const hours = useMemo(() => {
-    const from = Math.max(index - HOURS_BEFORE, 0)
-    const to = index + HOURS_AFTER + 1
-    return { first: from, sun: wholeMonth.sun.slice(from, to), earth: wholeMonth.earth.slice(from, to), month: wholeMonth }
-  }, [wholeMonth, index])
+  const paths = useMemo(() => monthPaths(track), [track])
 
   // Zoom and stretch go to both views, so they stay at one scale. The arrow keys and the phone's
   // sensor steer one: the view last touched, the Sun's to begin with.
@@ -129,7 +116,7 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
             now={now}
             sky={sky}
             discs={discs}
-            hours={hours}
+            paths={paths}
             still={still}
             level={level}
             opening={lens}

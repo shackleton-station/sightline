@@ -898,8 +898,9 @@ disks and 7,000 points. This is time on the main thread and frames arriving on t
 - **The land is a shape, not ground.** Its lighter rim under the top edge and the Sun's glare are ways of drawing. There
   are no shadows, no slopes, and nothing beyond the skyline. The glare fades with the track's share of the Sun's disk,
   so there is no glow after the Sun has gone.
-- **Between two hours the disks slide in a straight line** from one hourly position to the next and come to rest on the
-  hour's own; a drag along the time river goes straight there.
+- **Between two hours the disks move steadily** along the great circle from one hourly position to the next, at the pace
+  the hours are arriving (since 2026-11-15, `lib/skyBetween.ts`, `surface/useDrawnHour.ts`); on the hour they are at the
+  hour's own position. A drag along the time river goes straight there.
 - **Earth's face is not the real one.** Its lit part is the phase seen from the site; which side faces the Moon, and the
   tilt of its axis, are not modelled (its north is drawn along the Moon's).
 - It inherits everything above: the horizon is the pipeline's, with its 0.5° steps and its ridge-top gap against NASA's
