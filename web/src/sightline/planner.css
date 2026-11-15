@@ -590,3 +590,65 @@
   font-variant-numeric: tabular-nums;
 }
 
+
+/* ---------- A fold: a part behind its own heading until asked for ---------- */
+.pl-fold {
+  min-width: 0;
+}
+
+.pl-fold-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.8rem;
+}
+
+.sl-full .pl-fold-head {
+  margin: 0;
+}
+
+.sl-full .pl-fold-head button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-height: 2rem;
+  padding: 0.2rem 0.3rem 0.2rem 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sl-full .pl-fold-head button:hover {
+  color: var(--gold);
+}
+
+/* The mark: a small angle pointing right while closed, down while open. */
+.pl-fold-mark {
+  flex: none;
+  width: 0.42rem;
+  height: 0.42rem;
+  margin: 0 0.25rem 0 0.1rem;
+  border-right: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  transform: translateY(-0.12rem) rotate(-45deg);
+}
+
+.pl-fold[data-open='yes'] .pl-fold-mark {
+  transform: translateY(-0.2rem) rotate(45deg);
+}
+
+.pl-fold-hint {
+  color: var(--soft);
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.pl-fold-body {
+  margin: 0.4rem 0 0.8rem;
+}

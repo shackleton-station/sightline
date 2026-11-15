@@ -186,3 +186,104 @@
   margin-top: 0;
 }
 
+
+/* ---------- The folds: the ground nearby, landing accuracy, the playback, the battery ---------- */
+
+/* Their parts are styled under the detailed planner's page class. A wrapper carries that class for
+   their sake and takes back what the class does to a page. */
+.plh .sl-np,
+.plh.sl-np {
+  grid-area: auto;
+  overflow: visible;
+  padding: 0;
+  background: none;
+}
+
+/* Each fold runs the strip's width. */
+.plh-strip > .plh-nearby,
+.plh-strip > .plh-accuracy {
+  grid-column: 1 / -1;
+}
+
+/* Of the older map of the ground nearby only its one sentence stays, under the fold's heading: the
+   fold holds the newer map. */
+.plh-nearby .pl-nearby > button,
+.plh-nearby .pl-nearby-map {
+  display: none;
+}
+
+.plh-nearby .pl-nearby {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.plh-nearby .pl-nearby > p {
+  max-width: 60rem;
+  margin: 0;
+  color: var(--soft);
+}
+
+/* Each fold's heading says what it holds, so the part's own heading is left out. */
+.plh-folds .np-play-head > h3,
+.plh-battery .np-mc-head > h3 {
+  display: none;
+}
+
+/* Compare shows the Sun's height over each mission and the Sun and Earth bands above, in this
+   screen's own words. The battery's part draws both again, first and third: only its battery stays. */
+.plh-battery .np-mc > figure:nth-of-type(1),
+.plh-battery .np-mc > figure:nth-of-type(3) {
+  display: none;
+}
+
+/* Compare's folds, under every scenario's Sun height and power. */
+.plh-folds {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 1.1rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+}
+
+.plh-folds > * {
+  min-width: 0;
+}
+
+.plh-place-note {
+  margin: 0 0 0.5rem;
+}
+
+/* A part inside a fold starts at the fold's own heading: no rule or space of its own above it. */
+.plh-ground.sl-np .np-near,
+.plh-accuracy.sl-np .np-rain,
+.plh-folds.sl-np .np-play,
+.plh-folds.sl-np .np-mc {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* Inside a fold the playback and the battery are parts of the page, not cards of their own: the
+   battery's chart is drawn as wide as its part, so padding there would push it past the edge. */
+.plh-folds.sl-np .np-play,
+.plh-folds.sl-np .np-mc {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+/* The Planner's column is narrower than the page these parts were drawn for. Three of them hold a
+   line or a control that will not shrink, and would run past the edge: each is let wrap or shrink. */
+.plh-accuracy.sl-np .np-explain-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.plh-accuracy.sl-np .np-explain-card :is(input, svg) {
+  max-width: 100%;
+}
+
+.plh-sunchart .sl-legend {
+  white-space: normal;
+}

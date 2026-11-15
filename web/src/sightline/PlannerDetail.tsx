@@ -2,6 +2,7 @@ import { isBaseHeights } from '../lib/heights'
 import { clockTime, degWords, isoAt } from '../lib/sightline'
 import { type ScenarioMeasure, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { LandingSky } from '../planner/LandingSky'
+import { PlannerCompareVisuals } from './PlannerCompareVisuals'
 import { PlannerPower } from './PlannerPower'
 import { PlannerSunChart } from './PlannerSunChart'
 import { useMissionTracks } from './useMissionTracks'
@@ -32,7 +33,7 @@ function fromLevelWords(elDeg: number): string {
  * Compare, in depth: under the table, the scenario on show read hour by hour from its landing (when
  * the Sun and Earth set and rise, the four figures of the mission, the mission's hours, the Sun's
  * height and the skyline), then, for every scenario, the Sun's height over its mission and a rough
- * power and battery budget.
+ * power and battery budget, and last, folded, the missions played together and a battery hour by hour.
  *
  * One scenario's detail at a time: the one on show, chosen by its letter here or in its column.
  * Every part is the detailed planner's own component, imported as it is and drawn inside the wrapper
@@ -107,6 +108,8 @@ export function PlannerDetail({ start, hours, scenarios, facts, mission, measure
           </p>
         </div>
       </div>
+      {/* Two more looks at every scenario's mission, each folded behind its heading until asked for. */}
+      <PlannerCompareVisuals start={start} scenarios={scenarios} facts={facts} mission={mission} tracks={tracks} heightsNote={heightsNote} />
     </section>
   )
 }

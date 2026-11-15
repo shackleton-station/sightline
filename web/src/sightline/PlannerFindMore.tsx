@@ -2,6 +2,7 @@ import { type CSSProperties, useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { customSiteInfo } from '../data/customSite'
 import { hourOf } from '../lib/mission'
+import { nearbyAnchor } from '../lib/nearby'
 import { isoAt } from '../lib/sightline'
 import type { SightlineMission, SightlineScenario } from '../lib/sightlineMission'
 import { SLIPS } from '../lib/slip'
@@ -11,7 +12,7 @@ import type { PlannerSite } from '../planner/plannerModel'
 import { SlipCheck } from '../planner/SlipCheck'
 import { type Plan, usePlannerView } from '../planner/usePlannerView'
 import { PlannerAlternatives } from './PlannerAlternatives'
-import { PlannerNearby } from './PlannerNearby'
+import { PlannerFindVisuals } from './PlannerFindVisuals'
 import { siteValue } from './site'
 import './plannerHost.css'
 
@@ -39,8 +40,8 @@ const FIRST_SLIP_DAYS = SLIPS[0].days ?? 7
 /**
  * The rest of what Find's strip says about one site and month, with the detail of the detailed
  * planner: each day of the month with its landing hours, what happens if the landing slips, other
- * landings near it in place and time, and, at a site whose surroundings are mapped, how much a few
- * meters change.
+ * landings near it in place and time, and, at a site whose surroundings are mapped, the ground
+ * nearby and where the lander may come down (`PlannerFindVisuals`).
  *
  * Every part is the detailed planner's own component, imported and given this strip's site, month
  * and landing (`usePlannerView` works them out as that planner does). They are drawn inside a
@@ -59,6 +60,8 @@ export function PlannerFindMore({ start, sites, site, month, landing, mission, l
   )
   const fallback = useMemo(() => defaultAddress(requirements), [requirements])
   const view = usePlannerView(row ? sites : null, plan, fallback, slipDays)
+  // The site whose map of the ground nearby covers this one: a ridge site itself, or the one a point of the visitor's own lies near.
+  const anchor = useMemo(() => nearbyAnchor(site, sites.map((one) => one.site)), [site, sites])
   if (!view || view.row.site.id !== site.id || view.month !== month) return <p className="sl-quiet">Reading the month…</p>
 
   const dayOf = (hour: number) => Math.floor((hour - view.answer.span.from) / 24)
@@ -101,21 +104,23 @@ export function PlannerFindMore({ start, sites, site, month, landing, mission, l
         />
       </section>
 
-      {/* Only where the ground around the site is mapped; the heading is this Planner's, in its own spelling. */}
-      {site.nearby_half_m ? (
-      <section className="plh-part plh-nearby" aria-label="The ground around the site">
-        <h5>A few meters make a difference</h5>
-        <PlannerNearby
+      {/* Only where the ground around the site is mapped: two pictures of it, each folded behind its heading. */}
+      {anchor && (
+        <PlannerFindVisuals
+          start={start}
           site={site}
+          anchor={anchor}
           month={month}
-          onSpot={(lat, lon) => {
+          landing={landing}
+          mission={mission}
+          letter={letter}
+          onPlace={(lat, lon) => {
             if (letter === null) return
             const atSite = Math.abs(lat - site.lat) < 1e-6 && Math.abs(lon - site.lon) < 1e-6
             add(atSite ? site : customSiteInfo(lat, lon), isoAt(start, landing))
           }}
         />
-      </section>
-      ) : null}
+      )}
     </div>
   )
 }
