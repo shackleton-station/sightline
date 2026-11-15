@@ -2,6 +2,7 @@ import type { RefObject } from 'react'
 import type { ScenarioData } from '../../data/scenarioData'
 import { GuideEarthDay } from './GuideEarthDay'
 import { GuideStep, type GuideStepId } from './GuideParts'
+import { SUN_AND_EARTH_SKIM } from '../../lib/moonExplained'
 
 interface Props {
   /** The site and month on show, for the comparison with a day on Earth; null while it loads. */
@@ -82,7 +83,7 @@ export function GuideChallenge({ data, why, whyHere, onGo }: Props) {
       id="how-challenge"
       kicker="Step 1"
       title="Understand the challenge"
-      intro="Near the Moon’s south pole the Sun and Earth never climb. They skim the horizon, so the hills around a site decide when it has sunlight for power and Earth in view for radio."
+      intro={SUN_AND_EARTH_SKIM}
     >
       <h3>Why the south pole</h3>
       <ul className="how-cards">

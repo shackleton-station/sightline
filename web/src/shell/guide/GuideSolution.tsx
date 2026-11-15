@@ -4,6 +4,7 @@ import type { ScenarioData } from '../../data/scenarioData'
 import type { VerdictState } from '../../lib/landingVerdict'
 import type { FeatureGuide, TourFile } from '../../lib/tour'
 import { Flow, type FlowStep, GuideStep } from './GuideParts'
+import { SUN_CIRCLES } from '../../lib/moonExplained'
 
 /** The verdict on the scenario on show, as the plan gives it. */
 export interface VerdictOnShow {
@@ -127,7 +128,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, to
     <GuideStep id="how-solution" kicker="Step 3" title="Design a solution" intro="Pick a place, an hour and a mission. Sightline says whether the landing fits, why, and what to change if it does not.">
       <h3>How an answer is made</h3>
       <Flow steps={pipeline} label="How the data is processed" />
-      <p className="how-caption">The Sun circles the horizon about once every 29.5 Earth days. The terrain decides when a site is lit.</p>
+      <p className="how-caption">{SUN_CIRCLES}</p>
 
       <h3>Seven questions, seven tools</h3>
       <ul className="how-tools">

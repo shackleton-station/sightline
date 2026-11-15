@@ -5,7 +5,7 @@ import { formatDuration } from '../../src/lib/nextChange'
 import { wholePct } from '../../src/lib/verdict'
 import { entryAt, measureEntry, rankOptions, toIso } from '../../src/lib/shortlist'
 import { type Args, countArg, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
-import { daysLabel, fact, type Fact, isoAt, limitsLabel, monthWords, type ToolResult, whenLabel } from './facts'
+import { daysLabel, fact, type Fact, isoAt, limitsLabel, monthWords, reasonClause, type ToolResult, whenLabel } from './facts'
 import { nextLandingOnScreen } from './nextLanding'
 import { listWords, monthsWords, tiedWith, tieWords } from './ties'
 
@@ -265,6 +265,27 @@ export async function compareSites(args: Args, ctx: ToolContext): Promise<ToolRe
   return { ok: true, title: `${a.name} and ${b.name}, ${monthWords(month)}: comparison`, facts }
 }
 
+/**
+ * Why an option stands where it does, as a clause that follows its name: "meets the limits and has
+ * the shortest time without the Sun of these options", "does not meet the limits because the Sun is
+ * gone for 95 h, past the 24 h limit". The screen's list shows these as short tags ("Meets your
+ * limits", "Shortest time without Sun on this list"); handed to Scout as they were, a tag read in
+ * an answer like a heading that had been filled in as a value.
+ */
+export function whyWords(reasons: string[]): string {
+  const tag = /^Shortest time without (Sun|Earth) on this list$/
+  const problems = reasons.filter((reason) => reason !== 'Meets your limits' && !tag.test(reason))
+  const clauses = [
+    ...(reasons.includes('Meets your limits') ? ['meets the limits'] : []),
+    ...(problems.length > 0 ? [`does not meet the limits because ${listWords(problems.map(reasonClause))}`] : []),
+    ...reasons.flatMap((reason) => {
+      const body = tag.exec(reason)?.[1]
+      return body ? [`has the shortest time without ${body === 'Sun' ? 'the Sun' : 'Earth'} of these options`] : []
+    }),
+  ]
+  return listWords(clauses)
+}
+
 /** Several landing options (a site and an hour each), ranked. No blended score: limits first, then gaps. */
 export async function rankLandingOptions(args: Args, ctx: ToolContext): Promise<ToolResult> {
   const options = Array.isArray(args.options) ? args.options.slice(0, 6) : []
@@ -285,7 +306,7 @@ export async function rankLandingOptions(args: Args, ctx: ToolContext): Promise<
     facts.push(fact(`option_${n}_site`, `Option ${n}`, row.site.name))
     facts.push(fact(`option_${n}_time`, 'Landing', whenLabel(toIso(row.entry.at))))
     facts.push(fact(`option_${n}_place`, 'Place on the list', `place ${row.rank}`))
-    facts.push(fact(`option_${n}_why`, 'Why', row.reasons.join(' ')))
+    facts.push(fact(`option_${n}_why`, 'Why it stands where it does, as a clause that follows the option\'s name ("{{…_site}} {{…_why}}")', whyWords(row.reasons)))
     if (row.sunGapH !== null) facts.push(fact(`option_${n}_sun_gap`, 'Longest without the Sun during the mission', formatDuration(row.sunGapH)))
     if (row.earthGapH !== null) facts.push(fact(`option_${n}_earth_gap`, 'Longest without Earth during the mission', formatDuration(row.earthGapH)))
     if (row.sunPct !== null) facts.push(fact(`option_${n}_sun`, 'Sun up during the mission', `${row.sunPct.toFixed(0)}%`))
