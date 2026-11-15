@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { hourOf } from '../../src/lib/mission'
+import { hourOf, locateHour } from '../../src/lib/mission'
 import { distanceKm } from '../../src/lib/slip'
 import type { SiteInfo } from '../../src/data/contract'
 import { parseCustomSite, type ViewState } from '../../src/lib/urlState'
@@ -11,6 +11,7 @@ import type { Args } from '../../shared/tools/args'
 import type { SiteData } from '../../shared/tools/data'
 import { distanceWords, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, whenLabel } from '../../shared/tools/facts'
 import { yearsOf } from '../../src/lib/span'
+import { asksAboutPresent, dateBasis, type DateBasis, dayLabel, realHourIso } from './dates'
 import { buildPrompt, systemPrompt } from './prompt'
 import { cleanFollowup, type FactBook, fallbackAnswer, renderAnswer } from './render'
 import { scenarioScene } from './scenarios'
@@ -26,6 +27,11 @@ export interface ChatTurn {
 
 export interface ChatReply {
   text: string
+  /**
+   * A question the page can ask with one press: the same question for the date on the time bar,
+   * offered when the answer was about the present and the bar is on another day.
+   */
+  ask?: { label: string; question: string }
   /** Buttons that open the views the answer talks about. */
   actions: ChatAction[]
   /** What was looked up to answer, in the order it was looked up. */
@@ -67,7 +73,7 @@ export const REFUSAL_TEXT = "I can't answer that one: the language model behind 
 export const LAST_ROUND = `This is your last turn: call ${ANSWER_TOOL} now with the facts you have.`
 
 /** What the visitor is looking at, as facts the model can cite like any tool result (reference r0). */
-export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: number; lon: number } | null = null): Promise<Fact[]> {
+export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: number; lon: number } | null = null, watching = false, dates: ViewDates | null = null): Promise<Fact[]> {
   const sites = await data.sites()
   const [first] = sites
   const flags = await data.flags(first.id)
@@ -84,11 +90,35 @@ export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: nu
     ]
   }
   const monthStart = hourOf(flags.start, `${view.a.month}-01T00:00:00Z`)
+  // On the opening screen (Watch) the visitor is looking at the whole Moon and has chosen no site:
+  // the link names a site only because a link must, so it is not passed on as theirs.
+  // The date the answer is for, decided from the question (dates.ts): the real date for a question
+  // about the present, the time bar's for one about the screen. The view already holds that date.
+  const present = dates?.basis === 'present'
+  const when = [
+    fact('month', present ? 'The real month now ("this month"): the month this answer is for' : 'Month on screen', monthWords(view.a.month)),
+    fact('time', present ? 'The real date and hour now, UTC ("now", "today", "tonight"): the hour this answer is for' : 'Hour on screen', whenLabel(isoAt(flags.start, monthStart + view.index))),
+    ...(present ? [fact('year', 'The real year now ("this year")', view.a.month.slice(0, 4))] : []),
+    ...(dates ? [fact('date_asked', 'Which date the question is about (already decided: use month and time as given)', present ? 'the present: the real date, not the time bar' : 'what the screen shows: the date on the time bar')] : []),
+    ...(dates && present ? [fact('time_bar', 'The hour on the visitor\'s time bar (not what they asked about; the app mentions it itself)', whenLabel(dates.barIso))] : []),
+    ...(dates && !present ? [fact('real_time', 'The real date and hour now, UTC', whenLabel(dates.realIso))] : []),
+    ...(dates?.outside ? [fact('real_date_outside_data', 'The real date is outside the data: say so plainly, and that the answer is for the nearest date inside it', `the real date, ${whenLabel(dates.outside)}, is outside the data; this is for the nearest date inside it`)] : []),
+  ]
+  // On the opening screen (Watch) the visitor is looking at the whole Moon and has chosen no site:
+  // the link names a site only because a link must, so it is not passed on as theirs.
+  if (watching) {
+    return [
+      fact('no_site_chosen', 'The visitor\'s screen', 'the whole Moon, with no site chosen: there is no "site on your screen"'),
+      ...when,
+      fact('limits', 'Mission limits', limitsLabel(view.requirements)),
+      ...limitFacts(view.requirements),
+      ...(spot ? tappedFacts(spot, sites) : []),
+    ]
+  }
   return [
     ...describe(view.a.site, 'site', 'Site on screen'),
     ...(view.b ? describe(view.b.site, 'compared_with', 'Compared with') : []),
-    fact('month', 'Month on screen', monthWords(view.a.month)),
-    fact('time', 'Hour on screen', whenLabel(isoAt(flags.start, monthStart + view.index))),
+    ...when,
     fact('limits', 'Mission limits', limitsLabel(view.requirements)),
     ...limitFacts(view.requirements),
     ...(spot ? tappedFacts(spot, sites) : []),
@@ -103,6 +133,14 @@ function tappedFacts(spot: { lat: number; lon: number }, sites: SiteInfo[]): Fac
     fact('tapped_spot_nearest', 'Listed site nearest the tapped spot', nearest.site.name),
     fact('tapped_spot_distance', 'Its distance from the tapped spot', kmLabel(nearest.km)),
   ]
+}
+
+/** The two dates a question can be about, and which one it is about. `outside` is the real date when the data does not hold it. */
+export interface ViewDates {
+  basis: DateBasis
+  barIso: string
+  realIso: string
+  outside: string | null
 }
 
 /**
@@ -128,6 +166,8 @@ export async function runChat(
     deadline?: number
     /** The way to ask NASA JPL Horizons, for the tool that checks an hour with it (../horizons.ts). */
     horizons?: HorizonsAsk
+    /** The real time, in ms since the epoch: what "now" means when a question is about the present. Default: the server's clock. */
+    clock?: () => number
   },
 ): Promise<ChatOutcome> {
   const now = deps.now ?? Date.now
@@ -135,16 +175,33 @@ export async function runChat(
   const deadline = deps.deadline ?? now() + DEADLINE_MS
   const sites = await deps.data.sites()
   const flags = await deps.data.flags(sites[0].id)
+  // The opening screen says so in its link (`watch=1`): no site is chosen there.
+  const watching = typeof input.viewHash === 'string' && new URLSearchParams(input.viewHash.replace(/^#/, '')).has('watch')
   const range = await deps.data.range()
   const system = systemPrompt(range)
   // The years the data covers may be typed: "in 2028" is a name for a year, not a measurement.
   const allowedWords = [...sites.map((site) => site.name), '3D', ...yearsOf({ from: range.first_year, to: range.last_year }).map(String)]
   // On the Sightline screen the visitor has up to four scenarios: the one on show becomes the view.
   const scene = await scenarioScene(input.viewHash, input.view, deps.data)
-  const view = scene?.view ?? input.view
-  const context = { data: deps.data, requirements: view.requirements, spot: input.spot ?? null, horizons: deps.horizons }
+  const shown = scene?.view ?? input.view
+  // Which date the question is about (dates.ts). A question about the present is answered for the
+  // real date and hour, kept inside the data: the view is moved there, so the tools, the facts and
+  // the buttons all start from the date the answer is for. The time bar's own hour is kept beside it.
+  const asked = input.turns.filter((turn) => turn.role === 'user').at(-1)?.text ?? ''
+  const basis = dateBasis(asked, watching)
+  const barHour = hourOf(flags.start, `${shown.a.month}-01T00:00:00Z`) + shown.index
+  const realIso = realHourIso(input.viewHash, (deps.clock ?? Date.now)())
+  const realHour = Math.min(Math.max(hourOf(flags.start, realIso), 0), flags.sun.length - 1)
+  const dates: ViewDates = { basis, barIso: isoAt(flags.start, barHour), realIso: isoAt(flags.start, realHour), outside: isoAt(flags.start, realHour) === realIso ? null : realIso }
+  const place = locateHour(flags.start, realHour)
+  const view = basis === 'present' ? { ...shown, a: { ...shown.a, month: place.month }, index: place.index } : shown
+  // The answer was about the present and the time bar is on another day: one short sentence says
+  // so, and one button asks the same question for the bar's date. Only when the visitor used a word
+  // about the present; a question with no date in it gets no note.
+  const barApart = asksAboutPresent(asked) && Math.abs(barHour - realHour) > 24 ? { note: ` The time bar is on ${dayLabel(dates.barIso)}.`, ask: { label: `Ask for ${dayLabel(dates.barIso)}`, question: `${asked.trim().slice(0, 300)} (for the date on the time bar)` } } : null
+  const context = { data: deps.data, requirements: view.requirements, spot: input.spot ?? null, horizons: deps.horizons, hourIso: isoAt(flags.start, hourOf(flags.start, `${view.a.month}-01T00:00:00Z`) + view.index) }
 
-  const book: FactBook = new Map([['r0', [...(await viewFacts(view, deps.data, input.spot ?? null)), ...(scene?.facts ?? [])]]])
+  const book: FactBook = new Map([['r0', [...(await viewFacts(view, deps.data, input.spot ?? null, watching, dates)), ...(scene?.facts ?? [])]]])
   const sources: string[] = []
   /** What the tools found tied for best, for the buttons: the first is offered and the button says there are others. */
   const ties: Tie[] = []
@@ -162,7 +219,8 @@ export async function runChat(
     fellBack,
     ...(servedBy ? { servedBy } : {}),
     reply: {
-      text,
+      text: barApart ? `${text}${barApart.note}` : text,
+      ...(barApart ? { ask: barApart.ask } : {}),
       actions: buildActions(answer?.actions, view, sites, flags, ties, limitsAsked),
       sources,
       followups: (Array.isArray(answer?.followups) ? answer.followups : [])

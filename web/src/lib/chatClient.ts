@@ -7,6 +7,8 @@ export interface ChatMessage {
   actions?: { label: string; hash: string }[]
   sources?: string[]
   followups?: string[]
+  /** A question to ask with one press: the same question for the date on the time bar, when the answer was about the present. */
+  ask?: { label: string; question: string }
   /** An answer that is really a failure notice; it isn't sent back as conversation. */
   failed?: boolean
   /** On a "busy" failure: how many seconds to wait before asking again, as the server said (Retry-After). */
@@ -95,7 +97,19 @@ export function readReply(body: unknown): ChatMessage | null {
           typeof action?.label === 'string' && typeof action?.hash === 'string' && action.hash.startsWith('#a='),
       )
     : []
-  return { role: 'assistant', text: reply.text, actions, sources: strings(reply.sources), followups: strings(reply.followups) }
+  const ask = (reply as { ask?: { label?: unknown; question?: unknown } }).ask
+  const again = typeof ask?.label === 'string' && typeof ask.question === 'string' && ask.question.length <= MAX_QUESTION_CHARS ? { label: ask.label, question: ask.question } : null
+  return { role: 'assistant', text: reply.text, actions, sources: strings(reply.sources), followups: strings(reply.followups), ...(again ? { ask: again } : {}) }
+}
+
+/**
+ * A view's link with the real hour added (`now=2026-11-15T02`, UTC, the hour nearest this moment):
+ * what "now", "today" and "this month" mean in a question, which the time bar does not say. On the
+ * opening screen time plays by itself, so the bar is soon far from the real date.
+ */
+export function viewWithNow(view: string, nowMs: number = Date.now()): string {
+  const hour = new Date(Math.round(nowMs / 3_600_000) * 3_600_000).toISOString().slice(0, 13)
+  return `${view}&now=${hour}`
 }
 
 /** Questions to start from, about the place on screen. */

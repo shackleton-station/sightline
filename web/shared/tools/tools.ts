@@ -3,7 +3,7 @@ import { type Args, type ToolContext, ToolError } from './args'
 import type { ToolResult } from './facts'
 import { horizonsCheck } from './horizonsTool'
 import { bestMonths, bestSites, compareSites, landingWindowsInMonth, nextLanding, rankLandingOptions } from './landingTools'
-import { conditionsAtTime, monthSummary, siteInfo, yearSummary } from './siteTools'
+import { conditionsAtTime, monthSummary, siteInfo, yearSummary, sitesInView } from './siteTools'
 import { spotLight } from './spotTools'
 
 /** The tool the model calls to finish. The chat loop handles it; it isn't in the list below. */
@@ -45,6 +45,12 @@ const TOOLS: Record<string, Tool> = {
       'One hour at one site: whether the Sun is up and Earth is in view, when each next changes, and whether a landing at that hour meets the mission limits. If it does not, also the next hour that does and nearby listed sites that do.',
     parameters: (ids) => ({ properties: { site: site(ids), time: TIME, ...LIMITS }, required: ['site', 'time'] }),
     run: conditionsAtTime,
+  },
+  sites_in_view: {
+    description:
+      'Every listed site at one hour: which have the Sun, Earth, both or neither in view, as lists by region. Use it for "where can a lander see Earth (or the Sun, or both) right now": it is read from the data for that hour, the same states the markers on the Moon show. Leave time out for the hour the question is about (r0\'s time).',
+    parameters: () => ({ properties: { time: TIME }, required: [] }),
+    run: sitesInView,
   },
   month_summary: {
     description:

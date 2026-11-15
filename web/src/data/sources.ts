@@ -216,7 +216,8 @@ export const DATA_SOURCES: DataSource[] = [
     fetched: 'Four short quotations from the agency’s page, kept in the code with the page’s address and date. The agency has published no landing site, and the app gives none.',
     credit: 'Canadian Space Agency',
     shows: 'Scout’s idea in Sightline, “Plan for Canada’s utility rover”',
-    urls: ['https://www.asc-csa.gc.ca/eng/astronomy/moon-exploration/canadian-utility-rover-on-the-moon.asp'],
+    // First the agency's Moon exploration page, the address the challenge's Resources tab gives; then the rover's own page beneath it, which the quotations are from.
+    urls: ['https://www.asc-csa.gc.ca/eng/astronomy/moon-exploration/', 'https://www.asc-csa.gc.ca/eng/astronomy/moon-exploration/canadian-utility-rover-on-the-moon.asp'],
     refs: ['Canadian Space Agency'],
   },
   {

@@ -175,6 +175,12 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
                       </button>
                     </>
                   )}
+                  {/* The answer was about the present and the time bar is on another day: one press asks the same for the bar's date. */}
+                  {message.ask && i === thread.length - 1 && (
+                    <button type="button" className="sl-small sl-ask-again" disabled={waiting} onClick={() => void chat.ask(message.ask?.question ?? '', view)}>
+                      {message.ask.label}
+                    </button>
+                  )}
                 </div>
               )
             })}
