@@ -855,6 +855,38 @@ describe('20. a heading is never what a reference fills in', () => {
   })
 })
 
+describe('21. a what-if names what was changed, not the whole list of limits', () => {
+  it('a tool that tried other limits says which, each beside the visitor\'s own; one that used the visitor\'s limits says nothing of it', async () => {
+    const shorter = (await facts('landing_windows', { site: 'connecting-ridge', month: '2027-05', mission_days: 3 })).values
+    expect(shorter.limits_changed).toBe('a 3-day mission in place of the 14-day mission')
+    expect(shorter.limits).toContain('3-day mission')
+    const two = (await facts('next_landing', { site: 'connecting-ridge', time: '2027-05-06T12', mission_days: 3, max_sun_gap_h: 72 })).values
+    expect(two.limits_changed).toMatch(/^a 3-day mission in place of the 14-day mission and at most .+ without the Sun in place of at most 24 h without the Sun$/)
+    for (const [tool, args] of [
+      ['landing_windows', { site: 'connecting-ridge', month: '2027-05' }],
+      ['next_landing', { site: 'connecting-ridge', time: '2027-05-06T12' }],
+      ['conditions_at', { site: 'connecting-ridge', time: '2027-05-06T12' }],
+      ['month_summary', { site: 'connecting-ridge', month: '2027-05' }],
+      ['best_months', { site: 'connecting-ridge', measure: 'landing' }],
+    ] as [string, Record<string, unknown>][]) {
+      expect((await facts(tool, args)).values.limits_changed, tool).toBeUndefined()
+      expect((await facts(tool, { ...args, mission_days: 3 })).values.limits_changed, tool).toBe('a 3-day mission in place of the 14-day mission')
+    }
+  })
+
+  it('is asked for in the instructions', () => {
+    const rules = systemPrompt({ first_year: 2026, last_year: 2049 })
+    expect(rules).toMatch(/For a what-if, when a tool tried limits other than the visitor's own, its result has limits_changed: name what was changed with that fact/)
+    expect(rules).toMatch(/and leave the rest of the list out\./)
+  })
+
+  it('reads as a sentence when Scout uses it', async () => {
+    const model = scripted([{ name: 'landing_windows', args: { site: 'connecting-ridge', month: '2027-05', mission_days: 3 } }], [answer('With {{r1.limits_changed}}, {{r1.site}} has {{r1.window_count}} of landing hours in {{r1.month}}.')])
+    const outcome = await ask(model, '#a=connecting-ridge@2027-05&t=0&limits=14_24_99999_1_1&mode=plan&sc=0', 'What if my mission were only 3 days long? When could I land here in May 2027?')
+    expect(outcome.ok && outcome.reply.text).toMatch(/^With a 3-day mission in place of the 14-day mission, Connecting Ridge has \d+ stretch(es)? of landing hours in May 2027\.$/)
+  })
+})
+
 describe('16. an answer may repeat the amounts the visitor typed, and still no number of its own', () => {
   it('reads the amounts out of a question as they were written', () => {
     expect(visitorsAmounts('Which of the four south-pole sites is best for a 14-day mission in 2027, and when?')).toEqual(['14-day'])

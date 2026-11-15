@@ -11,6 +11,7 @@ import { skylineFigure } from '../../src/lib/sightlineSky'
 import { pct } from '../../src/lib/verdict'
 import { type Args, lastYear, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
 import { daysLabel, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, reasonClause, type ToolResult, whenLabel } from './facts'
+import { limitsChanged } from './limitsTried'
 import { nextLandingOnScreen } from './nextLanding'
 import { listWords } from './ties'
 
@@ -79,6 +80,7 @@ export async function conditionsAtTime(args: Args, ctx: ToolContext): Promise<To
     fact('sun_height', 'Sun elevation (from a level horizon)', degWords(now.sun_el)),
     fact('earth_height', 'Earth elevation (from a level horizon)', degWords(now.earth_el)),
     fact('limits', 'Checked against', limitsLabel(requirements)),
+    ...limitsChanged(ctx.requirements, requirements),
     ...limitFacts(requirements),
     fact('landing', 'A landing at this hour', conditions.problems.length === 0 ? 'meets the limits' : 'does not meet the limits'),
     ...missionGaps(flags, hourOf(flags.start, iso), requirements),
@@ -158,6 +160,7 @@ export async function monthSummary(args: Args, ctx: ToolContext): Promise<ToolRe
     fact('panel_vertical', 'Average sunlight on a Sun-facing vertical panel', `${sunlight.vertical.toFixed(0)} W/m²`),
     fact('panel_flat', 'Average sunlight on a flat panel', `${sunlight.flat.toFixed(0)} W/m²`),
     fact('limits', 'Landing days are checked against', limitsLabel(requirements)),
+    ...limitsChanged(ctx.requirements, requirements),
     fact('landing_days', 'Days with an hour that meets the limits', `${landing.days} of ${daysLabel(daysInMonth)}`),
   ]
   if (landing.days > 0) {
