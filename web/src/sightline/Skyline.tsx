@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import type { HorizonPoint, TrackPoint } from '../data/contract'
 import { MOON_RADIUS_M } from '../lib/customModel'
 import { splitAtWrap } from '../lib/panorama'
-import { ABOVE_SKYLINE_MEANS, degWords, skylineCentre, skylineDomain, skylineHorizon, skylineStretch, skylineX, smoothHorizonDeg, stretchWords } from '../lib/sightline'
+import { ABOVE_SKYLINE_MEANS, skylineCentre, skylineDomain, skylineHorizon, skylineReadout, skylineStretch, skylineX, smoothHorizonDeg, stretchWords } from '../lib/sightline'
 import { stripLabels } from '../lib/sightlineDots'
 import { useWidth } from '../lib/useWidth'
 import { useFitLevel, useShortWindow } from './hooks'
@@ -103,7 +103,7 @@ export function Skyline({ horizon, track, index, obsHeightM, above, folded, onFo
 
   const readout = (
     <span className="sl-sky-readout" title={folded ? undefined : ABOVE_SKYLINE_MEANS}>
-      Sun {above.sunDeg === null ? '…' : degWords(above.sunDeg)} · Earth {above.earthDeg === null ? '…' : degWords(above.earthDeg)} <span className="sl-sky-readout-tail">above the skyline</span>
+      {skylineReadout(above.sunDeg, above.earthDeg)}
     </span>
   )
   if (folded) {
