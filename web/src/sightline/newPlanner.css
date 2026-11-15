@@ -2057,8 +2057,8 @@
   min-width: 0;
 }
 
-/* The panel's one figure: first, large, and in the text's own color. It is not green or gold, which
-   elsewhere mean "fits" and "better": a low share in green would read as good news. */
+/* The panel's one figure: first and large. Its line is in one of the verdict's three colors, by how
+   many landings fit (oddsTone): green only where nearly all do, so a low share never reads as good news. */
 .sl-np .np-rain-ask {
   grid-column: 1 / -1;
   margin: 0.7rem 0 0;
@@ -2085,6 +2085,22 @@
   letter-spacing: -0.04em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+
+/* The verdict's own colors, from the screen (sightline.css); the Planner's where this is shown outside it. */
+.sl-np .np-rain-big.is-fit strong,
+.sl-np .np-rain-big.is-fit span {
+  color: var(--sl-fits, var(--both));
+}
+
+.sl-np .np-rain-big.is-marginal strong,
+.sl-np .np-rain-big.is-marginal span {
+  color: var(--sl-marginal, var(--warning));
+}
+
+.sl-np .np-rain-big.is-miss strong,
+.sl-np .np-rain-big.is-miss span {
+  color: var(--sl-miss, #e8505a);
 }
 
 .sl-np .np-rain-big span {
