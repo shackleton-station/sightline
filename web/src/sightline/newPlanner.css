@@ -2057,17 +2057,22 @@
   min-width: 0;
 }
 
+/* The panel's one figure: first, large, and in the text's own color. It is not green or gold, which
+   elsewhere mean "fits" and "better": a low share in green would read as good news. */
 .sl-np .np-rain-big {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  margin: 0;
+  gap: 0.8rem;
+  margin: 0.6rem 0 0;
 }
 
 .sl-np .np-rain-big strong {
-  color: var(--both);
+  color: var(--text);
   font-family: var(--pl-mono);
-  font-size: 2.4rem;
+  font-size: 2.6rem;
+  /* "under 1%" stays on one line. */
+  white-space: nowrap;
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -2075,13 +2080,15 @@
 }
 
 .sl-np .np-rain-big span {
-  color: var(--soft);
-  font-size: 0.8125rem;
+  color: var(--text);
+  font-size: 0.9375rem;
   line-height: 1.35;
 }
 
-.sl-np .np-rain-big small {
+.sl-np .np-rain-shown {
+  margin: 0;
   color: var(--muted);
+  font-size: 0.8125rem;
 }
 
 .sl-np .np-rain-bars {
@@ -2953,12 +2960,9 @@
   line-height: 1.4;
 }
 
+/* The share the better aim gives: bold, in the line's own color and type, so the panel has one highlighted figure. */
 .sl-np .np-act b {
-  font-family: var(--pl-mono);
-}
-
-.sl-np .np-act .is-better {
-  color: var(--gold);
+  font-weight: 700;
 }
 
 .sl-np .np-act-go {
@@ -3004,7 +3008,7 @@
 .sl-np .np-lead {
   grid-column: 1 / -1;
   max-width: 62ch;
-  margin: 0.9rem 0 0.9rem;
+  margin: 0 0 0.9rem;
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.5;
