@@ -96,6 +96,7 @@ import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
 import { Skyline } from './Skyline'
 import { Stage } from './Stage'
+import { bothPct } from './plannerTable'
 import { SurfaceFrame } from './SurfaceFrame'
 import { useHeightFlags } from './useHeights'
 import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useScenarioFacts'
@@ -885,6 +886,11 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       earth: { ...spanStats(missionEarth(flags, mission.requirements), scenario.landing, end), limitH: maxEarthGapH >= NO_LIMIT_H ? null : maxEarthGapH, values: missionLight?.hours.map((one) => one.earthPct) ?? null },
     }
   }, [flags, missionHere, mission.requirements, scenario.landing, start, missionLight])
+  // The landing on show measured over its mission, by Compare's own functions: the column's shares and longest times.
+  const columnStats = useMemo(
+    () => (flags ? { measure: measureScenario(scenario, site, flags, mission, facts[active].slopeDeg), bothPct: bothPct(flags, scenario.landing, mission) } : null),
+    [flags, scenario, site, mission, facts, active],
+  )
   const pointedState = pointed ? states.get(pointed.id) : undefined
   const line = pointed && pointedState ? `${pointed.name}: ${STATE_WORDS[pointedState]}.` : 'Pick a site, or just watch.'
   const shown = plan && !bare
@@ -1001,6 +1007,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               flags={flags}
               error={here ? null : error}
               maxSlopeDeg={mission.maxSlopeDeg}
+              requirements={mission.requirements}
+              stats={columnStats}
               heights={siteHeights}
               heightsLine={heightsLine}
               earthShare={shares[active]?.earth ?? null}

@@ -3499,38 +3499,63 @@ button.sl-moment-heights[aria-expanded='true'] {
   opacity: 0.7;
 }
 
-/* Its name, in a line of its own above the chart: a swatch of the band's shading, then how long it lasts against the limit. Never over the chart. */
-.sl-over-note {
+/* A line of a row that a limit of the mission holds: the longest time out of view, the body at the
+   landing's hour, the slope. Its mark is in its state's colour (the verdict's three); a line that
+   breaks a limit is red throughout. Above a chart it starts with a swatch of the chart's shaded band. */
+.sl-fact-check {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  margin: 0.35rem 0 0;
+  gap: 0.45rem;
+  margin: 0.2rem 0 0;
+  padding-left: 1.05rem;
   color: var(--soft);
   font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
   line-height: 1rem;
 }
 
-.sl-over-note i {
+.sl-fact-check:has(> i) {
+  padding-left: 0;
+}
+
+.sl-fact-check > i {
   flex: none;
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 0.6rem;
+  height: 0.6rem;
   border-radius: 2px;
   background: color-mix(in srgb, var(--soft) 34%, transparent);
 }
 
-.sl-over-note b {
+.sl-fact-check b {
   color: var(--ink);
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
 }
 
-.sl-over-note.is-miss i {
+.sl-fact-check.is-ok .sl-check-mark {
+  color: var(--sl-fits);
+}
+
+.sl-fact-check.is-marginal .sl-check-mark {
+  color: var(--sl-marginal);
+}
+
+.sl-fact-check.is-miss {
+  color: var(--sl-miss);
+}
+
+.sl-fact-check.is-miss > i {
   background: color-mix(in srgb, var(--sl-miss) 55%, transparent);
 }
 
-.sl-over-note.is-miss > span > span {
-  color: var(--sl-miss);
+/* The slope's line sits under the row's name, beside its figure. */
+.sl-fact.is-ground .sl-fact-check {
+  grid-column: 1;
+  margin-top: 0.1rem;
+}
+
+.sl-fact.is-both .sl-fact-mark {
+  background: var(--sl-both);
 }
 
 /* Days since landing, under the chart. */
@@ -3770,9 +3795,9 @@ button.sl-moment-heights[aria-expanded='true'] {
   grid-auto-rows: auto;
   column-gap: 0.7rem;
   align-content: start;
-  /* One small line under the name; a second only when the skyline cuts the disc. */
-  min-height: 3.3rem;
-  padding: 0.4rem 0 0.35rem;
+  /* One small line under the name. */
+  min-height: 3.05rem;
+  padding: 0.3rem 0 0.3rem;
   border-bottom: 1px solid var(--line);
 }
 
