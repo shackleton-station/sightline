@@ -38,7 +38,7 @@ interface Props {
 
 /**
  * Layers, in two groups. "Whole Moon": the place names, which change no view. "South pole, close
- * up": this app's own light and shadow and the mission's chance of success, and NASA's maps of the
+ * up": this app's own light and shadow and the share of landings that fit, and NASA's maps of the
  * ground from Moon Trek, laid over the Moon one at a time; each of these is seen close, so switching
  * one on goes to Site, and one that does not reach the site on show is greyed and says how far it
  * goes. Each map says how to read it, and the one that is on carries Trek's own title and credit.
@@ -97,7 +97,7 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
         <li>
           <label title={odds.here || odds.on ? 'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.' : outside(lightKm, 'The terrain this layer is worked out from')}>
             <input type="checkbox" role="switch" checked={odds.on} disabled={!odds.here && !odds.on} onChange={() => onOdds(!odds.on)} />
-            <span>Mission success probability</span>
+            <span>Landings that fit</span>
           </label>
         </li>
       </ul>

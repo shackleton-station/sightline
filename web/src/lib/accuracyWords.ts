@@ -42,3 +42,16 @@ export const GOOD_ODDS = 0.9
 export function oddsTone(fit: number): 'fit' | 'marginal' | 'miss' {
   return fit >= GOOD_ODDS ? 'fit' : fit < 0.5 ? 'miss' : 'marginal'
 }
+
+/**
+ * What it means when a scenario fits at its aim point while few landings aimed there fit, as one
+ * line for Compare that names each such scenario. "Few" is under half, where the odds are said in
+ * the verdict's red. Null when no scenario is in that case.
+ */
+export function fitsButFewLandWords(rows: { letter: string; fits: boolean; odds: number | null }[]): string | null {
+  const few = rows.filter((row) => row.fits && row.odds !== null && row.odds < 0.5).map((row) => row.letter)
+  if (few.length === 0) return null
+  const one = few.length === 1
+  const names = one ? few[0] : `${few.slice(0, -1).join(', ')} and ${few.at(-1)}`
+  return `${names} ${one ? 'fits' : 'fit'} at ${one ? 'its' : 'their'} aim point, but most landings aimed there come down nearby where the mission does not fit.`
+}

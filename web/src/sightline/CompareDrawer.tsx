@@ -3,6 +3,7 @@ import type { ShadowDistances } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
 import { loadShadow } from '../data/loadSite'
 import { useSiteValidations } from '../data/useSiteValidations'
+import { fitsButFewLandWords } from '../lib/accuracyWords'
 import { shadowCell, shadowMeans } from '../lib/shadowWords'
 import { clockTime } from '../lib/sightline'
 import { addScenarioMeans, bestIn, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
@@ -130,6 +131,8 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
     return words.length > 0 ? [{ letter: SCENARIO_LETTERS[i], words: words.join(', and ') }] : []
   })
   const misses = measures.flatMap((measure, i) => (measure && measure.problems.length > 0 ? [{ letter: SCENARIO_LETTERS[i], problems: measure.problems }] : []))
+  // A scenario that fits at its aim point while few landings aimed there do: one line says what that means.
+  const fewLand = odds ? fitsButFewLandWords(measures.map((measure, i) => ({ letter: SCENARIO_LETTERS[i], fits: measure !== null && measure.problems.length === 0, odds: odds[i] ?? null }))) : null
 
   return (
     <aside className="sl-drawer sl-compare" aria-label="Compare scenarios">
@@ -264,7 +267,8 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
           ))}
         </ul>
       )}
-      <p className="sl-quiet">★ best in its row{odds?.some((one) => one !== null) && oddsFor ? `. Landings that fit: the odds of coming down where the mission fits, at ${oddsFor} accuracy` : ''}</p>
+      <p className="sl-quiet">★ best in its row{odds?.some((one) => one !== null) && oddsFor ? `. Landings that fit: the share that come down where the mission fits, at a landing accuracy of ${oddsFor}` : ''}</p>
+      {fewLand && <p className="sl-quiet sl-compare-few">{fewLand}</p>}
       {rows.some((row) => row.tooClose) && <p className="sl-quiet sl-too-close">{TOO_CLOSE_NOTE}</p>}
       <div className="sl-compare-actions">
         {scenarios.length < MAX_SCENARIOS && (

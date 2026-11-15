@@ -15,7 +15,7 @@ interface Props {
 }
 
 /**
- * The switch for the mission's chance of success shaded on the Moon, on the stage itself in every
+ * The switch for "Landings that fit", the share of landings that fit the mission shaded on the Moon, on the stage itself in every
  * view. Switched on, it is also the shading's key: what the colors mean, the landing accuracy they
  * are for, and what they are worked out from.
  */
@@ -24,14 +24,14 @@ export function FitLegend({ on, onToggle, spread, onSpread, detailed, onDetails 
     <div className={on ? 'sl-fit-legend is-on' : 'sl-fit-legend'}>
       <label className="sl-fit-switch" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
         <input type="checkbox" role="switch" checked={on} onChange={() => onToggle(!on)} />
-        <span>Mission success probability</span>
+        <span>Landings that fit</span>
       </label>
       {on && (
         <>
           <span className="sl-fit-ramp" style={{ background: RAMP }} />
           <span className="sl-fit-ends">
-            <span>Unlikely</span>
-            <span>Likely</span>
+            <span>Few</span>
+            <span>Most</span>
           </span>
           <label className="sl-fit-accuracy">
             <span>

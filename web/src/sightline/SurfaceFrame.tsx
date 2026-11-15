@@ -8,7 +8,7 @@ interface Props {
   warm: boolean
   /** The app's own link for what to stand on: the site on show, at the hour on the time bar. */
   view: string
-  /** The link of the landing the "Mission success probability" layer is for, or null while it is off. */
+  /** The link of the landing the "Landings that fit" layer is for, or null while it is off. */
   tint: string | null
 }
 

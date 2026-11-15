@@ -71,7 +71,7 @@ const washFrames: Frame[] = []
 let slopeGiven: Promise<void> | null = null
 
 /**
- * The shade for "Mission success probability", for a landing at the hour on the time bar: the
+ * The shade for "Landings that fit", for a landing at the hour on the time bar: the
  * whole Moon from the smooth Moon, and round the south pole the light grid's finer picture.
  *
  * The pictures change slowly and smoothly with the hour, so they are not made for every hour.

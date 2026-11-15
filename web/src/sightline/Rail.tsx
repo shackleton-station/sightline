@@ -94,7 +94,8 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
         Compare
       </button>
       <button type="button" aria-pressed={accuracyOpen} title="Shows how likely a lander that misses its target still comes down where the mission fits." onClick={onAccuracy}>
-        Accuracy
+        Landing <br />
+        accuracy
         {/* Says why the Moon is green and red, with the panel open or shut. */}
         {accuracyOn && <small className="sl-rail-credit">Shading on</small>}
       </button>

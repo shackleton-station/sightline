@@ -7,7 +7,7 @@ import { blurReads, fitField, halved, oddsField, oddsPixels } from '../lib/missi
 import { smoothMoonFit, softened, WASH_SIZE } from '../lib/moonWash'
 
 /**
- * The "Mission success probability" pictures, worked out off the page's own thread: a picture of
+ * The "Landings that fit" pictures, worked out off the page's own thread: a picture of
  * the polar ground is a pass over a month or two of the light grid and a blur of four million
  * pixels, too much to do between two frames of a time bar being played.
  */
