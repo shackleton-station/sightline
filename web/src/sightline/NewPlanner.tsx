@@ -21,7 +21,7 @@ import { MissionBar } from '../planner/MissionBar'
 import { EXAMPLE_REQUIREMENTS } from '../state/viewStore'
 import { PlannerMore } from './PlannerMore'
 import { NewPlannerCompare } from './NewPlannerCompare'
-import { PlannerNearby } from './PlannerNearby'
+import { NearbyGround } from './NearbyGround'
 import { useHorizons, useMissionTracks } from './useMissionTracks'
 import { LandingRain } from './LandingRain'
 import { useMissionGrid } from './useMissionGrid'
@@ -335,22 +335,23 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
             )}
             {view ? <WindowGrid grid={view.grid} siteId={view.row.site.id} month={view.month} listed={listed} onPick={pick} keptWords="kept to compare" /> : <p className="pl-grid sl-quiet">Reading every site and month…</p>}
             {view && (
-              <PlannerNearby
-                site={view.row.site}
-                month={view.month}
-                onSpot={(lat, lon) => {
-                  const atSite = Math.abs(lat - view.row.site.lat) < 1e-6 && Math.abs(lon - view.row.site.lon) < 1e-6
-                  onScenario({ site: atSite ? siteValue(view.row.site) : siteValue(customSiteInfo(lat, lon)), landing: hourOf(start, view.landing.t) })
-                }}
-                open
-              >
+              <>
                 {accuracyWanted && (
                   <div className="np-accuracy">
                     <h5>Where the lander may come down</h5>
                     <LandingRain site={view.row.site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} onAim={(lat, lon) => onScenario({ site: `${lat},${lon}`, landing: hourOf(start, view.landing.t) })} />
                   </div>
                 )}
-              </PlannerNearby>
+                <NearbyGround
+                  site={view.row.site}
+                  month={view.month}
+                  mission={mission}
+                  onSpot={(lat, lon) => {
+                  const atSite = Math.abs(lat - view.row.site.lat) < 1e-6 && Math.abs(lon - view.row.site.lon) < 1e-6
+                  onScenario({ site: atSite ? siteValue(view.row.site) : siteValue(customSiteInfo(lat, lon)), landing: hourOf(start, view.landing.t) })
+                }}
+                />
+              </>
             )}
           </div>
           <div className="pl-answer sl-fp-brief" ref={briefRef}>

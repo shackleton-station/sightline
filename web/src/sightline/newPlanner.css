@@ -2704,3 +2704,244 @@
     animation: none;
   }
 }
+
+/* ---------- Find: is there better ground nearby? ---------- */
+.sl-np .np-near {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.sl-np .np-near h5 {
+  margin: 0 0 0.35rem;
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+}
+
+.sl-np .np-near-answer {
+  margin: 0 0 0.6rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.sl-np .np-near-answer b {
+  font-family: var(--pl-mono);
+}
+
+.sl-np .np-near-answer .is-better {
+  color: var(--gold);
+}
+
+.sl-np .np-near-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.sl-np .np-near-pills {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sl-np .np-near-pills button {
+  padding: 0.28rem 0.7rem;
+  border: 0;
+  background: none;
+  color: var(--soft);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.sl-np .np-near-pills button[aria-pressed='true'] {
+  background: var(--gold);
+  color: #17120a;
+  font-weight: 700;
+}
+
+.sl-np .np-near-gentle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+.sl-np .np-near-gentle input {
+  accent-color: var(--gold);
+}
+
+.sl-np .np-near-stage {
+  position: relative;
+}
+
+.sl-np .np-near-stage canvas {
+  display: block;
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgb(0 0 0 / 45%);
+}
+
+.sl-np .np-near-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.sl-np .np-near-arrow {
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 80%));
+  animation: np-dash 0.9s ease-out both;
+}
+
+@keyframes np-dash {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 60;
+  }
+}
+
+.sl-np .np-near-site {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px rgb(0 0 0 / 80%));
+}
+
+.sl-np .np-near-site-dot {
+  fill: #fff;
+}
+
+.sl-np .np-near-spot {
+  animation: np-pop 0.5s ease-out both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.sl-np .np-near-spot circle {
+  fill: var(--gold);
+  stroke: #15131a;
+  stroke-width: 2;
+}
+
+.sl-np .np-near-spot text {
+  fill: #17120a;
+  font-family: var(--pl-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@keyframes np-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+.sl-np .np-near-scale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.5rem;
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.6875rem;
+}
+
+.sl-np .np-near-scale i {
+  width: 7rem;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(70 40 140), rgb(40 140 170), rgb(90 200 120), rgb(242 193 78));
+}
+
+.sl-np .np-near-steep {
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-left: 0.6rem;
+  border-radius: 2px;
+  background: rgb(60 60 60);
+}
+
+.sl-np .np-near-ring {
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-left: 0.6rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+}
+
+.sl-np .np-near-spots {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sl-np .np-near-spots li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+}
+
+.sl-np .np-near-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #17120a;
+  font-family: var(--pl-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sl-np .np-near-where small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.6875rem;
+}
+
+.sl-np .np-near-val {
+  font-family: var(--pl-mono);
+  white-space: nowrap;
+}
+
+.sl-np .np-near-val em {
+  margin-left: 0.3rem;
+  color: var(--gold);
+  font-style: normal;
+}
+
+.sl-np .np-near-how {
+  margin: 0.7rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.sl-np .np-near-how b {
+  color: var(--soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-np .np-near-arrow,
+  .sl-np .np-near-spot {
+    animation: none;
+  }
+}
