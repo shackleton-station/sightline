@@ -3082,6 +3082,7 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
+}
 
 .sl-np .np-near-spots li.is-here {
   border-color: var(--gold);
