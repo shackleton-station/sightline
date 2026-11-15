@@ -4,6 +4,7 @@ import type { ScenarioData } from '../../data/scenarioData'
 import type { VerdictState } from '../../lib/landingVerdict'
 import type { FeatureGuide, TourStep } from '../../lib/tour'
 import { Flow, type FlowStep, GuideStep } from './GuideParts'
+import { advancedMeanings, ANGLES_TO_CENTER, IN_VIEW, limitMeanings, MARGINAL_MEANS, MEANING_LABELS, meaningLine, SUN_SHARE_KEPT } from '../../lib/limitMeanings'
 import { SUN_CIRCLES } from '../../lib/moonExplained'
 
 /** The verdict on the scenario on show, as the plan gives it. */
@@ -130,6 +131,8 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
       <h3>How an answer is made</h3>
       <Flow steps={pipeline} label="How the data is processed" />
       <p className="how-caption">{SUN_CIRCLES}</p>
+      {/* The definition the verdict rests on, where a reader sees it without opening a fold. */}
+      <p className="how-caption how-in-view">{IN_VIEW}</p>
 
       <h3>Seven questions, seven tools</h3>
       <ul className="how-tools">
@@ -198,7 +201,10 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
         <p>
           Two angles say where the Sun or Earth is. Its elevation is measured from a level horizon. Its height above the skyline is measured from the terrain’s outline in its
           direction, as seen from the site, and that is what decides whether it is in view: on high ground the skyline sits below level, so a body can be below level and still in
-          view.
+          view. {ANGLES_TO_CENTER}
+        </p>
+        <p className="how-in-view-more">
+          <b>What counts as in view.</b> {IN_VIEW} {SUN_SHARE_KEPT} {MARGINAL_MEANS}
         </p>
         <p className="how-heights">
           Every number is for a point 2 m above the ground, a small lander’s deck. Sightline’s Planner can read the Sun at a solar panel’s height instead (5 m or 10 m, the middle
@@ -217,6 +223,18 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
           earns the star only when it leads by more than the model&apos;s measured error against NASA&apos;s maps for that pair of sites: inside it, the sites share the star or
           none is shown. There is no single blended score: the weights behind one would be invented.
         </p>
+        <p>
+          <b>{MEANING_LABELS.limits}.</b> The mission is a set of limits, and a landing fits when it keeps every one. The first six are on the screen as soon as the mission is
+          opened; the last three are behind “Advanced”.
+        </p>
+        <dl className="how-limit-means">
+          {[...limitMeanings(data?.slope ? { overM: data.slope.baseline_m, siteName: data.site.name } : null), ...advancedMeanings()].map((meaning) => (
+            <div key={meaning.id} data-limit={meaning.id}>
+              <dt>{meaning.name}</dt>
+              <dd>{meaningLine(meaning)}</dd>
+            </div>
+          ))}
+        </dl>
       </details>
     </GuideStep>
   )
