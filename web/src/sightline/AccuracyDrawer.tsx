@@ -52,7 +52,7 @@ export function AccuracyDrawer({ site, mission, heights, start, landing, verdict
         </p>
       )}
       <div className="sl-np sl-accuracy-rain">
-        <LandingRain site={site} mission={mission} heights={heights} start={start} landing={landing} verdict={verdict} spread={spread} onSpread={onSpread} onAim={onAim} />
+        <LandingRain site={site} mission={mission} heights={heights} start={start} landing={landing} verdict={verdict} spread={spread} onSpread={onSpread} onAim={onAim} compact />
       </div>
       <label className="sl-check sl-accuracy-shade" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely. A coarser picture than this panel's: Sun and Earth every 120 m, from 2 m up.">
         <input type="checkbox" role="switch" checked={shade} onChange={() => onShade(!shade)} />

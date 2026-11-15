@@ -16,6 +16,7 @@ import {
   MISS_WORDS,
   MISSES,
   missOf,
+  oddsWords,
   RING_SHARES,
   radiusHolding,
   reachM,
@@ -54,6 +55,8 @@ interface Props {
   onSpread: (spread: Spread) => void
   /** Move the target to a point (a better place to aim). */
   onAim: (lat: number, lon: number) => void
+  /** In a side panel: a shorter opening, and "How is this worked out?" starts closed. */
+  compact?: boolean
 }
 
 /** How many simulated landers a run drops, and how fast (landers a second). */
@@ -96,7 +99,7 @@ function drop(spread: Spread): { x: number; y: number } {
  * own skyline from the 20 m terrain, with the mission's heights and Earth clearance
  * (`lib/landingField.ts`). The picture is read between those points, so it has no squares.
  */
-export function LandingRain({ site, mission, heights, start, landing, verdict, spread, onSpread, onAim }: Props) {
+export function LandingRain({ site, mission, heights, start, landing, verdict, spread, onSpread, onAim, compact = false }: Props) {
   const { requirements, maxSlopeDeg } = mission
   // The landing points round the target, for the spread in force: their lattice changes with it.
   const lattice = useMemo(() => latticeFor(spread), [spread])
@@ -424,7 +427,11 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
   return (
     <div className="np-rain">
       <p className="np-lead">
-        <b>Will your mission still work if the lander misses its mark?</b> The brief judges one exact point, but a lander comes down anywhere within about {shownM} m of its aim, and on a ridge the Sun and Earth can be lost within that distance. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails. <b>Aim</b> moves your target so more landings fit.
+        <b>Will your mission still work if the lander misses its mark?</b>{' '}
+        {compact
+          ? `A lander comes down anywhere within about ${shownM} m of its aim. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails.`
+          : `The brief judges one exact point, but a lander comes down anywhere within about ${shownM} m of its aim, and on a ridge the Sun and Earth can be lost within that distance. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails.`}{' '}
+        <b>Aim</b> moves your target so more landings fit.
       </p>
       {better ? (
         <p className="np-act">
@@ -445,11 +452,11 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
       </div>
       <div className="np-rain-side">
         <p className="np-rain-big">
-          <strong>{down === 0 ? '…' : `${pct(fitCount)}%`}</strong>
+          <strong>{oddsWords(odds.fit)}</strong>
           <span>
-            of {down} simulated landers came down where the mission fits
+            of landings come down where the mission fits
             <br />
-            <small>the model's odds: {Math.round(odds.fit * 100)}%</small>
+            <small>{down === 0 ? 'no simulated landers down yet' : `${pct(fitCount)}% of the ${down} simulated landers shown`}</small>
           </span>
         </p>
         <div className="np-rain-bars">
@@ -513,7 +520,7 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
           )}
         </p>
       </div>
-      <LandingExplain map={map} viewM={viewM} odds={odds} spread={shownSpread} onSpread={setDraft} simulated={{ down, fit: fitCount }} cellM={lattice.stepM} />
+      <LandingExplain map={map} viewM={viewM} odds={odds} spread={shownSpread} onSpread={setDraft} simulated={{ down, fit: fitCount }} cellM={lattice.stepM} startOpen={!compact} />
     </div>
   )
 }

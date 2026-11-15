@@ -30,6 +30,8 @@ interface Props {
   /** The simulated landers so far, and how many fit. */
   simulated: { down: number; fit: number }
   cellM: number
+  /** Whether the explanation starts open; closed, it is one line to open. */
+  startOpen?: boolean
 }
 
 /** The share of the ground within `reach` m of the target with each verdict. */
@@ -60,7 +62,7 @@ function rayleigh(r: number, sigma: number): number {
  * pipeline), the lander's scatter (an assumption you set), and the two together (the odds). Every
  * figure is from the same map and model as the simulation.
  */
-export function LandingExplain({ map, viewM, odds, spread, onSpread, simulated, cellM }: Props) {
+export function LandingExplain({ map, viewM, odds, spread, onSpread, simulated, cellM, startOpen = true }: Props) {
   const ground = useMemo(() => groundShares(map, viewM), [map, viewM])
   const sigma = sigmaM(spread.accuracyM)
   const [ref, width] = useWidth()
@@ -89,7 +91,7 @@ export function LandingExplain({ map, viewM, odds, spread, onSpread, simulated, 
   const misses = MISSES.filter((miss) => odds.misses[miss] >= 0.005)
 
   return (
-    <details className="np-explain" open>
+    <details className="np-explain" open={startOpen ? true : undefined}>
       <summary>How is this worked out?</summary>
       <div className="np-explain-cards">
         {/* 1. The ground */}
