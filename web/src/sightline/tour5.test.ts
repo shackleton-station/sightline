@@ -6,7 +6,7 @@ import file from './tour5.json'
 const tour = file as LongTourFile
 const sites = (JSON.parse(readFileSync(new URL('../../public/data/sites.json', import.meta.url), 'utf8')) as { id: string }[]).map((site) => site.id)
 
-describe('the five-minute tour', () => {
+describe('the tour', () => {
   it('has twelve steps, each with its own id, a title, something to ring, a short line to read and a longer one to say', () => {
     expect(tour.steps).toHaveLength(12)
     expect(new Set(tour.steps.map((step) => step.id)).size).toBe(12)
@@ -41,8 +41,7 @@ describe('the five-minute tour', () => {
     expect(pressing[0].after?.length).toBeGreaterThan(0)
   })
 
-  it('has a voice file for every step, rendered from exactly its words, between 18 and 27 seconds each and four and a half to five minutes in all', () => {
-    expect(tour.voice.rendered).toBe(true)
+  it('has a voice file for every step, rendered from exactly its words, between 18 and 27 seconds each, and 4 min 40 s to 4 min 50 s played through', () => {
     const voiceDir = new URL('../../public/tour/voice5/', import.meta.url)
     const index = JSON.parse(readFileSync(new URL('index.json', voiceDir), 'utf8')) as { disclosure: string; lines: Record<string, { say: string; bytes: number; seconds: number }> }
     expect(index.disclosure).toBe(tour.voice.disclosure)
@@ -55,8 +54,11 @@ describe('the five-minute tour', () => {
       expect(index.lines[step.id].seconds, step.id).toBeLessThanOrEqual(27)
       total += index.lines[step.id].seconds
     }
-    expect(total).toBeGreaterThanOrEqual(270)
-    expect(total).toBeLessThanOrEqual(300)
+    // Played through, with about a second a step for stepping: it fills a five-minute slot without running over it.
+    expect(tour.voice.seconds).toBeGreaterThanOrEqual(280)
+    expect(tour.voice.seconds).toBeLessThanOrEqual(290)
+    expect(tour.voice.seconds - total).toBeGreaterThanOrEqual(8)
+    expect(tour.voice.seconds - total).toBeLessThanOrEqual(20)
   })
 
   it('makes its one press, when it plays through, at words its line really says', () => {

@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import tourFile from '../sightline/tour.json'
+import longTourFile from '../sightline/tour5.json'
 import guidesFile from '../sightline/guides.json'
 import { roverMissionDays } from './csaRover'
-import { type GuidesFile, overDisc, placeBubble, type TourFile, voiceFile } from './tour'
+import { type GuidesFile, type LongTourFile, overDisc, placeBubble, type TourFile, voiceFile } from './tour'
 
 const tour = tourFile as TourFile
 const BUBBLE = { width: 340, height: 170 }
@@ -47,11 +48,13 @@ describe("Scout's tour: the steps", () => {
     }
   })
 
-  it('are written out in the README, word for word, under "Using the site"', () => {
+  it('are no longer the steps the screen runs: the README, under "Using the site", writes out the tour that is, with the line on each card', () => {
     const readme = readFileSync(new URL('../../../README.md', import.meta.url), 'utf8')
     const section = readme.slice(readme.indexOf('## Using the site'))
     expect(readme).toContain('## Using the site')
-    for (const step of tour.steps) expect(section, step.id).toContain(`**${step.title}.** ${step.say}`)
+    const onScreen = (longTourFile as LongTourFile).steps
+    expect(onScreen).toHaveLength(12)
+    for (const step of onScreen) expect(section, step.id).toContain(`**${step.title}.** ${step.line}`)
   })
 })
 

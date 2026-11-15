@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { LightChecks } from '../../data/lightChecks'
 import type { ScenarioData } from '../../data/scenarioData'
 import type { VerdictState } from '../../lib/landingVerdict'
-import type { FeatureGuide, TourFile } from '../../lib/tour'
+import type { FeatureGuide, TourStep } from '../../lib/tour'
 import { Flow, type FlowStep, GuideStep } from './GuideParts'
 import { SUN_CIRCLES } from '../../lib/moonExplained'
 
@@ -21,7 +21,8 @@ interface Props {
   range: { first_year: number; last_year: number } | null
   light: LightChecks | null
   verdict: VerdictOnShow | null
-  tour: TourFile
+  /** The tour's steps, written out: each one's title and the line on its card. */
+  steps: TourStep[]
   guides: FeatureGuide[]
   onGuide?: (id: string) => void
 }
@@ -38,7 +39,7 @@ interface Tool {
  * Step 3: how an answer is made, then the tools, each as the planning question it answers. The
  * feature guides and the tour's written steps follow, and the definitions behind the numbers.
  */
-export function GuideSolution({ data, siteCount, span, range, light, verdict, tour, guides, onGuide }: Props) {
+export function GuideSolution({ data, siteCount, span, range, light, verdict, steps, guides, onGuide }: Props) {
   const directions = data ? String(data.horizon.length) : 'hundreds of'
   const height = data ? `${data.summary.obs_height_m} m` : 'a lander’s height'
 
@@ -169,9 +170,9 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, to
       <section className="how-use" aria-labelledby="how-use-title">
         <h3 id="how-use-title">How to use Sightline</h3>
         <ol className="how-use-steps">
-          {tour.steps.map((step) => (
+          {steps.map((step) => (
             <li key={step.id}>
-              <b>{step.title}.</b> {step.say}
+              <b>{step.title}.</b> {step.line ?? step.say}
             </li>
           ))}
         </ol>

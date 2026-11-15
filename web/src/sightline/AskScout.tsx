@@ -268,8 +268,8 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, why, o
           </div>
         )}
       </div>
-      <button type="button" className={tourTaken ? 'sl-tour-here' : 'sl-tour-here is-new'} title="Scout shows you round the screen, one step at a time." onClick={onTour}>
-        <span aria-hidden="true">▶</span> One-minute tour
+      <button type="button" className={tourTaken ? 'sl-tour-here' : 'sl-tour-here is-new'} title="Scout shows you round the whole screen in twelve steps: about a minute to read, about five to hear." onClick={onTour}>
+        <span aria-hidden="true">▶</span> Take the tour
       </button>
       <form className="sl-ask" autoComplete="off" onSubmit={send}>
         <input type="text" id="sl-question" name="question" {...NOT_A_LOGIN} value={draft} maxLength={MAX_QUESTION_CHARS} placeholder={placeholder} aria-label="Ask Scout" onChange={(event) => setDraft(event.target.value)} />

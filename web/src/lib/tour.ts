@@ -25,8 +25,8 @@ export interface TourState {
   mission?: 'long' | 'short'
   /** The plan the step is about, put in on arriving at it: its scenarios, the first one on show. Left out, the plan stays as the step before left it. */
   scenarios?: { site: string; landing: string }[]
-  /** The view of the Moon for the step: Orbit unless it says the Site view. */
-  stage?: 'site'
+  /** The view of the Moon for the step: Orbit unless it says the Site view, or Surface (standing at the site), which opens the skyline strip under it when the step shows the skyline. */
+  stage?: 'site' | 'surface'
   /** Time plays while the step is on. */
   play?: boolean
 }
@@ -62,6 +62,8 @@ export interface TourStep {
   offers?: 'nearby-pair'
   /** The step is about a control only a wide window has (the zoom buttons): it is left out on a phone. */
   wide?: boolean
+  /** What stays at full brightness beside what is ringed, with no ring of its own: CSS selectors, or "moon" for the Moon's disc when the step is about the Moon itself. */
+  lit?: string[]
   /** A short line a room can read, shown in the bubble in place of `say`, which is then only spoken. */
   line?: string
   /** A control the step presses itself on the first "Next" (a CSS selector), so a presenter with a clicker shows a before and an after; the next "Next" moves on. */
@@ -87,7 +89,8 @@ export interface TourFile {
 /** The five-minute tour: a presenter's walk of the whole screen, in the main tour's format, with a voice of its own once its files are rendered. */
 export interface LongTourFile {
   name: string
-  voice: { disclosure: string; files: string; from: string; rendered: boolean }
+  /** `seconds`: how long the tour takes played through with its voice, a second a step for stepping included; kept equal to the voice files' own lengths by a test. */
+  voice: { disclosure: string; files: string; from: string; seconds: number }
   steps: TourStep[]
 }
 

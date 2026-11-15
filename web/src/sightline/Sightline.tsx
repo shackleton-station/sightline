@@ -157,8 +157,6 @@ function useRoom(): 'phone' | 'narrow' | 'wide' {
 }
 /** Room kept under the Moon in Plan for the note that says the Moon is not showing the landing. */
 const NOTE_ROOM_PX = 30
-/** How far the tour's step about the time bar moves the bar from the landing, in hours, so the note with "Land here" is on screen. */
-const TOUR_BAR_AWAY_H = 36
 /** How long a removed scenario can be brought back. */
 const UNDO_MS = 5000
 /**
@@ -182,9 +180,8 @@ const NO_SITES: string[] = []
 const TOUR = tourFile as TourFile
 /** The feature guides: short tours of one feature each, in the main tour's format, run by the same engine. */
 const GUIDES = (guidesFile as GuidesFile).guides
-/** The five-minute tour: a presenter's walk of the whole screen, run by the same engine under this name. */
+/** The tour: twelve steps through the whole screen, to read alone in about a minute or to hear, and present, in about five. */
 const LONG_TOUR = longTourFile as LongTourFile
-const LONG_TOUR_ID = 'five-minute'
 
 /** The phone's bottom sheet has three heights: the answer; half the screen; nearly all of it. */
 const SHEET_HEIGHTS = 3
@@ -382,7 +379,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [tourAt, setTourAt] = useState<number | null>(null)
   /** Which steps are on show: a feature guide's, by its id, or the main tour's (null). */
   const [tourGuide, setTourGuide] = useState<string | null>(null)
-  const beforeTour = useRef<{ mission: SightlineMission; plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
+  const beforeTour = useRef<{ mission: SightlineMission; plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; skyInSurface: boolean; hour: number; playing: boolean } | null>(null)
   /** Whether the tour has put its own landing in Plan yet: once, so what the visitor tries on the way is kept. */
   const tourPlanned = useRef(false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
@@ -867,7 +864,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
 
   /** Start the main tour, or a feature guide by its id. Either way the screen as it is now is kept, to put back at the end. */
   const startTour = (guide: string | null = null) => {
-    beforeTour.current = { mission, plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
+    beforeTour.current = { mission, plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, skyInSurface, hour: clock.hour, playing }
     tourPlanned.current = false
     if (guide === null) setTourTaken(true)
     setHow(false)
@@ -898,6 +895,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setPillMin(was.pillMin)
     setRiverMin(was.riverMin)
     setSkyMin(was.skyMin)
+    setSkyInSurface(was.skyInSurface)
     setHour(was.hour)
     setPlaying(was.playing)
   }, [setBare, setPillMin, setRiverMin, setSkyMin, setHour, setPlaying])
@@ -926,7 +924,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // Each step puts the real screen in its state before Scout speaks: Watch or Plan, with nothing
   // else open and time held, so what the step rings is there and stays put.
   // A step about a control only a wide window has is left out on a phone.
-  const tourSteps = useMemo(() => (tourGuide === null ? TOUR.steps : tourGuide === LONG_TOUR_ID ? LONG_TOUR.steps : (GUIDES.find((guide) => guide.id === tourGuide)?.steps ?? TOUR.steps)).filter((step) => !step.wide || room !== 'phone'), [tourGuide, room])
+  const tourSteps = useMemo(() => (tourGuide === null ? LONG_TOUR.steps : (GUIDES.find((guide) => guide.id === tourGuide)?.steps ?? LONG_TOUR.steps)).filter((step) => !step.wide || room !== 'phone'), [tourGuide, room])
   const tourStep = tourAt === null ? null : (tourSteps[tourAt] ?? null)
   useEffect(() => {
     if (!tourStep) return
@@ -948,6 +946,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setHowAtProof(open === 'proof')
     setScoutOpen(open === 'scout')
     setMode(stage ?? 'orbit')
+    // Standing at the site, the skyline strip is shut unless the step shows it.
+    if (stage === 'surface') setSkyInSurface(show === 'skyline')
     setPlaying(Boolean(play))
     if (view === 'watch') {
       setPlan(false)
@@ -956,31 +956,18 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       if (!tourPlanned.current && nowHour >= 0 && nowHour < hours) setHour(nowHour)
       return
     }
-    // The main tour's own landing, once: one that does not fit the default mission, so the verdict has a reason and a next landing to show.
+    // A step of the tour may bring its own plan: the scenarios it names, the first on show, the time bar on its landing.
+    // A step that names none carries on from the plan as the step before left it, with the time bar on its landing.
     // A feature guide keeps the visitor's own plan, except for a step about several scenarios, which
     // gets the app's two nearby sites on one date, once.
-    const landing = hourOf(start, TOUR.scenario.landing)
-    // The step about the time bar names "land here", which shows only while the bar is off the landing:
-    // the step moves the bar on a day and a half itself, and every other Plan step rests it on the landing.
-    if (tourGuide === null && tourPlanned.current) setHour(show === 'time' ? Math.min(scenario.landing + TOUR_BAR_AWAY_H, hours - 1) : scenario.landing)
-    // A step of the five-minute tour may bring its own plan: the scenarios it names, the first on show, the time bar on its landing.
-    // A step that names none carries on from the plan as the step before left it.
     const named = (tourStep.state.scenarios ?? []).map((one) => ({ site: one.site, landing: hourOf(start, one.landing) })).filter((one) => sites.some((listed) => listed.id === one.site) && Number.isInteger(one.landing) && one.landing >= 0 && one.landing < hours)
     if (named.length > 0) {
       setScenarios(named)
       setActive(0)
       setHour(named[0].landing)
       tourPlanned.current = true
-    } else if (tourGuide === LONG_TOUR_ID) setHour(scenario.landing)
-    if (tourGuide === null) {
-      if (!tourPlanned.current && sites.some((listed) => listed.id === TOUR.scenario.site) && Number.isInteger(landing) && landing >= 0 && landing < hours) {
-        // Two scenarios, as Plan opens for anyone: the tour's site at A, the other prospective site at B.
-        setScenarios(defaultScenarios(sites.map((listed) => listed.id), landing, TOUR.scenario.site))
-        setActive(0)
-        setHour(landing)
-      }
-      tourPlanned.current = true
-    } else if (pair && !tourPlanned.current && pairWords) {
+    } else if (tourGuide === null) setHour(scenario.landing)
+    else if (pair && !tourPlanned.current && pairWords) {
       setScenarios([
         { site: NEARBY_PAIR.a, landing: pairLanding },
         { site: NEARBY_PAIR.b, landing: pairLanding },
@@ -1174,10 +1161,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       <Tips />
       {tourAt !== null && (
         <Tour
-          name={tourGuide === null ? "Scout's tour" : tourGuide === LONG_TOUR_ID ? LONG_TOUR.name : (GUIDES.find((guide) => guide.id === tourGuide)?.name ?? "Scout's tour")}
+          name={tourGuide === null ? "Scout's tour" : (GUIDES.find((guide) => guide.id === tourGuide)?.name ?? "Scout's tour")}
           steps={tourSteps}
-          voice={tourGuide === null ? TOUR : tourGuide === LONG_TOUR_ID && LONG_TOUR.voice.rendered ? LONG_TOUR : null}
-          presenting={tourGuide === LONG_TOUR_ID}
+          voice={tourGuide === null ? LONG_TOUR : null}
+          finish={tourGuide === null ? 'Start planning' : 'Done'}
           at={tourAt}
           onStep={setTourAt}
           onClose={endTour}
@@ -1536,15 +1523,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         )}
         {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
         {!bare && !plan && tourAt === null && !(scoutOpen && room === 'phone') && (
-          <>
-            <button type="button" className={tourTaken ? 'sl-tour-chip' : 'sl-tour-chip is-new'} title="Scout shows you round the screen, one step at a time." onClick={() => startTour()}>
-              <span aria-hidden="true">▶</span> One-minute tour
-            </button>
-            {/* The longer tour, for presenting: the whole screen in twelve steps. Beside the first, in the same corner. */}
-            <button type="button" className="sl-tour-chip sl-tour-chip-long" title="Twelve steps through the whole screen, made for presenting it. The arrow keys step it." onClick={() => startTour(LONG_TOUR_ID)}>
-              <span aria-hidden="true">▶</span> Five-minute tour
-            </button>
-          </>
+          <button type="button" className={tourTaken ? 'sl-tour-chip' : 'sl-tour-chip is-new'} title="Scout shows you round the whole screen in twelve steps: about a minute to read, about five to hear." onClick={() => startTour()}>
+            <span aria-hidden="true">▶</span> Take the tour
+          </button>
         )}
         {!bare && !plan && !(scoutOpen && room === 'phone') && <PlayControl clock={clock} date={clockDate(start, hour)} span={monthSpan(start, hour)} minimised={pillMin} onMinimise={setPillMin} />}
       </main>
@@ -1668,7 +1649,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         </Suspense>
       )}
       {how && (
-        <div className="sl-how" role="dialog" aria-modal="true" aria-label="Guide">
+        <div className={tourStep?.state.open === 'proof' ? 'sl-how is-toured' : 'sl-how'} role="dialog" aria-modal="true" aria-label="Guide">
           <HowItWorks
             data={here}
             siteCount={sites.length}
@@ -1679,7 +1660,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               setHowAtWhy(false)
             }}
             onTour={() => startTour()}
-            onLongTour={() => startTour(LONG_TOUR_ID)}
             tourTaken={tourTaken}
             guides={GUIDES}
             onGuide={startTour}
