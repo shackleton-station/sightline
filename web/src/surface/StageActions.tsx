@@ -42,7 +42,7 @@ export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM 
       <details className="sf-about" ref={about}>
         {/* The one thing a viewer must not miss is on the picture itself; the link holds the rest. */}
         <summary>
-          <span className="sf-about-short">Illustrated ground; the skyline is NASA LOLA data.</span> <span className="sf-about-more">What this picture is</span>
+          <span className="sf-about-short">The skyline is NASA LOLA terrain. The ground below it is a plain fill.</span> <span className="sf-about-more">What this picture is</span>
         </summary>
         <ul>
           <li>
@@ -50,9 +50,8 @@ export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM 
             straight lines. That top edge is the data.
           </li>
           <li>
-            The ground under the edge is an illustration. Its craters, swells and dust are made up, the same on every visit and at every site. Its
-            light is real in one way: it comes from the Sun’s direction this hour, by the share of the disk in view, and goes dark when the Sun is
-            hidden. No shadows are cast by the land.
+            The ground under the edge is a plain fill: nothing is drawn on it. It is lit while the Sun is in view, by the share of the disk in view,
+            a little brighter on the side the Sun is on, and dark when the Sun is hidden. No shadows are cast by the land.
           </li>
           <li>
             The Sun and Earth are where the ephemeris puts them this hour, at the size they have from here: {across(radii.sun)}° and{' '}

@@ -36,7 +36,7 @@ export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMon
   if (state.kind === 'loading') return <p className="sl-quiet" role="tabpanel" aria-label="Library">Reading the library…</p>
   if (state.kind === 'none' || state.kind === 'failed') {
     return (
-      <div className="np-compare-empty" role="tabpanel" aria-label="Library">
+      <div className="lib-empty" role="tabpanel" aria-label="Library">
         <h3>{state.kind === 'none' ? 'No library here yet' : 'The library could not be read'}</h3>
         <p>{state.kind === 'none' ? 'Saved plans are not switched on for this site, so there is nothing to search.' : state.message}</p>
         {state.kind === 'failed' && (

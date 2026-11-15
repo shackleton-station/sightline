@@ -210,7 +210,7 @@
 
 /* ---------- the tray: a lander with a count, and the fan under it ---------- */
 /* The fan hangs under the whole top bar, not under the lander, so it never leaves the Planner's column. */
-.sl-np .np-topbar {
+:where(.np-topbar, .pl-header) {
   position: relative;
 }
 
@@ -288,7 +288,8 @@
 }
 
 .lib-tray-box {
-  padding: 1.1rem 1rem 0.8rem;
+  /* Room at the sides and under the fan: its end cards are turned and sit lower. */
+  padding: 1.3rem 1.6rem 0.8rem;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: #14111b;
@@ -303,9 +304,10 @@
 }
 
 .lib-tray-foot {
+  position: relative;
   display: flex;
   gap: 1rem;
-  margin: 0.9rem 0 0;
+  margin: 1.6rem 0 0;
 }
 
 /* A hand of cards: each a little turned and lower toward the ends, overlapping more the more there are. */
@@ -324,7 +326,7 @@
 
   flex: none;
   width: var(--w);
-  margin-left: min(0.5rem, calc((100cqw - 2.2rem - var(--n) * var(--w)) / max(1, var(--n) - 1)));
+  margin-left: min(0.5rem, calc((100cqw - 3.4rem - var(--n) * var(--w)) / max(1, var(--n) - 1)));
   border-radius: 12px;
   transform: rotate(calc(var(--off) * 3deg)) translateY(calc(var(--off) * var(--off) * 0.22rem));
   transform-origin: 50% 140%;
@@ -416,4 +418,24 @@
   .lib-tray-icon.has svg {
     animation: none;
   }
+}
+
+/* ---------- no library, or it could not be read ---------- */
+.lib-empty {
+  padding: 1.6rem 1.2rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--soft);
+}
+
+.lib-empty h3 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 1.1rem;
+}
+
+.lib-empty p {
+  margin: 0.35rem 0 0.6rem;
+  font-size: 0.875rem;
 }

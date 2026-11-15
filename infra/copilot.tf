@@ -77,9 +77,12 @@ resource "google_pubsub_topic_iam_member" "copilot_publishes" {
   member = google_service_account.copilot[0].member
 }
 
-# Read the light grid's months, for the tool that looks up tapped ground (shared/tools/light.ts). The
-# condition narrows the role to objects under tiles/light/: the service cannot read the terrain
-# tiles or the video. The bucket has uniform bucket-level access, which conditions need.
+# Read the light grid's months, for the tool that looks up tapped ground (shared/tools/light.ts), and
+# the fine terrain tiles, from which a custom point is worked out with the page's own code
+# (shared/tools/customPoints.ts). The condition narrows the role to objects under tiles/light/,
+# tiles/polar/ and tiles/global/, the three prefixes the load balancer already serves to anyone
+# (assets.tf): the service cannot read the video or anything else. The bucket has uniform
+# bucket-level access, which conditions need.
 resource "google_storage_bucket_iam_member" "copilot_reads_light" {
   count  = local.with_copilot_service
   bucket = google_storage_bucket.assets.name
@@ -87,9 +90,9 @@ resource "google_storage_bucket_iam_member" "copilot_reads_light" {
   member = google_service_account.copilot[0].member
 
   condition {
-    title       = "only-the-light-grid"
-    description = "The co-pilot reads the light grid's months, nothing else in the bucket."
-    expression  = "resource.name.startsWith(\"projects/_/buckets/${google_storage_bucket.assets.name}/objects/tiles/light/\")"
+    title       = "only-the-light-grid-and-terrain-tiles"
+    description = "The co-pilot reads the light grid's months and the terrain tiles, nothing else in the bucket."
+    expression  = join(" || ", [for prefix in ["tiles/light/", "tiles/polar/", "tiles/global/"] : "resource.name.startsWith(\"projects/_/buckets/${google_storage_bucket.assets.name}/objects/${prefix}\")"])
   }
 }
 

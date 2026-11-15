@@ -26,7 +26,8 @@ const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
 const TIME = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}))?/
 
 export async function siteArg(ctx: ToolContext, value: unknown): Promise<SiteInfo> {
-  const site = (await ctx.data.sites()).find((candidate) => candidate.id === value)
+  // A listed site, or the visitor's own custom point by its coordinates (data.ts, `site`).
+  const site = typeof value === 'string' ? await ctx.data.site(value) : null
   if (!site) throw new ToolError(`Unknown site "${String(value)}". Use one of the listed site ids.`)
   return site
 }
