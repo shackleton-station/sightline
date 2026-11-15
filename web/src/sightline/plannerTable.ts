@@ -80,7 +80,9 @@ export function plannerRows(scenarios: SightlineScenario[], measures: (ScenarioM
   })
   const bothStar = starFor('both', both, 0.5)
   rows.splice(4, 0, { key: 'bothPct', label: 'Sun and Earth together, %', cells: both.map((value, i) => write(value, flags[i] !== null, 0)), notes: both.map(hours), best: bothStar.best, tooClose: bothStar.tooClose })
-  if (sunlightWm2) {
+  // With two or more scenarios that all read the same (1361 W/m² where the Sun never leaves), the row separates nothing: it is left out.
+  const allTheSame = (values: (number | null | undefined)[]) => values.length > 1 && values.every((value) => typeof value === 'number' && Math.round(value) === Math.round(values[0] as number))
+  if (sunlightWm2 && !allTheSame(sunlightWm2)) {
     const sunlight = sunlightWm2.map((value) => value ?? null)
     rows.splice(5, 0, {
       key: 'sunlightWm2',

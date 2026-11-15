@@ -35,6 +35,15 @@ describe('plannerRows', () => {
   ]
   const measures = [measure({ sunPct: 61, sunGapH: 95 }), measure({ sunPct: 79, sunGapH: 56 })]
 
+  it('leaves the sunlight row out when two or more scenarios all read the same, since it then separates nothing; one scenario, or a figure still loading, keeps it', () => {
+    const keys = (sunlight: (number | null | undefined)[], list = scenarios, of = measures, sites = [flags, flags]) => plannerRows(list, of, sites, mission, sunlight).map((row) => row.key)
+    expect(keys([1361, 1361])).not.toContain('sunlightWm2')
+    expect(keys([1360.6, 1361.2])).not.toContain('sunlightWm2')
+    expect(keys([1361, 1340])).toContain('sunlightWm2')
+    expect(keys([1361, undefined])).toContain('sunlightWm2')
+    expect(keys([1361], [scenarios[0]], [measures[0]], [flags])).toContain('sunlightWm2')
+  })
+
   it("has Compare's rows and the share with both, each cell written as the page shows it", () => {
     const rows = plannerRows(scenarios, measures, [flags, flags], mission, [412.4, 530])
     expect(rows.map((row) => row.key)).toEqual(['sunPct', 'sunGapH', 'earthPct', 'earthGapH', 'bothPct', 'sunlightWm2', 'slopeDeg'])

@@ -2,13 +2,14 @@ import { TOO_CLOSE_NOTE } from '../lib/starTie'
 import { type CSSProperties, useMemo, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
+import { type FutureTarget, useFutureTargets } from '../data/futureTargets'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { clockTime, fieldAt, hourFromField, stateRuns } from '../lib/sightline'
 import { MAX_SCENARIOS, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { LandingPick } from './LandingPick'
 import { fitHours, nextFit } from './plannerFit'
 import type { PlannerGroup } from './plannerTable'
-import { siteValue } from './site'
+import { siteValue, targetAt, targetValue } from './site'
 import { BAND } from './states'
 import type { ScenarioFacts } from './useScenarioFacts'
 
@@ -39,12 +40,16 @@ function dayStep(missionDays: number): number {
   return Math.max(1, Math.ceil(missionDays / 10))
 }
 
-/** The listed sites as a list's options, in their groups; a custom point on show is named above them. */
-function SiteOptions({ sites, custom }: { sites: SiteInfo[]; custom: SiteInfo | null }) {
+/**
+ * The listed sites as a list's options, in their groups, then NASA's future targets, as the plan's
+ * own list has them (each an approximate place, worked out in the browser like a custom point). A
+ * custom point on show that is not one of them is named above the rest.
+ */
+function SiteOptions({ sites, custom, targets }: { sites: SiteInfo[]; custom: SiteInfo | null; targets: FutureTarget[] }) {
   const groups = [...new Set(sites.map((site) => site.group))]
   return (
     <>
-      {custom && <option value={siteValue(custom)}>{custom.name}</option>}
+      {custom && !targetAt(targets, custom) && <option value={siteValue(custom)}>{custom.name}</option>}
       {groups.map((group) => (
         <optgroup key={group} label={group}>
           {sites
@@ -56,6 +61,15 @@ function SiteOptions({ sites, custom }: { sites: SiteInfo[]; custom: SiteInfo | 
             ))}
         </optgroup>
       ))}
+      {targets.length > 0 && (
+        <optgroup label="Future targets (approximate)">
+          {targets.map((target) => (
+            <option key={target.id} value={targetValue(target)}>
+              {target.name} · {target.who}
+            </option>
+          ))}
+        </optgroup>
+      )}
     </>
   )
 }
@@ -69,6 +83,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
   const missionH = mission.requirements.missionDays * 24
   const step = dayStep(mission.requirements.missionDays)
   const sites = useMemo(() => flagged.map(({ site }) => site), [flagged])
+  const targets = useFutureTargets()
   // A landing's date may be any the data covers: one beyond the years on hand loads them.
   const first = bounds?.first ?? fieldAt(start, 0)
   const last = bounds?.last ?? fieldAt(start, hours - 1)
@@ -104,7 +119,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
                     </button>
                     <span className="pl-th">
                       <select aria-label={`Scenario ${SCENARIO_LETTERS[i]}: landing site`} value={siteValue(facts[i].site)} onChange={(event) => onChange(i, { ...scenario, site: event.target.value })}>
-                        <SiteOptions sites={sites} custom={isCustomSite(facts[i].site) ? facts[i].site : null} />
+                        <SiteOptions sites={sites} custom={isCustomSite(facts[i].site) ? facts[i].site : null} targets={targets} />
                       </select>
                       <LandingPick
                         landing={clockTime(start, scenario.landing)}
@@ -140,7 +155,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
                           setAddLanding(null)
                         }}
                       >
-                        <SiteOptions sites={sites} custom={null} />
+                        <SiteOptions sites={sites} custom={null} targets={targets} />
                       </select>
                       <LandingPick
                         landing={clockTime(start, landing)}

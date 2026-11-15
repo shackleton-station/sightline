@@ -67,6 +67,13 @@
   margin: 0 auto 0 0;
 }
 
+/* Which years a landing can be planned for, on a line of its own under the bar. */
+.pl-year-reach {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
 .pl-find-year {
   color: var(--soft);
   font-size: 0.8125rem;
