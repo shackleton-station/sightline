@@ -12,9 +12,12 @@ import { ServiceStatus } from '../components/ServiceStatus'
 import { chapterTime } from '../lib/guideVideo'
 import { wholePct } from '../lib/verdict'
 import { DataSources } from './DataSources'
-import { Flow, type FlowStep, GUIDE_STEPS, type GuideStepId, GuideStep } from './guide/GuideParts'
+import { GuideChallenge } from './guide/GuideChallenge'
+import { GUIDE_STEPS, type GuideStepId, GuideStep } from './guide/GuideParts'
 import { GuideProof } from './guide/GuideProof'
+import { GuideScout } from './guide/GuideScout'
 import { GuideSolution, type VerdictOnShow } from './guide/GuideSolution'
+import { GuideStack } from './guide/GuideStack'
 import './how.css'
 
 interface Props {
@@ -46,43 +49,6 @@ interface Props {
 }
 
 const TOUR = tourFile as TourFile
-
-const VISIT: FlowStep[] = [
-  { name: 'You', does: 'open lunarsightline.com', tech: 'Cloud DNS · Cloud Domains' },
-  { name: 'Load balancer', does: 'ends HTTPS and serves cached files from near you', tech: 'Global Application Load Balancer · Cloud CDN · managed certificate' },
-  { name: 'Web server', does: 'sends the app, streams terrain and answers questions', tech: 'Cloud Run · Node 22 · Hono · Docker' },
-  { name: 'Storage, memory and AI', does: 'hold the terrain, the shared counts and saved plans, and run the language model', tech: 'Cloud Storage · Redis (Memorystore) · Firestore · Claude (Anthropic API)' },
-]
-
-const SHIP: FlowStep[] = [
-  { name: 'A change', does: 'is proposed and reviewed', tech: 'GitHub pull request' },
-  { name: 'Checks', does: 'type-check, test and build everything', tech: 'GitHub Actions · vitest · pytest · ruff' },
-  { name: 'Sign-in with no key', does: 'GitHub proves which repository and branch it is', tech: 'Workload Identity Federation' },
-  { name: 'Deploy in steps', does: 'test the new version with no visitors, give it a tenth of them, then all; go back if anything fails', tech: 'Artifact Registry · Cloud Run canary · automatic rollback' },
-]
-
-const COUNT: FlowStep[] = [
-  { name: 'A question is answered', does: 'and a small note about it is kept before the answer leaves', tech: 'an outbox in Redis · the event has its own id' },
-  { name: 'A queue', does: 'holds the note until every reader has it, and sends it again if one fails', tech: 'Pub/Sub · at-least-once delivery · retries, then a dead-letter topic' },
-  { name: 'A worker', does: 'that no visitor can reach counts it, once, however often it arrives', tech: 'Cloud Run, private · its own identity · one atomic write' },
-  { name: 'The day’s counts', does: 'are kept in several pieces, and this page adds them up', tech: 'Firestore · sharded counters · read-only for the web server' },
-]
-
-const REBUILD: FlowStep[] = [
-  { name: 'NASA data', does: 'is downloaded once and kept out of the repository', tech: 'LOLA terrain · SPICE kernels · PGDA maps' },
-  { name: 'The pipeline', does: 'works out every site and hour, then checks itself', tech: 'Python 3.12 · SpiceyPy · NumPy · a Compute Engine VM' },
-  { name: 'Small results', does: 'are saved with the code, so every change is reviewed', tech: 'JSON in Git' },
-  { name: 'Terrain tiles', does: 'are too big for Git, so they go to a private bucket', tech: 'Cloud Storage · gcloud storage rsync' },
-]
-
-const STACK: { layer: string; items: string[] }[] = [
-  { layer: 'In your browser', items: ['React 19', 'TypeScript', 'Vite', 'Three.js (WebGL2)', 'our own terrain-lighting shader', 'D3'] },
-  { layer: 'Server', items: ['Node 22', 'Hono', 'Docker', 'Cloud Run'] },
-  { layer: 'Google Cloud', items: ['Cloud Storage', 'Memorystore (Redis)', 'Firestore', 'Load Balancing', 'Cloud CDN', 'Cloud DNS', 'Cloud Armor', 'Pub/Sub', 'BigQuery', 'Cloud Trace', 'Artifact Registry', 'Cloud Monitoring'] },
-  { layer: 'Language model', items: ['Claude on the Anthropic API', 'signed in by workload identity federation, no stored key'] },
-  { layer: 'Built and shipped with', items: ['Terraform', 'GitHub Actions', 'Workload Identity Federation'] },
-  { layer: 'Data pipeline', items: ['Python 3.12', 'SpiceyPy (NAIF SPICE)', 'NumPy', 'Numba', 'Rasterio', 'PyProj', 'uv'] },
-]
 
 /**
  * The Guide, as one story: where to start (the tour and the videos), the challenge, the data, the
@@ -170,13 +136,6 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
   const services = useServiceStatus()
   const scoutModel = copilotModel(services)
   const sunShare = data ? wholePct(data.summary.pct_sun) : '…'
-  const copilot: FlowStep[] = [
-    { name: 'You ask', does: '“How sunny is it here this month?”', tech: 'POST /api/chat' },
-    { name: 'The model picks a tool', does: 'it may only call our own read-only functions', tech: 'Claude tool use: month_summary' },
-    { name: 'Our code computes', does: `Sun up: ${sunShare}`, tech: 'the same function the page uses' },
-    { name: 'The model writes', does: '“The Sun is up {{r1.pct_sun}} of the month.”', tech: 'a reference, never a number' },
-    { name: 'The server fills it in', does: `“The Sun is up ${sunShare} of the month.”`, tech: 'a reply with a typed digit is refused' },
-  ]
 
   return (
     <main className="how" ref={page}>
@@ -246,27 +205,9 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         )}
       </section>
 
-      <GuideStep
-        id="how-challenge"
-        kicker="Step 1"
-        title="Understand the challenge"
-        intro="Near the Moon’s south pole the Sun and Earth never climb. They skim the horizon, so the hills around a site decide when it has sunlight for power and Earth in view for radio."
-      >
-        {/* Why the site on show is hard, in a few sentences made of that site's own figures. */}
-        {why && why.length > 0 && (
-          <section ref={whyHere} className="how-why" aria-labelledby="how-why-title" tabIndex={-1}>
-            <h3 id="how-why-title">Why this site is hard</h3>
-            <ul className="how-why-lines">
-              {why.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-            <p className="how-start-note">This site’s own figures, for the scenario on show.</p>
-          </section>
-        )}
-      </GuideStep>
+      <GuideChallenge why={why} whyHere={whyHere} onGo={go} />
 
-      <GuideStep id="how-data" kicker="Step 2" title="Gather the data" intro="Every number on this site is computed from public data by our own code. Nothing is typed in by hand, and nothing is made up by an AI.">
+      <GuideStep id="how-data" kicker="Step 2" title="Gather the data" intro="Every number on this site is computed from public data by our own code. Nothing is typed in by hand, and nothing is made up by an AI. Two things do most of the work: the shape of the ground, and where the Sun and Earth are.">
         <DataSources />
       </GuideStep>
 
@@ -274,57 +215,13 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
 
       <GuideProof data={data} span={span} light={light} />
 
-      <GuideStep id="how-scout" kicker="Your guide" title="Scout" intro="A language model is good with words and unreliable with numbers. So Scout’s is never allowed to write one.">
-        <Flow steps={copilot} label="How Scout answers" />
-        <p className="how-caption">
-          The same rule covers his buttons: the server rebuilds each one from parts it has checked, so the model can only send you to a real site, month and hour.
-        </p>
-        <p className="how-caption">
-          Two things are made by AI, and carry an “AI” tag where they appear: Scout’s answers, which a language model writes from our numbers (his voice is synthetic too), and
-          Scout’s mark, the round badge beside his name. Scout’s answers and his mark are AI-generated.
-        </p>
-        {/* Which model, from what Scout's service reports right now, so this cannot go stale. */}
-        <p className="how-caption how-scout-model">
-          Scout is Anthropic’s Claude{scoutModel ? ` (${scoutModel})` : ''}. He reads the same data as the screen, through the service’s read-only tools, and never works out a number himself:
-          the server fills in every number, date and time from that data.
-        </p>
-        <h3>Questions to Scout today</h3>
+      <GuideScout sunShare={sunShare} model={scoutModel} year={data ? data.month.slice(0, 4) : null}>
         <QuestionCounts counts={counts} />
-      </GuideStep>
+      </GuideScout>
 
-      <GuideStep id="how-stack" kicker="Under the hood" title="What it runs on" intro="The whole site is described in code, so it can be rebuilt from nothing in minutes. There are no passwords or keys anywhere in it.">
-        <h3>When you open the site</h3>
-        <Flow steps={VISIT} label="What happens when you open the site" />
-        <h3>When we change it</h3>
-        <Flow steps={SHIP} label="How a change reaches the site" />
-        <h3>When the data is rebuilt</h3>
-        <Flow steps={REBUILD} label="How the data is rebuilt" />
-        <p className="how-caption">
-          Every box above is declared in Terraform. An uptime check emails us if the site stops answering, an objective (99.5% of requests succeed) alerts us when failures pile
-          up, every request is traced so we can see where a slow one spent its time, and a budget alert watches the spending.
-        </p>
-        <h3>When someone asks Scout a question</h3>
-        <Flow steps={COUNT} label="How a question is counted" />
-        <h3>The services, right now</h3>
-        <p className="how-caption">
-          The site is several services behind one address. The load balancer sends each path to its own, so when one fails the others keep going. The web server asks the others
-          how they are, proving who it is with a short-lived token from Google, and gives each one second to answer.
-        </p>
+      <GuideStack>
         <ServiceStatus services={services} />
-        <h3>The stack</h3>
-        <dl className="how-stack">
-          {STACK.map(({ layer, items }) => (
-            <div key={layer}>
-              <dt>{layer}</dt>
-              <dd>
-                {items.map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </GuideStep>
+      </GuideStack>
 
       <footer className="how-foot">
         <p>Sightline is a hackathon project. Do not use it for real mission decisions.</p>
