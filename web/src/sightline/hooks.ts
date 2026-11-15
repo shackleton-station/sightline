@@ -178,3 +178,14 @@ export function useShortWindow(): boolean {
   }, [])
   return short
 }
+
+/** Whether the window is a phone's width: the rail is one row there, and it carries the three views. */
+export function useCompact(): boolean {
+  const [compact, setCompact] = useState(() => window.innerWidth < 761)
+  useEffect(() => {
+    const onResize = () => setCompact(window.innerWidth < 761)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return compact
+}

@@ -2897,13 +2897,6 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-size: 0.75rem;
 }
 
-/* On a phone the rail's one row, over the stage, carries the three views; "More" has Layers. */
-@media (max-width: 760px) {
-  .sl-view-switch {
-    display: none;
-  }
-}
-
 /* ---------- Share and How: two small icon buttons beside the name ---------- */
 .sl-head-tools {
   display: inline-flex;

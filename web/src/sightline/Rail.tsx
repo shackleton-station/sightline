@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RiverState } from '../lib/river'
 import { Mascot } from '../scout/Mascot'
+import { useCompact } from './hooks'
 
 export type StageMode = 'orbit' | 'site' | 'surface'
 
@@ -154,15 +155,4 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
       {ways}
     </nav>
   )
-}
-
-/** Whether the window is a phone's width: the rail is one row there. */
-function useCompact(): boolean {
-  const [compact, setCompact] = useState(() => window.innerWidth < 761)
-  useEffect(() => {
-    const onResize = () => setCompact(window.innerWidth < 761)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  return compact
 }
