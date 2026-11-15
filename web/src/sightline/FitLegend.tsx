@@ -1,7 +1,4 @@
-import { ODDS_RAMP, oddsStrength } from '../lib/missionGrid'
-
-/** The ramp as the Moon is shaded with it: each color as strongly as its odds are drawn, so the red end fades as it does on the ground. */
-const RAMP = `linear-gradient(to right, ${ODDS_RAMP.map((color, i) => `rgb(${color.join(' ')} / ${oddsStrength(i / (ODDS_RAMP.length - 1))})`).join(', ')})`
+import { FIT_COLOR, MISS_COLORS, MISS_WORDS, MISSES } from '../lib/landingOdds'
 
 interface Props {
   on: boolean
@@ -9,23 +6,29 @@ interface Props {
 }
 
 /**
- * The key to "Landings that fit" while it shades the Moon: its switch and what the colors mean, small
- * enough for the stage's corner, where it lies on none of the Moon's disc and on no site's name. What
- * the shading is worked out from, and the landing it is for, are said in Layers and in Landing accuracy.
+ * The key to "Landings that fit" while it shades the Moon: its switch and what each color means, small
+ * enough for the stage's corner, where it lies on none of the Moon's disc and on no site's name. The
+ * colors and their words are Landing accuracy's own: the Moon is that panel's map, seen from farther
+ * off. What the shading is worked out from, and the landing it is for, are said in Layers.
  */
 export function FitLegend({ on, onToggle }: Props) {
   return (
     <div className={on ? 'sl-fit-legend is-on' : 'sl-fit-legend'}>
-      <label className="sl-fit-switch" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.">
+      <label className="sl-fit-switch" title="Colors the Moon by what a landing at each spot does: green where it fits your mission, and where it does not, the color of what fails first. The colors of Landing accuracy's map.">
         <input type="checkbox" role="switch" checked={on} onChange={() => onToggle(!on)} />
         <span>Landings that fit</span>
       </label>
       {on && (
-        <span className="sl-fit-key">
-          <span>Few</span>
-          <span className="sl-fit-ramp" style={{ background: RAMP }} />
-          <span>Most</span>
-        </span>
+        <ul className="sl-fit-key">
+          <li>
+            <i style={{ background: FIT_COLOR }} /> fits
+          </li>
+          {MISSES.map((miss) => (
+            <li key={miss}>
+              <i style={{ background: MISS_COLORS[miss] }} /> {MISS_WORDS[miss]}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bearingBetweenDeg, closenessWords, compassWords, fitsButFewLandWords, oddsTone, shadeLeavesOut } from './accuracyWords'
+import { bearingBetweenDeg, compassWords, fitsButFewLandWords, oddsTone, shadeLeavesOut } from './accuracyWords'
 import { type LightMeta, planeLatLon, planeXY } from './lightGrid'
 
 describe('which way a better aim point lies', () => {
@@ -46,17 +46,6 @@ describe('which way a better aim point lies', () => {
     expect(compassWords(292)).toBe('west')
     expect(compassWords(293)).toBe('north-west')
     expect(compassWords(359)).toBe('north')
-  })
-})
-
-describe('the accuracy in everyday words', () => {
-  it('says how close the lander gets to its aim point', () => {
-    expect(closenessWords({ accuracyM: 100, stretch: 1, bearingDeg: 0 })).toBe('within 100 m of its aim point')
-    expect(closenessWords({ accuracyM: 1000, stretch: 1, bearingDeg: 0 })).toBe('within 1,000 m of its aim point')
-  })
-
-  it('adds the longer reach along the approach when the miss is stretched', () => {
-    expect(closenessWords({ accuracyM: 100, stretch: 2.5, bearingDeg: 30 })).toBe('within 100 m of its aim point, 250 m along its approach')
   })
 })
 

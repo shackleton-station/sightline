@@ -1,9 +1,8 @@
 import { isBaseHeights, type MissionHeights } from './heights'
-import type { Spread } from './landingOdds'
 
 /**
- * Words for the Landing accuracy panel: which way a better aim point lies, how close the lander
- * gets to its aim, and which of the verdict's colours the odds are said in. No number is worked
+ * Words for the Landing accuracy panel: which way a better aim point lies, and which of the
+ * verdict's colours the odds are said in. No number is worked
  * out here: the odds and distances are the panel's own, from `landingOdds`.
  */
 
@@ -25,12 +24,6 @@ export function bearingBetweenDeg(from: { lat: number; lon: number }, to: { lat:
 /** "north-east" for 40°: the nearest of the eight compass points. */
 export function compassWords(bearingDeg: number): string {
   return EIGHT[Math.round((((bearingDeg % 360) + 360) % 360) / 45) % 8]
-}
-
-/** "within 100 m of its aim point", with the longer reach along the approach when the miss is stretched. */
-export function closenessWords(spread: Spread): string {
-  const near = `within ${spread.accuracyM.toLocaleString('en-US')} m of its aim point`
-  return spread.stretch === 1 ? near : `${near}, ${Math.round(spread.accuracyM * spread.stretch).toLocaleString('en-US')} m along its approach`
 }
 
 /**

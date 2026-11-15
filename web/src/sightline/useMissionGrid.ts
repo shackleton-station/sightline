@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLightGrid } from '../atlas/useLightGrid'
 import { gapsFor, gapsKey, gapsNow, loadSlopeWhole } from '../data/loadMissionGrid'
-import type { Spread } from '../lib/landingOdds'
 import type { LightMeta } from '../lib/lightGrid'
 import { locateHour } from '../lib/mission'
 import type { GridGaps } from '../lib/missionGrid'
@@ -50,8 +49,8 @@ export function useMissionGrid(start: string, landing: number, missionDays: numb
   return mine === 'past' ? { meta, gaps: null, state: 'past' } : { meta, gaps: mine, state: 'ready' }
 }
 
-/** How much of the Moon the shading hides at its strongest (amber and green); where few landings fit it hides `FEW_STRENGTH` of this, about 0.15. */
-const SHADE_OPACITY = 0.38
+/** How much of the Moon the shading hides: every verdict's color is drawn as strongly as the fit's, as on Landing accuracy's map. */
+const SHADE_OPACITY = 0.45
 /** How far apart the pictures blended between are, in hours: the polar one is the costly one. */
 const POLAR_EVERY_H = 24
 const WASH_EVERY_H = 12
@@ -65,7 +64,8 @@ const washFrames: Frame[] = []
 let slopeGiven: Promise<void> | null = null
 
 /**
- * The shade for "Landings that fit", for a landing at the hour on the time bar: the
+ * The shade for "Landings that fit", for a landing at the hour on the time bar, in the colors of
+ * Landing accuracy's map (green where a landing fits, the reason's color where it does not): the
  * whole Moon from the smooth Moon, round the south pole the light grid's finer picture, and
  * between the two, as far as the wide grid reaches, that grid's picture of the terrain's light.
  *
@@ -74,7 +74,7 @@ let slopeGiven: Promise<void> | null = null
  * the two either side of the hour, which costs nothing. Once the bar rests, the hour's own picture
  * is made and shown in their place. Null while off, or before any picture has arrived.
  */
-export function useMoonShade(meta: LightMeta | null | undefined, start: string, hour: number, mission: SightlineMission, spread: Spread, on: boolean): GlobeShade | null {
+export function useMoonShade(meta: LightMeta | null | undefined, start: string, hour: number, mission: SightlineMission, on: boolean): GlobeShade | null {
   const [arrived, setArrived] = useState(0)
   const [restedHour, setRestedHour] = useState(hour)
   useEffect(() => {
@@ -82,17 +82,12 @@ export function useMoonShade(meta: LightMeta | null | undefined, start: string, 
     return () => window.clearTimeout(timer)
   }, [hour])
   const rested = restedHour === hour
-  // A spread being dragged is drawn once it rests.
-  const [restedSpread, setRestedSpread] = useState(spread)
-  useEffect(() => {
-    const timer = window.setTimeout(() => setRestedSpread(spread), 200)
-    return () => window.clearTimeout(timer)
-  }, [spread])
 
   const { requirements, maxSlopeDeg } = mission
   const washSign = JSON.stringify(requirements)
-  const polarSign = JSON.stringify([requirements, maxSlopeDeg, restedSpread])
-  const wideSign = JSON.stringify([requirements, restedSpread])
+  const polarSign = JSON.stringify([requirements, maxSlopeDeg])
+  // The wide grid's picture and the whole Moon's depend on the same things: the Sun and Earth limits.
+  const wideSign = washSign
   const hasWide = Boolean(meta?.wide)
   const busy = useRef({ polar: false, wide: false, wash: false })
 
@@ -116,7 +111,7 @@ export function useMoonShade(meta: LightMeta | null | undefined, start: string, 
       slopeGiven ??= loadSlopeWhole(meta).then(giveSlope)
       const { month, index } = locateHour(start, polarHour)
       void slopeGiven
-        .then(() => polarPicture({ meta, month, index, requirements, maxSlopeDeg, spread: restedSpread }))
+        .then(() => polarPicture({ meta, month, index, requirements, maxSlopeDeg }))
         .then((picture) => {
           keepFrame(polarFrames, { sign: polarSign, hour: polarHour, picture }, 5)
           busy.current.polar = false
@@ -127,14 +122,14 @@ export function useMoonShade(meta: LightMeta | null | undefined, start: string, 
     if (meta && wideHour !== null && !busy.current.wide) {
       busy.current.wide = true
       const { month, index } = locateHour(start, wideHour)
-      void widePicture({ meta, month, index, requirements, spread: restedSpread }).then((picture) => {
+      void widePicture({ meta, month, index, requirements }).then((picture) => {
         keepFrame(wideFrames, { sign: wideSign, hour: wideHour, picture }, 5)
         busy.current.wide = false
         tell()
       })
     }
     // `arrived` counts the pictures that have come: each arrival may leave another to ask for.
-  }, [on, meta, hasWide, start, hour, rested, washSign, polarSign, wideSign, requirements, maxSlopeDeg, restedSpread, arrived])
+  }, [on, meta, hasWide, start, hour, rested, washSign, polarSign, wideSign, requirements, maxSlopeDeg, arrived])
 
   return useMemo(() => {
     if (!on) return null

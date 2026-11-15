@@ -1,38 +1,37 @@
 import { loadYearPositions } from '../data/customSite'
 import { gapsAt, patchGapsAt, type SlopeImages, wideGapsAt } from '../data/loadMissionGrid'
-import type { Spread } from '../lib/landingOdds'
 import { type LightMeta, wideGrid } from '../lib/lightGrid'
 import type { Requirements } from '../lib/mission'
-import { blurReads, fitField, flatShare, halved, layPatch, oddsField, oddsPixels } from '../lib/missionGrid'
-import { smoothMoonFit, softened, WASH_SIZE } from '../lib/moonWash'
+import { codePixels, flatShare, layPatchPixels, verdictPixels } from '../lib/missionGrid'
+import { smoothMoonVerdict, WASH_SIZE } from '../lib/moonWash'
 
 /**
- * The "Landings that fit" pictures, worked out off the page's own thread: a picture of
- * the polar ground is a pass over a month or two of the light grid and a blur of four million
- * pixels, too much to do between two frames of a time bar being played.
- */
-
-/**
- * Pixels along a light cell in the polar picture. A patch's 20 m pixels are a third of these: nine to a pixel.
+ * The "Landings that fit" pictures, worked out off the page's own thread: a picture of the polar
+ * ground is a pass over a month or two of the light grid and four million pixels to color, too
+ * much to do between two frames of a time bar being played.
  *
- * The picture is blurred by the lander's own spread and by nothing more. It used to be softened by
- * at least 75 m so that no cell showed as a square; reading the grid between its cells' middles
- * already sees to that, and the extra blur drew a lander of 100 m as one of about 230 m: against
- * the ground judged point by point it doubled the picture's error where the grid is all there is,
- * and made it five times worse over a patch (`scripts/fit-layer-check.ts`, docs/VALIDATION.md §19).
+ * Each picture says what a landing exactly at each spot does, in the colors of Landing accuracy's
+ * map: the fit's green, or the color of the first limit broken. It is not blurred by a lander's
+ * miss: that is what the panel's rings and simulated landers show, on the same ground.
  */
+
+/** Pixels along a light cell in the polar picture. A patch's 20 m pixels are a third of these: nine to a pixel. */
 const POLAR_SUB = 2
-/** The most pixel reads one picture may cost: past it, the picture is made at half the size. */
-const READS_BUDGET = 80e6
+/**
+ * How strongly the smooth Moon's picture is drawn, as a share of the terrain pictures' strength. It
+ * knows no terrain, so it is a guide to day, night and the side Earth is on, not what a landing on
+ * that ground does: drawn fainter, it does not read as the same answer as the ground round the pole.
+ */
+const SMOOTH_STRENGTH = 0.5
 
 /** What the page asks for. Every ask is answered, in the order asked. */
 export type ShadeAsk =
   /** The whole grid's slope images at their own detail: given once, before any polar picture. */
   | { id: number; kind: 'slope'; slope: SlopeImages | null }
   /** The polar picture for a landing at hour `index` of `month`. */
-  | { id: number; kind: 'polar'; meta: LightMeta; month: string; index: number; requirements: Requirements; maxSlopeDeg: number; spread: Spread }
+  | { id: number; kind: 'polar'; meta: LightMeta; month: string; index: number; requirements: Requirements; maxSlopeDeg: number }
   /** The picture of the ground the wide grid holds, round the polar one, for the same landing. The slope is not judged there: there are no slope images of it. */
-  | { id: number; kind: 'wide'; meta: LightMeta; month: string; index: number; requirements: Requirements; spread: Spread }
+  | { id: number; kind: 'wide'; meta: LightMeta; month: string; index: number; requirements: Requirements }
   /** The whole Moon's picture for a landing at hour `hour` of `year`. */
   | { id: number; kind: 'wash'; year: number; hour: number; requirements: Requirements }
 
@@ -57,20 +56,14 @@ function flatFor(maxSlopeDeg: number): Float32Array | null {
 async function polar(ask: Extract<ShadeAsk, { kind: 'polar' }>): Promise<{ side: number; pixels: Uint8ClampedArray } | null> {
   const gaps = await gapsAt(ask.meta, ask.month, ask.index, ask.requirements.missionDays)
   if (gaps === 'past') return null
-  const full = gaps.size * POLAR_SUB
-  const fullM = ask.meta.pixel_m / POLAR_SUB
   const level = flatFor(ask.maxSlopeDeg)
-  const fits = fitField(gaps, ask.requirements, POLAR_SUB, level, true)
+  const pixels = verdictPixels(gaps, ask.requirements, POLAR_SUB, level, true)
   // Round the ridge sites the ground is known at the terrain's own 20 m: laid in over the grid's 120 m cells.
   for (const [site, patch] of Object.entries(ask.meta.patches ?? {})) {
     const fine = await patchGapsAt(ask.meta, site, ask.month, ask.index, ask.requirements.missionDays)
-    if (fine && fine !== 'past') layPatch(fits, POLAR_SUB, gaps.size, patch, fine, ask.requirements, level)
+    if (fine && fine !== 'past') layPatchPixels(pixels, POLAR_SUB, gaps.size, patch, fine, ask.requirements, level)
   }
-  // A wide spread blurs far: at half the size it reads a quarter of the pixels over half the distance.
-  const small = full * full * blurReads(fullM, ask.spread) > READS_BUDGET
-  const side = small ? full / 2 : full
-  const odds = oddsField(small ? halved(fits, full) : fits, side, small ? 2 * fullM : fullM, ask.spread)
-  return { side, pixels: oddsPixels(odds) }
+  return { side: gaps.size * POLAR_SUB, pixels }
 }
 
 /**
@@ -81,8 +74,7 @@ async function wide(ask: Extract<ShadeAsk, { kind: 'wide' }>): Promise<{ side: n
   const grid = wideGrid(ask.meta)
   const gaps = grid ? await wideGapsAt(ask.meta, ask.month, ask.index, ask.requirements.missionDays) : null
   if (!grid || !gaps || gaps === 'past') return null
-  const odds = oddsField(fitField(gaps, ask.requirements, 1, null), gaps.size, grid.pixel_m, ask.spread)
-  return { side: gaps.size, pixels: oddsPixels(odds) }
+  return { side: gaps.size, pixels: verdictPixels(gaps, ask.requirements, 1, null) }
 }
 
 async function wash(ask: Extract<ShadeAsk, { kind: 'wash' }>): Promise<Uint8ClampedArray | null> {
@@ -97,8 +89,8 @@ async function wash(ask: Extract<ShadeAsk, { kind: 'wash' }>): Promise<Uint8Clam
       positions.set(second, first.length)
     }
   }
-  const fit = smoothMoonFit(positions, ask.hour, ask.requirements)
-  return fit ? oddsPixels(softened(fit, WASH_SIZE)) : null
+  const verdict = smoothMoonVerdict(positions, ask.hour, ask.requirements)
+  return verdict ? codePixels(verdict, SMOOTH_STRENGTH) : null
 }
 
 async function answer(ask: ShadeAsk): Promise<ShadeAnswer> {

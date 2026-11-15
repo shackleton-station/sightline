@@ -23,12 +23,12 @@ interface Props {
   shade: { on: boolean; here: boolean; cellM: number | null; wideCellM: number | null; state: 'loading' | 'ready' | 'missing' }
   onShade: (on: boolean) => void
   /**
-   * "Landing odds", the app's own: the odds that a lander aimed at each point comes down where the
-   * mission fits, shaded on the Moon. Whether it is on, whether the light grid reaches the site on show,
-   * how far from the pole the slope is judged (km; null until known), the lander in words, and what
-   * the mission asks that the shading cannot count near the pole (null for nothing).
+   * "Landings that fit", the app's own: what a landing at each spot does, shaded on the Moon in the
+   * colors of Landing accuracy's map. Whether it is on, whether the light grid reaches the site on show,
+   * how far from the pole the slope is judged (km; null until known), and what the mission asks
+   * that the shading cannot count near the pole (null for nothing).
    */
-  odds: { on: boolean; here: boolean; slopeKm: number | null; lander: string; leavesOut: string | null }
+  odds: { on: boolean; here: boolean; slopeKm: number | null; leavesOut: string | null }
   onOdds: (on: boolean) => void
   /** Open Landing accuracy: the odds for this landing, the reasons and a better place to aim. */
   onOddsDetails: () => void
@@ -99,7 +99,7 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
           </label>
         </li>
         <li>
-          <label title={odds.here || odds.on ? 'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.' : outside(lightKm, 'The terrain this layer is worked out from')}>
+          <label title={odds.here || odds.on ? 'Colors the Moon by what a landing at each spot does: green where it fits your mission, and where it does not, the color of what fails first. The colors of Landing accuracy’s map.' : outside(lightKm, 'The terrain this layer is worked out from')}>
             <input type="checkbox" role="switch" checked={odds.on} disabled={!odds.here && !odds.on} onChange={() => onOdds(!odds.on)} />
             <span>Landings that fit</span>
           </label>
@@ -114,7 +114,7 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
       )}
       {odds.on && (
         <p className="sl-layer-shade sl-layer-odds" role="status">
-          Shaded for a landing at the hour on the time bar, by a lander that gets {odds.lander}. {odds.here ? `Round the south pole${lightKm ? `, out to ${lightKm} km,` : ''} it counts the hourly light on the terrain${odds.slopeKm ? `, and within ${odds.slopeKm} km the slope too` : ''}` : 'This site is outside the terrain grid round the south pole'}; elsewhere the Moon is taken as smooth.{odds.leavesOut ? ` Near the pole the light is known from 2 m up with any part of Earth counting, so the shading there does not count ${odds.leavesOut}; Landing accuracy does.` : ''}{' '}
+          Colored for a landing at the hour on the time bar, as Landing accuracy’s map is: green where a landing there fits, and the color of what fails first where it does not. {odds.here ? `Round the south pole${lightKm ? `, out to ${lightKm} km,` : ''} it counts the hourly light on the terrain${odds.slopeKm ? `, and within ${odds.slopeKm} km the slope too` : ''}` : 'This site is outside the terrain grid round the south pole'}; elsewhere the Moon is taken as smooth.{odds.leavesOut ? ` Near the pole the light is known from 2 m up with any part of Earth counting, so the shading there does not count ${odds.leavesOut}; Landing accuracy does.` : ''}{' '}
           <button type="button" className="sl-link" onClick={onOddsDetails}>
             Details for this landing
           </button>

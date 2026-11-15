@@ -1,3 +1,4 @@
+import { FITS, missCode } from './landingOdds'
 import type { Requirements } from './mission'
 
 /**
@@ -33,10 +34,21 @@ const MAX_SAMPLES = 200
 
 /**
  * For each pixel, 1 where a landing at hour `from` fits the mission's Sun and Earth limits on a
- * smooth Moon and 0 where it does not. `positions` holds the Sun's then Earth's position from the
- * Moon's center in MOON_ME (km), six numbers an hour; null if they stop before the mission ends.
+ * smooth Moon and 0 where it does not (`smoothMoonVerdict`); null if the positions stop before the
+ * mission ends.
  */
 export function smoothMoonFit(positions: ArrayLike<number>, from: number, req: Requirements, size: WashSize = WASH_SIZE): Float32Array | null {
+  const verdict = smoothMoonVerdict(positions, from, req, size)
+  return verdict ? Float32Array.from(verdict, (code) => (code === FITS ? 1 : 0)) : null
+}
+
+/**
+ * For each pixel, what a landing at hour `from` does on a smooth Moon, as the verdict's code: 0
+ * where it fits the mission's Sun and Earth limits, or the first limit it breaks, in the verdict's
+ * own order (`lightVerdict`). `positions` holds the Sun's then Earth's position from the Moon's
+ * center in MOON_ME (km), six numbers an hour; null if they stop before the mission ends.
+ */
+export function smoothMoonVerdict(positions: ArrayLike<number>, from: number, req: Requirements, size: WashSize = WASH_SIZE): Uint8Array | null {
   const missionH = req.missionDays * 24
   if (from < 0 || (from + missionH) * 6 > positions.length) return null
   const step = Math.max(1, Math.ceil(missionH / MAX_SAMPLES))
@@ -59,7 +71,11 @@ export function smoothMoonFit(positions: ArrayLike<number>, from: number, req: R
   }
   const sunLow = -Math.sin((SUN_RADIUS_DEG + DIP_DEG) * RAD)
 
-  const fit = new Float32Array(size.width * size.height)
+  const sunDownAtLanding = missCode('sunAtLanding')
+  const earthOutAtLanding = missCode('earthAtLanding')
+  const dark = missCode('dark')
+  const silence = missCode('silence')
+  const verdict = new Uint8Array(size.width * size.height)
   for (let row = 0; row < size.height; row += 1) {
     const lat = (90 - ((row + 0.5) * 180) / size.height) * RAD
     for (let col = 0; col < size.width; col += 1) {
@@ -67,12 +83,11 @@ export function smoothMoonFit(positions: ArrayLike<number>, from: number, req: R
       const x = Math.cos(lat) * Math.cos(lon)
       const y = Math.cos(lat) * Math.sin(lon)
       const z = Math.sin(lat)
-      let sunGap = 0
-      let earthGap = 0
       let sunRun = 0
       let earthRun = 0
-      let ok = true
-      for (let k = 0; k < samples && ok; k += 1) {
+      let silent = false
+      let code = FITS
+      for (let k = 0; k < samples; k += 1) {
         const sunUp = x * sun[3 * k] + y * sun[3 * k + 1] + z * sun[3 * k + 2] > sunLow
         // Earth is near enough that where one stands matters: its direction is taken from the place itself.
         const ex = earth[3 * k] - MOON_RADIUS_KM * x
@@ -81,41 +96,21 @@ export function smoothMoonFit(positions: ArrayLike<number>, from: number, req: R
         const earthHigh = (x * ex + y * ey + z * ez) / Math.hypot(ex, ey, ez)
         // With a clearance, Earth exactly at it counts as up (`modelFlags`).
         const earthUp = req.minEarthClearanceDeg > 0 ? earthHigh >= earthLow[k] : earthHigh > earthLow[k]
-        if (k === 0 && ((req.sunAtLanding && !sunUp) || (req.earthAtLanding && !earthUp))) ok = false
+        if (k === 0 && req.sunAtLanding && !sunUp) code = sunDownAtLanding
+        else if (k === 0 && req.earthAtLanding && !earthUp) code = earthOutAtLanding
+        if (code !== FITS) break
         sunRun = sunUp ? 0 : sunRun + step
         earthRun = earthUp ? 0 : earthRun + step
-        if (sunRun > sunGap) sunGap = sunRun
-        if (earthRun > earthGap) earthGap = earthRun
-        // Once a limit is broken the rest of the mission cannot mend it.
-        if (sunGap > req.maxSunGapH || earthGap > req.maxEarthGapH) ok = false
+        // Once a limit is broken the rest of the mission cannot mend it. Too long a dark is said
+        // before too long a silence, so a silence is only a note until the Sun's hours are all read.
+        if (sunRun > req.maxSunGapH) code = dark
+        else if (earthRun > req.maxEarthGapH) silent = true
+        if (code !== FITS) break
       }
-      if (ok) fit[row * size.width + col] = 1
+      verdict[row * size.width + col] = code === FITS && silent ? silence : code
     }
   }
-  return fit
-}
-
-/**
- * The picture a little softened, so its edges are not steps: each pixel half itself and a quarter
- * each of its neighbours, across and then down. Across, the picture wraps round the Moon.
- */
-export function softened(field: Float32Array, size: WashSize): Float32Array {
-  const { width, height } = size
-  const across = new Float32Array(field.length)
-  for (let row = 0; row < height; row += 1) {
-    for (let col = 0; col < width; col += 1) {
-      const left = field[row * width + ((col + width - 1) % width)]
-      const right = field[row * width + ((col + 1) % width)]
-      across[row * width + col] = 0.25 * left + 0.5 * field[row * width + col] + 0.25 * right
-    }
-  }
-  const down = new Float32Array(field.length)
-  for (let row = 0; row < height; row += 1) {
-    const above = Math.max(0, row - 1)
-    const below = Math.min(height - 1, row + 1)
-    for (let col = 0; col < width; col += 1) down[row * width + col] = 0.25 * across[above * width + col] + 0.5 * across[row * width + col] + 0.25 * across[below * width + col]
-  }
-  return down
+  return verdict
 }
 
 /** The pixel holding a place, as its index in the picture. */

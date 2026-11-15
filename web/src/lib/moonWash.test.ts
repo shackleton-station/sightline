@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { FITS, missCode } from './landingOdds'
 import type { Requirements } from './mission'
-import { hourOfYear, smoothMoonFit, softened, WASH_SIZE, washPixel } from './moonWash'
+import { hourOfYear, smoothMoonFit, smoothMoonVerdict, WASH_SIZE, washPixel } from './moonWash'
 
 const REQ: Requirements = { missionDays: 14, maxSunGapH: 24, maxEarthGapH: 99_999, sunAtLanding: true, earthAtLanding: true, minEarthClearanceDeg: 0 }
 const SUN_KM = 149_600_000
@@ -94,6 +95,31 @@ describe('a smooth Moon', () => {
     for (let pixel = 0; pixel < any.length; pixel += 1) expect(clear[pixel]).toBeLessThanOrEqual(any[pixel])
   })
 
+  it('says what fails first, in the verdict’s own order, and fits where the fit says so', () => {
+    // The Sun goes west round the Moon once a lunar day, starting over 0°; Earth stays over 0°.
+    const positions = sky(LUNAR_DAY_H, (hour) => (-360 * hour) / LUNAR_DAY_H)
+    const req = { ...REQ, maxEarthGapH: 24 }
+    const verdict = smoothMoonVerdict(positions, 0, req)
+    const fit = smoothMoonFit(positions, 0, req)
+    if (!verdict || !fit) throw new Error('no picture')
+    const at = (lat: number, lon: number) => verdict[washPixel(lat, lon)]
+    // Just risen, Earth in view: it fits.
+    expect(at(0, -80)).toBe(FITS)
+    // Noon, Earth overhead: the Sun sets in a week, and the dark outlasts a day.
+    expect(at(0, 0)).toBe(missCode('dark'))
+    // The far side at night: the Sun is down at landing, which is said before Earth being out of view.
+    expect(at(0, 170)).toBe(missCode('sunAtLanding'))
+    // A Sun that stands over 90° E: at 120° E it is day and Earth, over 0°, is out of view at landing.
+    const still = sky(400, () => 90)
+    expect(smoothMoonVerdict(still, 0, req)?.[washPixel(0, 120)]).toBe(missCode('earthAtLanding'))
+    // With no need of Earth at landing, the same place has light for the stay and no radio: silence.
+    expect(smoothMoonVerdict(still, 0, { ...req, earthAtLanding: false })?.[washPixel(0, 120)]).toBe(missCode('silence'))
+    // At 120° W both the dark and the silence are too long: the dark is said.
+    expect(smoothMoonVerdict(still, 0, { ...req, earthAtLanding: false, sunAtLanding: false })?.[washPixel(0, -120)]).toBe(missCode('dark'))
+    for (let pixel = 0; pixel < fit.length; pixel += 1) expect(fit[pixel] === 1).toBe(verdict[pixel] === FITS)
+    expect(verdict).toHaveLength(WASH_SIZE.width * WASH_SIZE.height)
+  })
+
   it('samples a long mission and still finds its long dark', () => {
     const positions = sky(90 * 24, (hour) => (-360 * hour) / LUNAR_DAY_H)
     const long: Requirements = { ...REQ, missionDays: 90, earthAtLanding: false, maxSunGapH: 300 }
@@ -110,15 +136,6 @@ describe('the picture', () => {
     expect(washPixel(-89.9, 179.9)).toBe(width * height - 1)
     expect(washPixel(0.1, 0.1)).toBe((height / 2 - 1) * width + width / 2)
     expect(washPixel(0, 540)).toBe(washPixel(0, 180))
-  })
-
-  it('softens an edge without changing how much fits, and wraps round the Moon', () => {
-    const size = { width: 8, height: 4 }
-    const field = new Float32Array(32)
-    for (let row = 0; row < 4; row += 1) for (let col = 0; col < 4; col += 1) field[row * 8 + col] = 1
-    const soft = softened(field, size)
-    expect(Array.from(soft.slice(8, 16))).toEqual([0.75, 1, 1, 0.75, 0.25, 0, 0, 0.25])
-    expect(soft.reduce((sum, value) => sum + value, 0)).toBeCloseTo(16, 5)
   })
 
   it('names the year and the hour within it', () => {

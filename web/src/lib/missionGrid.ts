@@ -1,4 +1,4 @@
-import { cellAtM, erf, type FitMap, FITS, missCode, sigmaM, type Spread } from './landingOdds'
+import { cellAtM, type FitMap, FITS, missCode, VERDICT_RGB } from './landingOdds'
 import { cellAt, type LightMeta, type LightMonth, type LightPatch, planeXY } from './lightGrid'
 import { locateHour, type Requirements } from './mission'
 
@@ -352,151 +352,109 @@ export function layPatch(field: Float32Array, sub: number, gridSize: number, pat
 }
 
 /**
- * A bell curve of spread `sigmaPx` as weights for whole pixels either side of the middle: each is
- * the curve's share over that pixel's width, so they add up to one. With `exact` false the curve
- * is read at each pixel's middle instead, for a line that crosses pixels at a slant.
+ * What a landing does at every pixel of the grid, as a picture (RGBA) in the verdict's own colors
+ * (`VERDICT_RGB`): the green of a landing that fits, or the color of the first limit it breaks, as
+ * Landing accuracy's map is colored. `sub` pixels along each light cell. A pixel's color is that of
+ * the Sun and Earth verdict there, mixed with the color of ground too steep by the share of the
+ * pixel that is (`flat`, from `flatShare`; null when the slope could not be read). With `soft`,
+ * the Sun and Earth color is read between the light cells' middles rather than cell by cell, so the
+ * picture has no squares: a way of drawing a grid known only at those middles, not finer knowledge
+ * of the ground. Every pixel is drawn at full strength. It is `fitField` in colors: where that
+ * says 1 the pixel is the fit's green.
  */
-function bellWeights(sigmaPx: number, exact: boolean): Float32Array {
-  const reach = Math.max(1, Math.ceil(3.5 * sigmaPx))
-  const weights = new Float32Array(2 * reach + 1)
-  const below = (x: number) => 0.5 * (1 + erf(x / (sigmaPx * Math.SQRT2)))
-  let sum = 0
-  for (let k = -reach; k <= reach; k += 1) {
-    weights[k + reach] = exact ? below(k + 0.5) - below(k - 0.5) : Math.exp((-0.5 * k * k) / (sigmaPx * sigmaPx))
-    sum += weights[k + reach]
-  }
-  for (let i = 0; i < weights.length; i += 1) weights[i] /= sum
-  return weights
-}
-
-/** One pass of a blur: each pixel becomes the weighted mean of those `stepX`, `stepY` apart along a line through it. Past the picture's edge, the edge is repeated. */
-function blurAlong(from: Float32Array, side: number, weights: Float32Array, stepX: number, stepY: number): Float32Array {
-  const reach = (weights.length - 1) / 2
-  // How far each weight's pixel is from the middle one, in whole pixels: the same for every pixel.
-  const dx = Int32Array.from(weights, (_, i) => Math.round((i - reach) * stepX))
-  const dy = Int32Array.from(weights, (_, i) => Math.round((i - reach) * stepY))
-  const to = new Float32Array(from.length)
-  const last = side - 1
+export function verdictPixels(gaps: GridGaps, req: Requirements, sub: number, flat: Float32Array | null, soft = false): Uint8ClampedArray {
+  const { size } = gaps
+  const codes = new Uint8Array(size * size)
+  for (let cell = 0; cell < codes.length; cell += 1) codes[cell] = lightVerdict(gaps, cell, req)
+  const side = size * sub
+  const pixels = new Uint8ClampedArray(4 * side * side)
+  const steep = VERDICT_RGB[missCode('slope')]
+  const last = size - 1
   for (let row = 0; row < side; row += 1) {
+    // Where this pixel's middle falls among the light cells' middles.
+    const y = soft ? Math.min(last, Math.max(0, (row + 0.5) / sub - 0.5)) : Math.floor(row / sub)
+    const y0 = Math.floor(y)
+    const y1 = Math.min(last, y0 + 1)
+    const fy = y - y0
     for (let col = 0; col < side; col += 1) {
-      let sum = 0
-      for (let i = 0; i < weights.length; i += 1) {
-        const x = Math.min(last, Math.max(0, col + dx[i]))
-        const y = Math.min(last, Math.max(0, row + dy[i]))
-        sum += weights[i] * from[y * side + x]
+      const x = soft ? Math.min(last, Math.max(0, (col + 0.5) / sub - 0.5)) : Math.floor(col / sub)
+      const x0 = Math.floor(x)
+      const x1 = Math.min(last, x0 + 1)
+      const fx = x - x0
+      const a = VERDICT_RGB[codes[y0 * size + x0]]
+      const b = VERDICT_RGB[codes[y0 * size + x1]]
+      const c = VERDICT_RGB[codes[y1 * size + x0]]
+      const d = VERDICT_RGB[codes[y1 * size + x1]]
+      const pixel = row * side + col
+      const share = flat ? flat[pixel] : 1
+      for (let i = 0; i < 3; i += 1) {
+        const light = (a[i] * (1 - fx) + b[i] * fx) * (1 - fy) + (c[i] * (1 - fx) + d[i] * fx) * fy
+        pixels[4 * pixel + i] = share * light + (1 - share) * steep[i]
       }
-      to[row * side + col] = sum
+      pixels[4 * pixel + 3] = 255
     }
-  }
-  return to
-}
-
-/** A picture at half the size: each pixel the mean of four. */
-export function halved(from: Float32Array, side: number): Float32Array {
-  const half = side / 2
-  const to = new Float32Array(half * half)
-  for (let row = 0; row < half; row += 1) {
-    for (let col = 0; col < half; col += 1) {
-      const at = 2 * row * side + 2 * col
-      to[row * half + col] = (from[at] + from[at + 1] + from[at + side] + from[at + side + 1]) / 4
-    }
-  }
-  return to
-}
-
-/**
- * How many pixels the blur reads for each pixel it writes: the cost of `oddsField`, to choose
- * between a picture and its half-size copy.
- */
-export function blurReads(pixelM: number, spread: Spread): number {
-  const across = sigmaM(spread.accuracyM) / pixelM
-  const taps = (sigmaPx: number) => 2 * Math.max(1, Math.ceil(3.5 * sigmaPx)) + 1
-  return 2 * taps(across) + (spread.stretch > 1 ? taps(across * Math.sqrt(spread.stretch * spread.stretch - 1)) : 0)
-}
-
-/**
- * The odds of a landing fitting for a lander aimed at each pixel: the field of where a landing
- * fits, blurred by the lander's spread. A round spread is two passes, across and down. A spread
- * longer along the approach is those two and a third along the approach's line, which together make
- * the same stretched bell curve. Pixels are `pixelM` meters; the picture's top is the map's up.
- */
-export function oddsField(field: Float32Array, side: number, pixelM: number, spread: Spread): Float32Array {
-  const across = sigmaM(spread.accuracyM) / pixelM
-  const round = bellWeights(across, true)
-  let odds = blurAlong(blurAlong(field, side, round, 1, 0), side, round, 0, 1)
-  if (spread.stretch > 1) {
-    // What the round blur lacks along the approach: sigma² along = sigma² across + this².
-    const more = across * Math.sqrt(spread.stretch * spread.stretch - 1)
-    const turn = (spread.bearingDeg * Math.PI) / 180
-    // The approach runs clockwise from up; up on the picture is toward smaller rows.
-    odds = blurAlong(odds, side, bellWeights(more, false), Math.sin(turn), -Math.cos(turn))
-  }
-  return odds
-}
-
-/** The colors odds are drawn in: none of the landings fit, half of them, all of them. */
-export const ODDS_RAMP: readonly (readonly [number, number, number])[] = [
-  [194, 69, 45],
-  [224, 178, 58],
-  [87, 192, 138],
-]
-
-/** The ramp's color for odds from 0 to 1. */
-export function oddsColor(odds: number): [number, number, number] {
-  const at = Math.min(1, Math.max(0, odds)) * (ODDS_RAMP.length - 1)
-  const low = Math.min(ODDS_RAMP.length - 2, Math.floor(at))
-  const part = at - low
-  const mix = (i: number) => Math.round(ODDS_RAMP[low][i] + (ODDS_RAMP[low + 1][i] - ODDS_RAMP[low][i]) * part)
-  return [mix(0), mix(1), mix(2)]
-}
-
-/** How strongly the shading is drawn where no landing fits, as a share of its full strength: faint, so the ground reads through the red. */
-export const FEW_STRENGTH = 0.4
-/** The odds from which the shading is drawn at full strength: the ramp's amber, where it is a coin's toss. */
-const FULL_STRENGTH_FROM = 0.5
-
-/**
- * How strongly odds are drawn, as a share of the shading's full strength. Faint where few landings
- * fit and full from amber up, so ground where a landing may fit stands out against a Moon that
- * otherwise looks like itself.
- */
-export function oddsStrength(odds: number): number {
-  const part = Math.min(1, Math.max(0, odds) / FULL_STRENGTH_FROM)
-  return FEW_STRENGTH + (1 - FEW_STRENGTH) * part
-}
-
-/** Odds as a picture's pixels (RGBA), each in the ramp's color; a pixel's alpha is how strongly it is drawn (`oddsStrength`). */
-export function oddsPixels(odds: Float32Array): Uint8ClampedArray {
-  // The ramp is looked up, not worked out, for each of a few million pixels.
-  const table = Array.from({ length: 256 }, (_, i) => [...oddsColor(i / 255), Math.round(255 * oddsStrength(i / 255))])
-  const pixels = new Uint8ClampedArray(4 * odds.length)
-  for (let i = 0; i < odds.length; i += 1) {
-    const color = table[Math.min(255, Math.max(0, Math.round(255 * odds[i])))]
-    pixels[4 * i] = color[0]
-    pixels[4 * i + 1] = color[1]
-    pixels[4 * i + 2] = color[2]
-    pixels[4 * i + 3] = color[3]
   }
   return pixels
 }
-/** A fit map as a field: 1 where a landing fits and 0 where it does not, for `oddsField`. */
-export function fieldOf(map: FitMap): Float32Array {
-  return Float32Array.from(map.verdict, (code) => (code === FITS ? 1 : 0))
+
+/**
+ * A patch laid into a picture of what a landing does (`verdictPixels`): inside the patch, each of
+ * the picture's pixels becomes the mean color of the patch's pixels under it, each in its own
+ * verdict's color, so ground the grid's one value a cell could not tell apart is told apart. `gaps`
+ * are the patch's own and `flat` the picture's own, as for `layPatch`, which this is in colors.
+ * Nothing is changed unless the patch's pixels divide the picture's exactly.
+ */
+export function layPatchPixels(pixels: Uint8ClampedArray, sub: number, gridSize: number, patch: LightPatch, gaps: GridGaps, req: Requirements, flat: Float32Array | null): void {
+  const per = patch.sub / sub
+  if (!Number.isInteger(per) || per < 1 || gaps.size !== patch.size) return
+  const side = gridSize * sub
+  const across = patch.cells * sub
+  const steep = VERDICT_RGB[missCode('slope')]
+  const light = [0, 0, 0]
+  for (let j = 0; j < across; j += 1) {
+    for (let i = 0; i < across; i += 1) {
+      light.fill(0)
+      for (let dj = 0; dj < per; dj += 1) {
+        for (let di = 0; di < per; di += 1) {
+          const color = VERDICT_RGB[lightVerdict(gaps, (j * per + dj) * patch.size + i * per + di, req)]
+          for (let k = 0; k < 3; k += 1) light[k] += color[k]
+        }
+      }
+      const pixel = (patch.row * sub + j) * side + patch.col * sub + i
+      const share = flat ? flat[pixel] : 1
+      for (let k = 0; k < 3; k += 1) pixels[4 * pixel + k] = (share * light[k]) / (per * per) + (1 - share) * steep[k]
+    }
+  }
 }
 
-/** The odds at a point given from the map's target (m), from odds worked out over the map; null off the map. */
-export function oddsAt(map: FitMap, odds: Float32Array, x: number, y: number): number | null {
+/** Verdict codes as a picture's pixels (RGBA), each in its verdict's color, drawn at `strength` (0 to 1) of full. */
+export function codePixels(codes: Uint8Array, strength = 1): Uint8ClampedArray {
+  const alpha = Math.round(255 * strength)
+  const pixels = new Uint8ClampedArray(4 * codes.length)
+  for (let i = 0; i < codes.length; i += 1) {
+    const color = VERDICT_RGB[codes[i]]
+    pixels[4 * i] = color[0]
+    pixels[4 * i + 1] = color[1]
+    pixels[4 * i + 2] = color[2]
+    pixels[4 * i + 3] = alpha
+  }
+  return pixels
+}
+
+/** A value at a point given from the map's target (m), from values held one a cell of the map; null off the map. */
+export function valueAt(map: FitMap, values: Float32Array, x: number, y: number): number | null {
   const cell = cellAtM(map, x, y)
-  return cell === null ? null : odds[cell]
+  return cell === null ? null : values[cell]
 }
 
 /**
  * Looking around from a site near the south pole: for each compass bearing (degrees clockwise from
- * north), the mean odds over the ground from `fromM` to `toM` out that way. On the polar map, north
+ * north), the mean of a value held one a cell of the map (one channel of the verdict's color, say)
+ * over the ground from `fromM` to `toM` out that way. On the polar map, north
  * at a site is straight away from the pole and east is a quarter turn clockwise from it, seen from
  * above the south pole. Null for a bearing whose ground is off the map.
  */
-export function oddsAlongBearings(map: FitMap, odds: Float32Array, lonDeg: number, bearingsDeg: number[], fromM: number, toM: number): (number | null)[] {
+export function meanAlongBearings(map: FitMap, values: Float32Array, lonDeg: number, bearingsDeg: number[], fromM: number, toM: number): (number | null)[] {
   const lon = (lonDeg * Math.PI) / 180
   const north = [Math.sin(lon), Math.cos(lon)]
   const east = [Math.cos(lon), -Math.sin(lon)]
@@ -509,7 +467,7 @@ export function oddsAlongBearings(map: FitMap, odds: Float32Array, lonDeg: numbe
     let count = 0
     for (let i = 0; i <= steps; i += 1) {
       const out = fromM + ((toM - fromM) * i) / steps
-      const here = oddsAt(map, odds, out * dx, out * dy)
+      const here = valueAt(map, values, out * dx, out * dy)
       if (here === null) continue
       sum += here
       count += 1

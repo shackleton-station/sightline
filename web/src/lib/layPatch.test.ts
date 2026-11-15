@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { patchGrid } from './lightGrid'
 import type { LightMeta, LightPatch } from './lightGrid'
 import { DEFAULT_REQUIREMENTS } from './mission'
-import { fitField, type GridGaps, layPatch } from './missionGrid'
+import { FITS, missCode, VERDICT_RGB } from './landingOdds'
+import { fitField, type GridGaps, layPatch, layPatchPixels, verdictPixels } from './missionGrid'
 
 const REQ = DEFAULT_REQUIREMENTS
 
@@ -66,6 +67,29 @@ describe('a patch laid into the field of where a landing fits', () => {
     expect(at(field, 7, 6)).toBe(1)
     // Half of a pixel level: half of what its patch pixels say.
     expect(at(field, 8, 8)).toBe(0.5)
+  })
+
+  it('is laid into the picture in colors as it is into the field: the mean color of the patch pixels under each pixel', () => {
+    const rgb = (pixels: Uint8ClampedArray, col: number, row: number) => Array.from(pixels.slice(4 * (row * side + col), 4 * (row * side + col) + 3))
+    const green = [...VERDICT_RGB[FITS]]
+    const dark = [...VERDICT_RGB[missCode('dark')]]
+    // The grid says the whole of cell (3, 3) is dark. The patch says only one column of its pixels is.
+    const grid = gapsOf(SIZE, (col, row) => col === 3 && row === 3)
+    const fine = gapsOf(patch.size, (col) => col === 4)
+    const pixels = verdictPixels(grid, REQ, SUB, null)
+    expect(rgb(pixels, 6, 6)).toEqual(dark)
+    layPatchPixels(pixels, SUB, SIZE, patch, fine, REQ, null)
+    expect(rgb(pixels, 6, 6)).toEqual(green)
+    // A third of the pixel over that column is dark.
+    expect(rgb(pixels, 7, 6)).toEqual(green.map((value, i) => Math.round((2 * value + dark[i]) / 3)))
+    // Outside the patch the grid's own cells stand.
+    expect(rgb(pixels, 0, 0)).toEqual(green)
+    // A pixel wholly too steep is the slope's color whatever the patch says.
+    const flat = new Float32Array(side * side).fill(1)
+    flat[6 * side + 6] = 0
+    const steep = verdictPixels(grid, REQ, SUB, flat)
+    layPatchPixels(steep, SUB, SIZE, patch, fine, REQ, flat)
+    expect(rgb(steep, 6, 6)).toEqual([...VERDICT_RGB[missCode('slope')]])
   })
 
   it('is left alone when the patch’s pixels do not divide the field’s, or the gaps are not the patch’s', () => {

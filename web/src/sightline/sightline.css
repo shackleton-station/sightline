@@ -4596,21 +4596,29 @@ button.sl-moment-heights[aria-expanded='true'] {
   accent-color: var(--gold);
 }
 
+/* The key: a color and its words a line, the words Landing accuracy's own. */
 .sl-fit-key {
+  display: grid;
+  gap: 0.05rem;
+  margin: 0.1rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--soft);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.sl-fit-key li {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  color: var(--soft);
-  font-size: 0.75rem;
+  white-space: nowrap;
 }
 
-.sl-fit-key .sl-fit-ramp {
-  flex: 1;
-  min-width: 3rem;
-}
-
-.sl-fit-ramp {
-  height: 0.55rem;
-  border-radius: 999px;
+.sl-fit-key i {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 2px;
 }
 

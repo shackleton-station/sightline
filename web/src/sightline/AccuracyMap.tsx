@@ -1,16 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { type Margins, verdictPicture } from '../lib/landingField'
-import { type Aim, cellAtM, cellCentreM, type FitMap, MISSES, RING_SHARES, radiusHolding, sigmaM, type Spread, verdictColor } from '../lib/landingOdds'
+import { type Aim, cellAtM, cellCentreM, type FitMap, RING_SHARES, radiusHolding, sigmaM, type Spread, VERDICT_RGB } from '../lib/landingOdds'
 
 const SCALE_BARS_M = [25, 50, 100, 200, 250, 500, 1000]
 /** Pixels along a side of the picture of the ground, before it is drawn at the panel's size. */
 const PICTURE_PX = 288
-
-/** Each verdict's color as red, green and blue: the fit's first, then each reason's. */
-const VERDICT_RGB = Array.from({ length: MISSES.length + 1 }, (_, code) => {
-  const hex = verdictColor(code)
-  return [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16))
-})
 
 interface Props {
   /** The map the odds are counted on: a spot tapped is one of its cells. */

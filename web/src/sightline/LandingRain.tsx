@@ -23,7 +23,7 @@ import {
   reachM,
   sigmaM,
   type Spread,
-  verdictColor,
+  VERDICT_RGB,
 } from '../lib/landingOdds'
 import { type TrekWindow, trekLayer, trekWindow } from '../lib/trekLayers'
 import { useFinePhoto } from '../data/finePhoto'
@@ -35,12 +35,6 @@ import { useFieldReadings, useLandingFields } from './useLandingFields'
 
 /** Pixels along a side of the picture of the ground's verdicts, before it is drawn at the stage's size. */
 const GROUND_PX = 320
-
-/** Each verdict's color as red, green and blue: the fit's first, then each reason's. */
-const VERDICT_RGB = Array.from({ length: MISSES.length + 1 }, (_, code) => {
-  const hex = verdictColor(code)
-  return [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16))
-})
 
 interface Props {
   site: SiteInfo

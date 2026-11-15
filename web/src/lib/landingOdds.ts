@@ -118,6 +118,12 @@ export function verdictColor(code: number): string {
   return miss ? MISS_COLORS[miss] : FIT_COLOR
 }
 
+/** Each verdict's color as red, green and blue (0 to 255), by its code: the fit's first, then each reason's. */
+export const VERDICT_RGB: readonly (readonly [number, number, number])[] = Array.from({ length: MISSES.length + 1 }, (_, code) => {
+  const hex = verdictColor(code)
+  return [Number.parseInt(hex.slice(1, 3), 16), Number.parseInt(hex.slice(3, 5), 16), Number.parseInt(hex.slice(5, 7), 16)] as const
+})
+
 /** Where a landing fits: one code per cell of a square grid around the target. */
 export interface FitMap {
   /** Cells along a side, and their size (m). */

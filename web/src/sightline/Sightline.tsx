@@ -83,7 +83,7 @@ import { useMissionGrid, useMoonShade } from './useMissionGrid'
 import { useFieldReadings, useLandingFields } from './useLandingFields'
 import type { FieldAsk } from '../data/landingField'
 import { latticeFor } from '../lib/landingField'
-import { closenessWords, shadeLeavesOut } from '../lib/accuracyWords'
+import { shadeLeavesOut } from '../lib/accuracyWords'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { defaultScenarios } from '../lib/defaultPair'
 import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
@@ -1075,7 +1075,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // map and odds no longer read the grid: they come from landing points (below).
   const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, false)
   // The shade on the Moon follows the time bar, as the Moon does: it is for a landing at the hour on show.
-  const moonShade = useMoonShade(missionGrid.meta, start, hour, mission, spread, shown && !planner && fitShade)
+  const moonShade = useMoonShade(missionGrid.meta, start, hour, mission, shown && !planner && fitShade)
   // Whether a light grid, the fine one or the wide one round it, reaches the site on show: only there do the odds know the terrain.
   const fitHere = shadeHere
   // How far from the pole the slope is judged: the fine grid's own square, which the slope images cover.
@@ -1702,7 +1702,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       {shown && !planner && drawer === 'rover' && <RoverDrawer long={presetOf(mission)?.id === 'long'} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} heights={siteHeights} start={start} landing={scenario.landing} verdict={aimVerdicts[active]} spread={spread} onSpread={setSpread} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, slopeKm, lander: closenessWords(spread), leavesOut: shadeLeavesOut(mission.heights, mission.requirements.minEarthClearanceDeg) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
+      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, slopeKm, leavesOut: shadeLeavesOut(mission.heights, mission.requirements.minEarthClearanceDeg) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
             if (next !== null) closeUp()
             // One coloring of the ground at a time: a map takes the place of "Landings that fit".
             if (next !== null) setFitShade(false)

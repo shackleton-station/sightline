@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import type { HorizonPoint, SiteInfo } from '../data/contract'
 import { loadYearPositions } from '../data/customSite'
 import { gapsAt, loadLightMeta, patchGapsAt, slopePartFor, wideGapsAt } from '../data/loadMissionGrid'
-import { ACCURACY_RANGE, DEFAULT_SPREAD, readSpreadLink, type Spread } from '../lib/landingOdds'
+import { ACCURACY_RANGE, cellAtM, type FitMap, VERDICT_RGB } from '../lib/landingOdds'
 import { wideGrid } from '../lib/lightGrid'
 import type { Requirements } from '../lib/mission'
-import { fieldOf, fitMapAround, fitMapInPatch, oddsAlongBearings, oddsAt, oddsColor, oddsField, patchHolding, squareAround } from '../lib/missionGrid'
-import { smoothMoonFit, washPixel } from '../lib/moonWash'
+import { fitMapAround, fitMapInPatch, meanAlongBearings, patchHolding, squareAround } from '../lib/missionGrid'
+import { smoothMoonVerdict, washPixel } from '../lib/moonWash'
 import { DEFAULT_MAX_SLOPE_DEG } from '../lib/sightlineMission'
 import type { GroundTint } from '../three/SurfaceViewer'
 import { EXAMPLE_LIMITS, readAddress } from './address'
@@ -25,7 +25,6 @@ export interface TintLink {
   index: number
   requirements: Requirements
   maxSlopeDeg: number
-  spread: Spread
 }
 
 /** The layer a link asks for (`&odds=1`, as Sightline's Surface view sends it); null if it asks for none. */
@@ -39,13 +38,27 @@ export function readTintLink(hash: string): TintLink | null {
     index: address.index,
     requirements: address.kept.requirements ?? EXAMPLE_LIMITS,
     maxSlopeDeg: Number.isFinite(slope) ? slope : DEFAULT_MAX_SLOPE_DEG,
-    spread: readSpreadLink(hash) ?? DEFAULT_SPREAD,
   }
 }
 
-/** The odds underfoot and out toward each point of the horizon, each 0 to 1. */
-async function oddsAround(link: TintLink, site: SiteInfo, horizon: HorizonPoint[]): Promise<{ under: number; rim: number[] } | null> {
-  const { requirements, spread } = link
+type Rgb = [number, number, number]
+
+/**
+ * A map's colors underfoot and out toward each point of the horizon: the verdict's color at the
+ * site itself, and for each bearing the mean color of the ground out that way, each cell in its
+ * own verdict's color (Landing accuracy's).
+ */
+function colorsOn(map: FitMap, site: SiteInfo, horizon: HorizonPoint[]): { under: Rgb; rim: Rgb[] } {
+  const here = cellAtM(map, 0, 0)
+  const under = [...VERDICT_RGB[here === null ? 0 : map.verdict[here]]] as Rgb
+  const bearings = horizon.map((point) => point.az)
+  const channels = [0, 1, 2].map((i) => meanAlongBearings(map, Float32Array.from(map.verdict, (code) => VERDICT_RGB[code][i]), site.lon, bearings, RIM_FROM_M, RIM_TO_M))
+  return { under, rim: bearings.map((_, b) => channels.map((channel, i) => Math.round(channel[b] ?? under[i])) as Rgb) }
+}
+
+/** The colors underfoot and out toward each point of the horizon. */
+async function colorsAround(link: TintLink, site: SiteInfo, horizon: HorizonPoint[]): Promise<{ under: Rgb; rim: Rgb[] } | null> {
+  const { requirements } = link
   const meta = await loadLightMeta()
   const square = meta ? squareAround(meta, site.lat, site.lon, REACH_M) : null
   if (meta && square) {
@@ -56,11 +69,7 @@ async function oddsAround(link: TintLink, site: SiteInfo, horizon: HorizonPoint[
     const held = patchHolding(meta, square)
     const fine = held ? await patchGapsAt(meta, held.site, link.month, link.index, requirements.missionDays) : null
     const map = held && fine && fine !== 'past' ? fitMapInPatch(meta, held.patch, fine, square, site.lat, site.lon, requirements, link.maxSlopeDeg, slope) : fitMapAround(meta, gaps, square, site.lat, site.lon, requirements, link.maxSlopeDeg, slope)
-    // Blurred by the lander's own spread and no more, as the picture on the Moon is.
-    const odds = oddsField(fieldOf(map), map.size, map.cellM, spread)
-    const under = oddsAt(map, odds, 0, 0) ?? 0
-    const rim = oddsAlongBearings(map, odds, site.lon, horizon.map((point) => point.az), RIM_FROM_M, RIM_TO_M)
-    return { under, rim: rim.map((value) => value ?? under) }
+    return colorsOn(map, site, horizon)
   }
   // Past the fine grid, where the wide one reaches: the terrain's own light on its larger cells. There are no slope images of that ground.
   const wide = meta ? wideGrid(meta) : null
@@ -68,43 +77,39 @@ async function oddsAround(link: TintLink, site: SiteInfo, horizon: HorizonPoint[
   const wideGaps = meta && wide && wideSquare ? await wideGapsAt(meta, link.month, link.index, requirements.missionDays) : null
   if (wide && wideSquare && wideGaps) {
     if (wideGaps === 'past') return null
-    const map = fitMapAround(wide, wideGaps, wideSquare, site.lat, site.lon, requirements, link.maxSlopeDeg, null)
-    const odds = oddsField(fieldOf(map), map.size, map.cellM, spread)
-    const under = oddsAt(map, odds, 0, 0) ?? 0
-    const rim = oddsAlongBearings(map, odds, site.lon, horizon.map((point) => point.az), RIM_FROM_M, RIM_TO_M)
-    return { under, rim: rim.map((value) => value ?? under) }
+    return colorsOn(fitMapAround(wide, wideGaps, wideSquare, site.lat, site.lon, requirements, link.maxSlopeDeg, null), site, horizon)
   }
   // Elsewhere: the smooth Moon, which is the same in every direction at this scale.
   const year = Number(link.month.slice(0, 4))
   const hour = (Date.parse(`${link.month}-01T00:00:00Z`) - Date.UTC(year, 0, 1)) / 3_600_000 + link.index
-  const fit = smoothMoonFit(await loadYearPositions(year), hour, requirements)
-  if (!fit) return null
-  const under = fit[washPixel(site.lat, site.lon)]
+  const verdict = smoothMoonVerdict(await loadYearPositions(year), hour, requirements)
+  if (!verdict) return null
+  const under = [...VERDICT_RGB[verdict[washPixel(site.lat, site.lon)]]] as Rgb
   return { under, rim: horizon.map(() => under) }
 }
 
 /**
- * The land's tint for the "Mission success probability" layer: underfoot, the odds that a landing
- * here fits the mission; along the skyline, the odds out that way. Null while the layer is off or
+ * The land's tint for the "Landings that fit" layer, in the colors of Landing accuracy's map:
+ * underfoot, what a landing here does; along the skyline, the ground out that way. Null while the layer is off or
  * its data is on the way.
  */
 export function useGroundTint(link: TintLink | null, site: SiteInfo | null, horizon: HorizonPoint[] | null): GroundTint | null {
   const [tint, setTint] = useState<{ key: string; tint: GroundTint | null } | null>(null)
-  const key = link && site ? `${site.id}@${link.month}+${link.index}/${JSON.stringify([link.requirements, link.maxSlopeDeg, link.spread])}` : null
+  const key = link && site ? `${site.id}@${link.month}+${link.index}/${JSON.stringify([link.requirements, link.maxSlopeDeg])}` : null
   useEffect(() => {
     if (!link || !site || !horizon || !key) return
     let current = true
-    oddsAround(link, site, horizon)
-      .then((odds) => {
+    colorsAround(link, site, horizon)
+      .then((colors) => {
         if (!current) return
-        setTint({ key, tint: odds ? { under: oddsColor(odds.under), rim: odds.rim.map((value) => oddsColor(value)), amount: TINT_AMOUNT } : null })
+        setTint({ key, tint: colors ? { ...colors, amount: TINT_AMOUNT } : null })
       })
       // Without it the land keeps its own dark shape.
       .catch((reason: unknown) => console.error(reason))
     return () => {
       current = false
     }
-    // The key names the site, the landing, the mission and the spread: the same key is the same tint.
+    // The key names the site, the landing and the mission: the same key is the same tint.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [key, horizon])
   return key && tint?.key === key ? tint.tint : null
