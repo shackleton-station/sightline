@@ -3186,6 +3186,10 @@ button.sl-moment-heights[aria-expanded='true'] {
   color: var(--sl-miss);
 }
 
+.sl-full-table td.sl-full-fit.is-marginal {
+  color: var(--sl-marginal);
+}
+
 .sl-full-table .sl-key {
   margin-left: 0;
 }

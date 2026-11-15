@@ -7,6 +7,7 @@ import { fitsButFewLandWords } from '../lib/accuracyWords'
 import { shadowCell, shadowMeans } from '../lib/shadowWords'
 import { clockTime } from '../lib/sightline'
 import { addScenarioMeans, bestIn, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { landingVerdict } from '../lib/landingVerdict'
 import { shareTies, TOO_CLOSE_NOTE } from '../lib/starTie'
 import { landingRows, type PlannerRow, plannerRows } from './plannerTable'
 import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
@@ -44,8 +45,8 @@ const HOURS_PRINTED_UP_TO = 2
  * verdict rests on, and with them shown four scenarios no longer fit a small laptop without scrolling.
  */
 const MORE_ROWS = ['bothPct', 'sunlightWm2']
-/** How each verdict is drawn in its column: a mark, with the words in its hover text. */
-const VERDICT_MARK = { yes: '✓', marginal: '◇', no: '✕' } as const
+/** How each verdict is named in its cell, for its color: the mark is the verdict's own, with the words in its hover text. */
+const VERDICT_CELL = { fits: 'yes', marginal: 'marginal', miss: 'no' } as const
 
 /**
  * One row of the table: its name, then each scenario's figure, the best marked. The hours behind a
@@ -178,11 +179,12 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
             <th scope="row">Fits the mission</th>
             {measures.map((measure, i) => {
               if (!measure) return <td key={i}>…</td>
-              const verdict = measure.problems.length > 0 ? 'no' : marginalOf[i].length > 0 ? 'marginal' : 'yes'
-              const words = verdict === 'no' ? `Does not fit: ${measure.problems.join(' ')}` : verdict === 'marginal' ? `Fits, marginal: ${marginalOf[i].join(', and ')}` : 'Fits the mission'
+              const said = landingVerdict(measure.problems, marginalOf[i])
+              const verdict = VERDICT_CELL[said.state]
+              const words = said.state === 'miss' ? `Does not fit: ${said.reasons.join(' ')}` : said.state === 'marginal' ? `${said.words}: ${said.reasons.join(', and ')}` : said.words
               return (
                 <td key={i} className={`is-${verdict}`} title={words} aria-label={words} data-verdict={verdict}>
-                  {VERDICT_MARK[verdict]}
+                  {said.mark}
                 </td>
               )
             })}

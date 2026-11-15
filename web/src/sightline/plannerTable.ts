@@ -5,6 +5,7 @@ import type { RiverState } from '../lib/river'
 import { degWords, isoAt, stateAt } from '../lib/sightline'
 import { bestIn, COMPARE_ROWS, type ScenarioMeasure, SCENARIO_LETTERS, shareHours, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { shortReason } from '../lib/sightlineSky'
+import { landingVerdict, marginalAtLanding, type VerdictState } from '../lib/landingVerdict'
 import { bestByPair, type ShareQuantity, type ShareTies } from '../lib/starTie'
 import { STATE_CHIP } from './states'
 import type { LandingShares } from './useScenarioFacts'
@@ -24,6 +25,8 @@ export interface PlannerRow {
   states?: (RiverState | null)[]
   /** For the verdict: whether each scenario fits; null while it is being worked out. */
   fits?: (boolean | null)[]
+  /** For the verdict: each scenario's state, as the plan column gives it (a plain fit, a marginal one, a miss); null while it is being worked out. */
+  verdicts?: (VerdictState | null)[]
   /** True when a star in this row was shared or withheld because two sites are closer than the model's measured error. */
   tooClose?: boolean
 }
@@ -129,15 +132,21 @@ function field(value: string): string {
 
 /**
  * The table as CSV: a column per scenario, headed by its letter, site and landing time (UTC), then
- * the rows as the page shows them, whether each fits the mission (with the reasons if not), and the
- * mission's limits in words.
+ * the rows as the page shows them, whether each fits the mission (with the reasons if not, or if only
+ * marginally), and the mission's limits in words. `marginal` holds, for each scenario, why a fit is
+ * only marginal (`marginalAtLanding`); without it a fit is written as a plain one.
  */
-export function plannerCsv(start: string, scenarios: SightlineScenario[], siteNames: string[], rows: PlannerRow[], measures: (ScenarioMeasure | null)[], missionWords: string): string {
+export function plannerCsv(start: string, scenarios: SightlineScenario[], siteNames: string[], rows: PlannerRow[], measures: (ScenarioMeasure | null)[], missionWords: string, marginal: string[][] = []): string {
+  const fits = measures.map((measure, i) => {
+    if (!measure) return ''
+    const said = landingVerdict(measure.problems, marginal[i] ?? [])
+    return said.state === 'miss' ? `no: ${said.reasons.join(' ')}` : said.state === 'marginal' ? `yes, marginal: ${said.reasons.join(', and ')}` : 'yes'
+  })
   const lines = [
     ['', ...scenarios.map((scenario, i) => `${SCENARIO_LETTERS[i]} · ${siteNames[i]} · ${isoAt(start, scenario.landing)}`)],
     // The verdict is written out in full below, with the app's whole sentences.
     ...rows.filter((row) => row.key !== 'fits').map((row) => [row.label, ...row.cells.map((cell) => cell ?? '')]),
-    ['Fits the mission', ...measures.map((measure) => (!measure ? '' : measure.problems.length === 0 ? 'yes' : `no: ${measure.problems.join(' ')}`))],
+    ['Fits the mission', ...fits],
     ['Mission', missionWords],
   ]
   return `${lines.map((line) => line.map(field).join(',')).join('\n')}\n`
@@ -176,8 +185,9 @@ export interface CompareInput {
 }
 
 /**
- * Compare's rows, in groups, the verdict first: whether each scenario fits the mission (with the
- * reasons, in the column's short words), then at landing, power, radio, the ground and science.
+ * Compare's rows, in groups, the verdict first: whether each scenario fits the mission, in the plan
+ * column's three states and marks (with the reasons, in the column's short words), then at landing,
+ * power, radio, the ground and science.
  * Every figure is one the app already measures; none is blended into a score.
  */
 export function compareGroups({ scenarios, siteIds, measures, flags, mission, landings, sunlightWm2, shadow, ties }: CompareInput): PlannerGroup[] {
@@ -186,13 +196,16 @@ export function compareGroups({ scenarios, siteIds, measures, flags, mission, la
   const none = scenarios.map(() => false)
   const blank = scenarios.map(() => null)
 
+  // The verdict on each landing is the plan column's own: the limits it misses, then what makes a fit marginal.
+  const said = measures.map((measure, i) => (measure ? landingVerdict(measure.problems, marginalAtLanding(mission.requirements, landings[i])) : null))
   const verdict: PlannerRow = {
     key: 'fits',
     label: 'Fits the mission',
-    cells: measures.map((measure) => (!measure ? null : measure.problems.length === 0 ? '✓ Yes' : `✗ No: ${measure.problems.map(shortReason).join('; ')}`)),
+    cells: said.map((one) => (!one ? null : one.state === 'fits' ? `${one.mark} Yes` : one.state === 'marginal' ? `${one.mark} Yes, marginal: ${one.reasons.join('; ')}` : `${one.mark} No: ${one.reasons.map(shortReason).join('; ')}`)),
     notes: blank,
     best: none,
-    fits: measures.map((measure) => (measure ? measure.problems.length === 0 : null)),
+    fits: said.map((one) => (one ? one.state !== 'miss' : null)),
+    verdicts: said.map((one) => (one ? one.state : null)),
   }
 
   const states = scenarios.map((scenario, i) => {
