@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Summary, Validation } from '../data/contract'
-import { customNotes, validationNotes, verdict } from './verdict'
+import { customNotes, validationNotes, verdict, wholePct } from './verdict'
 
 const summary: Summary = {
   range: { start: '2027-05-01T00:00:00Z', end: '2027-06-01T00:00:00Z', step_h: 1 },
@@ -65,15 +65,24 @@ describe('verdict', () => {
   })
 })
 
+describe('a share as a whole percent', () => {
+  it('rounds, and never reads as none or all when it is not', () => {
+    expect(wholePct(44.8)).toBe('45%')
+    expect(wholePct(0)).toBe('0%')
+    expect(wholePct(100)).toBe('100%')
+    expect(wholePct(0.2)).toBe('under 1%')
+    expect(wholePct(99.96)).toBe('over 99%')
+  })
+})
+
 describe('validationNotes', () => {
   it('states a disagreement beyond the measured error instead of claiming validation', () => {
     const { sun } = validationNotes(validation, 2)
     expect(sun.warning).toBe(true)
     expect(sun.text).toContain('not confirmed')
-    expect(sun.text).toContain('85.9%')
-    expect(sun.text).toContain('68.5%')
+    expect(sun.text).toContain('86% here, 68% on NASA')
+    expect(sun.text).toContain('about 17 points apart')
     expect(sun.text).toContain('45–86%')
-    expect(sun.text).toContain('17.4 points')
     expect(sun.text).toContain('typical difference is 2.5')
   })
 

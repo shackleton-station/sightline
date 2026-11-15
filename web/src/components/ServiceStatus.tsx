@@ -1,8 +1,8 @@
 import type { ServiceHealth, ServicesState } from '../data/serviceStatus'
 
 const NAMES: Record<string, { label: string; does: string; without: string }> = {
-  plans: { label: 'Plans', does: 'saves and opens shared plans', without: 'Sharing a plan waits for it. Every page, the co-pilot and the terrain still work.' },
-  copilot: { label: 'Co-pilot', does: 'answers questions with the language model', without: 'The co-pilot says it is busy and when to ask again. Every page, plans and the terrain still work.' },
+  plans: { label: 'Plans', does: 'saves and opens shared plans', without: 'Sharing a plan waits for it. Every page, Scout and the terrain still work.' },
+  copilot: { label: 'Scout', does: 'answers questions with the language model', without: 'Scout says he is busy and when to ask again. Every page, plans and the terrain still work.' },
 }
 
 /** One line about a service, in plain words. */

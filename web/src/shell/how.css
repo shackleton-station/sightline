@@ -478,3 +478,28 @@
   border-radius: 12px;
   background: #000;
 }
+
+/* One reading column in the middle of the page: the text used to sit at the left of a wide page with
+   the right of it empty. The diagrams, the counts, the stack and the data sources keep the full width. */
+.how > .how-top,
+.how > .how-start,
+.how > .how-why,
+.how > .how-guides,
+.how > .how-use,
+.how > .how-intro,
+.how > .how-foot {
+  max-width: 46rem;
+}
+
+.how .how-act > * {
+  max-width: 46rem;
+  margin-inline: auto;
+}
+
+.how .how-act > .how-flow,
+.how .how-act > .how-counts,
+.how .how-act > .how-stack,
+.how .how-act > .how-sources {
+  max-width: none;
+}
+
