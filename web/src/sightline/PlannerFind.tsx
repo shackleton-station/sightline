@@ -1,3 +1,4 @@
+import { MAX_SPAN_YEARS } from '../lib/span'
 import { useMemo, useState } from 'react'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { locateHour } from '../lib/mission'
@@ -7,7 +8,7 @@ import { type GridCell, type MonthSpan, shadePct } from '../lib/grid'
 import { monthLabel, monthName } from '../lib/months'
 import { clockTime, stateRuns } from '../lib/sightline'
 import { fitProblems, MAX_SCENARIOS, presetOf, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
-import { cellDetail, cellWords, FIND_MEASURES, type FindMeasure, findRow, findTally, fitHours, monthsWithFit, runningTotals } from './plannerFit'
+import { blockedBy, cellDetail, cellWords, FIND_MEASURES, type FindMeasure, findRow, findTally, fitHours, monthsWithFit, runningTotals } from './plannerFit'
 import { PlannerFindMore } from './PlannerFindMore'
 import { PlannerOwnPoint } from './PlannerOwnPoint'
 import { siteValue } from './site'
@@ -36,6 +37,10 @@ interface Props {
   count: number
   /** Add a scenario and show it. Never leaves the page. */
   onAdd: (scenario: SightlineScenario) => void
+  /** The first and last year of all the data, of which the page holds a few at a time. */
+  dataYears?: { first: number; last: number }
+  /** Ask for a year beyond those on hand; true if it is on its way without starting the page again. */
+  onYear?: (year: number) => boolean
 }
 
 /** The groups in the order the grid lists them; a group not named here follows, in the data's order. */
@@ -61,11 +66,18 @@ function grouped(flagged: FindSite[]): { group: string; rows: FindSite[] }[] {
 /** A site's slope for the mission's limit: its own figure where the row brings one, else the listed site's. */
 const slopeOf = (row: FindSite): number | null => (row.slopeDeg !== undefined ? row.slopeDeg : (row.site.slope?.deg ?? null))
 
-export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, spans, year, mission, onMission, count, onAdd }: Props) {
+export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, spans, year, mission, onMission, count, onAdd, dataYears, onYear }: Props) {
   const [measure, setMeasure] = useState<FindMeasure>('fit')
   const years = useMemo(() => [...new Set(spans.map((span) => Number(span.month.slice(0, 4))))], [spans])
   const [picked, setPicked] = useState(year)
   const gridYear = years.includes(picked) ? picked : year
+  // The list offers the years on hand and the later ones the page can add where it stands; a year picked beyond those on hand is fetched, and the grid turns to it when it arrives.
+  const offered = useMemo(() => {
+    if (!dataYears || !onYear) return years
+    const reach = Math.min(dataYears.last, years[0] + MAX_SPAN_YEARS - 2)
+    return [...new Set([...years, ...Array.from({ length: Math.max(0, reach - years[0] + 1) }, (_, i) => years[0] + i)])].sort((a, b) => a - b)
+  }, [years, dataYears, onYear])
+  const arriving = !years.includes(picked) && offered.includes(picked) ? picked : null
   const shown = useMemo(() => spans.filter((span) => span.month.startsWith(`${gridYear}-`)), [spans, gridYear])
   // Every site's fitting hours, worked out again whenever the mission or the heights change.
   const fits = useMemo(() => {
@@ -82,6 +94,18 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
   // The count at the end of each row and the line above the grid are about landings that fit, whatever the cells show.
   const fitRows = useMemo(() => new Map(flagged.map(({ site, flags }) => [site.id, findRow('fit', flags, fits.bySite.get(site.id) as Uint8Array, shown)])), [flagged, fits, shown])
   const tally = useMemo(() => findTally([...fitRows.values()]), [fitRows])
+  // The sites where no landing fits at any hour on hand, each with the limit that blocks it.
+  const blocked = useMemo(
+    () =>
+      new Map(
+        flagged.flatMap((row) => {
+          if ((fits.bySite.get(row.site.id) as Uint8Array).some((one) => one === 1)) return []
+          const why = blockedBy(row.flags, mission, slopeOf(row))
+          return why ? [[row.site.id, why] as const] : []
+        }),
+      ),
+    [flagged, fits, mission],
+  )
   const [ownPoint, setOwnPoint] = useState(false)
 
   // The cell opened under the grid, and which of its two named landings "Add" takes.
@@ -125,13 +149,29 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
         <h3>Where and when could I land?</h3>
         <label className="pl-find-year">
           Year{' '}
-          <select aria-label="Year" value={gridYear} onChange={(event) => setPicked(Number(event.target.value))}>
-            {years.map((one) => (
+          <select
+            aria-label="Year"
+            value={arriving ?? gridYear}
+            onChange={(event) => {
+              const wanted = Number(event.target.value)
+              setPicked(wanted)
+              if (!years.includes(wanted)) onYear?.(wanted)
+            }}
+          >
+            {offered.map((one) => (
               <option key={one} value={one}>
                 {one}
               </option>
             ))}
           </select>
+          {arriving !== null && <span className="sl-quiet pl-year-note"> Loading {arriving}…</span>}
+          {/* The data runs on past the years this list can load where it stands: say so, and how to get there. */}
+          {arriving === null && dataYears && offered[offered.length - 1] < dataYears.last && (
+            <span className="sl-quiet pl-year-note" title={`The data covers ${dataYears.first} to ${dataYears.last}. This list loads a few years at a time. For a later year, give a scenario a landing date in it on Compare, and the grid opens on that year.`}>
+              {' '}
+              to {dataYears.last} by a landing's date
+            </span>
+          )}
         </label>
         <button
           type="button"
@@ -205,9 +245,15 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
                   <span>{group}</span>
                 </th>
               </tr>
-              {sites.map(({ site }) => (
-                <tr key={site.id}>
-                  <th scope="row">{site.name}</th>
+              {sites.map(({ site }) => {
+                // A site with no landing in the year says which limit blocks it, so "none" twelve times is not read as a fault.
+                const why = blocked.get(site.id) ?? null
+                return (
+                <tr key={site.id} data-blocked={why ? 'yes' : undefined}>
+                  <th scope="row" title={why?.full}>
+                    {site.name}
+                    {why && <small className="pl-row-why">{why.short}</small>}
+                  </th>
                   {(rows.get(site.id) ?? []).map((cell) => {
                     const shade = shadePct(cell.share, largest, measure === 'fit' ? 'landing' : measure)
                     const on = open?.site === site.id && open.month === cell.month
@@ -237,7 +283,8 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
                     {monthsWithFit(fitRows.get(site.id) ?? [])}/{shown.length}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           ))}
         </table>

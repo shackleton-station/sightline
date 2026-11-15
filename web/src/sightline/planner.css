@@ -705,3 +705,13 @@
   }
 }
 
+
+/* Why a site has no landing in any month: a few quiet words under its name, the whole sentence in its hover text. */
+.pl-months th .pl-row-why {
+  display: block;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: normal;
+}

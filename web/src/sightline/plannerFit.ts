@@ -1,6 +1,6 @@
 import type { SiteFlags } from '../lib/flags'
 import { gridRow, type GridCell, type GridMetric, type MonthSpan } from '../lib/grid'
-import { missionEarth, viableHours } from '../lib/mission'
+import { missionEarth, NO_GAP_LIMIT_H, type Requirements, viableHours } from '../lib/mission'
 import type { SightlineMission } from '../lib/sightlineMission'
 
 /**
@@ -32,6 +32,37 @@ export function fitHours(flags: SiteFlags, mission: SightlineMission, slopeDeg: 
   // Too steep for the mission: no hour fits, whatever the sky does.
   if (slopeDeg !== null && slopeDeg > mission.maxSlopeDeg) return new Uint8Array(flags.sun.length)
   return viableHours(flags.sun, missionEarth(flags, mission.requirements), mission.requirements)
+}
+
+/**
+ * Why no landing fits at a site at any hour of its data: the limit that blocks it, in a few words for
+ * the row and a sentence for its hover text. The ground's slope first; then each limit on the sky
+ * taken away in turn, to see which one alone would let a landing in. Null when a landing does fit.
+ */
+export function blockedBy(flags: SiteFlags, mission: SightlineMission, slopeDeg: number | null): { short: string; full: string } | null {
+  if (slopeDeg !== null && slopeDeg > mission.maxSlopeDeg) {
+    return { short: `too steep: ${slopeDeg.toFixed(1)}°`, full: `The ground slopes ${slopeDeg.toFixed(1)}°; your limit is ${mission.maxSlopeDeg}°. No landing fits here while that limit stands.` }
+  }
+  const requirements = mission.requirements
+  const opens = (relaxed: Requirements) => viableHours(flags.sun, missionEarth(flags, relaxed), relaxed).some((fits) => fits === 1)
+  if (opens(requirements)) return null
+  if (opens({ ...requirements, maxSunGapH: NO_GAP_LIMIT_H })) {
+    return { short: `dark over ${requirements.maxSunGapH} h`, full: `After every landing here the Sun is down for longer than your ${requirements.maxSunGapH} h limit at some point in the mission. A longer limit on darkness would let a landing in.` }
+  }
+  if (opens({ ...requirements, maxEarthGapH: NO_GAP_LIMIT_H })) {
+    return { short: `no Earth over ${requirements.maxEarthGapH} h`, full: `After every landing here Earth is out of view for longer than your ${requirements.maxEarthGapH} h limit at some point in the mission. A longer limit on radio silence would let a landing in.` }
+  }
+  // What the mission needs in view at landing: Earth alone, the Sun alone, then both.
+  if (requirements.earthAtLanding && opens({ ...requirements, earthAtLanding: false })) {
+    return { short: 'Earth not in view at landing', full: 'No hour that meets your other limits has Earth in view at landing. Without that need a landing would fit.' }
+  }
+  if (requirements.sunAtLanding && opens({ ...requirements, sunAtLanding: false })) {
+    return { short: 'Sun not in view at landing', full: 'No hour that meets your other limits has the Sun in view at landing. Without that need a landing would fit.' }
+  }
+  if (opens({ ...requirements, sunAtLanding: false, earthAtLanding: false })) {
+    return { short: 'Sun and Earth not both in view at landing', full: 'No hour that meets your other limits has the Sun and Earth both in view at landing. Without that need a landing would fit.' }
+  }
+  return { short: 'more than one limit', full: 'More than one of your limits blocks every landing here: taking any one of them away is not enough.' }
 }
 
 /** What a measure counts at a site, hour by hour. */

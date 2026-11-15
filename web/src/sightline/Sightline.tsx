@@ -1380,6 +1380,17 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           summary={here?.summary ?? null}
           landings={shares}
           sunlightWm2={sunlightWm2}
+          dataYears={{ first: range.first_year, last: range.last_year }}
+          onYear={(wanted) => onNeed([wanted])}
+          landingBounds={{ first: fieldAt(range.start, 0), last: fieldAt(range.start, range.hours - 1) }}
+          onFarLanding={(index, value) => {
+            // A date the data covers beyond the years on hand is reached by its link, as on the plan; the Planner opens again on Compare.
+            const inData = hourFromField(range.start, value, range.hours)
+            if (inData === null) return false
+            const picked = inData + hourOf(start, range.start)
+            reach(withPlannerTab(scenarioLink(scenarios.map((one, i) => (i === index ? { ...one, landing: picked } : one)), active, start, mission), 'compare'))
+            return true
+          }}
           banner={savedCard(true)}
         />
       )}
