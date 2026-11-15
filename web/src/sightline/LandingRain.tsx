@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
+import { GOOD_ODDS, oddsTone } from '../lib/accuracyWords'
 import type { FieldAsk } from '../data/landingField'
 import { polarLatLon, polarXY } from '../lib/customModel'
 import type { MissionHeights } from '../lib/heights'
@@ -428,7 +429,8 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
     <div className="np-rain">
       {/* In reading order: the question, its answer (the one figure the panel is about, written once), what to do about it, then how to read the map. */}
       <p className="np-rain-ask">Will your mission still work if the lander misses its mark?</p>
-      <p className="np-rain-big">
+      {/* Said in the verdict's own three colours (lib/accuracyWords.ts): the number says how many, the colour says whether that is enough. */}
+      <p className={`np-rain-big is-${oddsTone(odds.fit)}`} title={`In the verdict's colours: green at ${Math.round(GOOD_ODDS * 100)}% or more, red when a landing is more likely not to fit than to fit, orange between.`}>
         <strong>{oddsWords(odds.fit)}</strong>
         <span>of landings come down where the mission fits</span>
       </p>
