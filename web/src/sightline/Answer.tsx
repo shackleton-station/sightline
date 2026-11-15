@@ -7,10 +7,10 @@ import { answerAt } from '../lib/answer'
 import { horizonAt } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
 import type { MissionHeights } from '../lib/heights'
-import { horizonsQueryUrl, withinWords } from '../lib/horizonsLink'
 import { panelSunlight } from '../lib/power'
 import { aboveSkylineMeans } from '../lib/sightline'
 import { earthLine, groundLine, landingSentence, showingWords, skylineFigure, sunLine } from '../lib/sightlineSky'
+import { HorizonsClaim } from './HorizonsClaim'
 import { HorizonsLive } from './HorizonsLive'
 import { type BodyOver, OverChart } from './LightChart'
 
@@ -53,7 +53,7 @@ const SUNLIGHT_MEANS = 'Sunlight on a surface facing the Sun, in watts per squar
 /**
  * The answer for the landing. The verdict leads, with the plan's three controls under it. Then one line: what is in view at landing
  * (the date is in the control above, and beside the Moon when the time bar is elsewhere); then three rows, the Sun, Earth and the ground, each with one main figure and the rest small
- * under its name; last, how closely the numbers match JPL Horizons. Everything is read at the
+ * under its name; last, how closely the numbers match JPL Horizons, as one line that opens the proof. Everything is read at the
  * landing's hour (the countdowns run from the landing) from the pipeline's track, horizon and flags,
  * through the functions the rest of the app uses. It does not follow the time bar.
  */
@@ -136,16 +136,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, heights, heightsL
       </dl>
       {/* Always there, so nothing moves when the comparison arrives; out of the way while the mission's limits are open. */}
       {limitsOpen ? null : horizons && data && now ? (
-        <p className="sl-horizons" title={`Our directions to the Sun and Earth agree with NASA JPL's Horizons service at every hour for this site (${horizons.hours.toLocaleString('en-US')} hours each). The largest gap is rounding.`}>
-          <span aria-hidden="true">✓</span> Matches Horizons within {withinWords(horizons.max_deg)} · Reproduce:{' '}
-          <a href={horizonsQueryUrl('sun', data.site.lat, data.site.lon, horizons.alt_km, now.t)} target="_blank" rel="noreferrer" title="Opens NASA's own answer for the Sun at this site and hour. Its last two numbers are the compass bearing and the height above a flat horizon.">
-            Sun
-          </a>
-          ,{' '}
-          <a href={horizonsQueryUrl('earth', data.site.lat, data.site.lon, horizons.alt_km, now.t)} target="_blank" rel="noreferrer" title="Opens NASA's own answer for Earth at this site and hour. Its last two numbers are the compass bearing and the height above a flat horizon.">
-            Earth
-          </a>
-        </p>
+        <HorizonsClaim lat={data.site.lat} lon={data.site.lon} altKm={horizons.alt_km} hour={now.t} hours={horizons.hours} maxDeg={horizons.max_deg} />
       ) : (
         // A custom point was never compared ahead of time: NASA's answer is one click away instead.
         <p className="sl-horizons">{data && now && isCustomSite(data.site) && <HorizonsLive lat={data.site.lat} lon={data.site.lon} hour={now.t} ours={{ sunEl: now.sun_el, earthEl: now.earth_el }} />}</p>
