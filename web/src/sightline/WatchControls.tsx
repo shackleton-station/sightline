@@ -26,6 +26,11 @@ interface ScoutProps {
   onHeight: (px: number) => void
   /** One thing to try, offered under the questions: it opens a ready comparison instead of asking anything. Null when it cannot be shown. */
   idea: { label: string; onPick: () => void } | null
+  /**
+   * The latest reply leads with sites that cannot be seen where the Moon is turned: one button under
+   * it turns the Moon to the first of them, "Show Apollo 11 on the Moon". Null when they can be seen.
+   */
+  turn: { label: string; onPress: () => void } | null
 }
 
 /** How long Scout's line stays beside his mark before it fades to the mark alone. */
@@ -45,7 +50,7 @@ const WATCH_IDEAS = ['What am I looking at?', 'Which site has the most Sun this 
  * it is a sheet across the bottom). A reply that names a place carries "Show me" and "Plan
  * this", the only things in a reply that change the screen, and only when pressed.
  */
-export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, idea }: ScoutProps) {
+export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPlan, onHeight, idea, turn }: ScoutProps) {
   const [draft, setDraft] = useState('')
   const [said, setSaid] = useState<string | null>(line)
   const card = useRef<HTMLDivElement>(null)
@@ -174,6 +179,12 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
                         Plan this
                       </button>
                     </>
+                  )}
+                  {/* The answer never turns the Moon by itself: where the sites it leads with are out of sight, one press shows them. */}
+                  {turn && message.role === 'assistant' && i === thread.length - 1 && (
+                    <button type="button" className="sl-small sl-show-on-moon" title="Turns the Moon to that site. The compass beside the Moon turns it back." onClick={turn.onPress}>
+                      {turn.label}
+                    </button>
                   )}
                   {/* The answer was about the present and the time bar is on another day: one press asks the same for the bar's date. */}
                   {message.ask && i === thread.length - 1 && (
