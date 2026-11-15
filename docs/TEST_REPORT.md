@@ -2,6 +2,53 @@
 
 What I ran on `main` at `aaeee7e`, what I found, and what I need the team to answer. No app code was changed.
 Section 0 is the independent check of the landing calculations. Sections 1–3 cover CI and the live site.
+**Re-checked on `main` at `9f94738`** (after PRs #12–#58), including the features added since: see the next section.
+
+## Re-check on `9f94738` (evening of 2026-11-14)
+
+Everything in section 0 was run again on the new `main`, and the features added since the morning were checked the
+same way: my own code, sharing nothing with the app's maths, on the shipped data. No app code was changed.
+
+| # | Check | Scope | Result |
+| --- | --- | --- | --- |
+| CI | Same steps as CI | pipeline and web | **All green.** pytest 185 passed, 3 skipped; ruff clean; `tsc -b` clean; vitest 1,401 passed, 11 skipped; lint 0 errors (22 warnings); build OK |
+| V1–V5 | Positions, horizon flags, summaries, physics | all 13 sites, 2026–2049 | **Unchanged**: the shipped data is the same files as in the morning (only `shadow.json` is new). Same 305 rounding slivers and 8 values off by 0.1 from rounding |
+| V6 | Mission verdict vs brute force, now with the longer limits of #46 (30-day missions, 168 h darkness) | 150 missions, 2027 and 2045–2049: **7.9 M landing hours** | **0 mismatches** |
+| O1 | Landing odds (#33, #42) vs a Monte Carlo of random landings | 60 random maps, round and stretched spreads, straight and turned approach paths, 400,000 landings each | Worst difference **0.17 points** (noise allowance 0.4) |
+| O2 | The accuracy radius holds 99% of landings | 4 accuracies and stretches | 98.98–99.01% |
+| O3 | The largest accuracy offered keeps landings on the map ("all but about 1 in 3,000") | stretch 1–4, 3 directions | 1 in 3,540 fall off: **as claimed** |
+| O4 | "A better place to aim" is the best aim within reach, and its odds are right | 25 maps, every aim on the same grid, judged by simulation | **0** wrong odds, **0** better aims missed |
+| O1b | Does O1 catch bugs? I mirrored the approach direction in the simulation | 30 maps | Fails with a **15-point** difference, so yes |
+| L1 | Mission success layer (#52, #55) vs simulation and vs the panel's own odds | 20 maps, 240 aim points | Round spreads and straight approach paths: **exact** (≤ 0.04 points). Turned paths at tight accuracy: up to **1.4 points** off (finding F6) |
+| S1 | Distance to permanently shadowed ground (#22), from NASA's own LPSR maps (downloaded myself; pixels placed by the PDS labels, regions by my own flood fill) | all 7 sites on the maps, nearest patch and nearest region ≥ 10 km², 60/120/240 m maps | All **14 distances within 5 m** (shipped to 10 m). Same regions, same areas on the 60 m map (Shackleton 233.5 km²). The 4-neighbour rule would move only Connecting Ridge's region, 11.42 → 11.48 km |
+| C1 | "Sun and Earth together, %" in Compare (#44) | 31,200 landings | **0 mismatches** |
+| C2 | "Nearest site of the same group where that date fits" (#24) | 22,429 landings that don't fit (4,145 with a site offered) | **0 mismatches** (right site, right distance, and none offered exactly when none fits) |
+| C3 | Planner Find tab (#35): days in each month a landing fits | 60 missions × 13 sites × 24 months: 12,480 site-months | **0 mismatches** |
+| P1 | "Sunlight on a panel, W/m²" (#44) | formula read, not simulated | 1361 W/m² × share of the Sun's disc in view × cos(Sun elevation), averaged over the mission: right for a vertical panel turned to the Sun, before losses, as its hover text says |
+
+New findings:
+
+- **F6 (low): the success layer is slightly off for turned approach paths at tight accuracy.** With a 50 m accuracy,
+  ×2–3 along the path and the path at 20° or 120°, the colour at a point is up to 1.4 points from the odds the panel
+  gives for the same point (the panel matches the simulation). Round spreads and paths straight up or across are
+  exact. The cause is in the code's own words: the third, slanted blur pass reads each pixel at its middle rather than
+  over its width. It changes a colour, never a number shown, so it isn't worth a change before the pitch.
+- **F7 (Misha, Ravi's area): Compare's "best" tie rule.** The front page and planner mark a sunlit winner on a 0.5
+  point difference, while the classic Compare calls anything within the measured error "Too close" (5–21 points).
+  On 2027 data, 14-day mission, the four ridge sites: 2–19% of landings where two sites differ get a front-page
+  winner that the classic page calls "Too close", with gaps up to 21 points (about 72 h). Question to Misha (Q9).
+
+Re-run (from `web/`):
+
+```sh
+python3 -I ../docs/test-report/verify/verify_data.py public/data
+npx tsx ../docs/test-report/verify/mission_check.ts "$PWD/public/data" 2027,2045,2046,2047,2048,2049
+npx tsx ../docs/test-report/verify/odds_check.ts          # O1–O4
+npx tsx ../docs/test-report/verify/layer_check.ts 20 400000
+npx tsx ../docs/test-report/verify/compare_check.ts public/data 2027,2028 60
+# S1 needs NASA's three LPSR_*_201608.TIF maps (2.3 MB, https://pgda.gsfc.nasa.gov/data/MoonIllumination/) in a folder:
+../pipeline/.venv/bin/python -I ../docs/test-report/verify/shadow_check.py <that folder> public/data
+```
 
 ## 30-second version (to say out loud)
 
@@ -101,6 +148,10 @@ home page.
    above NASA's map. The table says "Too close" under about 21 points. Is that what we want judges to see, or should
    the comparison show NASA's figure beside ours?
 8. **Everyone:** Which of the "Checks only a person can do" (PROGRESS / OPEN_QUESTIONS #14, #15, #19) should I take?
+9. **Misha:** Compare's "best" marks (F7). Should the front page and planner (a) use the classic page's measured-error
+   tie when the sites differ, keeping the 0.5-point tie for one site on two dates; (b) keep 0.5 and say that small
+   gaps are within the model's error; or (c) keep the two rules different on purpose? I'd suggest (a) and can open
+   the PR. The error was measured on 18.6-year averages, not 14-day windows, so this is a judgment call.
 
 ## 5. Manual checklist I can run (real devices)
 

@@ -62,8 +62,8 @@ for (let c = 0; c < N; c++) {
   const id = ids[c % ids.length]
   const f = sites[id]
   const req: Requirements = {
-    missionDays: pick([1, 2, 3, 7, 10, 14, 21, 28]),
-    maxSunGapH: pick([0, 1, 6, 12, 24, 48, 72, 100, 150, 200, 400, NO_GAP_LIMIT_H]),
+    missionDays: pick([1, 2, 3, 7, 10, 14, 21, 28, 30]),
+    maxSunGapH: pick([0, 1, 6, 12, 24, 48, 72, 100, 150, 168, 200, 400, NO_GAP_LIMIT_H]),
     maxEarthGapH: pick([0, 6, 24, 72, 150, 300, NO_GAP_LIMIT_H]),
     sunAtLanding: rnd() < 0.7,
     earthAtLanding: rnd() < 0.6,
