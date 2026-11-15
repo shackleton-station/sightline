@@ -1,4 +1,5 @@
 import type { SiteInfo } from '../../src/data/contract'
+import { formatDuration } from '../../src/lib/nextChange'
 import { heightsWords, isBaseHeights } from '../../src/lib/heights'
 import { locateHour } from '../../src/lib/mission'
 import { entryAt } from '../../src/lib/shortlist'
@@ -6,6 +7,7 @@ import { COMPARE_ROWS, measureScenario, nearestFittingSite, readScenarioLink, SC
 import type { ViewState } from '../../src/lib/urlState'
 import type { SiteData } from '../../shared/tools/data'
 import { fact, type Fact, isoAt, whenLabel } from '../../shared/tools/facts'
+import { nextLandingOnScreen } from '../../shared/tools/nextLanding'
 
 /** What the co-pilot is told when the visitor is on the Sightline screen, which holds up to four scenarios. */
 export interface ScenarioScene {
@@ -56,6 +58,9 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
         'Heights above the ground the visitor chose (the Sun is read at the solar panel\'s height, Earth at the antenna\'s)',
         `${heightsWords(mission.heights)}. ${atHeights ? 'The scenario figures here are for these heights, as on the visitor\'s screen.' : 'The scenario figures here are for 2 m, so the visitor\'s screen can show a little more Sun or Earth.'} Every tool's numbers are for 2 m above the ground; from higher up the Sun and Earth are never in view less. A custom point is always worked out at 2 m.`,
       ),
+      // Each height as a fact of its own, so it can be cited: a height typed by hand is a number of the model's own.
+      fact('panel_height', 'How high above the ground the solar panel stands (the Sun is read from here)', `${mission.heights.panelM} m`),
+      fact('antenna_height', 'How high above the ground the antenna stands (Earth is read from here)', `${mission.heights.antennaM} m`),
     )
   }
   for (const [i, scenario] of scenarios.entries()) {
@@ -66,7 +71,8 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
     if (site) facts.push(...(await figures(key, letter, scenario, site, mission, data)))
     // For the scenario on show, when it does not fit: the other site the visitor's screen offers for the same date.
     if (site && i === active) facts.push(...(await elsewhere(key, letter, scenario, site, sites, mission, data)))
-    else facts.push(fact(`${key}_figures`, `Scenario ${letter}: its figures`, 'not available here (a custom point, not a listed site)'))
+    // Only a custom point has no figures here. (A listed site that is not on show has its figures above, and nothing more to say.)
+    if (!site) facts.push(fact(`${key}_figures`, `Scenario ${letter}: its figures`, 'not available here (a custom point, not a listed site)'))
   }
 
   const onShow = scenarios[active]
@@ -81,14 +87,25 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
  * date" line, or the plain statement that there is none. Nothing when the scenario fits.
  */
 async function elsewhere(key: string, letter: string, scenario: SightlineScenario, site: SiteInfo, sites: SiteInfo[], mission: SightlineMission, data: SiteData): Promise<Fact[]> {
-  const flagsOf = async (id: string) => (isBaseHeights(mission.heights) ? null : await data.flagsAt(id, mission.heights).catch(() => null)) ?? (await data.flags(id))
+  const atHeights = async (id: string) => (isBaseHeights(mission.heights) ? null : await data.flagsAt(id, mission.heights).catch(() => null))
+  const flagsOf = async (id: string) => (await atHeights(id)) ?? (await data.flags(id))
   const group = sites.filter((other) => other.group === site.group)
   const listed = await Promise.all(group.map(async (other) => ({ site: other, flags: await flagsOf(other.id) })))
   const own = listed.find((entry) => entry.site.id === site.id)
   if (!own || measureScenario(scenario, site, own.flags, mission, site.slope?.deg ?? null).problems.length === 0) return []
+  // The next landing that fits, as the screen's column offers it: judged on the same hours as the
+  // figures (the visitor's heights where their files can be read), with the Sun's disc seen from the panel.
+  const high = (await atHeights(site.id)) !== null
+  const next = await nextLandingOnScreen(data, site.id, own.flags, isoAt(own.flags.start, scenario.landing), mission.requirements, high ? mission.heights.panelM : undefined)
+  const nextFacts = next
+    ? [
+        fact(`${key}_next_landing`, `Scenario ${letter}: the next landing at its site that meets the mission limits, as the visitor's screen offers it`, whenLabel(next.t)),
+        fact(`${key}_next_landing_wait`, `Scenario ${letter}: the wait until that landing`, formatDuration(next.waitH)),
+      ]
+    : [fact(`${key}_next_landing`, `Scenario ${letter}: the next landing at its site that meets the mission limits`, 'none in the data')]
   const found = nearestFittingSite(site, scenario.landing, mission, listed)
   const label = `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`
-  return [fact(`${key}_fits_at_another_site`, label, found ? `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away` : 'none: on this date no other site of the group meets them')]
+  return [...nextFacts, fact(`${key}_fits_at_another_site`, label, found ? `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away` : 'none: on this date no other site of the group meets them')]
 }
 
 /** One scenario's Compare figures, written as the table writes them. */
@@ -100,6 +117,9 @@ async function figures(key: string, letter: string, scenario: SightlineScenario,
     const figure = FIGURES[row.key]
     return value === null ? [] : [fact(`${key}_${figure.key}`, `Scenario ${letter}: ${figure.label}`, `${value.toFixed(row.digits)}${figure.unit}`)]
   })
-  const fits = measure.problems.length === 0 ? 'meets the mission limits' : `does not meet the mission limits: ${measure.problems.join(' ')}`
-  return [...rows, fact(`${key}_verdict`, `Scenario ${letter}: against the mission limits`, fits)]
+  // The verdict in a few words, and each reason as a fact of its own that drops into a sentence
+  // ("because {{r0.scenario_a_reason_1}}"): no capital to start, no full stop to end.
+  const verdict = fact(`${key}_verdict`, `Scenario ${letter}: against the mission limits`, measure.problems.length === 0 ? 'meets the mission limits' : 'does not meet the mission limits')
+  const reasons = measure.problems.map((problem, i) => fact(`${key}_reason_${i + 1}`, `Scenario ${letter}: why it does not meet the mission limits`, problem.replace(/\.$/, '').replace(/^The /, 'the ')))
+  return [...rows, verdict, ...reasons]
 }

@@ -31,6 +31,14 @@ export interface SiteData {
   year(siteId: string): Promise<YearSummary>
   /** Everything one site-and-month view works from. */
   scenario(siteId: string, month: string): Promise<ScenarioData>
+  /**
+   * The share of the Sun's disc in view at each hour of one month, seen from the solar panel's
+   * height: the app's own track at 2 m, the height's set in the bucket otherwise. Null when that
+   * set cannot be read here.
+   */
+  sunSharesAt(siteId: string, month: string, panelM: number): Promise<number[] | null>
+  /** The pipeline's comparison of every hour with NASA JPL Horizons for one listed site: how many hours, and the largest difference in degrees. Null if the file has none. */
+  everyHourCheck(siteId: string): Promise<{ hours: number; maxDeg: number } | null>
   /** Sun and Earth at any 120 m of ground near the south pole (the Atlas's light grid). */
   light: LightSource
 }
@@ -178,6 +186,22 @@ export function siteData(dataDir: string, bucket?: Bucket | null): SiteData {
     async year(siteId) {
       await known(siteId)
       return yearOnce(siteId)
+    },
+    async sunSharesAt(siteId, month, panelM) {
+      await known(siteId)
+      if (!MONTH.test(month)) throw new Error(`Bad month: ${month}`)
+      if (panelM === BASE_HEIGHT_M) return (await track(`${siteId}/${month}/track.json`)).map((point) => point.sun_frac)
+      if (!bucket) return null
+      const object = await bucket.get(`tiles/light/heights/${panelM}m/${siteId}/${month}/track.json.gz`).catch(() => null)
+      if (!object) return null
+      const rows = JSON.parse(gunzipSync(new Uint8Array(await new Response(object.body).arrayBuffer())).toString('utf8')) as TrackPoint[]
+      return rows.map((point) => point.sun_frac)
+    },
+    async everyHourCheck(siteId) {
+      await known(siteId)
+      const file = await once<{ sites: Record<string, { hours: number; max_deg: number }> }>('horizons.json').catch(() => null)
+      const found = file?.sites[siteId]
+      return found ? { hours: found.hours, maxDeg: found.max_deg } : null
     },
     async scenario(siteId, month) {
       const site = await known(siteId)

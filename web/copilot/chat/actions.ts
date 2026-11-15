@@ -34,16 +34,31 @@ export function viewFrom(hash: unknown): ViewState {
 
 const MAX_ACTIONS = 3
 
+/** The arguments with which a tool tries limits other than the visitor's. */
+export const LIMIT_ARGS = ['mission_days', 'max_sun_gap_h', 'max_earth_gap_h', 'sun_at_landing', 'earth_at_landing', 'earth_clearance_deg']
+
+/**
+ * Whether a message asks what would change the verdict, or to try other limits: "what if my mission
+ * were only 3 days", "what would one more day of battery change", "how could I make this fit". Only
+ * then is a button that changes the limits offered: under "why doesn't this fit" it would read as
+ * advice to loosen the mission, which nobody asked for.
+ */
+export function asksToChangeLimits(message: string): boolean {
+  return /\bwhat if\b|\bwhat (would|could|should)\b.*\b(change|fit|work|help|take|need)\b|\bhow (can|could|do|would) (i|we)\b.*\b(fit|work|make|get|land)\b|\b(change|changing|relax|loosen|tighten|raise|lower|extend|shorten)\b|\bif (my|the|our) mission\b|\b(longer|shorter|more|fewer|less) (mission|battery|days?|hours?|darkness)\b|\binstead\b/i.test(message)
+}
+
 /**
  * Turns what the model asked for into buttons. Nothing the model wrote reaches the page: each
  * button is rebuilt here from checked parts (a listed site, a month or hour inside the data, limits
  * inside their bounds), and its label is written here too. Anything that doesn't check out is dropped.
  */
-export function buildActions(raw: unknown, base: ViewState, sites: SiteInfo[], flags: SiteFlags, ties: Tie[] = []): ChatAction[] {
+export function buildActions(raw: unknown, base: ViewState, sites: SiteInfo[], flags: SiteFlags, ties: Tie[] = [], limitsAsked = true): ChatAction[] {
   if (!Array.isArray(raw)) return []
   const actions: ChatAction[] = []
   for (const item of raw) {
     if (actions.length === MAX_ACTIONS) break
+    // A button that changes the limits is kept only when the visitor asked what would change the verdict.
+    if (!limitsAsked && (item as Args | null)?.type === 'limits') continue
     try {
       const action = buildAction((item ?? {}) as Args, base, sites, flags, ties)
       if (action && !actions.some((made) => made.hash === action.hash)) actions.push(action)

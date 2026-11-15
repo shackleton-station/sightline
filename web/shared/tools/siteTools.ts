@@ -2,14 +2,15 @@ import { answerAt } from '../../src/lib/answer'
 import { peakSunElevation } from '../../src/lib/compare'
 import { gridRow, metricFlags, monthSpans } from '../../src/lib/grid'
 import { horizonAt } from '../../src/lib/customModel'
-import { hourOf, locateHour } from '../../src/lib/mission'
+import { hourOf, locateHour, longestDown, missionEarth } from '../../src/lib/mission'
 import { formatDuration } from '../../src/lib/nextChange'
 import { panelSunlight } from '../../src/lib/power'
-import { alternativesAt, conditionsAt, nextViable } from '../../src/lib/slip'
+import { alternativesAt, conditionsAt } from '../../src/lib/slip'
 import { degWords } from '../../src/lib/sightline'
 import { pct } from '../../src/lib/verdict'
 import { type Args, lastYear, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
-import { daysLabel, fact, isoAt, latitudeLabel, limitsLabel, longitudeLabel, monthWords, type ToolResult, whenLabel } from './facts'
+import { daysLabel, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, type ToolResult, whenLabel } from './facts'
+import { nextLandingOnScreen } from './nextLanding'
 
 /** From the Moon, Earth's disc is never smaller than this across its radius (it is 0.90° to 1.02° with its distance). */
 const EARTH_RADIUS_AT_LEAST_DEG = 0.9
@@ -65,24 +66,27 @@ export async function conditionsAtTime(args: Args, ctx: ToolContext): Promise<To
     fact('headline', 'In short', earthPartly ? answer.headline.replace('Earth is in view', 'Earth is partly in view') : answer.headline),
     fact('sun', 'Sun', conditions.sunUp ? 'up' : 'down'),
     fact('earth', 'Earth', earthWords),
-    fact('sun_next', 'Next change for the Sun, as a complete phrase', answer.sun.label),
-    fact('earth_next', 'Next change for Earth, as a complete phrase', answer.earth.label),
+    ...nextChange('sun', 'the Sun', conditions.sunUp ? 'sunset' : 'sunrise', answer.sun.hours, lastYear(flags)),
+    ...nextChange('earth', 'Earth', conditions.earthUp ? 'earthset' : 'earthrise', answer.earth.hours, lastYear(flags)),
     fact('sun_above_skyline', "Sun above the skyline (its centre above the terrain's outline in its direction, seen from the site; this decides whether it is in view)", aboveSkyline(now.sun_el, now.sun_az)),
     fact('earth_above_skyline', "Earth above the skyline (its centre above the terrain's outline in its direction, seen from the site; this decides whether it is in view)", aboveSkyline(now.earth_el, now.earth_az)),
     fact('sun_height', 'Sun elevation (from a level horizon)', degWords(now.sun_el)),
     fact('earth_height', 'Earth elevation (from a level horizon)', degWords(now.earth_el)),
     fact('limits', 'Checked against', limitsLabel(requirements)),
+    ...limitFacts(requirements),
     fact('landing', 'A landing at this hour', conditions.problems.length === 0 ? 'meets the limits' : 'does not meet the limits'),
+    ...missionGaps(flags, hourOf(flags.start, iso), requirements),
   ]
   conditions.problems.forEach((problem, i) => facts.push(fact(`problem_${i + 1}`, 'Why it does not meet the limits', problem.replace(/\.$/, '').replace(/^The /, 'the '))))
 
   if (conditions.problems.length > 0) {
-    const next = nextViable(flags, iso, requirements)
+    // The hour the visitor's screen offers as "Next landing that fits", by the same rule.
+    const next = await nextLandingOnScreen(ctx.data, site.id, flags, iso, requirements)
     if (next) {
-      facts.push(fact('next_landing', 'Next hour that meets the limits here', whenLabel(next.t)))
+      facts.push(fact('next_landing', 'Next landing that fits here, as the visitor\'s screen offers it', whenLabel(next.t)))
       facts.push(fact('next_landing_wait', 'Wait until then', formatDuration(next.waitH)))
     } else {
-      facts.push(fact('next_landing', 'Next hour that meets the limits here', 'none in the data'))
+      facts.push(fact('next_landing', 'Next landing that fits here', 'none in the data'))
     }
     const others = alternativesAt(site, iso, await ctx.data.allFlags(), requirements, 3)
     others.forEach((other, i) => {
@@ -91,6 +95,33 @@ export async function conditionsAtTime(args: Args, ctx: ToolContext): Promise<To
     })
   }
   return { ok: true, title: `${site.name}, ${whenLabel(iso)}`, facts }
+}
+
+/**
+ * The next change for a body as two facts, so each drops into a sentence: what happens ("sunset")
+ * and how long until it ("5 d 11 h"). Where the data holds no such change there is one fact, a
+ * whole phrase ("no sunset through 2049").
+ */
+function nextChange(key: string, body: string, event: string, hours: number | null, last: number): Fact[] {
+  if (hours === null) return [fact(`${key}_next_change`, `Next change for ${body}, as a complete phrase`, `no ${event} through ${last}`)]
+  return [
+    fact(`${key}_next_change`, `Next change for ${body}`, event),
+    fact(`${key}_next_change_in`, `Time until that ${event}`, formatDuration(hours)),
+  ]
+}
+
+/**
+ * The longest time without the Sun and without Earth over a mission that lands at this hour: the
+ * figures the visitor's screen shows beside the Sun's and Earth's rows ("95 h dark", "169 h radio
+ * silence"), given whether or not a limit is broken. Nothing when the mission runs past the data.
+ */
+function missionGaps(flags: Parameters<typeof missionEarth>[0], hour: number, requirements: Parameters<typeof missionEarth>[1]): Fact[] {
+  const end = hour + requirements.missionDays * 24
+  if (hour < 0 || end > flags.sun.length) return []
+  return [
+    fact('mission_longest_without_sun', 'Longest time without the Sun during a mission that lands at this hour', `${longestDown(flags.sun, hour, end)} h`),
+    fact('mission_longest_without_earth', 'Longest time without Earth (radio silence) during a mission that lands at this hour', `${longestDown(missionEarth(flags, requirements), hour, end)} h`),
+  ]
 }
 
 /** One month at one site. */
@@ -116,7 +147,8 @@ export async function monthSummary(args: Args, ctx: ToolContext): Promise<ToolRe
     fact('pct_both', 'Both at once', pct(summary.pct_both)),
     fact('longest_without_sun', 'Longest stretch without the Sun', formatDuration(summary.max_sun_gap_h)),
     fact('longest_without_earth', 'Longest stretch without Earth', formatDuration(summary.max_earth_gap_h)),
-    fact('highest_sun', 'Highest elevation the Sun reaches (from a level horizon)', `${peakSunElevation(data).toFixed(1)}°`),
+    fact('highest_sun', 'Highest elevation the Sun\'s center reaches this month, from a level horizon (minus means below level)', degWords(peakSunElevation(data))),
+    fact('sun_elevation_range', 'The Sun\'s elevation over the month, from a level horizon, as a complete phrase', `between ${degWords(Math.min(...data.track.map((point) => point.sun_el)))} and ${degWords(Math.max(...data.track.map((point) => point.sun_el)))} from level`),
     fact('panel_vertical', 'Average sunlight on a Sun-facing vertical panel', `${sunlight.vertical.toFixed(0)} W/m²`),
     fact('panel_flat', 'Average sunlight on a flat panel', `${sunlight.flat.toFixed(0)} W/m²`),
     fact('limits', 'Landing days are checked against', limitsLabel(requirements)),

@@ -73,6 +73,24 @@ export function limitWords(req: Requirements): Record<keyof Requirements, string
   }
 }
 
+/**
+ * Each limit as a fact of its own, so one of them can be named without the whole list: the mission's
+ * length, the longest darkness it survives, and the longest radio silence it allows.
+ */
+export function limitFacts(req: Requirements): Fact[] {
+  return [
+    fact('mission_length', 'Mission length', daysLabel(req.missionDays)),
+    fact('dark_limit', 'Longest time without the Sun the mission survives', gapLabel(req.maxSunGapH)),
+    fact('silence_limit', 'Longest time without Earth the mission allows', gapLabel(req.maxEarthGapH)),
+  ]
+}
+
+/** A distance across the ground in words: meters under a kilometer ("220 m"), one decimal under ten ("2.4 km"), whole kilometers from there. */
+export function distanceWords(km: number): string {
+  if (km < 1) return `${Math.round((km * 1000) / 10) * 10} m`
+  return `${km.toFixed(km < 10 ? 1 : 0)} km`
+}
+
 /** The mission limits in one line, so every landing answer can say what it was checked against. */
 export function limitsLabel(req: Requirements): string {
   return Object.values(limitWords(req)).join(', ')
