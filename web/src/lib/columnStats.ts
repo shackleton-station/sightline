@@ -44,3 +44,14 @@ export function sharePct(pct: number): string {
   return `${Math.round(pct)}%`
 }
 
+
+/**
+ * What a row's share of the mission is, for its tooltip: one idea, then how to read it. The height
+ * above the ground is said only when it is not the screen's own 2 m, where it changes the figure.
+ */
+export function shareMeans(body: 'sun' | 'earth', obsHeightM: number): string {
+  const up = obsHeightM === 2 ? '' : `, ${obsHeightM} m up`
+  return body === 'sun'
+    ? `The share of the mission’s hours with any of the Sun in view from the panel${up}. More means more solar power.`
+    : `The share of the mission’s hours with Earth in view from the antenna${up}, by your rule. More means more time with a direct radio link.`
+}

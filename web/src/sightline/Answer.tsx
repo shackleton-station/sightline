@@ -4,7 +4,7 @@ import { isCustomSite } from '../data/customSite'
 import { useHorizonsCheck } from '../data/horizonsCheck'
 import type { ScenarioData } from '../data/loadSite'
 import { answerAt } from '../lib/answer'
-import { type Check, CHECK_MARK, gapCheck, landingCheck, landingWords, sharePct } from '../lib/columnStats'
+import { type Check, CHECK_MARK, gapCheck, landingCheck, landingWords, shareMeans, sharePct } from '../lib/columnStats'
 import { horizonAt } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
 import type { MissionHeights } from '../lib/heights'
@@ -56,8 +56,6 @@ interface Props {
   limitsOpen?: boolean
 }
 
-const SUN_MEANS = 'The share of the mission’s hours with any of the Sun in view from the panel. More means more solar power.'
-const EARTH_MEANS = 'The share of the mission’s hours with Earth in view from the antenna, by your rule. More means more time with a direct radio link.'
 const BOTH_MEANS = 'The share of the mission’s hours with the Sun and Earth in view at once: power and a direct radio link together.'
 const DARK_MEANS = 'The longest unbroken time without the Sun during the mission. It must not be longer than the limit you set.'
 const SILENCE_MEANS = 'The longest unbroken time without Earth in view during the mission. It must not be longer than your limit, if you set one.'
@@ -113,7 +111,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
   const earthAbove = now && data ? skylineFigure(now.earth_el - horizonAt(data.earthHorizon ?? data.horizon, now.earth_az)) : null
   const slope = data?.slope ?? null
   const ground = slope ? groundLine(slope.deg, maxSlopeDeg) : null
-  // The Sun is seen from the panel's height and Earth from the antenna's: each row's hover text says its own.
+  // The Sun is seen from the panel's height and Earth from the antenna's: each row's hover text, and its landing line's, says its own.
   const aboveMeans = data ? aboveSkylineMeans('the Sun', heights.panelM) : undefined
   const earthAboveMeans = data ? aboveSkylineMeans('Earth', heights.antennaM) : undefined
   // A disc the skyline cuts is said so, with its share, in the line about the landing's hour.
@@ -146,7 +144,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
       {heightsLine && <p className="sl-heights-line">{heightsLine}</p>}
       {/* With the mission's limits open the rows are at their shortest: the share, and the limit's own line beside it. */}
       <dl className={limitsOpen ? 'sl-facts is-tight' : 'sl-facts'} aria-busy={now ? undefined : true}>
-        <div className="sl-fact is-sun" tabIndex={0} title={measure ? SUN_MEANS : undefined}>
+        <div className="sl-fact is-sun" tabIndex={0} title={measure ? shareMeans('sun', heights.panelM) : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Sun
           </dt>
@@ -167,7 +165,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
             </CheckLine>
           )}
         </div>
-        <div className="sl-fact is-earth" tabIndex={0} title={measure ? EARTH_MEANS : undefined}>
+        <div className="sl-fact is-earth" tabIndex={0} title={measure ? shareMeans('earth', heights.antennaM) : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Earth
           </dt>

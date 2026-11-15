@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHECK_MARK, gapCheck, landingCheck, landingWords, sharePct } from './columnStats'
+import { CHECK_MARK, gapCheck, landingCheck, landingWords, shareMeans, sharePct } from './columnStats'
 
 describe('gapCheck', () => {
   it('marks a gap past the limit as a miss, and one within it as within', () => {
@@ -45,5 +45,12 @@ describe('the words', () => {
     expect(landingWords('0.3°', 'above the skyline', 'sets in 5 d 11 h', null)).toBe('At landing: 0.3° above the skyline · sets in 5 d 11 h')
     expect(landingWords('0.2°', 'below the skyline', 'sets in 2 d 7 h', '5% of the disc showing')).toBe('At landing: 0.2° below the skyline, 5% of the disc showing · sets in 2 d 7 h')
     expect(sharePct(60.7)).toBe('61%')
+  })
+
+  it('names a height in a share\'s hover text only when it is not 2 m', () => {
+    expect(shareMeans('sun', 2)).toBe('The share of the mission’s hours with any of the Sun in view from the panel. More means more solar power.')
+    expect(shareMeans('sun', 10)).toBe('The share of the mission’s hours with any of the Sun in view from the panel, 10 m up. More means more solar power.')
+    expect(shareMeans('earth', 2)).toBe('The share of the mission’s hours with Earth in view from the antenna, by your rule. More means more time with a direct radio link.')
+    expect(shareMeans('earth', 4)).toBe('The share of the mission’s hours with Earth in view from the antenna, 4 m up, by your rule. More means more time with a direct radio link.')
   })
 })
