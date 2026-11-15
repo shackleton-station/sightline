@@ -184,3 +184,10 @@
     min-height: 2.5rem;
   }
 }
+
+/* ---------- the share sheet's line about the library ---------- */
+.sl-share-listed {
+  margin: 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+}

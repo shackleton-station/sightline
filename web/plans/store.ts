@@ -59,6 +59,8 @@ export interface PlanStore {
    * comes after the page. See `newestFirst` for the order, ties included.
    */
   pageByOwner(owner: string, page: { limit: number; after?: PageStart }): Promise<PlanPage>
+  /** The newest plans of everyone, newest first, at most `limit`: what the library is made from. */
+  newest(limit: number): Promise<Plan[]>
   remove(id: string): Promise<void>
 }
 
@@ -130,6 +132,7 @@ export function memoryPlans(): PlanStore {
           after,
         ),
       ),
+    newest: (limit) => Promise.resolve([...plans.values()].sort(newestFirst).slice(0, limit)),
     remove(id) {
       plans.delete(id)
       return Promise.resolve()

@@ -218,6 +218,18 @@ export function firestorePlans(options: FirestoreOptions, token: TokenSource): P
       }
       return pageOf((await oldWay(owner)).sort(newestFirst), limit, after)
     },
+    /**
+     * The newest plans of everyone, for the library. Ordered by one field, so the index Firestore
+     * keeps on every field by itself answers it: no composite index is needed.
+     */
+    async newest(limit) {
+      const response = await runQuery({ from: [{ collectionId: 'plans' }], orderBy: [{ field: { fieldPath: 'created' }, direction: 'DESCENDING' }], limit })
+      if (!response.ok) {
+        await response.body?.cancel()
+        throw new Error(`Firestore: HTTP ${response.status} reading the library`)
+      }
+      return plansIn((await response.json()) as Row[])
+    },
     async remove(id) {
       const response = await fetch(`${root}/${id}`, { method: 'DELETE', headers: await headers(), signal: soon() })
       await response.body?.cancel()

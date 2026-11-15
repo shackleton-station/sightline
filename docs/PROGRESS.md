@@ -413,3 +413,14 @@ point, so its numbers were not the screen's.
 - [ ] An answer kept from before the apply (the nearest-site one, for the same first question on the same view) can still be served for up to a day
 - [ ] Not done: the written brief for a custom point; the tools at heights other than 2 m for a custom point (the page does not offer them either)
 - [ ] On Windows, 56 tests fail before and after this change (`copilot/contract.test.ts`, `plans/contract.test.ts`, the two `build.test.ts`, `src/lib/plans.test.ts`): not looked into
+## The Planner's library (2026-11-15, Pat) — on branch `feat/plan-library`, not merged
+
+Every scenario in the saved plans, to search, filter and pull into Compare. Touches `web/` (Misha's): ask before merging.
+
+- [x] Plans service: `GET /api/plans/library` (the newest 200 listed plans, each taken apart into its scenarios; title sent, note not) (`web/plans/library.ts`, `handler.ts`, `store.ts`, `firestorePlans.ts`). Written into `web/plans/API.md` first; the contract test covers it. No new index and no Terraform change.
+- [x] New Planner: a Library tab (`PlannerLibrary.tsx`) with search and filters, one card per landing with a dial of the mission (`LibraryCard.tsx`), and a tray under a lander icon whose cards fan out (`LibraryTray.tsx`). The logic is `src/lib/library.ts`, tested.
+- [x] Share sheet: a line saying the plan is listed. Privacy page updated. There is no way to keep a plan out of the library for now (Pat, 2026-11-15); a "private" flag was built and taken out again before merging, and can come back as an additive change.
+- [x] Checks: `tsc -b`, lint (no new errors), `vitest run` (all pass). Tried in a browser against the plans service in memory: list, filter, pull in, fan, add to Compare.
+- [ ] Not checked: a phone-width window; the real Firestore query (`newest`), which only the emulator test or the live database can show.
+- [x] The Library tab and the tray are in the Planner too (`FullPlanner.tsx`), since the rail now offers only that one (#181). There the tab is not held in the link: a saved plan opens on Find or Compare. Tried in a browser the same way.
+- [ ] Three test plans were saved to the live database by mistake while checking this (`pqhmpa9q`, `ppvz82jv`, `uwqvs23j`; the dev server forwards `/api` to the live site unless `BACKEND` is set). They have no owner, so the API cannot delete them: delete the three documents in the `plans` database before the library is live, or they are listed in it.
