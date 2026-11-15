@@ -11,6 +11,7 @@ import type { Args } from '../../shared/tools/args'
 import type { SiteData } from '../../shared/tools/data'
 import { distanceWords, fact, type Fact, isoAt, latitudeLabel, limitFacts, limitsLabel, longitudeLabel, monthWords, whenLabel } from '../../shared/tools/facts'
 import { yearsOf } from '../../src/lib/span'
+import { CUSTOM_SITE_IDS, customIds as fixedIds } from './customIds'
 import { asksAboutPresent, dateBasis, type DateBasis, dayLabel, realHourIso } from './dates'
 import { buildPrompt, systemPrompt } from './prompt'
 import { cleanFollowup, fallbackAnswer, nameForms, renderAnswer, type FactBook, visitorsAmounts } from './render'
@@ -218,17 +219,21 @@ export async function runChat(
   const customs = (await Promise.all(customIds.map((id) => deps.data.site(id).catch(() => null)))).filter((site): site is SiteInfo => site !== null)
   const named = [...sites, ...customs]
   allowedWords.push(...customs.map((site) => site.name))
+  // The model knows each custom point by a fixed id, never by its coordinates, so the tools it is
+  // given are the same for every question (customIds.ts): what it sends back is put right here.
+  const ids = fixedIds(customs)
   const context = { data: deps.data, requirements: view.requirements, spot: input.spot ?? null, horizons: deps.horizons, hourIso: isoAt(flags.start, hourOf(flags.start, `${view.a.month}-01T00:00:00Z`) + view.index) }
 
-  const book: FactBook = new Map([['r0', [...(await viewFacts(view, deps.data, input.spot ?? null, watching, dates)), ...(scene?.facts ?? [])]]])
+  const viewed = (await viewFacts(view, deps.data, input.spot ?? null, watching, dates)).map((item) => (item.key.endsWith('_id') ? { ...item, value: ids.fixed(item.value) } : item))
+  const book: FactBook = new Map([['r0', [...viewed, ...(scene?.facts ?? [])]]])
   const sources: string[] = []
   /** What the tools found tied for best, for the buttons: the first is offered and the button says there are others. */
   const ties: Tie[] = []
   // A button that changes the limits is offered only when the visitor asked what would change the
   // verdict: in so many words, or so that a tool had to try other limits to answer.
   let limitsAsked = asksToChangeLimits(input.turns.filter((turn) => turn.role === 'user').at(-1)?.text ?? '')
-  const declarations = toolDeclarations(named.map((site) => site.id))
-  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: buildPrompt(input.turns, book.get('r0') ?? [], named) }]
+  const declarations = toolDeclarations([...sites.map((site) => site.id), ...CUSTOM_SITE_IDS])
+  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: buildPrompt(input.turns, book.get('r0') ?? [], [...sites, ...ids.shown]) }]
   let retriesLeft = ANSWER_RETRIES
   /** The fallback model, once one has written any part of this answer. */
   let servedBy: string | undefined
@@ -243,7 +248,7 @@ export async function runChat(
       actions: buildActions(answer?.actions, view, named, flags, ties, limitsAsked),
       sources,
       followups: (Array.isArray(answer?.followups) ? answer.followups : [])
-        .map((item) => cleanFollowup(item, allowedWords))
+        .map((item) => cleanFollowup(typeof item === 'string' ? ids.inWords(item) : item, allowedWords))
         .filter((item): item is string => item !== null)
         .slice(0, 3),
     },
@@ -295,7 +300,7 @@ export async function runChat(
     const results: Anthropic.Beta.BetaToolResultBlockParam[] = []
     let answer: { use: Anthropic.Beta.BetaToolUseBlock; args: Args } | null = null
     for (const use of uses) {
-      const args = (typeof use.input === 'object' && use.input !== null ? use.input : {}) as Args
+      const args = ids.withReal((typeof use.input === 'object' && use.input !== null ? use.input : {}) as Args)
       if (use.name === ANSWER_TOOL) {
         answer = { use, args }
         continue
@@ -318,7 +323,7 @@ export async function runChat(
     }
 
     if (answer) {
-      const rendered = renderAnswer(typeof answer.args.text === 'string' ? answer.args.text : '', book, allowedWords)
+      const rendered = renderAnswer(typeof answer.args.text === 'string' ? ids.inWords(answer.args.text) : '', book, allowedWords)
       if (rendered.ok) return finish(rendered.text, answer.args)
       if (retriesLeft === 0 || last) return finish(fallbackAnswer(book), answer.args, true)
       retriesLeft -= 1
