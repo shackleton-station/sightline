@@ -60,6 +60,20 @@ const BOTH_MEANS = 'The share of the mission’s hours with the Sun and Earth in
 const DARK_MEANS = 'The longest unbroken time without the Sun during the mission. It must not be longer than the limit you set.'
 const SILENCE_MEANS = 'The longest unbroken time without Earth in view during the mission. It must not be longer than your limit, if you set one.'
 
+/**
+ * A line whose last part, after its last " · ", is a short figure with its unit ("sets in 5 d 11 h"):
+ * that part stays on one line, so a narrow column never leaves an "h" on a line of its own.
+ */
+function KeptEnd({ text }: { text: string }) {
+  const cut = text.lastIndexOf(' · ')
+  if (cut < 0) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, cut)} · <span className="sl-keep">{text.slice(cut + 3)}</span>
+    </>
+  )
+}
+
 /** A line of a row that is held to a limit of the mission: its mark (✓, ◇ or ✗) in its state's colour, then its words. No mark where there is no limit. */
 function CheckLine({ check, title, swatch = false, at = false, children }: { check: Check; title?: string; swatch?: boolean; at?: boolean; children: ReactNode }) {
   return (
@@ -155,13 +169,13 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
           {!limitsOpen && <dd className="sl-fact-small">{sun.small}</dd>}
           {sunGap && (
             <CheckLine check={sunGap.check} title={DARK_MEANS} swatch={over !== null && sunGap.hours !== null}>
-              {sunGap.words} {sunGap.hours && <b>{sunGap.hours}</b>} · {sunGap.limit}
+              {sunGap.words} {sunGap.hours && <b>{sunGap.hours}</b>} · <span className="sl-keep">{sunGap.limit}</span>
             </CheckLine>
           )}
           {over && <OverChart kind="sun" over={over.sun} missionDays={over.missionDays} at={at} onAt={setAt} />}
           {!limitsOpen && (
             <CheckLine check={sunAt} title={aboveMeans && now ? aboveMeans : undefined} at>
-              {now && next && sunAbove ? landingWords(sunAbove.figure, sunAbove.side, nextWords('Sun', now.sun_up, next.sun.hours), sunShowing) : 'At landing: …'}
+              {now && next && sunAbove ? <KeptEnd text={landingWords(sunAbove.figure, sunAbove.side, nextWords('Sun', now.sun_up, next.sun.hours), sunShowing)} /> : 'At landing: …'}
             </CheckLine>
           )}
         </div>
@@ -176,7 +190,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
           {!limitsOpen && <dd className="sl-fact-small">{earth.small}</dd>}
           {earthGap && (
             <CheckLine check={earthGap.check} title={SILENCE_MEANS} swatch={over !== null && earthGap.hours !== null}>
-              {earthGap.words} {earthGap.hours && <b>{earthGap.hours}</b>} · {earthGap.limit}
+              {earthGap.words} {earthGap.hours && <b>{earthGap.hours}</b>} · <span className="sl-keep">{earthGap.limit}</span>
             </CheckLine>
           )}
           {over && <OverChart kind="earth" over={over.earth} missionDays={over.missionDays} at={at} onAt={setAt} />}
@@ -184,7 +198,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
           {over && <OverAxis start={over.start} landing={over.landing} missionDays={over.missionDays} at={at} sun={over.sun} earth={over.earth} />}
           {!limitsOpen && (
             <CheckLine check={earthAt} title={earthAboveMeans && now ? earthAboveMeans : undefined} at>
-              {now && next && earthAbove ? landingWords(earthAbove.figure, earthAbove.side, nextWords('Earth', now.earth_up, next.earth.hours), earthShowing) : 'At landing: …'}
+              {now && next && earthAbove ? <KeptEnd text={landingWords(earthAbove.figure, earthAbove.side, nextWords('Earth', now.earth_up, next.earth.hours), earthShowing)} /> : 'At landing: …'}
             </CheckLine>
           )}
         </div>
