@@ -16,6 +16,11 @@ export function planLink(origin: string, id: string): string {
   return `${origin}/${planHash(id)}`
 }
 
+/** The browser tab's title while a saved plan's card is up: the plan's name, then the page's. */
+export function planTabTitle(name: string): string {
+  return `${name} · Sightline`
+}
+
 /** Where the older screen opens a plan: where a plan goes when the Sightline screen cannot show its view. */
 export function classicPlanAddress(id: string): string {
   return `${OLD_HOME}${planHash(id)}`

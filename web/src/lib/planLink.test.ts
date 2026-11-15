@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { classicPlanAddress, planLink, sightlineView } from './planLink'
+import { classicPlanAddress, planLink, planTabTitle, sightlineView } from './planLink'
 
 describe('short links to saved plans', () => {
   it('opens a plan on the site\'s front page, the Sightline screen', () => {
     expect(planLink('https://lunarsightline.com', 'abcd2345')).toBe('https://lunarsightline.com/#plan=abcd2345')
     expect(classicPlanAddress('abcd2345')).toBe('/classic/#plan=abcd2345')
+  })
+
+  it("puts a saved plan's name first in the tab's title", () => {
+    expect(planTabTitle('Ridge and rim in May')).toBe('Ridge and rim in May · Sightline')
   })
 
   it('opens a plan saved from the Sightline screen as it is, with everything the screen added to it', () => {

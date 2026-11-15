@@ -26,6 +26,7 @@
 }
 
 .sl-share-copy,
+.sl-share-plain,
 .sl-share-brief {
   padding: 0.4rem 0.6rem;
   border: 0;
@@ -44,6 +45,8 @@
   font-weight: 600;
 }
 
+.sl-share-plain:hover,
+.sl-share-plain:focus-visible,
 .sl-share-brief:hover,
 .sl-share-brief:focus-visible {
   background: #2a2434;
@@ -80,6 +83,30 @@
   font-weight: 600;
 }
 
+/* Saved: the short link is the sheet's first and main thing, so it has no rule above it. */
+.sl-share-saved {
+  padding-top: 0.15rem;
+  border-top: 0;
+}
+
+.sl-share-name {
+  color: var(--soft);
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+/* What the name and note are for, in a line under the heading. */
+.sl-share-why {
+  margin: 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+}
+
+/* The plain link once a plan is saved: quiet, under the saved one. */
+.sl-share-plain {
+  color: var(--soft);
+}
+
 .sl-share-save label {
   display: grid;
   gap: 0.15rem;
@@ -97,7 +124,7 @@
 
 .sl-share-save input,
 .sl-share-save textarea,
-.sl-share-link input {
+.sl-share-saved input {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
@@ -113,7 +140,7 @@
 
 .sl-share-save input:focus-visible,
 .sl-share-save textarea:focus-visible,
-.sl-share-link input:focus-visible {
+.sl-share-saved input:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 1px;
 }
@@ -131,17 +158,11 @@
   font-size: 0.75rem;
 }
 
-.sl-share-row .sl-small,
-.sl-share-link .sl-small {
+.sl-share-row .sl-small {
   flex: none;
   min-height: 1.7rem;
   padding: 0.15rem 0.7rem;
   font-size: 0.8125rem;
-}
-
-.sl-share-link {
-  display: flex;
-  gap: 0.4rem;
 }
 
 .sl-share-problem {
@@ -152,14 +173,14 @@
 @media (max-width: 760px) {
   .sl-share-save input,
   .sl-share-save textarea,
-  .sl-share-link input {
+  .sl-share-saved input {
     font-size: 1rem;
   }
 
   .sl-share-copy,
+  .sl-share-plain,
   .sl-share-brief,
-  .sl-share-row .sl-small,
-  .sl-share-link .sl-small {
+  .sl-share-row .sl-small {
     min-height: 2.5rem;
   }
 }

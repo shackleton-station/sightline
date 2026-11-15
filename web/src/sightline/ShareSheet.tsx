@@ -1,5 +1,6 @@
 import { type FormEvent, type KeyboardEvent, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { copyWhenKnown } from '../lib/copyText'
 import { planLink } from '../lib/planLink'
 import { markSightline } from '../lib/planView'
 import { attemptFor, MAX_NOTE, MAX_TITLE, type SaveAttempt, savePlan } from '../lib/plans'
@@ -26,6 +27,8 @@ const EDGE_PX = 8
 const GAP_PX = 5
 /** How long the plans service keeps a plan (web/plans/API.md). */
 const KEPT_DAYS = 180
+/** How long the sheet waits to hear whether the saved link was copied, in milliseconds. */
+const COPY_WAIT_MS = 1500
 
 /** What to say when a plan could not be saved, in plain words. `status` is absent when the service could not be reached. */
 function saveFailure(status: number | undefined): string {
@@ -42,8 +45,14 @@ function saveFailure(status: number | undefined): string {
  * 1. "Copy link", first and already in focus: one press copies the link for what is on screen and
  *    closes the sheet, as Share always did. It needs no service, so it works when saving does not.
  * 2. "Save with a name": a name and an optional note, kept by the plans service for 180 days under
- *    a short link. Saving shows that link with its own Copy button. No sign-in is needed.
+ *    a short link that opens with them on show. No sign-in is needed.
  * 3. "Brief": the written brief for the scenario on show.
+ *
+ * Once a plan is saved, its short link is the sheet's main thing and takes the first place: the
+ * link, and a gold "Copy saved link" that already has the keyboard. The link is copied at the
+ * moment of saving where the browser allows it, and the sheet says so ("Saved and copied"); where
+ * it does not, the sheet says only "Saved". The plain link's button goes under it, quiet, with
+ * words that say how it differs: it carries no name or note.
  *
  * Under them, where there is one to offer, "Show me how" starts the short guide to sharing.
  *
@@ -60,7 +69,9 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
   const marker = useRef<HTMLSpanElement>(null)
   const [title, setTitle] = useState('')
   const [note, setNote] = useState('')
-  const [state, setState] = useState<{ kind: 'idle' } | { kind: 'saving' } | { kind: 'saved'; link: string } | { kind: 'failed'; message: string }>({ kind: 'idle' })
+  const savedCopy = useRef<HTMLButtonElement>(null)
+  const [state, setState] = useState<{ kind: 'idle' } | { kind: 'saving' } | { kind: 'saved'; link: string; copied: boolean } | { kind: 'failed'; message: string }>({ kind: 'idle' })
+  // The saved link's own button was pressed: it says so.
   const [copied, setCopied] = useState(false)
   // Pressing Save again after a failure, with nothing changed, is the same attempt: the service then saves it once.
   const attempt = useRef<SaveAttempt | null>(null)
@@ -78,6 +89,11 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
       if (el?.contains(document.activeElement)) icon?.focus({ preventScroll: true })
     }
   }, [])
+  // Saved: the keyboard goes to the saved link's own button, which is now the sheet's main one.
+  const saved = state.kind === 'saved'
+  useLayoutEffect(() => {
+    if (saved && !heldAsOpened.current) savedCopy.current?.focus({ preventScroll: true })
+  }, [saved])
   useLayoutEffect(() => {
     const place = () => {
       const el = sheet.current
@@ -126,8 +142,17 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
     const plan = { title: name, note: note.replace(/\s+/g, ' ').trim(), view: markSightline(view()) }
     attempt.current = attemptFor(attempt.current, plan, false)
     setState({ kind: 'saving' })
-    const result = await savePlan(plan, attempt.current.key)
-    setState(result.ok ? { kind: 'saved', link: planLink(window.location.origin, result.value) } : { kind: 'failed', message: saveFailure(result.status) })
+    const saving = savePlan(plan, attempt.current.key)
+    // The copy is asked for now, while this press still counts, with the link as a promise: the browser waits for the save.
+    const copying = copyWhenKnown(saving.then((result) => (result.ok ? planLink(window.location.origin, result.value) : Promise.reject(new Error('not saved')))))
+    const result = await saving
+    if (!result.ok) {
+      setState({ kind: 'failed', message: saveFailure(result.status) })
+      return
+    }
+    // A browser that neither copies nor refuses is not waited for: the sheet then says only that the plan is saved.
+    const copiedNow = await Promise.race([copying, new Promise<boolean>((done) => window.setTimeout(() => done(false), COPY_WAIT_MS))])
+    setState({ kind: 'saved', link: planLink(window.location.origin, result.value), copied: copiedNow })
   }
   const copySaved = (link: string) => {
     void navigator.clipboard?.writeText(link).then(
@@ -141,54 +166,61 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
       <span ref={marker} hidden />
       {createPortal(
         <div ref={sheet} className="sl-share-sheet" role="dialog" aria-label="Share" onKeyDown={keepInside}>
-          <button ref={first} type="button" className="sl-share-copy" onClick={onCopy}>
-            Copy link
-          </button>
-
           {state.kind === 'saved' ? (
-            <div className="sl-share-saved">
-              <p className="sl-share-head" role="status">
-                Saved as “{name}”
-              </p>
-              <div className="sl-share-link">
+            <>
+              <div className="sl-share-saved">
+                <p className="sl-share-head" role="status">
+                  {state.copied ? 'Saved and copied' : 'Saved'} <span className="sl-share-name">“{name}”</span>
+                </p>
                 <input type="text" readOnly value={state.link} aria-label="The saved plan's link" onFocus={(event) => event.currentTarget.select()} />
-                <button type="button" className="sl-small" onClick={() => copySaved(state.link)}>
-                  {copied ? 'Copied' : 'Copy'}
+                <button ref={savedCopy} type="button" className="sl-share-copy" onClick={() => copySaved(state.link)}>
+                  {copied ? 'Saved link copied' : 'Copy saved link'}
                 </button>
+                <p className="sl-share-kept">
+                  It opens with the name and note on show. Kept {KEPT_DAYS} days, for anyone with the link.
+                </p>
               </div>
-              <p className="sl-share-kept">
-                Kept for {KEPT_DAYS} days. Anyone with the link can see its name and note.
-              </p>
-            </div>
+              <button ref={first} type="button" className="sl-share-plain" onClick={onCopy}>
+                Copy link without the name or note
+              </button>
+            </>
           ) : (
-            <form className="sl-share-save" onSubmit={save} autoComplete="off">
-              <p className="sl-share-head" id="sl-share-save-head">
-                Save with a name
-              </p>
-              <label>
-                <span>Name</span>
-                <input type="text" name="plan-name" value={title} maxLength={MAX_TITLE} required aria-describedby="sl-share-kept" placeholder="Shackleton Rim in June" data-1p-ignore="true" data-lpignore="true" onChange={(event) => setTitle(event.target.value)} />
-              </label>
-              <label>
-                <span>
-                  Note <small>optional</small>
-                </span>
-                <textarea name="plan-note" value={note} maxLength={MAX_NOTE} rows={2} onChange={(event) => setNote(event.target.value)} />
-              </label>
-              <div className="sl-share-row">
-                <p className="sl-share-kept" id="sl-share-kept">
-                  Kept for {KEPT_DAYS} days. Anyone with the link can see its name and note.
+            <>
+              <button ref={first} type="button" className="sl-share-copy" onClick={onCopy}>
+                Copy link
+              </button>
+              <form className="sl-share-save" onSubmit={save} autoComplete="off">
+                <p className="sl-share-head" id="sl-share-save-head">
+                  Save with a name
                 </p>
-                <button type="submit" className="sl-small" disabled={name === '' || state.kind === 'saving'}>
-                  {state.kind === 'saving' ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-              {state.kind === 'failed' && (
-                <p className="sl-share-problem" role="alert">
-                  {state.message}
+                <p className="sl-share-why" id="sl-share-why">
+                  The saved link opens with the name and note on show.
                 </p>
-              )}
-            </form>
+                <label>
+                  <span>Name</span>
+                  <input type="text" name="plan-name" value={title} maxLength={MAX_TITLE} required aria-describedby="sl-share-why sl-share-kept" placeholder="Shackleton Rim in June" data-1p-ignore="true" data-lpignore="true" onChange={(event) => setTitle(event.target.value)} />
+                </label>
+                <label>
+                  <span>
+                    Note <small>optional</small>
+                  </span>
+                  <textarea name="plan-note" value={note} maxLength={MAX_NOTE} rows={2} onChange={(event) => setNote(event.target.value)} />
+                </label>
+                <div className="sl-share-row">
+                  <p className="sl-share-kept" id="sl-share-kept">
+                    Kept {KEPT_DAYS} days, for anyone with the link.
+                  </p>
+                  <button type="submit" className="sl-small" disabled={name === '' || state.kind === 'saving'}>
+                    {state.kind === 'saving' ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+                {state.kind === 'failed' && (
+                  <p className="sl-share-problem" role="alert">
+                    {state.message}
+                  </p>
+                )}
+              </form>
+            </>
           )}
 
           <div className="sl-share-foot">

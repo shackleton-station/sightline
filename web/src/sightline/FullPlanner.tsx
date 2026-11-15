@@ -1,5 +1,5 @@
 import { isCustomSite } from '../data/customSite'
-import { useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import type { SiteInfo, Summary } from '../data/contract'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { monthSpans } from '../lib/grid'
@@ -59,6 +59,8 @@ interface Props {
   landings: (LandingShares | null)[]
   /** The average sunlight on a panel over each scenario's mission, in W/m²; undefined while its months load. */
   sunlightWm2: (number | null | undefined)[]
+  /** A notice for the header's last row: a saved plan's name and note. */
+  banner?: ReactNode
 }
 
 const TABS: { id: PlannerTab; label: string; title: string }[] = [
@@ -72,7 +74,7 @@ const TABS: { id: PlannerTab; label: string; title: string }[] = [
  * scenarios side by side. The Moon stays as a small live view in the corner (drawn by the screen,
  * not here), and is itself a way back.
  */
-export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2 }: Props) {
+export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, banner = null }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -141,6 +143,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
             <Mascot state={null} size={16} /> Scout
           </button>
         </span>
+        {banner}
       </header>
       <div className="sl-full-body">
         <div className="sl-full-mission">

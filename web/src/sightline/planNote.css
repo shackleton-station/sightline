@@ -1,89 +1,106 @@
-/* A plan opened from a short link: one quiet line beside the screen's name. */
-.sl-plan-note {
-  /* The note's card hangs from the line. */
-  position: relative;
+/* A saved plan's card: that it is a saved plan, its name, its note, and a button that puts it away.
+   Placed over the screen (PlanNote.tsx) everywhere but the Planner, where it is a row of the header. */
+.sl-saved-card {
+  position: fixed;
+  /* Over a phone's sheets (20); under the whole-window sheets, Share's sheet and a guide (40 and up). */
+  z-index: 30;
   display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 0;
-  margin: 0 0 0 auto;
-  color: var(--soft);
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  font-size: 0.75rem;
-  font-weight: 400;
-}
-
-.sl-plan-note.is-problem {
-  color: #e8915a;
-}
-
-.sl-plan-note-words {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The name is a button when the plan has a note: it looks like the line it is. */
-button.sl-plan-note-words {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-button.sl-plan-note-words:hover,
-button.sl-plan-note-words:focus-visible,
-button.sl-plan-note-words[aria-expanded='true'] {
-  color: var(--ink);
-  text-decoration: underline dotted;
-  text-underline-offset: 0.2em;
-}
-
-/* The note, on a press: a small card under the line, over the column, so nothing moves. */
-.sl-plan-note-card {
-  position: absolute;
-  top: calc(100% + 0.3rem);
-  right: 0;
-  z-index: 12;
+  align-items: flex-start;
+  gap: 0.6rem;
   box-sizing: border-box;
-  width: max-content;
-  max-width: min(19rem, calc(100vw - 2rem));
-  max-height: 9rem;
-  overflow-y: auto;
-  padding: 0.45rem 0.6rem;
+  padding: 0.5rem 0.6rem 0.55rem 0.7rem;
   border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
   border-radius: 10px;
   background: #1d1826;
   box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
   color: var(--ink);
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   font-size: 0.8125rem;
+  font-weight: 400;
   line-height: 1.4;
-  white-space: normal;
+  text-align: left;
+  animation: sl-saved-card-in 0.2s ease-out;
+}
+
+@keyframes sl-saved-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.3rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-saved-card {
+    animation: none;
+  }
+}
+
+.sl-saved-card.is-problem {
+  border-left-color: #e8915a;
+}
+
+/* In the Planner: a row of the header, under its controls and as wide as they are. */
+.sl-saved-card.is-in-header {
+  position: static;
+  flex: 1 0 100%;
+  box-shadow: none;
+  animation: none;
+}
+
+/* The row of its own, in a header that otherwise keeps to one line. */
+.sl-full-head:has(> .sl-saved-card) {
+  flex-wrap: wrap;
+  row-gap: 0.4rem;
+}
+
+.sl-saved-card-words {
+  flex: 1;
+  min-width: 0;
+}
+
+.sl-saved-card p {
+  margin: 0;
   overflow-wrap: anywhere;
 }
 
-.sl-plan-note-close {
-  flex: none;
-  width: 1.4rem;
-  height: 1.4rem;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  color: inherit;
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
+.sl-saved-card-kind {
+  color: var(--soft);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.sl-plan-note-close:hover,
-.sl-plan-note-close:focus-visible {
-  background: #2a2434;
-  color: var(--ink);
+.sl-saved-card-name {
+  font-weight: 600;
+}
+
+/* A long note wraps; past five lines it scrolls inside the card, so the card never grows over the screen. */
+.sl-saved-card-note {
+  max-height: 7em;
+  overflow-y: auto;
+}
+
+/* In the header there is width to spare: what it is and its name share a line, the note has the next. */
+.sl-saved-card.is-in-header .sl-saved-card-words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.6rem;
+}
+
+.sl-saved-card.is-in-header .sl-saved-card-note {
+  flex: 1 0 100%;
+  max-height: 4.2em;
+}
+
+.sl-saved-card-problem {
+  color: #e8915a;
+}
+
+.sl-saved-card .sl-saved-card-away {
+  flex: none;
+  white-space: nowrap;
 }
 
 /* The saved plan's own brief, at the top of the written brief. */
