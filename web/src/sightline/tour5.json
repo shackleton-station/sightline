@@ -5,7 +5,7 @@
     "disclosure": "AI-generated voice",
     "files": "/tour/voice5/<id>.mp3",
     "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\"",
-    "rendered": false
+    "rendered": true
   },
   "steps": [
     {
@@ -82,7 +82,8 @@
       "press": ".sl-next",
       "after": [
         ".sl-verdict"
-      ]
+      ],
+      "pressOn": "One press"
     },
     {
       "id": "skyline",
@@ -217,7 +218,8 @@
         "open": "proof"
       },
       "targets": [
-        "#how-proof .how-checks"
+        "#how-proof .how-check > b",
+        "#how-proof .how-check h3"
       ]
     },
     {

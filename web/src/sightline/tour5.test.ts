@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { LongTourFile } from '../lib/tour'
 import file from './tour5.json'
@@ -39,6 +39,30 @@ describe('the five-minute tour', () => {
     expect(pressing.map((step) => step.id)).toEqual(['slipped'])
     expect(pressing[0].targets).toEqual([pressing[0].press])
     expect(pressing[0].after?.length).toBeGreaterThan(0)
+  })
+
+  it('has a voice file for every step, rendered from exactly its words, between 18 and 27 seconds each and four and a half to five minutes in all', () => {
+    expect(tour.voice.rendered).toBe(true)
+    const voiceDir = new URL('../../public/tour/voice5/', import.meta.url)
+    const index = JSON.parse(readFileSync(new URL('index.json', voiceDir), 'utf8')) as { disclosure: string; lines: Record<string, { say: string; bytes: number; seconds: number }> }
+    expect(index.disclosure).toBe(tour.voice.disclosure)
+    let total = 0
+    for (const step of tour.steps) {
+      // A step whose words changed after its line was rendered would speak the old words.
+      expect(index.lines[step.id]?.say, step.id).toBe(step.say)
+      expect(existsSync(new URL(`${step.id}.mp3`, voiceDir)), step.id).toBe(true)
+      expect(index.lines[step.id].seconds, step.id).toBeGreaterThanOrEqual(18)
+      expect(index.lines[step.id].seconds, step.id).toBeLessThanOrEqual(27)
+      total += index.lines[step.id].seconds
+    }
+    expect(total).toBeGreaterThanOrEqual(270)
+    expect(total).toBeLessThanOrEqual(300)
+  })
+
+  it('makes its one press, when it plays through, at words its line really says', () => {
+    const step = tour.steps.find((one) => one.press)!
+    expect(step.pressOn).toBeTruthy()
+    expect(step.say).toContain(step.pressOn as string)
   })
 
   it('uses no local time and none of the words kept out of the app', () => {

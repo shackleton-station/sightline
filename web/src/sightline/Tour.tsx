@@ -92,6 +92,10 @@ export function Tour({ name, steps, voice, presenting = false, at, onStep, onClo
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
   const [listen, setListen] = useState(false)
   const speaking = useRef<HTMLAudioElement | null>(null)
+  // "Play through": each step's voice in turn, moving on by itself when a line ends. Off until pressed.
+  const [through, setThrough] = useState(false)
+  /** What the voice needs to know when a line ends, as it is now and not as it was when the line began. */
+  const auto = useRef({ through: false, waiting: false, last: false, forward: () => {} })
 
   // The rings and the bubble are placed from where things are on screen, again and again, so they
   // follow the screen while a step's state settles, a sheet scrolls or the window is resized.
@@ -163,14 +167,36 @@ export function Tour({ name, steps, voice, presenting = false, at, onStep, onClo
     if (placed) next.current?.focus({ preventScroll: true })
   }, [at, placed])
 
+  useEffect(() => {
+    auto.current = { through, waiting, last, forward }
+  })
   // "Listen": the step's line, in Scout's voice, from its file. A new step stops the line before it.
+  // Playing through, a step that presses a control does so as the voice reaches the words for it, and
+  // when the line ends the tour moves on (the last step stays, with "Done" for the presenter).
   useEffect(() => {
     if (!listen || !voice) return
     const audio = new Audio(voiceFile(voice, step))
     speaking.current = audio
+    let timer = 0
+    const pressAt = step.press && step.pressOn && step.say.includes(step.pressOn) ? step.say.indexOf(step.pressOn) / step.say.length : null
+    const onTime = () => {
+      if (auto.current.through && auto.current.waiting && pressAt !== null && audio.duration > 0 && audio.currentTime >= audio.duration * pressAt) auto.current.forward()
+    }
+    const onEnded = () => {
+      if (!auto.current.through) return
+      // A press the voice did not reach is made now, and looked at for a moment, before moving on.
+      const pressing = auto.current.waiting
+      if (pressing) auto.current.forward()
+      timer = window.setTimeout(() => !auto.current.last && auto.current.through && auto.current.forward(), pressing ? 2500 : 900)
+    }
+    audio.addEventListener('timeupdate', onTime)
+    audio.addEventListener('ended', onEnded)
     // A browser that refuses to play, or a file that is missing, leaves the words on screen: nothing else to do.
     void audio.play().catch(() => {})
     return () => {
+      window.clearTimeout(timer)
+      audio.removeEventListener('timeupdate', onTime)
+      audio.removeEventListener('ended', onEnded)
       audio.pause()
       speaking.current = null
     }
@@ -200,9 +226,32 @@ export function Tour({ name, steps, voice, presenting = false, at, onStep, onClo
         <footer className="sl-tour-foot">
           {voice && (
             <span className="sl-tour-voice">
-              <button type="button" className="sl-small sl-tour-listen" aria-pressed={listen} title="Plays Scout's voice for each step. The voice is AI-generated; the words stay on screen." onClick={() => setListen(!listen)}>
+              <button
+                type="button"
+                className="sl-small sl-tour-listen"
+                aria-pressed={listen}
+                title="Plays Scout's voice for each step. The voice is AI-generated; the words stay on screen."
+                onClick={() => {
+                  if (listen) setThrough(false)
+                  setListen(!listen)
+                }}
+              >
                 Listen
               </button>
+              {presenting && (
+                <button
+                  type="button"
+                  className="sl-small sl-tour-through"
+                  aria-pressed={through}
+                  title="Plays each step's voice in turn and moves on by itself when a line ends."
+                  onClick={() => {
+                    if (!through) setListen(true)
+                    setThrough(!through)
+                  }}
+                >
+                  Play through
+                </button>
+              )}
               <small>{voice.voice.disclosure}</small>
             </span>
           )}

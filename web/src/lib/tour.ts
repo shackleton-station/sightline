@@ -68,6 +68,8 @@ export interface TourStep {
   press?: string
   /** What the step rings once that control has been pressed. */
   after?: string[]
+  /** The words of `say` at which that press belongs, when the tour plays through by itself: it is made as the voice reaches them. */
+  pressOn?: string
 }
 
 export interface TourFile {
