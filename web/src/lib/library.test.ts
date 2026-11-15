@@ -91,3 +91,28 @@ describe('the tray, which is the plan', () => {
     expect(made.map((card) => card.fits)).toEqual([true, false])
   })
 })
+
+describe('one card per landing', () => {
+  const same = cards([entry({ plan: 'newest22', title: 'The newest' }), entry({ plan: 'older222', title: 'An older one' }), entry({ plan: 'other222', title: 'Elsewhere', site: 'dark' })])
+
+  it('shows a landing saved in several plans once, from the newest, and says how many hold it', () => {
+    const shown = filterCards(same, NO_FILTERS)
+    expect(shown.map((card) => [card.entry.title, card.copies])).toEqual([
+      ['The newest', 2],
+      ['Elsewhere', 1],
+    ])
+  })
+
+  it('shows every card when switched off, each still with its count', () => {
+    expect(filterCards(same, { ...NO_FILTERS, oneEach: false }).map((card) => card.copies)).toEqual([2, 2, 1])
+  })
+
+  it('keeps an older plan found by its name, and counts over the whole library', () => {
+    expect(filterCards(same, { ...NO_FILTERS, words: 'older' }).map((card) => [card.entry.title, card.copies])).toEqual([['An older one', 2]])
+  })
+
+  it('tells two hours at one place apart', () => {
+    const two = cards([entry(), entry({ plan: 'later222', landing: '2027-01-10T07:00:00Z' })])
+    expect(filterCards(two, NO_FILTERS)).toHaveLength(2)
+  })
+})

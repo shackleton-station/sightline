@@ -60,6 +60,12 @@ export function LibraryCardView({ card, start, children, small = false }: Props)
         <p className="lib-when">{landingWords(card, start)}</p>
         <p className="lib-from">
           from <q>{card.entry.title}</q>
+          {card.copies > 1 && (
+            <>
+              {' '}
+              and {card.copies - 1} other {card.copies === 2 ? 'plan' : 'plans'}
+            </>
+          )}
         </p>
         {!small && (
           <>
