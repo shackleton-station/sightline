@@ -416,7 +416,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
   return (
     <div className="np-rain">
       <p className="np-lead">
-        A lander never comes down exactly where it is aimed. Each dot is one simulated landing around your target, {Math.round(100 * ACCURACY_SHARE)}% of them within {shownM} m; the ground under it is green where a landing still gets through your mission and coloured by the reason where it doesn't. <b>Aim</b> moves your target to where more of them would fit.
+        <b>Will your mission still work if the lander misses its mark?</b> The brief judges one exact point, but a lander comes down anywhere within about {shownM} m of its aim, and on a ridge the Sun and Earth can be lost within that distance. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails. <b>Aim</b> moves your target so more landings fit.
       </p>
       {better ? (
         <p className="np-act">

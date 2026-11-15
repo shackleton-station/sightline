@@ -20,9 +20,9 @@ interface Props {
 }
 
 const MEASURES: { metric: NearbyMetric; label: string; words: string; lowerIsBetter?: boolean }[] = [
-  { metric: 'both', label: 'Sun and Earth', words: 'Sun and Earth together' },
-  { metric: 'sun', label: 'Sun', words: 'Sun' },
-  { metric: 'earth', label: 'Earth', words: 'Earth in view' },
+  { metric: 'both', label: 'Sun and Earth', words: 'Sun and Earth together (power and radio)' },
+  { metric: 'sun', label: 'Sun', words: 'Sun (power)' },
+  { metric: 'earth', label: 'Earth', words: 'Earth in view (radio)' },
   { metric: 'sunGap', label: 'Longest dark', words: 'longest time without Sun', lowerIsBetter: true },
 ]
 const SPOTS = 4
@@ -191,7 +191,7 @@ export function NearbyGround({ site, anchor, month, mission, onSpot }: Props) {
     <section className="np-near" aria-labelledby="np-near-title">
       <h5 id="np-near-title">Is there better ground nearby?</h5>
       <p className="np-lead">
-        Every {meta.step_m} m square within {meta.half_width_m / 1000} km of {own ? anchor.name : site.name}, checked for {monthLabel(month)} the same way as {place}. Gold gets more {metric === 'sunGap' ? 'light' : measure.words} than {place}, violet less. <b>Go</b> moves your landing to the best one.
+        <b>Is {place} the best spot around, or just the one on the list?</b> Sun (power) and Earth (radio) change square by square along a ridge. Every {meta.step_m} m square within {meta.half_width_m / 1000} km of {own ? anchor.name : site.name} is checked for {monthLabel(month)} the same way as {place}: gold does better, violet worse. <b>Go</b> moves your landing to the best one.
       </p>
       {bestValue !== null && bestAt && best !== undefined ? (
         <p className="np-act">
