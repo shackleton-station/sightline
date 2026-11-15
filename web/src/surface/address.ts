@@ -50,21 +50,33 @@ export function atNearestHour(base: SurfaceAddress, iso: string): SurfaceAddress
   return { ...base, month, index: (at.getTime() - Date.parse(`${month}-01T00:00:00Z`)) / HOUR_MS }
 }
 
-/** The message the Surface view sends Sightline, its host page, once the hour on show has settled. */
-export const SURFACE_MOVED = 'sightline-surface-moved'
-export interface SurfaceMoved {
-  type: typeof SURFACE_MOVED
-  site: string
-  month: string
-  /** The hour within the month. */
-  index: number
+/**
+ * What Sightline, the host page, sends the Surface view inside it. The host has the one time bar, so
+ * it says what to stand on: `view` is the app's own link for the site, month and hour on that bar,
+ * and `tint` is the link of the landing its "Mission success probability" layer is for (with
+ * `&odds=1`), or null while that layer is off. A message, not a new address: the frame is never
+ * reloaded, and the browser's history gets no entry for each hour of a played month.
+ */
+export const SURFACE_SHOW = 'sightline-surface-show'
+export interface SurfaceShow {
+  type: typeof SURFACE_SHOW
+  view: string
+  tint: string | null
 }
 
-/** The message, if `data` is one; null for anything else a page may be sent. */
-export function readSurfaceMoved(data: unknown): SurfaceMoved | null {
+/** The message, if `data` is one that names a view; null for anything else a page may be sent. */
+export function readSurfaceShow(data: unknown): SurfaceShow | null {
   if (typeof data !== 'object' || data === null) return null
-  const { type, site, month, index } = data as Record<string, unknown>
-  if (type !== SURFACE_MOVED || typeof site !== 'string' || typeof month !== 'string' || !/^\d{4}-\d{2}$/.test(month)) return null
-  if (typeof index !== 'number' || !Number.isInteger(index) || index < 0) return null
-  return { type, site, month, index }
+  const { type, view, tint } = data as Record<string, unknown>
+  if (type !== SURFACE_SHOW || typeof view !== 'string' || readAddress(view) === null) return null
+  if (tint !== null && typeof tint !== 'string') return null
+  return { type, view, tint }
+}
+
+/** What the Surface view sends its host once it is listening: the host answers with what to show. */
+export const SURFACE_READY = 'sightline-surface-ready'
+
+/** True for that message. */
+export function isSurfaceReady(data: unknown): boolean {
+  return typeof data === 'object' && data !== null && (data as Record<string, unknown>).type === SURFACE_READY
 }

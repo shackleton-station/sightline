@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_VIEW, tabLinks } from '../lib/siteTabs'
-import { atNearestHour, EXAMPLE_LIMITS, readAddress, readSurfaceMoved, SURFACE_MOVED, type SurfaceAddress, viewLink } from './address'
+import { atNearestHour, EXAMPLE_LIMITS, isSurfaceReady, readAddress, readSurfaceShow, SURFACE_READY, SURFACE_SHOW, type SurfaceAddress, viewLink } from './address'
 
 const LINK = '#a=shackleton-rim@2028-03&t=120&limits=10_48_24_1_0_2&view=3d&mode=plan&list=apollo-11@2028-07-04T05'
 
@@ -40,12 +40,23 @@ describe('opening on the nearest hour', () => {
   })
 })
 
-describe('the message Sightline is sent when the hour settles', () => {
-  it('is read when it is one, and anything else a page may be sent is not', () => {
-    const moved = { type: SURFACE_MOVED, site: 'connecting-ridge', month: '2027-05', index: 133 }
-    expect(readSurfaceMoved(moved)).toEqual(moved)
-    for (const other of [null, 'text', 42, { ...moved, type: 'other' }, { ...moved, month: 'May' }, { ...moved, index: -1 }, { ...moved, index: 1.5 }, { ...moved, site: 3 }]) {
-      expect(readSurfaceMoved(other)).toBeNull()
+describe('the messages between Sightline and the Surface view inside it', () => {
+  it('reads what to show when it names a view, with or without the landing the layer is for', () => {
+    const show = { type: SURFACE_SHOW, view: LINK, tint: null }
+    expect(readSurfaceShow(show)).toEqual(show)
+    expect(readSurfaceShow({ ...show, tint: `${LINK}&odds=1` })).toEqual({ ...show, tint: `${LINK}&odds=1` })
+    expect(readSurfaceShow({ ...show, view: '#a=-56.74,-48.96@2027-05&t=3' })?.view).toBe('#a=-56.74,-48.96@2027-05&t=3')
+  })
+
+  it('reads nothing else a page may be sent', () => {
+    const show = { type: SURFACE_SHOW, view: LINK, tint: null }
+    for (const other of [null, 'text', 42, { ...show, type: 'other' }, { ...show, view: '#how' }, { ...show, view: 7 }, { ...show, tint: 3 }, { type: SURFACE_SHOW }]) {
+      expect(readSurfaceShow(other)).toBeNull()
     }
+  })
+
+  it('knows the view saying it is listening', () => {
+    expect(isSurfaceReady({ type: SURFACE_READY })).toBe(true)
+    for (const other of [null, 'text', { type: SURFACE_SHOW }, {}]) expect(isSurfaceReady(other)).toBe(false)
   })
 })

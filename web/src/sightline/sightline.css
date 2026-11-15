@@ -2789,8 +2789,22 @@ button.sl-moment-heights[aria-expanded='true'] {
   z-index: 4;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
   border: 0;
+  /* The strip under the Moon that says when the time bar is not on the landing is kept clear here too. */
+  border-bottom: 1.9rem solid #000;
   background: #000;
+}
+
+/* That note lies over the strip, above the frame. */
+.sl-stage:has(.sl-surface:not(.is-away)) .sl-off-landing {
+  z-index: 5;
+}
+
+/* Kept ready behind Orbit and Site: laid out at the stage's size, so its picture is already drawn, and
+   out of sight, where it takes no press and no keyboard. */
+.sl-surface.is-away {
+  visibility: hidden;
 }
 
 /* ---------- The Planner: the whole window, the Moon small in a corner ---------- */

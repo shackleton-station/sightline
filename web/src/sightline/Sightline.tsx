@@ -77,7 +77,6 @@ import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { defaultScenarios } from '../lib/defaultPair'
 import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
-import { readSurfaceMoved } from '../surface/address'
 import { CompareDrawer } from './CompareDrawer'
 import { nowIso, useClock, useIdle, useStored, useYearPositions } from './hooks'
 import { useLightGrid } from '../atlas/useLightGrid'
@@ -97,6 +96,7 @@ import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
 import { Skyline } from './Skyline'
 import { Stage } from './Stage'
+import { SurfaceFrame } from './SurfaceFrame'
 import { useHeightFlags } from './useHeights'
 import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useScenarioFacts'
 import { useGuideVideos } from './useGuideVideos'
@@ -495,40 +495,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // In Watch there is no scenario on show: Scout is sent the featured site at the moment on the clock.
   // The link says so (`watch=1`): no site is on the visitor's screen, and "now" is the hour on the time bar.
   const watchView = `${scenarioLink([{ site: scenarios[0].site, landing: hour }], 0, start, mission)}&watch=1`
-  // The Surface view stands at the scenario on show, at its landing: the side panel's site and date.
-  const surfaceView = `${surfaceLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
-  // The other way: an hour or month chosen in the Surface view becomes the landing in the side panel.
-  // The link that change makes is not sent back to the view, which already shows it: while time plays
-  // there, sending it back would pull the view back to an hour it has just left.
-  const [surfaceSrc, setSurfaceSrc] = useState(surfaceView)
-  const fromSurface = useRef<string | null>(null)
-  const surfaceFrame = useRef<HTMLIFrameElement>(null)
-  useEffect(() => {
-    if (surfaceView !== fromSurface.current) {
-      setSurfaceSrc(surfaceView)
-      // After a change made in the view, the frame is ahead of `surfaceSrc`: a link equal to it would not move the frame.
-      const frame = surfaceFrame.current?.contentWindow
-      if (frame && surfaceView === surfaceSrc) frame.location.hash = `${surfaceView}${fitShade ? '&odds=1' : ''}`
-    }
-    fromSurface.current = null
-    // Only a new link moves the view; the rest is read as it is then.
-  }, [surfaceView])
-  useEffect(() => {
-    if (mode !== 'surface') return
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
-      const moved = readSurfaceMoved(event.data)
-      if (!moved || moved.site !== scenario.site) return
-      const landing = hourOf(start, `${moved.month}-01T00:00:00Z`) + moved.index
-      if (!Number.isInteger(landing) || landing < 0 || landing >= hours || landing === scenario.landing) return
-      const next = scenarios.map((one, i) => (i === active ? { ...one, landing } : one))
-      fromSurface.current = `${surfaceLink(next, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}`
-      setScenario((current) => ({ ...current, landing }))
-      setHour(landing)
-    }
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [mode, scenario, scenarios, active, start, hours, mission, accuracyUsed, spread, setScenario, setHour])
+  // The Surface view stands at the site on show, at the hour on the time bar: the one bar on the screen
+  // moves it, as it moves the Moon. Its "Mission success probability" layer stays with the landing.
+  const surfaceView = surfaceLink([{ site: scenario.site, landing: hour }], 0, start, mission)
+  const surfaceTint = fitShade ? `${surfaceLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}&odds=1` : null
+  // The pointer or the keyboard has been on the Surface button: its frame is loaded at once.
+  const [surfaceNear, setSurfaceNear] = useState(false)
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
   const scoutView = active > 0 ? view : `${view}&sc=0`
   useEffect(() => {
@@ -1118,13 +1090,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             />
           </PlanColumn>
           {/* The skyline in 2D, with the Sun's and Earth's paths: above the time bar in Orbit and Site, folded until it is
-              asked for (the time bar's readout is its door), so folded it takes no room at all. The Surface view shows the
-              same horizon in 3D and brings its own screen, so the strip is not drawn there. */}
-          {mode !== 'surface' && !skyMin && (
+              asked for (the time bar's readout is its door), so folded it takes no room at all. It keeps its place in
+              the Surface view too, so nothing on the screen moves when the view changes. */}
+          {!skyMin && (
             <Skyline horizon={hereOnBar?.horizon ?? null} track={hereOnBar?.track ?? null} index={index} obsHeightM={hereOnBar ? siteHeights.panelM : 0} folded={false} onFold={() => setSkyMin(true)} />
           )}
-          {/* The Surface view brings its own time bar, so this one steps aside there. */}
-          {mode !== 'surface' && (
+          {/* One time bar, in Orbit, Site and Surface alike: in Surface its hour is the hour stood in. */}
           <River
             start={start}
             hours={hours}
@@ -1153,7 +1124,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             onFold={setRiverMin}
             onSelect={(key) => setActive(Number(key))}
           />
-          )}
         </div>
       )}
 
@@ -1191,7 +1161,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {/* The column is about the landing; the Moon follows the time bar. When the two differ, say so,
             in the strip kept clear under the Moon, with the two ways to bring them together. */}
         {shown && !planner && fitShade && <FitLegend on={fitShade} onToggle={showFitShade} spread={spread} onSpread={setSpread} detailed={fitHere} onDetails={() => setDrawer('accuracy')} />}
-        {shown && !planner && mode !== 'surface' && hour !== scenario.landing && (
+        {shown && !planner && hour !== scenario.landing && (
           <p className="sl-off-landing sl-fade">
             <span>Not the landing</span>
             <button type="button" className="sl-link" title="Moves the time bar back to the landing hour." onClick={() => setHour(scenario.landing)}>
@@ -1202,8 +1172,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             </button>
           </p>
         )}
-        {/* Standing at the site: the app's own surface view, inside the stage, on the scenario's site and landing. */}
-        {shown && !planner && mode === 'surface' && <iframe ref={surfaceFrame} className="sl-surface" title="Standing at the site, looking around" src={`/surface/${surfaceSrc}${fitShade ? '&odds=1' : ''}`} />}
+        {/* Standing at the site: the app's own surface view, over the stage, at the site on show and the time bar's hour.
+            Loaded ahead of the press and kept afterwards, out of sight, so the press only uncovers it. */}
+        {shown && <SurfaceFrame visible={!planner && mode === 'surface'} warm={surfaceNear} view={surfaceView} tint={surfaceTint} />}
         {/* In the Planner the Moon is a small live view: pressing it comes back. */}
         {planner && (
           <button type="button" className="sl-mini-back" aria-label="Back to the Moon" title="Closes the Planner and shows the Moon again (Esc)." onClick={() => setFull(false)} />
@@ -1431,6 +1402,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         <Rail
           mode={mode}
           onMode={setMode}
+          onSurfaceNear={() => setSurfaceNear(true)}
           onHow={() => setHow(true)}
           hype={hypeFound ? { open: drawer === 'hype', onOpen: () => setDrawer(drawer === 'hype' ? null : 'hype') } : null}
           onTour={() => startTour()}

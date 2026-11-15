@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SiteTabs } from '../components/SiteTabs'
 import type { SiteInfo } from '../data/contract'
+import { customSiteInfo } from '../data/customSite'
 import { loadSites, type ScenarioData } from '../data/loadSite'
 import { useScenario } from '../data/useScenario'
 import { useSiteFlagsState } from '../data/useSiteFlags'
@@ -13,7 +14,7 @@ import { TimeRiver } from '../shell/TimeRiver'
 import { AnswerLine } from './AnswerLine'
 import { useRange } from '../data/useRange'
 import { nowIso } from '../sightline/hooks'
-import { atNearestHour, readAddress, SURFACE_MOVED, type SurfaceAddress, type SurfaceMoved, viewLink } from './address'
+import { atNearestHour, readAddress, readSurfaceShow, SURFACE_READY, type SurfaceAddress, viewLink } from './address'
 import { Pickers } from './Pickers'
 import { Notice, Waiting } from './SurfaceStates'
 import { SurfaceStage } from './SurfaceStage'
@@ -40,8 +41,10 @@ const EMBEDDED = isEmbedded()
  * The Surface tab: the visitor stands at the site, 2 m up, and looks around at the horizon the
  * pipeline computed, with the Sun and Earth where its track puts them for the hour on the time
  * river, in two views: one that follows the Sun and one that follows Earth. The site, month and hour
- * live here, and in the address. Inside Sightline the site and month menus are left out: its side
- * panel chooses them, and both views follow through the address.
+ * live here, and in the address. Inside Sightline the site and month menus and the time river are
+ * left out: its side panel chooses the site and its own time bar the hour, and tells this page what
+ * to stand on in a message. A point of the visitor's own is stood on too: its skyline is worked out
+ * in the browser, as it is for Sightline's side panel.
  */
 export function SurfaceApp() {
   const [sites, setSites] = useState<SiteInfo[]>([])
@@ -79,9 +82,37 @@ export function SurfaceApp() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  // Custom coordinates and sites that aren't listed open the first listed site, and the page says so.
+  // Inside Sightline the page is told what to stand on: the hour on Sightline's own time bar, and
+  // the landing its ground layer is for. Each hour of a played month is one message; nothing reloads.
+  useEffect(() => {
+    if (!EMBEDDED) return
+    /** The layer's link as last sent, so the same landing is not worked out again for every hour. */
+    let tintSent: string | null = null
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return
+      const show = readSurfaceShow(event.data)
+      const to = show ? readAddress(show.view) : null
+      if (!show || !to) return
+      if (show.tint !== tintSent) {
+        tintSent = show.tint
+        setTintLink(show.tint ? readTintLink(show.tint) : null)
+      }
+      setAddress((current) => (current.site === to.site && current.month === to.month && current.index === to.index ? current : to))
+      setArrivedAt(show.view)
+    }
+    window.addEventListener('message', onMessage)
+    window.parent.postMessage({ type: SURFACE_READY }, window.location.origin)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
+  // A point of the visitor's own is stood on like a listed site: the same loader works its skyline
+  // out in the browser. A site that is neither opens the first listed site, and the page says so.
   const listed = sites.find((candidate) => candidate.id === address.site) ?? null
-  const site = listed ?? sites[0] ?? null
+  const point = parseCustomSite(address.site)
+  const pointLat = point?.lat ?? null
+  const pointLon = point?.lon ?? null
+  const own = useMemo(() => (pointLat === null || pointLon === null ? null : customSiteInfo(pointLat, pointLon)), [pointLat, pointLon])
+  const site = listed ?? own ?? sites[0] ?? null
   const loaded = useScenario(site, address.month)
   const sizes = useBodySizes(loaded.data?.site ?? null, loaded.data?.track ?? null)
   // What is on screen: the last site and month to have arrived whole, with the disks' sizes. It
@@ -94,16 +125,22 @@ export function SurfaceApp() {
   const { error } = loaded
   const { flags, failed: flagsFailed } = useSiteFlagsState(data?.site ?? null)
   const groundTint = useGroundTint(tintLink, data?.site ?? null, data?.horizon ?? null)
-  const index = data ? Math.min(address.index, data.track.length - 1) : 0
   const pending = site !== null && data !== null && (data.site.id !== site.id || data.month !== address.month)
+  // While another site or month is on its way the picture keeps the hour it had: the new hour belongs
+  // to the new month's track, and read in the old one it would throw the Sun back to another day.
+  const wanted = data ? Math.min(address.index, data.track.length - 1) : 0
+  const [stood, setStood] = useState(0)
+  if (!pending && stood !== wanted) setStood(wanted)
+  const index = pending && data ? Math.min(stood, data.track.length - 1) : wanted
 
   // The address reopens what is on screen; the tabs open the other designs on the same view.
-  const shown = useMemo<SurfaceAddress>(() => ({ ...address, site: site?.id ?? address.site, index }), [address, site, index])
+  const shown = useMemo<SurfaceAddress>(() => ({ ...address, site: listed?.id ?? (own ? address.site : (site?.id ?? address.site)), index }), [address, listed, own, site, index])
   const link = site ? viewLink(shown) : ''
   /** When the view first moved away from what the address says; null while the address is up to date. */
   const movedAt = useRef<number | null>(null)
   useEffect(() => {
-    if (!link) return
+    // Inside Sightline the address that matters is Sightline's own, which it keeps itself.
+    if (!link || EMBEDDED) return
     // Not on every hour of a played month: browsers limit how often the address may be rewritten.
     // Once the view has settled, or twice a second while it keeps moving.
     movedAt.current ??= performance.now()
@@ -111,8 +148,6 @@ export function SurfaceApp() {
     const timer = setTimeout(() => {
       movedAt.current = null
       setAddressBar(link)
-      // Inside Sightline, its side panel follows the month and hour chosen here.
-      if (EMBEDDED) window.parent.postMessage({ type: SURFACE_MOVED, site: shown.site, month: shown.month, index: shown.index } satisfies SurfaceMoved, window.location.origin)
     }, wait)
     return () => clearTimeout(timer)
   }, [link])
@@ -131,13 +166,12 @@ export function SurfaceApp() {
   }
 
   const pickers = EMBEDDED ? null : <Pickers sites={sites} siteId={site?.id ?? ''} month={address.month} months={months} onSite={choose} onMonth={setMonth} />
-  const custom = parseCustomSite(readAddress(arrivedAt)?.site ?? '')
-  const unlisted = site !== null && listed === null && arrivedAt !== ''
+  const unlisted = site !== null && listed === null && own === null && arrivedAt !== ''
 
   return (
     <div className={EMBEDDED ? 'surface is-embedded' : 'surface'}>
       {!EMBEDDED && <SiteTabs current="surface" view={site ? viewLink(shown) : ''} />}
-      {unlisted && site && <Notice site={site} custom={custom} link={arrivedAt} onClose={() => setArrivedAt('')} />}
+      {unlisted && site && <Notice site={site} onClose={() => setArrivedAt('')} />}
       <main className="sf-main">
         {sitesFailed ? (
           <Waiting problem="The list of sites could not be loaded." />
@@ -175,7 +209,8 @@ export function SurfaceApp() {
         )}
         {pending && !error && <p className="sf-pending">Loading {site?.name}, {monthLabel(address.month)}…</p>}
       </main>
-      {data && (
+      {/* Inside Sightline its own time bar, under this frame, moves the hour: there is one bar on the screen. */}
+      {data && !EMBEDDED && (
         <footer className="sf-river">
           <TimeRiver track={data.track} index={index} onIndex={setIndex} previous={monthStep(-1)} next={monthStep(1)} />
         </footer>
