@@ -6,7 +6,7 @@
   margin: 0.35rem 0 0;
 }
 
-/* The answer: one sentence that starts with its number, big and in the verdict's colours. */
+/* The answer: one sentence that starts with its number, big and in the verdict's three colours (sightline.css: --sl-fits, --sl-marginal, --sl-miss). */
 .sl-accuracy .sl-accuracy-answer {
   margin: 0.5rem 0 0;
   font-size: 0.875rem;
@@ -29,15 +29,15 @@
 }
 
 .sl-accuracy .sl-accuracy-answer.is-fit strong {
-  color: var(--sl-both);
+  color: var(--sl-fits);
 }
 
 .sl-accuracy .sl-accuracy-answer.is-marginal strong {
-  color: var(--sl-sun);
+  color: var(--sl-marginal);
 }
 
 .sl-accuracy .sl-accuracy-answer.is-miss strong {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 /* The reasons the rest do not fit, each a line with its share. */
