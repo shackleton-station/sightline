@@ -18,7 +18,7 @@ import { asksToChangeLimits, buildActions, viewFrom } from './actions'
 import { runChat, viewFacts } from './chat'
 import { asksAboutPresent, dateBasis, realHourIso } from './dates'
 import { systemPrompt } from './prompt'
-import { renderAnswer, visitorsAmounts } from './render'
+import { nameForms, renderAnswer, visitorsAmounts } from './render'
 import { fitWords, scenarioScene } from './scenarios'
 
 // Nine things found by asking Scout 28 questions on the live site and setting each answer beside
@@ -726,6 +726,30 @@ describe('17. facts a better answer is made from: why, how close, and what to tr
   it('a month\'s landing stretches are counted in words that sit in a sentence', async () => {
     const { values } = await facts('landing_windows', { site: 'connecting-ridge', month: '2027-05', mission_days: 3 })
     expect(values.window_count).toMatch(/^\d+ stretch(es)?$/)
+  })
+})
+
+describe('18. a site may be called by the short form of its name', () => {
+  it('knows the short forms: the name before its bracket, each part of a joined name, and a letter joined to a number', () => {
+    expect(nameForms('Chandrayaan-3 (India)')).toEqual(expect.arrayContaining(['Chandrayaan-3 (India)', 'Chandrayaan-3', 'India']))
+    expect(nameForms("Chang'e 4 (China, far side)")).toEqual(expect.arrayContaining(["Chang'e 4 (China, far side)", "Chang'e 4"]))
+    expect(nameForms('IM-2 Athena')).toEqual(expect.arrayContaining(['IM-2 Athena', 'IM-2']))
+    expect(nameForms('Apollo 11')).toEqual(['Apollo 11'])
+    // Never a bare number: that would let the model type one.
+    for (const name of ['Blue Ghost Mission 1', 'Apollo 17', "Chang'e 4 (China, far side)", 'Chandrayaan-3 (India)']) expect(nameForms(name).every((form) => /[A-Za-z]/.test(form))).toBe(true)
+  })
+
+  it('"the Chandrayaan-3 site" is an answer, not a refusal that ends in the raw list of facts; a number of the model\'s own is still refused', async () => {
+    const allowed = (await data.sites()).flatMap((site) => nameForms(site.name))
+    const book = new Map([['r1', [{ key: 'latitude', label: 'Latitude', value: '69.374°S' }]]])
+    expect(renderAnswer('The Chandrayaan-3 site is at {{r1.latitude}}.', book, allowed)).toEqual({ ok: true, text: 'The Chandrayaan-3 site is at 69.374°S.' })
+    expect(renderAnswer("Chang'e 4 and IM-2 are both listed, at {{r1.latitude}}.", book, allowed).ok).toBe(true)
+    expect(renderAnswer('The Chandrayaan-4 site is at {{r1.latitude}}.', book, allowed).ok).toBe(false)
+    expect(renderAnswer('The Chandrayaan-3 site is 3 km away, at {{r1.latitude}}.', book, allowed).ok).toBe(false)
+    // Through the whole chat: the model's draft with the short name reaches the visitor as written.
+    const outcome = await ask(scripted([{ name: 'site_info', args: { site: 'chandrayaan-3' } }], [answer('The Chandrayaan-3 site is at {{r1.latitude}}, {{r1.longitude}}.')]), '#a=connecting-ridge@2027-05&t=0&limits=14_72_72_1_1&mode=learn', 'Where exactly is the Chandrayaan-3 site?')
+    expect(outcome.ok && outcome.reply.text).toBe('The Chandrayaan-3 site is at 69.374°S, 32.320°E.')
+    expect(outcome.ok && outcome.fellBack).toBe(false)
   })
 })
 

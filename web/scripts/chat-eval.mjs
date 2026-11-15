@@ -124,6 +124,8 @@ async function ask(question, again = false) {
     if (question.sources && reply.sources.length < question.sources) problems.push('looked nothing up')
     if (question.spot && !reply.sources.some((source) => /light grid/.test(source))) problems.push('did not look the tapped spot up in the light grid')
     if (question.mustSay && !question.mustSay.test(reply.text)) notes.push(`did not mention ${question.mustSay}`)
+    // The raw list of facts is what a visitor gets when Scout's own answer was refused twice: never a good answer, though not a reason to stop a deploy.
+    if (/^Here is what the data says/.test(reply.text ?? '')) (quick ? notes : problems).push('the raw list of facts, not an answer')
     // A stand-in number read out as a real limit is a wrong answer, not a matter of taste.
     if (question.mustNotSay?.test(reply.text)) problems.push(`said "${question.mustNotSay.exec(reply.text)?.[0]}", which this answer must not`)
     const sentences = sentencesIn(reply.text ?? '')
