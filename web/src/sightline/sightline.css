@@ -3970,7 +3970,10 @@ button.sl-moment-heights[aria-expanded='true'] {
 /* The next landing that fits: one line, no box. */
 .sl-verdict .sl-next {
   display: block;
-  height: 1.5rem;
+  /* One line is 1.5rem. A long offer ("Next landing that fits, marginally: 10 January 2027 · 16:00")
+     wraps in a narrow column: it then takes two lines of its own and the offer under it moves down. */
+  min-height: 1.5rem;
+  line-height: 1.5rem;
   margin-top: 0.25rem;
   padding: 0;
   border: 0;
