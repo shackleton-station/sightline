@@ -47,7 +47,7 @@ The same limits apply as before the service was split out: 5 saves or deletes a 
       "authorization?": "Bearer <Google sign-in token>; the plan then has an owner",
       "idempotency-key?": "16 to 64 letters, digits, - or _, optionally in double quotes; see below"
     },
-    "body": { "title": "string", "note?": "string", "view": "string" }
+    "body": { "title": "string", "note?": "string", "view": "string", "private?": "boolean" }
   },
   "replies": {
     "201": { "body": { "id": "id" } },
@@ -69,6 +69,10 @@ values the Sightline screen adds to it, each checked (`slope`, `hp`, `ha`, `sc`,
 plan saved from the Sightline screen, so the page that opens a short link can tell it from a plan an older page
 saved. Plans stored before a value was added are returned as they were stored: nothing is rewritten on read. The whole body is at most 4,000
 characters. A plan is kept for 180 days.
+
+`private`, when `true` and sent by a signed-in visitor, keeps the plan out of the library (below). Its link
+still opens it for anyone who has it. From a visitor who is not signed in it is read past and the plan is
+listed: a plan nobody owns could never be deleted or listed again. Added on 2026-11-15, with the library.
 
 **The idempotency key.** The page makes up a random key for each attempt to save and sends the same
 key again when it retries. For 24 hours the service remembers which plan a key made:
@@ -135,6 +139,36 @@ Newest first, one page at a time. Two plans saved in the same millisecond come i
 - `401` comes before either `400`: the parameters are only read for a signed-in visitor.
 
 Added on 2026-11-12 (Phase 5): `query`, `next`, and the two `400` replies.
+
+## The library
+
+```json contract
+{
+  "operation": "library",
+  "method": "GET",
+  "path": "/api/plans/library",
+  "request": {},
+  "replies": {
+    "200": { "body": { "scenarios": [{ "plan": "id", "title": "string", "saved": "time", "site": "string", "landing": "time" }] } }
+  }
+}
+```
+
+Every scenario in the newest 200 plans that are not private, for anyone, signed in or not. A plan holds
+up to four scenarios (the place and hour its view opens on, and the others kept beside it); each is one
+entry here, the newest plan first and a plan's own scenarios in their order. `plan` and `title` are the
+plan it was saved in; a plan's note is not sent. `site` is a listed site's id, or `lat,lon` for a custom
+point. `landing` is the landing time, to the hour.
+
+- There are no parameters. The page searches and filters what it is sent: whether a scenario fits
+  depends on the visitor's own mission, which the service does not know.
+- A plan saved before the library existed is listed like any other.
+- One copy of the service reads the database for this at most once in 30 seconds, so a plan saved or
+  deleted through another copy can take that long to appear or go.
+- A service from before the library answers `404 {"error":"not-found"}` here (the word is not a plan's
+  id). A page reads that as "no library yet".
+
+Added on 2026-11-15.
 
 ## Delete a plan
 

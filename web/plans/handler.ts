@@ -12,6 +12,7 @@ import { runTool } from '../shared/tools/tools'
 import { span } from '../shared/trace'
 import { cursorOf, readCursor } from './cursor'
 import { fingerprintOf, KEY_HOURS, keyOf, REPLAYED_HEADER } from './idempotency'
+import { LIBRARY_FRESH_MS, LIBRARY_PLANS, type LibraryScenario, libraryOf } from './library'
 import type { KeptKey, Plan, PlanStore } from './store'
 
 /**
@@ -130,7 +131,7 @@ async function savePlan(request: Request, deps: PlansDeps, limits: PlanLimits, d
   if (who.kind === 'invalid') return reply({ error: 'sign-in' }, 401)
 
   const text = await request.text()
-  let body: { title?: unknown; note?: unknown; view?: unknown }
+  let body: { title?: unknown; note?: unknown; view?: unknown; private?: unknown }
   try {
     body = text.length <= MAX_BODY_CHARS ? JSON.parse(text) : null
   } catch {
@@ -151,7 +152,9 @@ async function savePlan(request: Request, deps: PlansDeps, limits: PlanLimits, d
 
   const now = deps.now?.() ?? Date.now()
   const owner = who.kind === 'owner' ? { owner: who.owner } : {}
-  const asked = { title, note, view: cleaned.view, ...owner }
+  // Private is for a signed-in visitor only: a plan nobody owns could never be listed again or deleted, so the request is read past.
+  const hidden = who.kind === 'owner' && body.private === true ? { private: true as const } : {}
+  const asked = { title, note, view: cleaned.view, ...owner, ...hidden }
   const fingerprint = fingerprintOf(asked)
   /** The answer for a key that is already on record: the first answer again, or a refusal if this is a different save. */
   const again = (kept: KeptKey) => (kept.fingerprint === fingerprint ? reply({ id: kept.plan }, 201, { [REPLAYED_HEADER]: 'true' }) : reply({ error: 'key-reused' }, 422))
@@ -175,7 +178,11 @@ async function savePlan(request: Request, deps: PlansDeps, limits: PlanLimits, d
     // Ids are random; if one is taken (it almost never is), the next turn of the loop picks another.
     const id = newId(ID_LENGTH)
     const record = key.kind === 'key' ? { id: key.id, plan: id, fingerprint, expires: new Date(now + KEY_HOURS * 3_600_000).toISOString(), replaces: stale } : undefined
-    if (await span('save to Firestore', () => plans.create({ id, ...plan }, record))) return reply({ id }, 201)
+    if (await span('save to Firestore', () => plans.create({ id, ...plan }, record))) {
+      // The library is read again on its next request, so whoever saved a plan finds it there (from this copy of the service).
+      libraries.delete(plans)
+      return reply({ id }, 201)
+    }
     if (key.kind === 'key') {
       // Nothing was written. Why not? If the key is on record, an earlier request with this key
       // saved its plan (the first try of a retry, or the other of two at once), and its answer is
@@ -244,7 +251,28 @@ async function deletePlan(request: Request, deps: PlansDeps, limits: PlanLimits,
   // Someone else's plan, or one saved without signing in: nobody may delete it. It expires on its own.
   if (plan.owner !== who.owner) return reply({ error: 'not-yours' }, 403)
   await span('delete from Firestore', () => plans.remove(id))
+  libraries.delete(plans)
   return reply({ deleted: id })
+}
+
+/** What each store's library last held, and when it was read. Kept per store, so two stores (in tests) never share one. */
+const libraries = new WeakMap<PlanStore, { at: number; scenarios: LibraryScenario[] }>()
+
+/**
+ * GET /api/plans/library: every scenario in the newest listed plans, for anyone, signed in or not.
+ *
+ * The page does the searching: at the number of plans there are, the whole library is one small
+ * answer, and whether a scenario fits depends on the visitor's own mission, which only the page
+ * knows. One copy of the service reads the database at most once in LIBRARY_FRESH_MS for this.
+ */
+async function openLibrary(request: Request, deps: PlansDeps, limits: PlanLimits, plans: PlanStore): Promise<Response> {
+  if (!(await limits.open.take(visitorOf(request, deps.trustedProxies)))) return reply({ error: 'busy' }, 429)
+  const now = deps.now?.() ?? Date.now()
+  const kept = libraries.get(plans)
+  if (kept && now - kept.at < LIBRARY_FRESH_MS && now >= kept.at) return reply({ scenarios: kept.scenarios })
+  const scenarios = libraryOf(await span('read the library from Firestore', () => plans.newest(LIBRARY_PLANS)), now)
+  libraries.set(plans, { at: now, scenarios })
+  return reply({ scenarios })
 }
 
 /** The plans API. `rest` is the path after /api/plans. */
@@ -257,6 +285,8 @@ export async function handlePlans(request: Request, deps: PlansDeps, limits: Pla
       if (request.method === 'GET') return await listPlans(request, deps, limits, plans)
       return reply({ error: 'method' }, 405)
     }
+    // Not a plan: a plan's id is always 8 letters, and this word has 7.
+    if (rest === '/library' && request.method === 'GET') return await openLibrary(request, deps, limits, plans)
     const id = rest.slice(1)
     if (request.method === 'GET') return await openPlan(request, deps, limits, plans, id)
     if (request.method === 'DELETE') return await deletePlan(request, deps, limits, plans, id)

@@ -24,7 +24,7 @@ const OLD_WAY_MAX = 200
  */
 const PATIENCE_MS = 5000
 
-type Fields = Record<string, { stringValue?: string; timestampValue?: string }>
+type Fields = Record<string, { stringValue?: string; timestampValue?: string; booleanValue?: boolean }>
 interface FirestoreError {
   error?: { status?: string }
 }
@@ -59,6 +59,8 @@ export function firestorePlans(options: FirestoreOptions, token: TokenSource): P
     created: { timestampValue: plan.created },
     expires: { timestampValue: plan.expires },
     ...(plan.owner ? { owner: { stringValue: plan.owner } } : {}),
+    // Written only when true, so a plan from before the library reads as listed.
+    ...(plan.private ? { private: { booleanValue: true } } : {}),
   })
 
   const fromFields = (id: string, fields: Fields | undefined): Plan => {
@@ -78,6 +80,7 @@ export function firestorePlans(options: FirestoreOptions, token: TokenSource): P
       created: fields?.created?.timestampValue ?? '',
       expires: fields?.expires?.timestampValue ?? '',
       ...(fields?.owner?.stringValue ? { owner: fields.owner.stringValue } : {}),
+      ...(fields?.private?.booleanValue === true ? { private: true as const } : {}),
     }
   }
 
@@ -217,6 +220,18 @@ export function firestorePlans(options: FirestoreOptions, token: TokenSource): P
         console.warn(`Firestore: the index plans(owner, created desc) is not ready; listing the old way (at most ${OLD_WAY_MAX} plans, sorted here) for ${RECHECK_INDEX_MS / 1000} s`)
       }
       return pageOf((await oldWay(owner)).sort(newestFirst), limit, after)
+    },
+    /**
+     * The newest plans of everyone, for the library. Ordered by one field, so the index Firestore
+     * keeps on every field by itself answers it: no composite index is needed.
+     */
+    async newest(limit) {
+      const response = await runQuery({ from: [{ collectionId: 'plans' }], orderBy: [{ field: { fieldPath: 'created' }, direction: 'DESCENDING' }], limit })
+      if (!response.ok) {
+        await response.body?.cancel()
+        throw new Error(`Firestore: HTTP ${response.status} reading the library`)
+      }
+      return plansIn((await response.json()) as Row[])
     },
     async remove(id) {
       const response = await fetch(`${root}/${id}`, { method: 'DELETE', headers: await headers(), signal: soon() })

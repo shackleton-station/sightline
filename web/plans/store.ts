@@ -13,6 +13,8 @@ export interface Plan {
   expires: string
   /** Whose plan it is: a fingerprint of their sign-in (see shared/identity.ts). Absent when saved without signing in. Never sent to a browser. */
   owner?: string
+  /** Kept out of the library (handler.ts). Only a signed-in visitor can ask for this, so a private plan always has an owner. Absent means listed. */
+  private?: true
 }
 
 /**
@@ -59,6 +61,8 @@ export interface PlanStore {
    * comes after the page. See `newestFirst` for the order, ties included.
    */
   pageByOwner(owner: string, page: { limit: number; after?: PageStart }): Promise<PlanPage>
+  /** The newest plans of everyone, newest first, at most `limit`: what the library is made from. Private plans are among them; the caller leaves them out. */
+  newest(limit: number): Promise<Plan[]>
   remove(id: string): Promise<void>
 }
 
@@ -130,6 +134,7 @@ export function memoryPlans(): PlanStore {
           after,
         ),
       ),
+    newest: (limit) => Promise.resolve([...plans.values()].sort(newestFirst).slice(0, limit)),
     remove(id) {
       plans.delete(id)
       return Promise.resolve()
