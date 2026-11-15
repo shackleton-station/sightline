@@ -13,9 +13,10 @@ describe('the tour', () => {
     for (const step of tour.steps) {
       expect(step.title.length, step.id).toBeGreaterThan(3)
       expect(step.targets.length, step.id).toBeGreaterThan(0)
-      // A room reads the line at a glance: a sentence or two.
-      expect(step.line?.length ?? 0, step.id).toBeGreaterThan(20)
-      expect(step.line?.length ?? 999, step.id).toBeLessThanOrEqual(100)
+      // The card explains its step by itself, to a judge alone or a room: two or three short sentences, and short enough to stay a card.
+      expect(step.line?.length ?? 0, step.id).toBeGreaterThanOrEqual(90)
+      expect(step.line?.length ?? 999, step.id).toBeLessThanOrEqual(140)
+      expect((step.line ?? '').split(/[.:?] /).length, step.id).toBeGreaterThanOrEqual(2)
       // About 20 to 25 seconds aloud.
       const words = step.say.split(/\s+/).length
       expect(words, step.id).toBeGreaterThanOrEqual(50)
@@ -65,6 +66,15 @@ describe('the tour', () => {
     const step = tour.steps.find((one) => one.press)!
     expect(step.pressOn).toBeTruthy()
     expect(step.say).toContain(step.pressOn as string)
+  })
+
+  it('asks ahead only for files this build has, each once', () => {
+    const files = tour.prepare?.files ?? []
+    expect(files.length).toBeGreaterThan(20)
+    expect(new Set(files).size).toBe(files.length)
+    // Terrain tiles and the custom points' terrain live in a bucket, not in the repository.
+    const here = files.filter((file) => !file.startsWith('/tiles/') && !/\/custom\/(terrain|polar|meta)/.test(file))
+    for (const file of here) expect(existsSync(new URL(`../../public${file}`, import.meta.url)), file).toBe(true)
   })
 
   it('uses no local time and none of the words kept out of the app', () => {

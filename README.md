@@ -36,25 +36,25 @@ Built on our team's own pre-event practice code; reuse approved by the Bethesda 
 Scout gives a tour of the whole screen in twelve steps: about a minute to read through, about five
 to hear. Its chip, "Take the tour", is in Watch on every visit, and it is always the first thing in
 the **Guide** (on a phone, also under **More**). It drives the real screen: each step puts the app in
-a prepared state, shades the page a little except what the step is about, rings that, and shows a
-short line. Back, Next and "Close the tour", the arrow keys (or a clicker's Page Down and Page Up)
+a prepared state, shades the page a little except what the step is about, rings that, and explains it
+in two or three short sentences. Back, Next and "Close the tour", the arrow keys (or a clicker's Page Down and Page Up)
 and Escape; a dot for each step goes straight to it; closing at any step puts the screen back as it
 was. **Listen** plays each step's longer spoken line in Scout's voice (AI-generated; off until
 pressed), and **Play through** moves on by itself when a line ends: 4 min 47 s in all, which is how a
 five-minute presentation runs. The steps, with the line on each card:
 
-1. **The challenge.** A lander needs the Sun for power and Earth for radio. At the pole, both come and go.
-2. **Plan a landing.** Three choices: where, when, and which mission.
-3. **The verdict.** One answer: it fits, it fits with little margin, or it does not. And why.
-4. **The date slipped.** Launches slip. One press adds the next landing that fits.
-5. **What the lander sees.** The view from the ground. Under it, the whole horizon at once.
-6. **Time.** Green is the Sun and Earth together. Day, month or year.
-7. **The ground.** Close on the site, with NASA's own maps over it.
-8. **Compare.** Up to four sites and dates, side by side. A star for the best in each row. No blended score.
-9. **The Planner.** Every site, every month: where and when a landing fits.
-10. **Landing accuracy.** It fits on the aim point. A short way off, most landings do not. A better aim helps.
-11. **Can it be trusted?.** Checked against NASA, three ways. And it says what it cannot tell you.
-12. **Ask Scout, and try it.** Ask in plain words. Share a plan as a link. lunarsightline.com
+1. **The challenge.** A lander needs the Sun for power and Earth for radio. At the Moon's south pole both sit low, so the hills decide when each is in view.
+2. **Plan a landing.** A plan is a site, a landing hour and a mission. Pick a site from the list or type any point; everything else answers for that plan.
+3. **The verdict.** One answer: it fits, fits with little margin, or does not, and why. The rows under it give the Sun's elevation, Earth and the slope.
+4. **The date slipped.** Launches slip. When a landing does not fit, one press adds the next one that does: the same site, a later date.
+5. **What the lander sees.** The view from the ground, with the time to sunset and to Earthset. Under it, the whole horizon at once.
+6. **Time.** Gold is the Sun, blue is Earth, green is both. Play it, or step out to a day, a month or a year: the Moon has seasons too.
+7. **The ground.** Three views: orbit, site, surface. Close in, NASA's own maps lie over the ground, and every plan opens in NASA's tools.
+8. **Compare.** Up to four sites or dates, side by side. A star marks the best in each row. No blended score: the trade-offs are the planner's.
+9. **The Planner.** Every listed site against every month: the days with a landing that fits. A site that never fits says which limit blocks it.
+10. **Landing accuracy.** It fits on the aim point. A short way off, most landings do not. A better aim, close by, helps.
+11. **Can it be trusted?.** Checked against NASA three ways: JPL Horizons, NASA's own map, and dated photos. The Guide says what it cannot tell you.
+12. **Ask Scout, and try it.** Ask in plain words: Scout looks the answer up and never types a number himself. Share any plan as a link. lunarsightline.com
 
 The steps, their words and what each one rings are in one file, `web/src/sightline/tour5.json`, which
 the tour, the Guide and the voice files (`web/public/tour/voice5/`, made by

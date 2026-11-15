@@ -11,7 +11,7 @@
     {
       "id": "challenge",
       "title": "The challenge",
-      "line": "A lander needs the Sun for power and Earth for radio. At the pole, both come and go.",
+      "line": "A lander needs the Sun for power and Earth for radio. At the Moon's south pole both sit low, so the hills decide when each is in view.",
       "say": "This is the Moon, seen from above its south pole, with time running. A lander there needs two things from the sky: the Sun, for power, and Earth, for a direct radio link. Near the pole both sit low on the horizon, so the hills around a site decide when each is in view. NASA's own tools can answer that, but slowly. Sightline answers it on one screen.",
       "state": {
         "view": "watch",
@@ -28,7 +28,7 @@
     {
       "id": "plan",
       "title": "Plan a landing",
-      "line": "Three choices: where, when, and which mission.",
+      "line": "A plan is a site, a landing hour and a mission. Pick a site from the list or type any point; everything else answers for that plan.",
       "say": "A plan is three choices. Where: a site from the list, the Apollo landings, NASA's commercial landers, other countries' landers and future targets, or any point on the Moon, by its coordinates. When: a landing date and hour, in UTC. And the mission: a short stay of fourteen days, never more than a day without the Sun or Earth.",
       "state": {
         "view": "plan",
@@ -47,7 +47,7 @@
     {
       "id": "verdict",
       "title": "The verdict",
-      "line": "One answer: it fits, it fits with little margin, or it does not. And why.",
+      "line": "One answer: it fits, fits with little margin, or does not, and why. The rows under it give the Sun's elevation, Earth and the slope.",
       "say": "The answer comes first, in words. A landing fits the mission, fits with little margin, or does not fit, and Sightline says why. Under it are the numbers behind the answer: the Sun, with its elevation and the share of the mission it is in view; Earth, the same way; the two together; and the slope of the ground. This landing does not fit.",
       "state": {
         "view": "plan",
@@ -67,7 +67,7 @@
     {
       "id": "slipped",
       "title": "The date slipped",
-      "line": "Launches slip. One press adds the next landing that fits.",
+      "line": "Launches slip. When a landing does not fit, one press adds the next one that does: the same site, a later date.",
       "say": "Now the real problem. Launch dates slip, and a landing that worked on paper may not work a month later. So when a landing does not fit, Sightline names the next one that does. One press, and that landing is in the plan beside the first: the same site, a later date, a green verdict. In separate tools, that means starting again in each one.",
       "state": {
         "view": "plan",
@@ -91,7 +91,7 @@
     {
       "id": "skyline",
       "title": "What the lander sees",
-      "line": "The view from the ground. Under it, the whole horizon at once.",
+      "line": "The view from the ground, with the time to sunset and to Earthset. Under it, the whole horizon at once.",
       "say": "This is the view from the ground. You are standing at the site, looking toward the Sun in one window and toward Earth in the other, over the real skyline, traced from NASA's laser-measured terrain. It counts down to sunset and to Earthset. The strip underneath is the whole horizon at once: above the skyline a body is in view, and below it the ground is in the way.",
       "state": {
         "view": "plan",
@@ -107,7 +107,7 @@
     {
       "id": "time",
       "title": "Time",
-      "line": "Green is the Sun and Earth together. Day, month or year.",
+      "line": "Gold is the Sun, blue is Earth, green is both. Play it, or step out to a day, a month or a year: the Moon has seasons too.",
       "say": "Time is the other half of the answer. The bands run on from the landing: gold for the Sun, blue for Earth, green for both at once. You can play it, move along it, or step back to see a day, a month or a whole year. Over a year the pattern shifts, because the Moon has seasons, and that is why some months have no landing that fits.",
       "state": {
         "view": "plan",
@@ -121,7 +121,7 @@
     {
       "id": "ground",
       "title": "The ground",
-      "line": "Close on the site, with NASA's own maps over it.",
+      "line": "Three views: orbit, site, surface. Close in, NASA's own maps lie over the ground, and every plan opens in NASA's tools.",
       "say": "From orbit, close on the site, or standing on the surface: three views of the same hour. Close in, Layers puts NASA's own maps over the ground: photos, steep ground, permanent shadow, temperature. And every plan opens the same place in Quickmap, Moon Trek and JPL Horizons, the tools the challenge names, so anyone can check our answer.",
       "state": {
         "view": "plan",
@@ -138,7 +138,7 @@
     {
       "id": "compare",
       "title": "Compare",
-      "line": "Up to four sites and dates, side by side. A star for the best in each row. No blended score.",
+      "line": "Up to four sites or dates, side by side. A star marks the best in each row. No blended score: the trade-offs are the planner's.",
       "say": "Planners rarely have one option. Compare sets up to four scenarios side by side: different sites, or one site on different dates. Each row is one measure, and a star marks the best value in it. There is no single blended score, on purpose. The weights behind one would be invented, and the trade-offs belong to the planner.",
       "state": {
         "view": "plan",
@@ -170,7 +170,7 @@
     {
       "id": "planner",
       "title": "The Planner",
-      "line": "Every site, every month: where and when a landing fits.",
+      "line": "Every listed site against every month: the days with a landing that fits. A site that never fits says which limit blocks it.",
       "say": "The Planner turns the question around. Instead of one landing, it shows every listed site against every month of the year, and counts the days with a landing that fits. The greener the cell, the more days; none means none. A site that never fits says which limit blocks it. And NASA's future landing targets can be added as rows of their own.",
       "state": {
         "view": "plan",
@@ -195,7 +195,7 @@
     {
       "id": "accuracy",
       "title": "Landing accuracy",
-      "line": "It fits on the aim point. A short way off, most landings do not. A better aim helps.",
+      "line": "It fits on the aim point. A short way off, most landings do not. A better aim, close by, helps.",
       "say": "No lander comes down exactly on its mark. So Landing accuracy asks what a miss would change. This landing fits exactly on its aim point, and yet most of the touchdowns within reach of it would not. Sightline says what goes wrong in those, and offers a better place to aim, a short way off, where more of them fit.",
       "state": {
         "view": "plan",
@@ -215,7 +215,7 @@
     {
       "id": "trust",
       "title": "Can it be trusted?",
-      "line": "Checked against NASA, three ways. And it says what it cannot tell you.",
+      "line": "Checked against NASA three ways: JPL Horizons, NASA's own map, and dated photos. The Guide says what it cannot tell you.",
       "say": "Can it be trusted? Every number is computed from public NASA data by our own code, then checked against NASA three ways. The positions are compared with JPL Horizons at every hour. The long-run sunlight, with NASA's own map. And the model, with dated photos taken from orbit. The Guide tells that story for a first-time visitor, and says plainly what Sightline cannot tell you.",
       "state": {
         "view": "plan",
@@ -229,7 +229,7 @@
     {
       "id": "scout",
       "title": "Ask Scout, and try it",
-      "line": "Ask in plain words. Share a plan as a link. lunarsightline.com",
+      "line": "Ask in plain words: Scout looks the answer up and never types a number himself. Share any plan as a link. lunarsightline.com",
       "say": "Last, Scout. Ask a question in plain words, and he looks the answer up in the same data. He is an AI, and he is never allowed to write a number himself: the server fills in every figure. Try a real mission, Canada's utility rover, or share any plan as a link. It is live now, at lunar sightline dot com. Thank you.",
       "state": {
         "view": "plan",
@@ -241,5 +241,78 @@
         ".sl-icon[aria-label='Share']"
       ]
     }
-  ]
+  ],
+  "prepare": {
+    "about": "What the later steps read (the four sites Compare sets side by side, the ground's maps, the terrain Landing accuracy works on, the Guide's checks), asked for quietly once the tour starts, so that each step is ready when the visitor or a presenter arrives at it. All are files the steps would ask for anyway.",
+    "files": [
+      "/data/connecting-ridge/horizon.json",
+      "/data/connecting-ridge/validation.json",
+      "/data/connecting-ridge/year-2026.json",
+      "/data/connecting-ridge/year-2027.json",
+      "/data/connecting-ridge/year-2028.json",
+      "/data/connecting-ridge/year-2029.json",
+      "/data/connecting-ridge/2027-05/summary.json",
+      "/data/connecting-ridge/2027-05/track.json",
+      "/data/connecting-ridge/2027-06/summary.json",
+      "/data/connecting-ridge/2027-06/track.json",
+      "/data/connecting-ridge/2027-07/summary.json",
+      "/data/connecting-ridge/2027-07/track.json",
+      "/data/shackleton-rim/horizon.json",
+      "/data/shackleton-rim/validation.json",
+      "/data/shackleton-rim/year-2026.json",
+      "/data/shackleton-rim/year-2027.json",
+      "/data/shackleton-rim/year-2028.json",
+      "/data/shackleton-rim/year-2029.json",
+      "/data/shackleton-rim/2027-05/summary.json",
+      "/data/shackleton-rim/2027-05/track.json",
+      "/data/shackleton-rim/2027-06/summary.json",
+      "/data/shackleton-rim/2027-06/track.json",
+      "/data/shackleton-rim/2027-07/summary.json",
+      "/data/shackleton-rim/2027-07/track.json",
+      "/data/peak-near-shackleton/horizon.json",
+      "/data/peak-near-shackleton/validation.json",
+      "/data/peak-near-shackleton/year-2026.json",
+      "/data/peak-near-shackleton/year-2027.json",
+      "/data/peak-near-shackleton/year-2028.json",
+      "/data/peak-near-shackleton/year-2029.json",
+      "/data/peak-near-shackleton/2027-05/summary.json",
+      "/data/peak-near-shackleton/2027-05/track.json",
+      "/data/peak-near-shackleton/2027-06/summary.json",
+      "/data/peak-near-shackleton/2027-06/track.json",
+      "/data/peak-near-shackleton/2027-07/summary.json",
+      "/data/peak-near-shackleton/2027-07/track.json",
+      "/data/de-gerlache-rim/horizon.json",
+      "/data/de-gerlache-rim/validation.json",
+      "/data/de-gerlache-rim/year-2026.json",
+      "/data/de-gerlache-rim/year-2027.json",
+      "/data/de-gerlache-rim/year-2028.json",
+      "/data/de-gerlache-rim/year-2029.json",
+      "/data/de-gerlache-rim/2027-05/summary.json",
+      "/data/de-gerlache-rim/2027-05/track.json",
+      "/data/de-gerlache-rim/2027-06/summary.json",
+      "/data/de-gerlache-rim/2027-06/track.json",
+      "/data/de-gerlache-rim/2027-07/summary.json",
+      "/data/de-gerlache-rim/2027-07/track.json",
+      "/data/custom/ephemeris-2027.bin",
+      "/data/horizons.json",
+      "/data/photo-fine.json",
+      "/data/maps/moon_slope_e.jpg",
+      "/data/maps/moon_slope_n.jpg",
+      "/data/maps/pole_slope_x.jpg",
+      "/data/maps/pole_slope_y.jpg",
+      "/data/custom/meta.json",
+      "/data/custom/terrain-north.bin",
+      "/data/custom/terrain-south.bin",
+      "/data/custom/polar-far.bin.gz",
+      "/tiles/polar/31_28.bin.gz",
+      "/tiles/polar/32_28.bin.gz",
+      "/tiles/polar/31_29.bin.gz",
+      "/tiles/polar/32_29.bin.gz",
+      "/data/earth-sun/2027-06.json",
+      "/data/lroc-check.json",
+      "/data/lroc-photos.json",
+      "/data/light/meta.json",
+      "/data/light/validation.json"
+    ]
+  }
 }

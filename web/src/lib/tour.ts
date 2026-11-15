@@ -91,6 +91,8 @@ export interface LongTourFile {
   name: string
   /** `seconds`: how long the tour takes played through with its voice, a second a step for stepping included; kept equal to the voice files' own lengths by a test. */
   voice: { disclosure: string; files: string; from: string; seconds: number }
+  /** Files the later steps read, asked for quietly once the tour starts, so each step is ready on arrival. */
+  prepare?: { files: string[] }
   steps: TourStep[]
 }
 

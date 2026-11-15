@@ -74,6 +74,7 @@ import { usePlanLink } from './usePlanLink'
 import { HypeDrawer } from './HypeDrawer'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
+import { prepareFiles } from '../lib/prepare'
 import type { GuidesFile, LongTourFile, TourFile } from '../lib/tour'
 import guidesFile from './guides.json'
 import tourFile from './tour.json'
@@ -926,6 +927,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // A step about a control only a wide window has is left out on a phone.
   const tourSteps = useMemo(() => (tourGuide === null ? LONG_TOUR.steps : (GUIDES.find((guide) => guide.id === tourGuide)?.steps ?? LONG_TOUR.steps)).filter((step) => !step.wide || room !== 'phone'), [tourGuide, room])
   const tourStep = tourAt === null ? null : (tourSteps[tourAt] ?? null)
+  // While the tour runs, what its later steps read is asked for ahead, so each step is ready when a
+  // visitor or a presenter arrives at it: nothing loads in front of a room.
+  const touring = tourAt !== null && tourGuide === null
+  useEffect(() => (touring ? prepareFiles(LONG_TOUR.prepare?.files ?? []) : undefined), [touring])
   useEffect(() => {
     if (!tourStep) return
     const { view, show, open, pair, stage, play } = tourStep.state
