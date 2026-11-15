@@ -4,8 +4,6 @@ interface Props {
   look: Look
   /** How many degrees the picture spans from its left edge to its right. */
   acrossDeg: number
-  /** How many times taller heights are drawn when the stretch is on. */
-  stretchBy: number
   setLens: (change: (look: Look) => Look) => void
 }
 
@@ -21,10 +19,9 @@ function widthWords(deg: number): string {
 }
 
 /**
- * The lens: how much of the scene the picture takes in, and whether heights are stretched. Zooming
- * is true to scale, like binoculars; stretching is not, and is always said on the picture.
+ * The lens: how much of the scene the picture takes in. Zooming is true to scale, like binoculars.
  */
-export function LensControls({ look, acrossDeg, stretchBy, setLens }: Props) {
+export function LensControls({ look, acrossDeg, setLens }: Props) {
   const wide = `View ${widthWords(acrossDeg)} wide`
   const zoom = (factor: number) => setLens((current) => ({ ...current, fovDeg: current.fovDeg / factor }))
   return (
@@ -47,17 +44,8 @@ export function LensControls({ look, acrossDeg, stretchBy, setLens }: Props) {
         </button>
       </div>
       <p className="sf-lens-says">
-        {wide} · {look.stretch > 1 ? <strong>heights ×{look.stretch}</strong> : 'true scale'}
+        {wide} · true scale
       </p>
-      <button
-        type="button"
-        className="sf-stretch"
-        aria-pressed={look.stretch > 1}
-        title="Draws every height above or below eye level taller, so low hills can be read. Not true to scale."
-        onClick={() => setLens((current) => ({ ...current, stretch: current.stretch > 1 ? 1 : stretchBy }))}
-      >
-        Stretch heights ×{stretchBy}
-      </button>
     </div>
   )
 }

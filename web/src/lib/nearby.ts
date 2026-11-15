@@ -146,8 +146,9 @@ export function valueRange(
 export const MIN_SPOT_SEPARATION_M = 500
 
 /**
- * The best places on the map, better than the site itself and gentle enough, best first. When values
- * tie, the nearest comes first: reaching a closer place is the smaller change to a mission.
+ * The best places on the map, better than the site itself (or the cell `from`, for a point that is not
+ * the map's centre) and gentle enough, best first. When values tie, the nearest comes first: reaching
+ * a closer place is the smaller change to a mission.
  */
 export function bestSpots(
   meta: NearbyMeta,
@@ -156,8 +157,14 @@ export function bestSpots(
   slope: Uint8Array,
   limitDeg: number | null,
   count: number,
+  from: number = centerCell(meta),
 ): number[] {
-  const center = centerCell(meta)
+  const center = from
+  const origin = cellOffsetM(meta, from)
+  const away = (cell: number) => {
+    const at = cellOffsetM(meta, cell)
+    return Math.hypot(at.x - origin.x, at.y - origin.y)
+  }
   const lowerIsBetter = metric === 'sunGap'
   const here = cellValue(month, metric, center)
   const candidates: number[] = []
@@ -169,7 +176,7 @@ export function bestSpots(
   candidates.sort((a, b) => {
     const difference = cellValue(month, metric, a) - cellValue(month, metric, b)
     if (difference !== 0) return lowerIsBetter ? difference : -difference
-    return cellDistanceM(meta, a) - cellDistanceM(meta, b)
+    return away(a) - away(b)
   })
   const chosen: number[] = []
   for (const cell of candidates) {

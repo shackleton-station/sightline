@@ -11,7 +11,7 @@ import { ringedSites } from '../lib/scoutRing'
 import { horizonAt } from '../lib/customModel'
 import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, shortWhen } from '../lib/sightlineSky'
-import { marginalAtLanding } from '../lib/landingVerdict'
+import { landingVerdict, marginalAtLanding } from '../lib/landingVerdict'
 import { bodyRadiiDeg } from '../lib/surfaceView'
 import { HowItWorks } from '../shell/HowItWorks'
 import { hourOf, locateHour, missionEarth } from '../lib/mission'
@@ -48,6 +48,7 @@ import {
   presetOf,
   readScenarioLink,
   type RemovedScenario,
+  type SightlineMission,
   removeScenarioAt,
   restoreScenario,
   SCENARIO_LETTERS,
@@ -103,7 +104,7 @@ import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
 import { Skyline } from './Skyline'
 import { loadScenarioAt } from '../data/heights'
-import { firstFitFrom, goodLandingFrom } from './openingLanding'
+import { firstFitFrom, goodLandingFrom } from '../lib/openingLanding'
 import { Stage } from './Stage'
 import { bothPct } from './plannerTable'
 import { SurfaceFrame } from './SurfaceFrame'
@@ -352,7 +353,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [tourAt, setTourAt] = useState<number | null>(null)
   /** Which steps are on show: a feature guide's, by its id, or the main tour's (null). */
   const [tourGuide, setTourGuide] = useState<string | null>(null)
-  const beforeTour = useRef<{ plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
+  const beforeTour = useRef<{ mission: SightlineMission; plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; hour: number; playing: boolean } | null>(null)
   /** Whether the tour has put its own landing in Plan yet: once, so what the visitor tries on the way is kept. */
   const tourPlanned = useRef(false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
@@ -424,6 +425,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const landing = steadierLanding(flags, firstBetter.landing, mission, sunShares, monthStart, earthCenterAbove)
     return landing === scenario.landing ? null : { landing, waitH: landing - scenario.landing, marginal: marginalHour(mission.requirements, sunShares, earthCenterAbove, landing - monthStart) }
   }, [flags, firstBetter?.landing, firstBetter?.waitH, betterTrack, betterData, betterMonth.error, mission, betterAt.index, scenario.landing])
+  // A landing that fits only marginally is offered a steadier hour: the first one after it, in the
+  // same sunlit stretch of the same month, where at least half the Sun's disc shows and Earth's
+  // center is above the skyline (where the mission needs Earth at landing). The search is the one
+  // behind "Next landing that fits" (`steadierLanding`), so the two offers cannot disagree.
+  const steadier = useMemo(() => {
+    if (!flags || !here || marginal.length === 0) return null
+    const sunShares = here.track.map((point) => point.sun_frac)
+    const earthSkyline = here.earthHorizon ?? here.horizon
+    const earthCenterAbove = here.track.map((point) => point.earth_el - horizonAt(earthSkyline, point.earth_az) >= 0)
+    const landing = steadierLanding(flags, scenario.landing, mission, sunShares, scenario.landing - landingAt.index, earthCenterAbove)
+    return landing === scenario.landing ? null : { landing }
+    // `marginal` is a new list each time the page draws: its words say all that matters here.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [flags, here, marginal.join('|'), mission, scenario.landing, landingAt.index])
   // Another site for the same date, offered with the next landing when this one does not fit: the
   // nearest listed site of the same group where the verdict's own rules pass on this date.
   const misses = problems !== null && problems.length > 0
@@ -813,7 +828,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
 
   /** Start the main tour, or a feature guide by its id. Either way the screen as it is now is kept, to put back at the end. */
   const startTour = (guide: string | null = null) => {
-    beforeTour.current = { plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
+    beforeTour.current = { mission, plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, hour: clock.hour, playing }
     tourPlanned.current = false
     if (guide === null) setTourTaken(true)
     setHow(false)
@@ -826,6 +841,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     beforeTour.current = null
     setTourAt(null)
     if (!was) return
+    setMission(was.mission)
     setPlan(was.plan)
     setScenarios(was.scenarios)
     setActive(was.chosen)
@@ -873,6 +889,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   useEffect(() => {
     if (!tourStep) return
     const { view, show, open, pair } = tourStep.state
+    // The rover's guide is about the Long stay example: it is the mission while its steps are on.
+    if (tourStep.state.mission === 'long') setMission((current) => ({ ...ROVER_PRESET.mission, heights: current.heights }))
     setBare(false)
     // A step may open the panel it is about; every other panel is shut.
     setDrawer(open === 'compare' || open === 'layers' ? open : null)
@@ -1172,7 +1190,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                   mission={missionWords(mission)}
                   missionOpen={missionHere}
                   onMission={toggleMission}
-                  missionPanel={<MissionInline mission={mission} onMission={setMission} heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} />}
+                  missionPanel={<MissionInline mission={mission} onMission={setMission} onRover={() => setDrawer('rover')} heightsOff={isCustomSite(site) ? 'A custom point is worked out at 2 m only.' : null} site={site} month={landingAt.month} year={Number(landingAt.month.slice(0, 4))} summary={here?.summary ?? null} />}
                 />
               }
               verdict={
@@ -1195,7 +1213,21 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                             }
                           },
                         }
-                      : null
+                      : steadier
+                        ? {
+                            when: shortWhen(clockTime(start, steadier.landing), landingAt.month.slice(0, 4)),
+                            margin: true,
+                            adds: scenarios.length < MAX_SCENARIOS,
+                            onTake: () => {
+                              // As the next landing that fits: another scenario while there is room; with four already, this landing moves there.
+                              if (scenarios.length < MAX_SCENARIOS) addScenario({ site: scenario.site, landing: steadier.landing })
+                              else {
+                                setScenario((current) => ({ ...current, landing: steadier.landing }))
+                                setHour(steadier.landing)
+                              }
+                            },
+                          }
+                        : null
                   }
                   elsewhere={
                     elsewhere
@@ -1217,6 +1249,25 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                   onWhy={askWhy}
                   onMission={() => setMissionHere(true)}
                 />
+                {/* What a planner asks next when a date or a site slips: the New Planner's own list of
+                    other landings, here and nearby, within two weeks of this one. One line that opens it,
+                    shown only when the verdict offers no other landing or site itself, so the column keeps its height. */}
+                {problems && !steadier && !elsewhere && !(better && problems.length > 0) && (
+                  <p className="sl-odds-line">
+                    <button
+                      type="button"
+                      className="sl-link"
+                      title="Opens the New Planner at this landing: other landings here and at nearby sites, within two weeks either side, that meet your limits."
+                      onClick={() => {
+                        if (drawer !== 'scout') setDrawer(null)
+                        setNewPlanner(true)
+                        setFull(true)
+                      }}
+                    >
+                      If the plan has to move <span aria-hidden="true">›</span>
+                    </button>
+                  </p>
+                )}
                 {accuracyUsed && odds[active] !== null && (
                   <p className="sl-odds-line">
                     <button type="button" className="sl-link" title="Opens Landing accuracy: where a lander that misses its target could come down." onClick={openAccuracy}>
@@ -1533,6 +1584,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             openAtVideo={howAtVideo}
             why={why}
             openAtWhy={howAtWhy}
+            verdict={problems ? landingVerdict(problems, marginal) : null}
           />
         </div>
       )}
@@ -1578,8 +1630,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           setFull(true)
         }} />
       )}
-      {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} heights={siteHeights} points={fields[active]} reading={readings[active]} verdict={aimVerdicts[active]} spread={spread} onSpread={setSpread} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'rover' && <RoverDrawer long={presetOf(mission)?.id === 'long'} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} heights={siteHeights} start={start} landing={scenario.landing} verdict={aimVerdicts[active]} spread={spread} onSpread={setSpread} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, lander: closenessWords(spread) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
             if (next !== null) closeUp()

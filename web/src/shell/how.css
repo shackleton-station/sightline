@@ -1,9 +1,23 @@
-/* How it works: a page to read, in the same dark as the landing page. */
+/* The Guide: a page to read, one story from the problem to the proof. Near-black, warm text, gold
+   for what leads the eye; the Sun, Earth and "both" keep the screen's own colors. */
 .how {
-  /* Colors come from the shared space palette in index.css. */
   color-scheme: dark;
 
-  /* The page's side gutter, and the height of the bar that holds the way back. */
+  /* The page's own palette. The shared names are set here so every part inside reads the same. */
+  --bg: #000;
+  --text: #f6efe0;
+  --muted: #cfc6b4;
+  --dim: #9a927f;
+  --panel: #110f17;
+  --panel-2: #151623;
+  --border: #3b3346;
+  --hair: #1d1a24;
+  --accent: #e9b44c;
+  --how-fits: #57c08a;
+  --how-marginal: #ea8c4a;
+  --how-miss: #e8505a;
+
+  /* The page's side gutter, and the height of the bar that holds the way back and the links. */
   --how-pad: clamp(1rem, 4vw, 3rem);
   --how-bar: calc(44px + 1.2rem + 1px);
 
@@ -12,12 +26,27 @@
   background: var(--bg);
   color: var(--text);
   font-size: 1.0625rem;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
+/* One column in the middle of the page. */
 .how > * {
-  max-width: 68rem;
+  max-width: 58rem;
   margin-inline: auto;
+}
+
+.how p,
+.how li {
+  color: var(--muted);
+}
+
+.how strong,
+.how li > b {
+  color: var(--text);
+}
+
+.how a {
+  color: var(--accent);
 }
 
 .how button {
@@ -33,7 +62,7 @@
 }
 
 .how button:hover {
-  border-color: var(--muted);
+  border-color: var(--accent);
 }
 
 .how button:focus-visible {
@@ -41,18 +70,58 @@
   outline-offset: 2px;
 }
 
-/* The way back stays in sight while the page scrolls: a bar across the whole page at the top of the
-   Guide's scroll area, in the page's own solid color so the text passing under it does not show
-   through. Its button keeps its place at the left of the reading column. */
+/* The way back and the links to each part stay in sight while the page scrolls: a bar across the
+   whole page at the top of the Guide's scroll area, in the page's own solid color so the text passing
+   under it does not show through. Its content keeps to the reading column. */
 .how > .how-top {
   position: sticky;
   top: 0;
   z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   max-width: none;
   margin-inline: calc(-1 * var(--how-pad));
-  padding: 0.6rem max(var(--how-pad), calc((100% + 2 * var(--how-pad) - 46rem) / 2));
-  border-bottom: 1px solid var(--border);
+  padding: 0.6rem max(var(--how-pad), calc((100% + 2 * var(--how-pad) - 58rem) / 2));
+  border-bottom: 1px solid var(--hair);
   background: var(--bg);
+}
+
+.how-top > button {
+  flex: none;
+}
+
+/* The links: one row, which scrolls sideways where the window is too narrow for it. */
+.how-steps {
+  display: flex;
+  gap: 0.25rem;
+  min-width: 0;
+  margin-left: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.how .how-steps button {
+  flex: none;
+  min-height: 36px;
+  padding: 0 0.7rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.how .how-steps button b {
+  margin-right: 0.4rem;
+  color: var(--accent);
+}
+
+.how .how-steps button:hover,
+.how .how-steps button[aria-current='true'] {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--text);
 }
 
 /* Whatever a link, a button or the keyboard brings into view stops under the bar, not behind it. */
@@ -60,109 +129,446 @@
   scroll-margin-top: calc(var(--how-bar) + 0.75rem);
 }
 
-.how-intro {
-  padding: 1.5rem 0 1rem;
-}
-
-.how-kicker,
-.how-number {
+.how-kicker {
   margin: 0 0 0.4rem;
   color: var(--accent);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
+/* ---------- The top of the page: what it is, and the tour ---------- */
+.how-start {
+  padding: 1.75rem 0 0.5rem;
+}
+
 .how h1 {
-  max-width: 22ch;
   margin: 0 0 0.75rem;
-  font-size: clamp(2rem, 5vw, 3.4rem);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-}
-
-.how-intro p:last-child {
-  max-width: 46rem;
-  margin: 0;
-  font-size: 1.2rem;
-}
-
-.how-act {
-  padding: 2.25rem 0 0.5rem;
-  border-top: 1px solid var(--border);
-  margin-top: 2rem;
-}
-
-.how-act h2 {
-  margin: 0 0 0.5rem;
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
-  line-height: 1.15;
-}
-
-.how-act h3 {
-  margin: 1.75rem 0 0.6rem;
-  font-size: 1.1rem;
+  font-size: clamp(1.9rem, 5vw, 2.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.01em;
 }
 
 .how-lede {
-  max-width: 46rem;
+  max-width: 42rem;
   margin: 0 0 1.25rem;
+  font-size: 1.125rem;
+}
+
+/* ---------- A section of the story ---------- */
+.how-step {
+  margin-top: 2.5rem;
+  padding: 3rem 0 0.5rem;
+  border-top: 1px solid var(--hair);
+}
+
+.how-step h2 {
+  margin: 0 0 0.6rem;
+  font-size: clamp(1.5rem, 3.6vw, 2rem);
+  line-height: 1.2;
+}
+
+.how-step h3 {
+  margin: 2rem 0 0.6rem;
+  font-size: 1.2rem;
+  line-height: 1.25;
 }
 
 .how-caption {
   max-width: 46rem;
-  color: var(--muted);
 }
 
-/* ---------- Flow diagrams ---------- */
+.how-note {
+  max-width: 46rem;
+  margin: 0.75rem 0 0;
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+/* ---------- Flows: numbered boxes, in order ---------- */
 .how-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0 0 0.9rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: how-flow;
+}
+
+.how-node {
   display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  counter-increment: how-flow;
+}
+
+.how-node::before {
+  content: counter(how-flow);
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.how-node strong {
+  font-size: 1rem;
+}
+
+.how-node span {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.how-node code {
+  margin-top: 0.4rem;
+  color: var(--dim);
+  font-family: inherit;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- The tools: a planning question each, with what its answer looks like ---------- */
+.how-tools {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  list-style: none;
+}
+
+.how-tool {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr) 12rem;
+  gap: 1.25rem;
+  align-items: center;
+  padding: 1.1rem 1.25rem;
+  border-top: 1px solid #241f2c;
+}
+
+.how-tool:first-child {
+  border-top: 0;
+}
+
+.how-tool p {
+  margin: 0;
+  font-size: 0.97rem;
+}
+
+.how-tool-q i {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  padding: 0.05rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.how-tool-q b {
+  display: block;
+  color: var(--text);
+  font-size: 1.3rem;
+  line-height: 1.2;
+}
+
+.how .how-tool-out {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #000;
+  color: var(--text);
+  font-weight: 700;
+  text-align: center;
+}
+
+.how-tool-out small {
+  display: block;
+  color: var(--dim);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.how-tool-out [data-verdict='fits'] {
+  color: var(--how-fits);
+}
+
+.how-tool-out [data-verdict='marginal'] {
+  color: var(--how-marginal);
+}
+
+.how-tool-out [data-verdict='miss'] {
+  color: var(--how-miss);
+}
+
+/* ---------- The checks: a figure, what it is, and where it comes from ---------- */
+.how-checks {
+  display: grid;
+  gap: 0.6rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.how-node {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 0;
-  padding: 0.9rem 1rem;
+.how-check {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: 0.2rem 1rem;
+  align-items: baseline;
+  padding: 1rem 1.15rem;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--panel);
 }
 
-.how-node strong {
+.how .how-check > b {
+  color: var(--how-fits);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.how-check h3 {
+  margin: 0;
   font-size: 1.05rem;
 }
 
-.how-node span {
-  flex: 1;
+.how-check p {
+  grid-column: 2;
+  margin: 0;
+  font-size: 0.97rem;
 }
 
-.how-node code {
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
+.how-limits {
+  max-width: 46rem;
+  margin: 0;
+  padding-left: 1.25rem;
 }
 
-.how-arrow {
+.how-limits li {
+  margin-bottom: 0.5rem;
+}
+
+/* ---------- How the system is built: boxes by area, with the arrows drawn over them ---------- */
+.how > .how-system {
+  max-width: 74rem;
+}
+
+.how-system-head,
+.how-system-words {
+  max-width: 58rem;
+  margin-inline: auto;
+}
+
+/* The picture keeps its width: where the window is narrower, it scrolls sideways in its own frame. */
+.how-system-scroll {
+  margin-top: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-system-canvas {
+  position: relative;
   display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  color: var(--accent);
-  font-size: 1.4rem;
-  font-weight: 700;
+  grid-template-columns: 15rem minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-areas:
+    'edge request build'
+    'key events watch';
+  gap: 1.5rem;
+  min-width: 66rem;
+  padding: 1rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
 }
+
+.how-area {
+  padding: 0.6rem 0.75rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.how-area[data-area='edge'] {
+  grid-area: edge;
+}
+
+.how-area[data-area='request'] {
+  grid-area: request;
+}
+
+.how-area[data-area='build'] {
+  grid-area: build;
+}
+
+.how-area[data-area='key'] {
+  grid-area: key;
+}
+
+.how-area[data-area='events'] {
+  grid-area: events;
+}
+
+.how-area[data-area='watch'] {
+  grid-area: watch;
+}
+
+.how-step .how-area h3 {
+  margin: 0 0 0.6rem;
+  color: var(--dim);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The gaps between boxes are where the arrows run. */
+.how-area-boxes {
+  display: grid;
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.how-area[data-area='request'] .how-area-boxes {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 2.4rem;
+}
+
+.how-area[data-area='build'] .how-area-boxes {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1.8rem;
+}
+
+.how-area[data-area='events'] .how-area-boxes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 1.8rem;
+}
+
+.how-area[data-area='key'] .how-area-boxes,
+.how-area[data-area='watch'] .how-area-boxes {
+  gap: 0.6rem;
+}
+
+.how-box[data-box='redis'],
+.how-box[data-box='canary'] {
+  grid-column: 1 / -1;
+}
+
+.how-box {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #000;
+}
+
+.how-box[data-kind='ours'] {
+  border-color: #5b9bea;
+  background: #0f1a2b;
+}
+
+.how-box[data-kind='store'] {
+  border-color: var(--how-fits);
+  background: #0e1f18;
+}
+
+.how-box b {
+  display: block;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.how-box span {
+  color: var(--muted);
+}
+
+.how .how-area p {
+  margin: 0.6rem 0 0;
+  color: var(--dim);
+}
+
+.how-system-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.how-system-lines path {
+  fill: none;
+  stroke: #b9b09c;
+  stroke-width: 1.3;
+}
+
+.how-system-lines marker path {
+  fill: #b9b09c;
+  stroke: none;
+}
+
+.how-system-lines path[data-line='failure'] {
+  stroke-dasharray: 6 4;
+}
+
+.how-system-lines path[data-line='status'] {
+  stroke-dasharray: 1.5 4;
+}
+
+.how-system-words {
+  margin-top: 0.75rem;
+}
+
+/* Said only where it is true: under the width the picture needs. */
+.how .how-system-hint {
+  display: none;
+}
+
+@media (max-width: 1150px) {
+  .how .how-system-hint {
+    display: block;
+  }
+}
+
+.how-system-words ul {
+  padding-left: 1.2rem;
+  font-size: 0.94rem;
+}
+
+/* ---------- More, for a reader who wants it: shut until asked for ---------- */
+.how-more {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-more[open] {
+  border-color: var(--accent);
+}
+
+.how-more summary {
+  padding: 0.85rem 1rem;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.how-more > :not(summary) {
+  margin: 0 1rem 0.9rem;
+}
+
+.how-more p {
+  max-width: 46rem;
+  font-size: 0.97rem;
+}
+
 
 /* ---------- Today's question counts ---------- */
 .how-counts {
@@ -238,52 +644,104 @@
   font-size: 0.9375rem;
 }
 
-/* ---------- Data sources, by section ---------- */
-.how-source-group {
-  margin-top: 1.5rem;
+/* ---------- Data sources: a card each, under tabs by what a source does ---------- */
+.how-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0.9rem;
 }
 
-.how-source-group ul {
+.how .how-tabs button {
+  min-height: 36px;
+  padding: 0 0.8rem;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.how .how-tabs button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #000;
+}
+
+.how-source-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.6rem;
+  align-items: start;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .how-source {
-  padding: 0.9rem 1rem;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--panel);
 }
 
-.how-source p {
-  margin: 0;
+.how-source[open] {
+  border-color: var(--accent);
+}
+
+.how-source summary {
+  position: relative;
+  padding: 0.85rem 2.2rem 0.85rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.how-source summary::-webkit-details-marker {
+  display: none;
+}
+
+.how-source summary::after {
+  content: '+';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.9rem;
+  color: var(--accent);
+  font-size: 1.4rem;
+}
+
+.how-source[open] summary::after {
+  content: '–';
 }
 
 .how-source-name {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
+  display: block;
+  color: var(--text);
   font-weight: 700;
 }
 
-.how-source-name a {
-  color: var(--text);
+.how-source-does {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.94rem;
 }
 
-.how-badge,
-.how-role {
-  padding: 0.1rem 0.55rem;
+/* A shut card gives the start of what the source does; open, all of it. */
+.how-source:not([open]) .how-source-does {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.how-role,
+.how-badge {
+  display: inline-block;
+  margin: 0.5rem 0.3rem 0 0;
+  padding: 0.05rem 0.55rem;
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  white-space: nowrap;
 }
 
 .how-badge {
@@ -291,31 +749,206 @@
   color: var(--accent);
 }
 
-.how-source-does {
-  margin-top: 0.35rem;
-}
-
 .how-source dl {
   display: grid;
-  gap: 0.2rem;
-  margin: 0.6rem 0 0;
-  color: var(--muted);
-  font-size: 0.875rem;
-  line-height: 1.45;
-}
-
-.how-source dl > div {
-  display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr);
   gap: 0.5rem;
+  margin: 0;
+  padding: 0.8rem 1rem 0;
+  border-top: 1px solid #241f2c;
+  font-size: 0.9rem;
 }
 
 .how-source dt {
-  font-weight: 600;
+  color: var(--dim);
 }
 
 .how-source dd {
   margin: 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.how .how-source-link {
+  margin: 0;
+  padding: 0.6rem 1rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+/* ---------- Cards, the picture, the landings, the case and the three questions ---------- */
+.how-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how-card {
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-step h4 {
+  margin: 0 0 0.4rem;
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.how-card p {
+  margin: 0;
+  font-size: 0.97rem;
+}
+
+.how-fig {
+  margin: 1.1rem 0;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-fig svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.how-fig figcaption {
+  margin-top: 0.5rem;
+  color: var(--dim);
+  font-size: 0.875rem;
+}
+
+.how-landings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  list-style: none;
+}
+
+.how-landings li {
+  padding-top: 0.5rem;
+  border-top: 3px solid var(--border);
+  font-size: 0.875rem;
+}
+
+.how-landings li[data-how='ok'] {
+  border-color: var(--how-fits);
+}
+
+.how-landings li[data-how='part'] {
+  border-color: var(--accent);
+}
+
+.how-landings li[data-how='lost'] {
+  border-color: var(--how-miss);
+}
+
+.how-landings b {
+  display: block;
+  font-size: 0.97rem;
+}
+
+.how-landings span {
+  color: var(--dim);
+}
+
+.how-landings p {
+  margin: 0.3rem 0 0;
+}
+
+.how-case {
+  margin-top: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-step .how-case h4 {
+  font-size: 1.3rem;
+}
+
+.how-case p {
+  max-width: 46rem;
+  margin: 0 0 0.6rem;
+}
+
+.how-case p:last-child {
+  margin-bottom: 0;
+}
+
+.how-questions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how .how-questions button {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 1.1rem;
+  border-color: var(--accent);
+  border-radius: 12px;
+  background: var(--panel-2);
+  font-weight: 400;
+  text-align: left;
+}
+
+.how .how-questions button:hover {
+  background: #1c1d2e;
+}
+
+.how-questions i {
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.how-questions b {
+  display: block;
+  margin: 0.25rem 0 0.5rem;
+  color: var(--text);
+  font-size: 1.3rem;
+  line-height: 1.25;
+}
+
+.how-questions span {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+/* ---------- Scout: things to ask him ---------- */
+.how-asks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how .how-asks li {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.92rem;
 }
 
 .how .trust {
@@ -338,40 +971,15 @@
   max-width: 46rem;
 }
 
-/* Narrow screens: the arrows point down and each step is a full-width row. */
-@media (max-width: 860px) {
-  .how-flow {
-    flex-direction: column;
-  }
 
-  .how-arrow {
-    transform: rotate(90deg);
-    height: 1.4rem;
-  }
-
-  .how-stack > div {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.3rem;
-  }
-}
-
-/* ---------- Start here: the tour and the videos, the first thing in the Guide ---------- */
-.how-start {
-  padding: 1.25rem 0 0.25rem;
-}
-
-.how-start h2 {
-  margin: 0 0 0.7rem;
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
-  line-height: 1.15;
-}
-
+/* ---------- The tour and the videos ---------- */
 .how-start-ways {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
+.how .how-tour-button,
 .how .how-watch[aria-pressed='true'] {
   border-color: var(--accent);
 }
@@ -379,7 +987,8 @@
 .how-start-note {
   max-width: 46rem;
   margin: 0.6rem 0 0;
-  color: var(--muted);
+  color: var(--dim);
+  font-size: 0.9375rem;
 }
 
 /* The walkthrough's chapters: a short list of moments to jump to, under the player. */
@@ -402,88 +1011,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Feature guides: one short tour for each feature ---------- */
-.how-guides {
-  padding: 1.25rem 0 0.25rem;
-}
-
-.how-guides h2 {
-  margin: 0;
-  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
-  line-height: 1.2;
-}
-
-.how-guides .how-start-note {
-  margin-top: 0.3rem;
-}
-
-.how-guide-list {
-  display: grid;
-  gap: 0.45rem;
-  max-width: 46rem;
-  margin: 0.7rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.how-guide-list span {
-  color: var(--muted);
-}
-
-/* ---------- Why this site is hard: a few sentences from the site's own figures ---------- */
-.how-why {
-  padding: 1.25rem 0 0;
-}
-
-.how-why:focus {
-  outline: none;
-}
-
-.how-why h2 {
-  margin: 0 0 0.6rem;
-  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
-  line-height: 1.2;
-}
-
-.how-why-lines {
-  max-width: 46rem;
-  margin: 0;
-  padding-left: 1.2rem;
-}
-
-.how-why-lines li {
-  margin: 0.3rem 0;
-}
-
-.how-why .how-start-note {
-  margin-top: 0.5rem;
-}
-
-/* ---------- How to use Sightline: the same steps Scout's tour walks through, written out ---------- */
-.how-use {
-  padding: 1.25rem 0 0.5rem;
-}
-
-.how-use h2 {
-  margin: 0 0 0.6rem;
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
-  line-height: 1.15;
-}
-
-.how-use-steps {
-  max-width: 46rem;
-  margin: 0;
-  padding-left: 1.4rem;
-}
-
-.how-use-steps li {
-  margin: 0.3rem 0;
-}
-
-.how .how-tour-button {
-  border-color: var(--accent);
-}
-
 .how-video {
   max-width: 46rem;
   margin-top: 1rem;
@@ -497,26 +1024,91 @@
   background: #000;
 }
 
-/* One reading column in the middle of the page: the text used to sit at the left of a wide page with
-   the right of it empty. The diagrams, the counts, the stack and the data sources keep the full width. */
-.how > .how-start,
-.how > .how-why,
-.how > .how-guides,
-.how > .how-use,
-.how > .how-intro,
-.how > .how-foot {
+/* ---------- Feature guides: one short tour for each feature ---------- */
+.how-guides .how-start-note {
+  margin-top: 0;
+}
+
+.how-guide-list {
+  display: grid;
+  gap: 0.45rem;
   max-width: 46rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.how .how-act > * {
+/* ---------- Why this site is hard: a few sentences from the site's own figures ---------- */
+.how-why {
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-why:focus {
+  outline: none;
+}
+
+.how-step .how-why h3 {
+  margin-top: 0;
+}
+
+.how-why-lines {
   max-width: 46rem;
-  margin-inline: auto;
+  margin: 0;
+  padding-left: 1.2rem;
 }
 
-.how .how-act > .how-flow,
-.how .how-act > .how-counts,
-.how .how-act > .how-stack,
-.how .how-act > .how-sources {
-  max-width: none;
+.how-why-lines li {
+  margin: 0.3rem 0;
 }
 
+/* ---------- How to use Sightline: the same steps Scout's tour walks through, written out ---------- */
+.how-use-steps {
+  max-width: 46rem;
+  margin: 0;
+  padding-left: 1.4rem;
+}
+
+.how-use-steps li {
+  margin: 0.3rem 0;
+}
+
+/* Narrow screens: the bar's links take a row of their own, and each tool and check is one column. */
+@media (max-width: 760px) {
+  .how {
+    --how-bar: calc(44px + 36px + 1.55rem + 1px);
+  }
+
+  .how > .how-top {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .how-steps {
+    flex: 1 0 100%;
+    margin-left: 0;
+  }
+
+  .how-tool {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .how .how-tool-out {
+    text-align: left;
+  }
+
+  .how-check {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .how-check p {
+    grid-column: 1;
+  }
+
+  .how-stack > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

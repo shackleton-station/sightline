@@ -136,3 +136,27 @@
 .sl-accuracy .sl-accuracy-more > h3:first-of-type {
   margin-top: 0.6rem;
 }
+
+/* "Where the lander may come down", as the Planner has it, inside the panel: the Planner's own rules
+   (newPlanner.css, under .sl-np) without the Planner's page box, and the panel wide enough for its map. */
+.sl-drawer.sl-accuracy {
+  width: min(23rem, 30vw);
+}
+
+.sl-accuracy .sl-np.sl-accuracy-rain {
+  grid-area: auto;
+  overflow: visible;
+  margin-top: 0.6rem;
+  padding: 0;
+  background: none;
+}
+
+.sl-accuracy .sl-accuracy-shade {
+  margin-top: 0.9rem;
+}
+
+@media (max-width: 760px) {
+  .sl-drawer.sl-accuracy {
+    width: auto;
+  }
+}

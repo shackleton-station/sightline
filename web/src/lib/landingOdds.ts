@@ -365,6 +365,41 @@ export function bestAim(map: FitMap, chances: Float64Array, withinM: number, ste
   return best
 }
 
+/** The odds with the aim moved to (x, y) m from the target: the bell curve slid over the same ground. */
+export function aimOdds(map: FitMap, spread: Spread, x: number, y: number): LandingOdds {
+  const moved = { ...map, leftM: map.leftM - x, topM: map.topM - y }
+  return landingOdds(moved, cellChances(moved, spread))
+}
+
+/**
+ * The best aim within `withinM` of the target, tried only at the centres of the light grid's cells
+ * (`pixelM` across, their edges lined up with the map's): the light of a cell is worked out at its
+ * centre, so an aim there is a point whose own sky the grid has checked, and a custom point placed
+ * on it gets the same answer. Null unless it beats `here` (the odds at the target) by a point or more;
+ * an aim whose landings would fall off the map is not tried.
+ */
+export function bestCentredAim(map: FitMap, spread: Spread, pixelM: number, withinM: number, here: LandingOdds): Aim | null {
+  let best: Aim | null = null
+  let bestDistance = 0
+  const first = (edge: number) => edge + pixelM / 2
+  const across = map.size * map.cellM
+  for (let y = map.topM - pixelM / 2; y > map.topM - across; y -= pixelM) {
+    if (Math.abs(y) > withinM) continue
+    for (let x = first(map.leftM); x < map.leftM + across; x += pixelM) {
+      const distance = Math.hypot(x, y)
+      if (distance > withinM) continue
+      const odds = aimOdds(map, spread, x, y)
+      if (odds.covered < 0.995 * here.covered || odds.fit < here.fit + WORTH_MOVING) continue
+      // The better odds win; between equals, the nearer aim is the smaller change.
+      if (!best || odds.fit > best.fit + 1e-9 || (Math.abs(odds.fit - best.fit) <= 1e-9 && distance < bestDistance)) {
+        best = { x, y, fit: odds.fit }
+        bestDistance = distance
+      }
+    }
+  }
+  return best
+}
+
 /** "87%", "under 1%" or "over 99%": odds never read as certain when they are not. */
 export function oddsWords(chance: number): string {
   if (chance <= 0) return '0%'

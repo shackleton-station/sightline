@@ -4,7 +4,7 @@ import { CSA_ROVER, roverMissionDays } from '../lib/csaRover'
  * Scout's idea, "Plan for Canada's utility rover": what the Canadian Space Agency says about the
  * rover, in its own words, and why the mission the idea selects is hard near the pole.
  */
-export function RoverDrawer({ onClose }: { onClose: () => void }) {
+export function RoverDrawer({ long, onClose }: { /** Whether the mission is Long stay now: the panel is also opened from the Mission's line, with any mission. */ long: boolean; onClose: () => void }) {
   const days = roverMissionDays()
   return (
     <aside className="sl-drawer sl-rover" aria-label="Canada’s utility rover">
@@ -20,8 +20,9 @@ export function RoverDrawer({ onClose }: { onClose: () => void }) {
       </p>
       <h3>Why that is hard at the pole</h3>
       <p className="sl-rover-why">
-        Near the south pole the Sun never climbs more than a few degrees above the horizon, so the skyline can hide it for days on end, and hide Earth too. So the mission is now Long stay, an
-        example and not the rover’s own figures: {days.stay} days, at most {days.dark} days without Sun and {days.silent === null ? 'no limit on time without Earth' : `${days.silent} days without Earth`}, and the verdict on the left says whether this landing gets through.
+        Near the south pole the Sun never climbs more than a few degrees above the horizon, so the skyline can hide it for days on end, and hide Earth too.{' '}
+        {long ? 'So the mission is now Long stay, an' : 'Long stay is an'} example and not the rover’s own figures: {days.stay} days, at most {days.dark} days without Sun and {days.silent === null ? 'no limit on time without Earth' : `${days.silent} days without Earth`}
+        {long ? ', and the verdict on the left says whether this landing gets through.' : '; choose it under Mission and the verdict on the left says whether this landing gets through.'}
       </p>
       <p className="sl-layer-credit">
         <a href={CSA_ROVER.url} target="_blank" rel="noreferrer">

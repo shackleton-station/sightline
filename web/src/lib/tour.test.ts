@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import tourFile from '../sightline/tour.json'
 import guidesFile from '../sightline/guides.json'
+import { roverMissionDays } from './csaRover'
 import { type GuidesFile, overDisc, placeBubble, type TourFile, voiceFile } from './tour'
 
 const tour = tourFile as TourFile
@@ -57,8 +58,8 @@ describe("Scout's tour: the steps", () => {
 describe('the feature guides', () => {
   const guides = (guidesFile as GuidesFile).guides
 
-  it('are the seven short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
-    expect(guides.map((guide) => guide.name)).toEqual(['Read the answer', 'Compare scenarios', 'The Planner', 'Views and layers', 'A custom point', 'Share a plan', "Check it in NASA's tools"])
+  it('are the eight short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
+    expect(guides.map((guide) => guide.name)).toEqual(['Read the answer', 'Compare scenarios', 'The Planner', 'Views and layers', 'A custom point', 'Share a plan', "Check it in NASA's tools", "A real mission: Canada's rover"])
     for (const guide of guides) {
       expect(guide.steps.length, guide.id).toBeGreaterThanOrEqual(2)
       expect(guide.steps.length, guide.id).toBeLessThanOrEqual(4)
@@ -86,9 +87,17 @@ describe('the feature guides', () => {
     const steps = guides.flatMap((guide) => guide.steps)
     for (const step of steps) if (step.state.open) expect(['compare', 'layers', 'custom', 'share', 'planner-find', 'planner-compare'], step.id).toContain(step.state.open)
     expect(steps.filter((step) => step.state.pair).map((step) => step.id)).toEqual(['compare-table', 'compare-rows', 'planner-compare', 'planner-back'])
-    // One step is about the zoom buttons, which a phone does not have: it is marked, and its guide still has two steps without it.
-    expect(steps.filter((step) => step.wide).map((step) => step.id)).toEqual(['views-zoom'])
+    // Two steps are about controls a phone does not have (the zoom buttons, the rail's Planner button): they are marked, and their guides still have two steps without them.
+    expect(steps.filter((step) => step.wide).map((step) => step.id)).toEqual(['views-zoom', 'rover-next'])
     for (const guide of guides) expect(guide.steps.filter((step) => !step.wide).length, guide.id).toBeGreaterThanOrEqual(2)
+  })
+
+  it('set the Long stay example only in the rover guide, whose first step says that example\'s own numbers and that they are not the rover\'s', () => {
+    const rover = guides.find((guide) => guide.id === 'rover')!
+    expect(guides.flatMap((guide) => guide.steps).filter((step) => step.state.mission === 'long').map((step) => step.id)).toEqual(rover.steps.map((step) => step.id))
+    const days = roverMissionDays()
+    expect(rover.steps[0].say).toContain(`${days.stay} days, at most ${days.dark} days without the Sun`)
+    expect(rover.steps[0].say).toContain("an example and not the rover's own figures")
   })
 })
 
