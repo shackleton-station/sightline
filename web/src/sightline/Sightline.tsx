@@ -298,7 +298,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // The skyline strip ("What the lander sees") is open when Plan opens on a laptop (Rodrigo's word of
   // 2026-11-15); on a phone, where it would take the Moon's room, it is folded until asked for. A
   // visitor's own fold is kept for the visit, and a link that says so (`sky=1`) opens it anywhere.
-  const [skyMin, setSkyMin] = useStored('skyFolded', window.innerWidth < 761, 'visit')
+  // The name is new with that default: a fold stored under the old name, from before the strip opened
+  // by itself (the tour and "Hide all" stored one without the visitor folding anything), is not read.
+  const [skyMin, setSkyMin] = useStored('skylineFolded', window.innerWidth < 761, 'visit')
   useEffect(() => {
     if (new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sky') === '1') setSkyMin(false)
     // Read once, as the page opens: after that the fold is the visitor's.
