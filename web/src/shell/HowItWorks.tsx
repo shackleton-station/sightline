@@ -18,6 +18,7 @@ import { GuideProof } from './guide/GuideProof'
 import { GuideScout } from './guide/GuideScout'
 import { GuideSolution, type VerdictOnShow } from './guide/GuideSolution'
 import { GuideStack } from './guide/GuideStack'
+import { GuideSystem } from './guide/GuideSystem'
 import './how.css'
 
 interface Props {
@@ -110,12 +111,13 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
     if (typeof IntersectionObserver === 'undefined' || !page.current) return
     const watcher = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) if (entry.isIntersecting) setPart(entry.target.id as GuideStepId)
+        // The picture of the system has no link of its own: it counts as part of what the site runs on.
+        for (const entry of entries) if (entry.isIntersecting) setPart((entry.target.id === 'how-system' ? 'how-stack' : entry.target.id) as GuideStepId)
       },
       { rootMargin: '-30% 0px -60% 0px' },
     )
-    for (const step of GUIDE_STEPS) {
-      const section = page.current.querySelector(`#${step.id}`)
+    for (const id of [...GUIDE_STEPS.map((step) => step.id), 'how-system']) {
+      const section = page.current.querySelector(`#${id}`)
       if (section) watcher.observe(section)
     }
     return () => watcher.disconnect()
@@ -222,6 +224,8 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
       <GuideStack>
         <ServiceStatus services={services} />
       </GuideStack>
+
+      <GuideSystem siteCount={siteCount} span={span} model={scoutModel} />
 
       <footer className="how-foot">
         <p>Sightline is a hackathon project. Do not use it for real mission decisions.</p>
