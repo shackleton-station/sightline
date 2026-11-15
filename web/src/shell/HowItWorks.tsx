@@ -207,7 +207,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         )}
       </section>
 
-      <GuideChallenge why={why} whyHere={whyHere} onGo={go} />
+      <GuideChallenge data={data} why={why} whyHere={whyHere} onGo={go} />
 
       <GuideStep id="how-data" kicker="Step 2" title="Gather the data" intro="Every number on this site is computed from public data by our own code. Nothing is typed in by hand, and nothing is made up by an AI. Two things do most of the work: the shape of the ground, and where the Sun and Earth are.">
         <DataSources />
