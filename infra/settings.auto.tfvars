@@ -85,7 +85,7 @@ copilot_route   = "copilot" # "web" sends it back to the site, after a web revis
 # claude-sonnet-5-5 with claude_speed = "" (it has no fast mode).
 claude_model  = "claude-opus-5-5"
 claude_speed  = "fast"
-claude_effort = "medium" # was "low" until 2026-11-15: answers read stiff; medium is the model's own default. To undo: "low".
+claude_effort = "low" # "medium" was tried on 2026-11-15: about a second slower and wordier, not better (same four questions before and after)
 
 # How the co-pilot signs in, with no stored key: Anthropic workload identity federation. Identifiers
 # from the Claude Console's Workload identity page, not secrets. Without them the co-pilot answers
