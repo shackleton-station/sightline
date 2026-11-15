@@ -26,8 +26,10 @@ interface Props {
    * "Landing odds", the app's own: the odds that a lander aimed at each point comes down where the
    * mission fits, shaded on the Moon. Whether it is on, and whether the light grid reaches the site on show.
    */
-  odds: { on: boolean; here: boolean }
+  odds: { on: boolean; here: boolean; lander: string }
   onOdds: (on: boolean) => void
+  /** Open Landing accuracy: the odds for this landing, the reasons and a better place to aim. */
+  onOddsDetails: () => void
   /** "Place names": the Moon's named places printed on it. Whether it is on, and whether its names have arrived. */
   names: { on: boolean; state: 'off' | 'loading' | 'ready' | 'failed' }
   onNames: (on: boolean) => void
@@ -43,7 +45,7 @@ interface Props {
  * one on goes to Site, and one that does not reach the site on show is greyed and says how far it
  * goes. Each map says how to read it, and the one that is on carries Trek's own title and credit.
  */
-export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fine, shade, onShade, odds, onOdds, names, onNames, onClose, onShowHow }: Props) {
+export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fine, shade, onShade, odds, onOdds, onOddsDetails, names, onNames, onClose, onShowHow }: Props) {
   const on = trekLayer(layer)
   /** Why a ground layer is greyed at the site on show: how far it reaches from the pole, and that the site is beyond it. */
   const outside = (km: number | null, what: string) => (km === null ? `${what} covers the ground near the south pole. ${place} is outside it.` : `${what} reaches ${km} km from the south pole. ${place} is outside it.`)
@@ -108,7 +110,15 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
             : `Shadow from the terrain at the hour on the time bar, from this app’s hourly light grid.${shade.cellM ? ` One cell is ${shade.cellM} m of ground${shade.wideCellM ? `, ${shade.wideCellM} m farther from the pole` : ''}; edges are blended between cells.` : ''}`}
         </p>
       )}
-      <p className="sl-quiet">NASA’s maps of the ground, from Moon Trek. One at a time; switching one on goes to Site, where it is seen close.</p>
+      {odds.on && (
+        <p className="sl-layer-shade sl-layer-odds" role="status">
+          Shaded for a landing at the hour on the time bar, by a lander that gets {odds.lander}. {odds.here ? 'Near the south pole it counts the hourly light on the terrain and the slope' : 'This site is outside the terrain grid near the south pole'}; elsewhere the Moon is taken as smooth.{' '}
+          <button type="button" className="sl-link" onClick={onOddsDetails}>
+            Details for this landing
+          </button>
+        </p>
+      )}
+      <p className="sl-quiet">NASA’s maps of the ground, from Moon Trek. One at a time, in place of “Landings that fit”; switching one on goes to Site, where it is seen close.</p>
       <ul className="sl-layer-list">
         {TREK_LAYERS.map((item) => (
           <li key={item.id}>

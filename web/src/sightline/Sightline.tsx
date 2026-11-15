@@ -75,6 +75,7 @@ import tourFile from './tour.json'
 import { AccuracyDrawer } from './AccuracyDrawer'
 import { FitLegend } from './FitLegend'
 import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
+import { closenessWords } from '../lib/accuracyWords'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { defaultScenarios } from '../lib/defaultPair'
 import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
@@ -974,7 +975,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // "Landings that fit" as a layer on the Moon, in every view.
   const showFitShade = (on: boolean) => {
     setFitShade(on)
-    if (on) setAccuracyUsed(true)
+    if (!on) return
+    setAccuracyUsed(true)
+    // It colors the same ground as NASA's maps, so it takes the place of the one that is on.
+    setLayer(null)
   }
   const openAccuracy = () => {
     // Opening it shades the Moon too; the panel has the switch to take the shading off.
@@ -1222,7 +1226,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         />
         {/* The column is about the landing; the Moon follows the time bar. When the two differ, say so,
             in the strip kept clear under the Moon, with the two ways to bring them together. */}
-        {shown && !planner && fitShade && <FitLegend on={fitShade} onToggle={showFitShade} spread={spread} onSpread={setSpread} detailed={fitHere} onDetails={() => setDrawer('accuracy')} />}
+        {shown && !planner && fitShade && <FitLegend on={fitShade} onToggle={showFitShade} />}
         {shown && !planner && hour !== scenario.landing && (
           <p className="sl-off-landing sl-fade">
             <span>Not the landing</span>
@@ -1461,11 +1465,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       {shown && !planner && drawer === 'rover' && <RoverDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere }} onOdds={(on) => {
+      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, lander: closenessWords(spread) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={(on) => {
             if (on) closeUp()
             showFitShade(on)
           }} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
             if (next !== null) closeUp()
+            // One coloring of the ground at a time: a map takes the place of "Landings that fit".
+            if (next !== null) setFitShade(false)
             setLayer(next)
           }} state={trek.state} fine={finePhoto} shade={{ on: shade, here: shadeHere, cellM: lightGrid.meta?.pixel_m ?? null, wideCellM: lightGrid.meta?.wide?.pixel_m ?? null, state: lightGrid.status }} onShade={(on) => {
             if (on) closeUp()

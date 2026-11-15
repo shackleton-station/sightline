@@ -4500,9 +4500,14 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-fit-legend.is-on {
-  width: 15.5rem;
-  gap: 0.3rem;
-  padding: 0.5rem 0.65rem 0.6rem;
+  gap: 0;
+  padding: 0.2rem 0.45rem 0.35rem;
+}
+
+/* Small enough for the stage's corner at 1366 by 768 with a panel open, where the disc comes closest. */
+.sl-fit-legend.is-on .sl-fit-switch {
+  gap: 0.4rem;
+  min-height: 1.35rem;
 }
 
 .sl-fit-switch {
@@ -4519,34 +4524,17 @@ button.sl-moment-heights[aria-expanded='true'] {
   accent-color: var(--gold);
 }
 
-.sl-fit-accuracy {
-  display: grid;
-  gap: 0.1rem;
-}
-
-.sl-fit-accuracy > span {
+.sl-fit-key {
   display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.sl-fit-accuracy output {
-  font-variant-numeric: tabular-nums;
-}
-
-.sl-fit-accuracy input {
-  width: 100%;
-  accent-color: var(--gold);
-}
-
-.sl-fit-legend p {
-  margin: 0;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--soft);
-  line-height: 1.35;
+  font-size: 0.75rem;
 }
 
-.sl-fit-legend .sl-small {
-  justify-self: start;
+.sl-fit-key .sl-fit-ramp {
+  flex: 1;
+  min-width: 3rem;
 }
 
 .sl-fit-ramp {
@@ -4554,9 +4542,3 @@ button.sl-moment-heights[aria-expanded='true'] {
   border-radius: 999px;
 }
 
-.sl-fit-ends {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  color: var(--soft);
-}
