@@ -573,8 +573,10 @@ cd ../web && gcloud storage rsync --recursive --no-clobber public/tiles/light/pa
 The first command writes `web/public/tiles/light/patch/<site>/<month>.bin.gz` (not in Git) and adds a
 `patches` entry for each site to `web/public/data/light/meta.json` (committed: open a pull request with
 it and with `validation.json`, which the check adds its own `patches` to). A stopped run resumes its
-horizons; `--patches --months` redoes only the months. Nothing reads the patches until the web app is
-taught to, so uploading them changes nothing a visitor sees.
+horizons; `--patches --months` redoes only the months. The "Landings that fit" layer and the Surface
+view's tint read a patch once `meta.json` lists it, so upload the files before the pull request with
+`meta.json` merges: a patch that is listed and cannot be read is left out, and the grid's own cells
+stand there.
 
 ## After the pipeline changes the sets for other heights
 
