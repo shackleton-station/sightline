@@ -1235,6 +1235,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                   onWhy={askWhy}
                   onMission={() => setMissionHere(true)}
                 />
+                {accuracyUsed && odds[active] !== null && (
+                  <p className="sl-odds-line">
+                    <button type="button" className="sl-link" title="Opens Landing accuracy: where a lander that misses its target could come down." onClick={openAccuracy}>
+                      {oddsWords(odds[active])} of landings fit
+                    </button>{' '}
+                    at {spreadWords(spread)} accuracy
+                  </p>
+                )}
                 {/* What a planner asks next when a date or a site slips: the Planner's months and its
                     other landings near this one. One line that opens it,
                     shown only when the verdict offers no other landing or site itself, so the column keeps its height. */}
@@ -1253,14 +1261,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                     >
                       If the plan has to move <span aria-hidden="true">›</span>
                     </button>
-                  </p>
-                )}
-                {accuracyUsed && odds[active] !== null && (
-                  <p className="sl-odds-line">
-                    <button type="button" className="sl-link" title="Opens Landing accuracy: where a lander that misses its target could come down." onClick={openAccuracy}>
-                      {oddsWords(odds[active])} of landings fit
-                    </button>{' '}
-                    at {spreadWords(spread)} accuracy
                   </p>
                 )}
                 </>
