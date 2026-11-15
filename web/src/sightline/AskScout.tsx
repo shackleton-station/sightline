@@ -3,8 +3,11 @@ import { askCopilot, type ChatMessage, MAX_QUESTION_CHARS, stillWaitingText, vie
 import { copilotModel, readServices } from '../data/serviceStatus'
 import { useCooldown } from '../lib/cooldown'
 import type { RiverState } from '../lib/river'
+import { answerToSay } from '../lib/scoutVoice'
 import { Mascot } from '../scout/Mascot'
+import { useVoice } from '../scout/useVoice'
 import { NOT_A_LOGIN } from './inputs'
+import tour from './tour.json'
 
 /** The disclosure Space Apps asks for, as a small tag beside Scout's name; the Guide says it in full. */
 export function AiTag() {
@@ -147,13 +150,26 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, why, o
     if (area) area.scrollTop = area.scrollHeight
   }, [thread.length, waiting])
 
+  // Scout's voice: off until the visitor switches it on, and remembered after (the preference the
+  // Scout page keeps). With it on, an answer that arrives while this panel is open is said once.
+  // Nothing is said when the panel opens, whatever the conversation already holds; a new question,
+  // closing the panel or switching the sound off stops the voice at once.
+  // How much of the conversation is old: what was there when the panel opened, or when the sound was last switched on.
+  const [heardUpTo, setHeardUpTo] = useState(thread.length)
+  const voice = useVoice(answerToSay(thread, heardUpTo, waiting))
+  /** A press that leads to an answer: with sound on, it is what lets the browser play that answer. */
+  const question = (text: string) => {
+    voice.prime()
+    return chat.ask(text, view)
+  }
+
   const send = (event: FormEvent) => {
     event.preventDefault()
     const text = draft
     if (!text.trim() || waiting) return
     setDraft('')
     // A question that could not be answered goes back into the input, so nothing typed is lost.
-    void chat.ask(text, view).then((answered) => {
+    void question(text).then((answered) => {
       if (!answered) setDraft((now) => now || text)
     })
   }
@@ -167,16 +183,34 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, why, o
         <button type="button" className="sl-small" onClick={onClose}>
           Close
         </button>
+        {/* The sound switch, with the disclosure the tour gives for the same voice, on a line of its own so the header is never crowded. */}
+        <span className="sl-scout-sound">
+          <button
+            type="button"
+            className="sl-small sl-sound"
+            aria-pressed={voice.sound}
+            title={voice.sound ? 'Scout reads each new answer aloud. Press to turn the sound off.' : 'Turns the sound on: Scout reads each new answer aloud. It stays off until you press this.'}
+            onClick={() => {
+              // Switching the sound on says nothing by itself: only an answer that comes after is said.
+              if (!voice.sound) setHeardUpTo(thread.length)
+              voice.setSound(!voice.sound)
+            }}
+          >
+            Sound {voice.sound ? 'on' : 'off'}
+          </button>
+          <small>{voice.sound && voice.failed ? 'The voice is not available just now' : tour.voice.disclosure}</small>
+        </span>
       </header>
-      <div ref={talk} className="sl-talk" aria-live="polite">
+      {/* With sound on Scout says each answer aloud, so a screen reader is not asked to read it as well. */}
+      <div ref={talk} className="sl-talk" aria-live={voice.sound ? 'off' : 'polite'}>
         {thread.length === 0 && !waiting && (
           <>
             <p className="sl-quiet">Ask about the scenario on show, or try one of these.</p>
             <ul className="sl-ideas" aria-label="Ideas to ask Scout">
-              {ideas.map((question) => (
-                <li key={question}>
-                  <button type="button" className="sl-idea" onClick={() => void chat.ask(question, view)}>
-                    {question}
+              {ideas.map((one) => (
+                <li key={one}>
+                  <button type="button" className="sl-idea" onClick={() => void question(one)}>
+                    {one}
                   </button>
                 </li>
               ))}
@@ -222,7 +256,7 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, why, o
             ))}
             {/* The answer was about the present and the time bar is on another day: one press asks the same for the bar's date. */}
             {message.ask && i === thread.length - 1 && (
-              <button type="button" className="sl-small sl-ask-again" disabled={waiting} onClick={() => void chat.ask(message.ask?.question ?? '', view)}>
+              <button type="button" className="sl-small sl-ask-again" disabled={waiting} onClick={() => void question(message.ask?.question ?? '')}>
                 {message.ask.label}
               </button>
             )}
