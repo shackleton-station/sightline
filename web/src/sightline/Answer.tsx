@@ -144,7 +144,8 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
         {now ? landingSentence(now.sun_frac, earthShare, now.earth_up) : 'Working out the light here…'}
       </p>
       {heightsLine && <p className="sl-heights-line">{heightsLine}</p>}
-      <dl className="sl-facts" aria-busy={now ? undefined : true}>
+      {/* With the mission's limits open the rows are at their shortest: the share, and the limit's own line beside it. */}
+      <dl className={limitsOpen ? 'sl-facts is-tight' : 'sl-facts'} aria-busy={now ? undefined : true}>
         <div className="sl-fact is-sun" tabIndex={0} title={measure ? SUN_MEANS : undefined}>
           <dt>
             <i className="sl-fact-mark" aria-hidden="true" /> Sun
@@ -153,7 +154,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
             {sun.main}
             <small>of the mission</small>
           </dd>
-          <dd className="sl-fact-small">{sun.small}</dd>
+          {!limitsOpen && <dd className="sl-fact-small">{sun.small}</dd>}
           {sunGap && (
             <CheckLine check={sunGap.check} title={DARK_MEANS} swatch={over !== null && sunGap.hours !== null}>
               {sunGap.words} {sunGap.hours && <b>{sunGap.hours}</b>} · {sunGap.limit}
@@ -174,7 +175,7 @@ export function Answer({ data, now, flags, error, maxSlopeDeg, requirements, sta
             {earth.main}
             <small>of the mission</small>
           </dd>
-          <dd className="sl-fact-small">{earth.small}</dd>
+          {!limitsOpen && <dd className="sl-fact-small">{earth.small}</dd>}
           {earthGap && (
             <CheckLine check={earthGap.check} title={SILENCE_MEANS} swatch={over !== null && earthGap.hours !== null}>
               {earthGap.words} {earthGap.hours && <b>{earthGap.hours}</b>} · {earthGap.limit}

@@ -3603,14 +3603,29 @@ button.sl-moment-heights[aria-expanded='true'] {
   background: color-mix(in srgb, var(--sl-miss) 55%, transparent);
 }
 
-/* The slope's line sits under the row's name, beside its figure. */
-.sl-fact.is-ground .sl-fact-check {
+/* The slope's line sits under the row's name, beside its figure; so does every row's line while the
+   mission's limits are open and the rows are at their shortest. */
+.sl-fact.is-ground .sl-fact-check,
+.sl-facts.is-tight .sl-fact-check {
   grid-column: 1;
   margin-top: 0.1rem;
 }
 
 .sl-fact.is-both .sl-fact-mark {
   background: var(--sl-both);
+}
+
+/* A short window (a 1366 by 768 laptop): the rows sit closer and the charts are a little lower, so the
+   tallest verdict, three reasons and the next landing, still leaves the whole column on the screen. */
+@media (max-height: 819px) and (min-width: 761px) {
+  .sl-fact {
+    min-height: 2.6rem;
+    padding: 0.2rem 0;
+  }
+
+  .sl-over-plot {
+    height: 1.9rem;
+  }
 }
 
 /* Days since landing, under the chart. */
