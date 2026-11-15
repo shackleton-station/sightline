@@ -5,7 +5,7 @@ import { loadShadow } from '../data/loadSite'
 import { useSiteValidations } from '../data/useSiteValidations'
 import { shadowCell, shadowMeans } from '../lib/shadowWords'
 import { clockTime } from '../lib/sightline'
-import { bestIn, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { addScenarioMeans, bestIn, MAX_SCENARIOS, measureScenario, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
 import { shareTies, TOO_CLOSE_NOTE } from '../lib/starTie'
 import { landingRows, type PlannerRow, plannerRows } from './plannerTable'
 import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
@@ -19,6 +19,8 @@ interface Props {
   onSelect: (index: number) => void
   /** Add what is on screen (the active site, at the time on screen) as a new scenario. */
   onAdd: () => void
+  /** What that adds, in words: the site on show and the hour on the time bar, "Connecting Ridge · 11 December 2026 · 20:00 UTC". */
+  adds: string
   onClose: () => void
   /** Why each scenario, if it fits, is only a marginal fit: one line each; empty when it is not. */
   marginal: string[][]
@@ -85,7 +87,7 @@ function Row({ row, hoursPrinted }: { row: PlannerRow; hoursPrinted: boolean }) 
  * shadowed ground, in NASA's maps: not part of the verdict). The best value in a row is marked; there
  * is no blended score, because its weights would be invented.
  */
-export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, onClose, marginal: marginalOf, odds, oddsFor, landings, sunlightWm2, onFull }: Props) {
+export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, adds, onClose, marginal: marginalOf, odds, oddsFor, landings, sunlightWm2, onFull }: Props) {
   const [more, setMore] = useState(false)
   const [atLanding, setAtLanding] = useState(false)
   // The third fold, "Science": what a science team asks of a site, beside the engineering rows. One row for
@@ -266,9 +268,12 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
       {rows.some((row) => row.tooClose) && <p className="sl-quiet sl-too-close">{TOO_CLOSE_NOTE}</p>}
       <div className="sl-compare-actions">
         {scenarios.length < MAX_SCENARIOS && (
-          <button type="button" className="sl-small" onClick={onAdd}>
-            Add this view as scenario {SCENARIO_LETTERS[scenarios.length]}
-          </button>
+          <span className="sl-compare-add">
+            <button type="button" className="sl-small" title={addScenarioMeans(adds)} onClick={onAdd}>
+              Add scenario {SCENARIO_LETTERS[scenarios.length]}
+            </button>
+            <small>{adds}, the time bar's hour</small>
+          </span>
         )}
         <button type="button" className="sl-link sl-compare-full" title="Opens the Planner's Compare tab: every row, with the hours behind each percentage." onClick={onFull}>
           Full comparison ›

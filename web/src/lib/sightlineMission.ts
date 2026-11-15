@@ -371,3 +371,11 @@ export function rowLabels(scenarios: SightlineScenario[], siteNames: string[], s
     return { date: `${date.getUTCDate()} ${ROW_MONTHS[date.getUTCMonth()]}${oneYear ? '' : ` ${date.getUTCFullYear()}`}${hour}`, site: siteNames[i] }
   })
 }
+
+/**
+ * What "add a scenario" adds, for its hover text. `adds` is the site on show and the hour on the time
+ * bar, "Connecting Ridge · 11 December 2026 · 20:00 UTC": the same words wherever the act is offered.
+ */
+export function addScenarioMeans(adds: string): string {
+  return `Adds ${adds}, the hour on the time bar, as another scenario to compare.`
+}

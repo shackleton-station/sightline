@@ -64,15 +64,18 @@ export function flagPlaces(centres: number[], width: number, flagWidth: number, 
 
 /**
  * Which side of its flag the selected mission's label goes: the right, unless another flag (or the
- * row's end) is too close there and the left has the room.
+ * row's end) is too close there and the left has the room. Where neither side has the room and
+ * another flag stands on the row, there is no label (null): it would lie over that flag's letter,
+ * and the flag and the lit mission already say whose it is.
  */
-export function labelSide(places: number[], selected: number, width: number, flagWidth: number, labelWidth: number): 'right' | 'left' {
+export function labelSide(places: number[], selected: number, width: number, flagWidth: number, labelWidth: number): 'right' | 'left' | null {
   const at = places[selected]
   const others = places.filter((_, i) => i !== selected)
   const nextRight = Math.min(width, ...others.filter((left) => left > at))
   const nextLeft = Math.max(0, ...others.filter((left) => left < at).map((left) => left + flagWidth))
   if (nextRight - (at + flagWidth) >= labelWidth) return 'right'
-  return at - nextLeft >= labelWidth ? 'left' : 'right'
+  if (at - nextLeft >= labelWidth) return 'left'
+  return others.length === 0 ? 'right' : null
 }
 
 /** The selected mission's label: whose it is and how long. */

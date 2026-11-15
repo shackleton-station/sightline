@@ -55,8 +55,12 @@ describe('labelSide', () => {
     expect(labelSide([384], 0, 400, 16, 110)).toBe('left')
   })
 
-  it('keeps to the right when neither side has the room', () => {
-    expect(labelSide([40, 80], 0, 150, 16, 110)).toBe('right')
+  it('leaves the label out when neither side has the room and another flag is on the row: it would lie over that flag', () => {
+    expect(labelSide([40, 80], 0, 150, 16, 110)).toBeNull()
+  })
+
+  it('keeps a lone flag\'s label to the right when the row itself is too short for it', () => {
+    expect(labelSide([40], 0, 120, 16, 110)).toBe('right')
   })
 })
 
