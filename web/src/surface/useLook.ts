@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { type LevelPitch, towardLevel } from '../lib/surfacePitch'
+import { type LevelPitch, towardLevel, withSkyline } from '../lib/surfacePitch'
 import { boundedLook, faceToward, framingPitch, type Look, turnBetween } from '../lib/surfaceView'
 import type { SkyPair } from './useGlide'
 
@@ -54,7 +54,8 @@ export function useLook({ sky, body, skylineAt, siteId, offCenter, openingFovDeg
   // Where to point to face a body: at its azimuth, tipped so the land under it is in view too.
   const toward = (body: Body, from: SkyPair, lens: Look) => {
     const { az, el } = where(from, body)
-    return { headingDeg: az, pitchDeg: towardLevel(framingPitch(el, skylineAt(az), lens, offCenter), level) }
+    const skyline = skylineAt(az)
+    return { headingDeg: az, pitchDeg: towardLevel(withSkyline(framingPitch(el, skyline, lens, offCenter), skyline, lens, offCenter), level) }
   }
   // While following, the view points at the body wherever it has got to.
   const shown = following ? boundedLook({ ...look, ...toward(following, sky, look) }) : look

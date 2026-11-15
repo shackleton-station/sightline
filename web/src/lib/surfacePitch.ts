@@ -46,3 +46,41 @@ export function levelPitch(views: Faced[], look: Pick<Look, 'fovDeg' | 'stretch'
 export function towardLevel(ownPitchDeg: number, level: LevelPitch | null): number {
   return level ? ownPitchDeg + (level.pitchDeg - ownPitchDeg) * level.weight : ownPitchDeg
 }
+
+/**
+ * A view's pitch kept where the skyline under its body is still in the picture: no more than
+ * `share` of the picture's height above the middle. Facing a body far under the land, the view would
+ * otherwise tip down until the picture is ground alone; this way the skyline stays in its upper part
+ * and the body's name is pinned to the lower edge.
+ */
+export function withSkyline(pitchDeg: number, skylineElDeg: number, look: Pick<Look, 'fovDeg' | 'stretch'>, share: number): number {
+  return Math.max(pitchDeg, skylineElDeg - (look.fovDeg / look.stretch) * share)
+}
+
+/** Where a body's name and its two lines go (the name's baseline, px), and whether they point at a body out of sight. */
+export interface TagPlace {
+  nameY: number
+  points: 'down' | 'up' | null
+}
+
+/** The name's baseline sits this far above a disk's top, or this far under its bottom (px). */
+const TAG_ABOVE_PX = 46
+const TAG_UNDER_PX = 26
+/** The three lines reach this far above and below the name's baseline (px). */
+const TAG_RISE_PX = 12
+const TAG_DROP_PX = 37
+
+/**
+ * A body's name goes above its disk, or under it where that would run into the menus and compass.
+ * Where the disk is under what covers the foot of the picture, or off the picture altogether, the
+ * name is pinned at that edge and points the way, so a body far under the land is still named.
+ */
+export function tagPlace(cy: number, ry: number, height: number, clearTopPx: number, clearBottomPx: number): TagPlace {
+  const above = cy - ry - TAG_ABOVE_PX > clearTopPx + 18
+  const nameY = above ? cy - ry - TAG_ABOVE_PX : cy + ry + TAG_UNDER_PX
+  const highest = clearTopPx + 18 + TAG_RISE_PX
+  const lowest = Math.max(height - clearBottomPx - TAG_DROP_PX, highest)
+  if (nameY > lowest) return { nameY: lowest, points: cy > lowest + TAG_DROP_PX ? 'down' : null }
+  if (nameY < highest) return { nameY: highest, points: cy < highest - TAG_RISE_PX ? 'up' : null }
+  return { nameY, points: null }
+}
