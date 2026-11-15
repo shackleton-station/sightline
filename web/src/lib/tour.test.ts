@@ -57,8 +57,8 @@ describe("Scout's tour: the steps", () => {
 describe('the feature guides', () => {
   const guides = (guidesFile as GuidesFile).guides
 
-  it('are the five short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
-    expect(guides.map((guide) => guide.name)).toEqual(['Compare scenarios', 'The Planner', 'Views and layers', 'A custom point', 'Share a plan'])
+  it('are the seven short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
+    expect(guides.map((guide) => guide.name)).toEqual(['Read the answer', 'Compare scenarios', 'The Planner', 'Views and layers', 'A custom point', 'Share a plan', "Check it in NASA's tools"])
     for (const guide of guides) {
       expect(guide.steps.length, guide.id).toBeGreaterThanOrEqual(2)
       expect(guide.steps.length, guide.id).toBeLessThanOrEqual(4)
@@ -127,5 +127,14 @@ describe("Scout's tour: where the bubble sits", () => {
     const above = placeBubble(wide, phone, [{ left: 85, top: 783, width: 220, height: 45 }], disc, true)
     expect(above).toEqual({ left: 12, top: 783 - 170 - 8 })
     expect(overDisc({ ...above, ...wide }, disc)).toBe(false)
+  })
+
+  it('on a phone, with two things ringed one under the other near the foot, sits above them both', () => {
+    const wide = { width: 366, height: 182 }
+    const flags = [
+      { left: 273, top: 720, width: 26, height: 23 },
+      { left: 273, top: 756, width: 26, height: 23 },
+    ]
+    expect(placeBubble(wide, phone, flags, null, true)).toEqual({ left: 12, top: 720 - 182 - 8 })
   })
 })

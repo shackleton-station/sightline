@@ -2,6 +2,34 @@
   "about": "The feature guides: short tours of one feature each, run by the same engine as Scout's main tour (src/sightline/Tour.tsx) and written in the same format as its steps (src/sightline/tour.json). Each is reached from the Guide and from the panel it is about (\"Show me how\"). They have no voice files: their words are on screen only.",
   "guides": [
     {
+      "id": "answer",
+      "name": "Read the answer",
+      "about": "What the verdict and the rows say.",
+      "steps": [
+        {
+          "id": "answer-verdict",
+          "title": "The verdict",
+          "say": "Green means the landing fits the mission, orange that it fits with little margin, red that it does not. The lines under it say why.",
+          "state": { "view": "plan" },
+          "targets": [".sl-verdict"]
+        },
+        {
+          "id": "answer-row",
+          "title": "A row",
+          "say": "A row leads with its share of the mission in view. A tick or cross marks the longest time out of view against your limit, over its chart.",
+          "state": { "view": "plan" },
+          "targets": [".sl-fact.is-sun"]
+        },
+        {
+          "id": "answer-both",
+          "title": "Sun and Earth together",
+          "say": "This row is the share of the mission with power and a radio link at once: the Sun and Earth both in view.",
+          "state": { "view": "plan" },
+          "targets": [".sl-fact.is-both"]
+        }
+      ]
+    },
+    {
       "id": "compare",
       "name": "Compare scenarios",
       "about": "Keep two plans side by side.",
@@ -23,9 +51,9 @@
         {
           "id": "compare-rows",
           "title": "On the time bar",
-          "say": "Each scenario has its own row on the time bar. Press a row's name to put that scenario on show.",
+          "say": "Each site has a row, and each scenario a lettered flag at its landing. Press a flag to show that scenario and go to its landing.",
           "state": { "view": "plan", "show": "time", "pair": true },
-          "targets": [".sl-river .sl-rows"]
+          "targets": [".sl-river .sl-flag"]
         }
       ]
     },
@@ -73,7 +101,7 @@
         {
           "id": "views-three",
           "title": "Three views",
-          "say": "Orbit shows the whole Moon. Site comes in close, and Surface stands you at the landing site.",
+          "say": "Orbit shows the whole Moon and Site comes in close. Surface stands you at the landing site, or at a point of your own.",
           "state": { "view": "plan" },
           "targets": [".sl-heights"]
         },
@@ -119,7 +147,7 @@
     {
       "id": "share",
       "name": "Share a plan",
-      "about": "Send a plan as a link, or read its written brief.",
+      "about": "Send a link, save a plan with a name, or read its brief.",
       "panel": "share",
       "steps": [
         {
@@ -130,11 +158,39 @@
           "targets": [".sl-head-tools"]
         },
         {
+          "id": "share-save",
+          "title": "Save with a name",
+          "say": "Give the plan a name and a note, then save. The short link opens with both on show, and is kept 180 days.",
+          "state": { "view": "plan", "open": "share" },
+          "targets": [".sl-share-sheet .sl-share-save .sl-share-head"]
+        },
+        {
           "id": "share-brief",
           "title": "The written brief",
           "say": "Share also opens the brief: the scenario on show, written out in full.",
           "state": { "view": "plan", "open": "share" },
           "targets": [".sl-share-sheet .sl-share-brief"]
+        }
+      ]
+    },
+    {
+      "id": "nasa",
+      "name": "Check it in NASA's tools",
+      "about": "Open the site in NASA's tools and see how our numbers match.",
+      "steps": [
+        {
+          "id": "nasa-open",
+          "title": "NASA's own tools",
+          "say": "These links open the site in NASA's own tools, at the same place and hour.",
+          "state": { "view": "plan" },
+          "targets": [".sl-open-in"]
+        },
+        {
+          "id": "nasa-horizons",
+          "title": "Checked against Horizons",
+          "say": "This line says how closely our Sun and Earth directions match JPL Horizons. Press it to see what was compared and to reproduce this hour.",
+          "state": { "view": "plan" },
+          "targets": [".sl-horizons"]
         }
       ]
     }
