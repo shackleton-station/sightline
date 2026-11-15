@@ -1,5 +1,6 @@
 import { MAX_SPAN_YEARS } from '../lib/span'
 import { useMemo, useState } from 'react'
+import { useFutureTargets } from '../data/futureTargets'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { locateHour } from '../lib/mission'
 import { NothingWorks } from '../planner/NothingWorks'
@@ -11,7 +12,7 @@ import { fitProblems, MAX_SCENARIOS, presetOf, SCENARIO_LETTERS, type SightlineM
 import { blockedBy, cellDetail, cellWords, FIND_MEASURES, type FindMeasure, findRow, findTally, fitHours, monthsWithFit, runningTotals } from './plannerFit'
 import { PlannerFindMore } from './PlannerFindMore'
 import { PlannerOwnPoint } from './PlannerOwnPoint'
-import { siteValue } from './site'
+import { siteValue, targetValue } from './site'
 import { BAND } from './states'
 
 /** A row of the grid: a listed site, or a point of the visitor's own (whose slope comes with it, where it is known). */
@@ -107,6 +108,7 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
     [flagged, fits, mission],
   )
   const [ownPoint, setOwnPoint] = useState(false)
+  const targets = useFutureTargets()
 
   // The cell opened under the grid, and which of its two named landings "Add" takes.
   const [open, setOpen] = useState<{ site: string; month: string } | null>(null)
@@ -165,13 +167,6 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
             ))}
           </select>
           {arriving !== null && <span className="sl-quiet pl-year-note"> Loading {arriving}…</span>}
-          {/* The data runs on past the years this list can load where it stands: say so, and how to get there. */}
-          {arriving === null && dataYears && offered[offered.length - 1] < dataYears.last && (
-            <span className="sl-quiet pl-year-note" title={`The data covers ${dataYears.first} to ${dataYears.last}. This list loads a few years at a time. For a later year, give a scenario a landing date in it on Compare, and the grid opens on that year.`}>
-              {' '}
-              to {dataYears.last} by a landing's date
-            </span>
-          )}
         </label>
         <button
           type="button"
@@ -188,6 +183,35 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
         <button type="button" className="sl-small pl-own" aria-expanded={ownPoint} title="Shows a box to add a point of your own, by its latitude and longitude." onClick={() => setOwnPoint(!ownPoint)}>
           Your own point
         </button>
+        {/* NASA's future targets, as the plan's own list has them: one becomes the next scenario, with a row of its own, worked out like a custom point. */}
+        {targets.length > 0 && (
+          <label className="pl-find-year pl-future">
+            Future target{' '}
+            <select
+              aria-label="Add a future target as a scenario"
+              value=""
+              disabled={!room}
+              title={room ? 'Adds the place as the next scenario, at the landing on show, with a row of its own. An approximate place: the center of the feature NASA names.' : 'Four scenarios is the most. Remove one on Compare to add another.'}
+              onChange={(event) => {
+                if (event.target.value) onAdd({ site: event.target.value, landing: onShow.landing })
+              }}
+            >
+              <option value="">Add…</option>
+              {targets.map((target) => (
+                <option key={target.id} value={targetValue(target)} disabled={scenarios.some((scenario) => scenario.site === targetValue(target))}>
+                  {target.name} · {target.who}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {/* The data runs on past the years this list holds: say which years can be planned for, why the list stops, and how to reach the rest. */}
+        {arriving === null && dataYears && offered[offered.length - 1] < dataYears.last && (
+          <p className="sl-quiet pl-year-reach">
+            A landing can be planned for any year from {dataYears.first} to {dataYears.last}. This list holds a few years at a time and stops at {offered[offered.length - 1]}: for a later
+            year, set a landing date in it on Compare.
+          </p>
+        )}
       </div>
       {ownPoint && (
         <PlannerOwnPoint start={start} hours={hours} landing={onShow.landing} letter={room ? letter : null} scenarios={scenarios} onAdd={onAdd} />

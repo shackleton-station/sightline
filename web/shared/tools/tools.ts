@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk'
 import { type Args, type ToolContext, ToolError } from './args'
 import type { ToolResult } from './facts'
+import { explainThePole } from './explainTools'
 import { horizonsCheck } from './horizonsTool'
 import { bestMonths, bestSites, bestSitesInYear, compareSites, landingWindowsInMonth, nextLanding, rankLandingOptions } from './landingTools'
 import { conditionsAtTime, monthSummary, siteInfo, yearSummary, sitesInView } from './siteTools'
@@ -35,6 +36,12 @@ const LIMITS = {
 }
 
 const TOOLS: Record<string, Tool> = {
+  explain_the_pole: {
+    description:
+      'Why the Moon\'s south pole is the way it is, in the Guide\'s own words: why the Sun and Earth are so low there, how the Sun moves and how long a day on the Moon is, a day on the Moon beside a day on Earth, why Earth rises and sets at the pole, and why the month matters (the Moon\'s seasons). With it, one site\'s own figures for a month: how high the Sun gets, how often it rises, the longest sunlight and the longest dark. Use it for any "why" or "how does it work" question, from a teacher or anyone else.',
+    parameters: (ids) => ({ properties: { site: site(ids, 'The site to give figures for: the one on the visitor\'s screen unless they named another.'), month: MONTH }, required: ['site', 'month'] }),
+    run: explainThePole,
+  },
   site_info: {
     description: 'Where a site is (latitude, longitude, group, ground slope) and which months the data covers.',
     parameters: (ids) => ({ properties: { site: site(ids) }, required: ['site'] }),

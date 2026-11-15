@@ -898,8 +898,9 @@ disks and 7,000 points. This is time on the main thread and frames arriving on t
 - **The land is a shape, not ground.** Its lighter rim under the top edge and the Sun's glare are ways of drawing. There
   are no shadows, no slopes, and nothing beyond the skyline. The glare fades with the track's share of the Sun's disk,
   so there is no glow after the Sun has gone.
-- **Between two hours the disks slide in a straight line** from one hourly position to the next and come to rest on the
-  hour's own; a drag along the time river goes straight there.
+- **Between two hours the disks move steadily** along the great circle from one hourly position to the next, at the pace
+  the hours are arriving (since 2026-11-15, `lib/skyBetween.ts`, `surface/useDrawnHour.ts`); on the hour they are at the
+  hour's own position. A drag along the time river goes straight there.
 - **Earth's face is not the real one.** Its lit part is the phase seen from the site; which side faces the Moon, and the
   tilt of its axis, are not modelled (its north is drawn along the Moon's).
 - It inherits everything above: the horizon is the pipeline's, with its 0.5° steps and its ridge-top gap against NASA's
@@ -1266,3 +1267,114 @@ shades the ground round a green site red.
 Not checked: the other three ridge sites by test (their tiles are not committed for CI); a listed
 site's points against the pipeline's own track away from the site; the time to work the points out
 on a phone. The model’s own error (§7, §10) is not in the odds, as before.
+
+## 19. "Landings that fit": the layer's picture against the ground point by point (2026-11-15)
+
+The layer shades the Moon by the odds that a lander aimed at each spot comes down where the mission
+fits. Round the south pole it is three pictures, one over the other: the 20 m patches round the four
+ridge sites (§12), the 120 m grid out to 61 km, and the 300 m grid out to 85° S. Past that it is the
+smooth Moon (§17). Each is blurred by the lander's spread. §12 and §17 check the grids the picture is
+made from; this section checks the picture.
+
+**The check.** `npx tsx scripts/fit-layer-check.ts <month ...>` (from `web/`). Round each ridge site it
+takes 13 by 13 light cells (1.56 km) and judges the mission at every 20 m of them, 6,084 points: each
+point's own skyline from the 20 m terrain and the Sun and Earth hour by hour through the mission, as
+§18's landing points are judged (`pointHorizons`, `pointLight`), and the slope across 40 m there. Those
+points, blurred by the lander's spread, are the truth: the odds for a lander aimed at each spot. The
+layer's picture of the same ground is made by the page's own code (`fitField`, `layPatch`,
+`flatShare`, `oddsField`) from the live site's month files. The two are compared at each of the
+picture's 60 m pixels in the middle 7 by 7 cells, for a landing every 12 hours of the month: 94,080
+pixels over the four sites and two months. The mission is 14 days, at most 24 h of dark, the Sun and
+Earth up at landing, slope at most 10°, and the accuracy 100 m. It is scored twice: with no limit on
+radio silence, which was the default mission when the picture was first measured, and with the 24 h
+limit the default has had since later the same day. Odds run from 0 to 100, and "off" is how far the
+picture's are from the truth's.
+
+**The picture as it was and as it is**, all four sites, November 2026 and June 2027, with no limit on
+radio silence:
+
+| The picture | Off, on average | Off, root mean square | Pixels more than 25 off |
+| --- | --- | --- | --- |
+| As it was: the 120 m grid, softened by at least 75 m | 3.4 | 8.7 | 4.0% |
+| The 20 m patches laid in, still softened by at least 75 m | 2.7 | 6.7 | 1.5% |
+| Now, away from the patches: the 120 m grid, the lander's own blur | 2.4 | 7.4 | 2.7% |
+| **Now, round the ridge sites: the 20 m patches, the lander's own blur** | **0.6** | **2.0** | **0.0%** |
+| The points themselves on the picture's 60 m pixels: the best such a picture can do | 0.5 | 1.4 | 0.0% |
+
+The two softened rows were measured before the softening was taken out of `oddsField`, with the truth's
+own slope in place of the page's, so they flatter the picture as it was a little.
+
+November 2026, when there is ground that fits, site by site (in June 2027 between 0.2% and 3.5% of the
+ground fits, and every picture is within 2 on average):
+
+| Site | Ground that fits, by the points | As it was: on average, RMS, more than 25 off | Now, with its patch |
+| --- | --- | --- | --- |
+| Connecting Ridge | 27.2% | 7.7, 13.4, 10.3% | 1.2, 2.4, 0.0% |
+| Shackleton Rim | 9.0% | 3.4, 8.7, 3.7% | 0.7, 2.4, 0.0% |
+| Peak near Shackleton | 18.9% | 5.9, 11.1, 6.5% | 0.9, 2.1, 0.0% |
+| de Gerlache Rim | 22.7% | 6.4, 11.7, 6.9% | 1.2, 2.5, 0.0% |
+
+- **The softening was the larger half of the error.** The picture was blurred by at least 75 m so that
+  no 120 m cell showed as a square. For a lander of 100 m that draws one of about 230 m. Reading the
+  grid between its cells' middles already leaves no squares, and without the extra blur the grid's
+  picture is closer to the truth at every site. Over a patch the softening undid most of what the patch
+  knows: 2.7 off on average with it, 0.6 without.
+- **A patch's pixel is the point.** For the Sun and Earth alone, a patch pixel and the 20 m point in
+  it give the same answer on 99.7% to 100.0% of the ground, landing by landing; the 120 m cell holding
+  the point does on 92.2% to 99.7%. The patches come from the pipeline and the points from the browser's
+  model, so this checks each against the other.
+- **What is left round the ridge sites is the picture's own pixel:** 0.6 against the 0.5 of the points
+  themselves on 60 m pixels.
+- **Away from the patches the grid is still 120 m.** Round the ridge sites, which are the hardest
+  ground there is for it, that is 2.4 off on average and more than 25 off on 2.7% of pixels. It was not
+  measured on other ground.
+
+**With the default's 24 h of radio silence** far less ground fits: by the points, between 0.0% and
+4.0% of it in November 2026 and under 0.5% in June 2027, so there is little for a picture to get
+wrong. All four sites and both months: the 120 m grid alone is 0.3 off on average (2.7 root mean
+square, 0.3% of pixels more than 25 off), the patches laid in 0.1 (0.5, 0.0%), and the points
+themselves on 60 m pixels 0.1 (0.5, 0.0%). A patch pixel and its point agree on 100.0% of the ground
+at every site in both months, and the 120 m cell on 99.2% to 100.0%. The picture as it was is not
+scored under this mission: the softening was gone from the code by then.
+
+**The slope.** The layer has two slope images of the fine grid's square, 30 m a pixel. It used to shrink
+them to its own 60 m pixels and judge one averaged slope a pixel. It now reads them whole, and a pixel
+takes the share of its four slopes under the limit (`flatShare`). Against the 20 m points, with the
+images made from the terrain as the pipeline makes them (so without the JPEG's own loss):
+
+| Site | Ground under 10°, by the points | A pixel's share is off by, on average: one by one | Averaged first |
+| --- | --- | --- | --- |
+| Connecting Ridge | 65.8% | 2.7 points | 5.6 |
+| Shackleton Rim | 15.3% | 2.5 | 5.1 |
+| Peak near Shackleton | 85.1% | 1.9 | 4.0 |
+| de Gerlache Rim | 55.9% | 3.6 | 8.1 |
+
+With the slope read this way in place of the truth's, the picture's score is the same to a tenth of a
+point (the table above has the page's slope in its "now" rows).
+
+**Past the fine grid.** From 61 km out the layer drew the smooth Moon, which has no terrain. It now
+draws the wide grid's cells (300 m, §12) out to that grid's edge, on the Moon and in the Surface view's
+tint, and each picture is drawn to the corners of its square, where before it was a disc that gave way
+to the smooth Moon over its outer third. `npx tsx scripts/success-layer-check.ts 2026-11` compares the
+two on the 880,476 wide cells outside the fine square, for 30 landings a day apart: a landing fits on
+0.4% of that ground by the terrain's light and on 11.0% by the smooth Moon, and the two agree on 89.1%.
+So the smooth Moon shaded about a tenth of that ring as fitting where almost none of it does. At IM-2
+Athena, the one listed site there, the wide cell's verdict agrees with the site's own track for 92.1%
+of landing hours and the smooth Moon's for 92.5%: the cell's middle is 202 m from the site (§12), so
+at the site itself the wide grid is no better. The slope is not judged in that ring: there are no slope
+images of it.
+
+**The smooth Moon** now counts a mission's Earth clearance, Earth's center that far above the level
+horizon (`moonWash.test.ts`). The grids and patches do not hold one, nor heights other than 2 m, and
+Layers says so when the mission asks for either.
+
+**By looking** (the development build in Chrome, against the live site's files, Connecting Ridge, a
+landing on 16 November 2026 at 13:00 UTC, Site view): before the wide grid was drawn, the shading turned
+green in a band just past 61 km from the pole; with it the ground is shaded from the terrain to the
+edge of the view, with green only in flecks round the ridge sites. No error in the console.
+
+Not checked: a mission other than the default, an accuracy other than 100 m, or a miss longer along
+the approach; ground away from the four ridge sites; the JPEG's loss in the slope images (§17 has the
+images against the sites' recorded slopes); the picture while the time bar is moving, when it is a
+blend of pictures a day apart; a phone, where the slope images are now read at their full 4,096 pixels
+a side. The model's own error (§7, §10) is in none of this: the truth here is the model at 20 m.

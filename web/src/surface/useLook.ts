@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { type LevelPitch, towardLevel, withSkyline } from '../lib/surfacePitch'
 import { boundedLook, faceToward, framingPitch, type Look, turnBetween } from '../lib/surfaceView'
-import type { SkyPair } from './useGlide'
+import type { SkyPair } from './useDrawnHour'
 
 export type Body = 'sun' | 'earth'
 

@@ -17,7 +17,25 @@ interface Props {
 }
 
 const CARDINALS: Record<number, string> = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }
-const TICKS = Array.from({ length: 36 }, (_, i) => i * 10)
+
+/**
+ * The compass's marks, made once for every page: every 10° from 180° before north round to 180° past
+ * a full turn, so whichever way the visitor faces, half a turn either side is on the tape. Each sits
+ * where its azimuth falls when facing north; the tape slides under the needle as the view turns, so
+ * turning moves one element, not 72.
+ */
+const TAPE = (
+  <span className="sf-compass-ticks">
+    {Array.from({ length: 72 }, (_, i) => -180 + i * 10).map((az) => {
+      const turn = ((az % 360) + 360) % 360
+      return (
+        <span key={az} className={turn % 90 === 0 ? 'sf-tick cardinal' : turn % 30 === 0 ? 'sf-tick major' : 'sf-tick'} style={{ left: `${50 + (az / 360) * 100}%` }}>
+          {turn % 30 === 0 && <b>{CARDINALS[turn] ?? turn}</b>}
+        </span>
+      )
+    })}
+  </span>
+)
 
 /** "12° to your left", for the strip's description. */
 function turnWords(headingDeg: number, azDeg: number): string {
@@ -44,11 +62,9 @@ export function CompassStrip({ headingDeg, acrossDeg, sun, earth, follows = null
     <div className="sf-compass" role="img" aria-label={description}>
       <div className="sf-compass-tape" aria-hidden="true">
         <span className="sf-compass-field" style={{ width: `${Math.min((acrossDeg / 360) * 100, 100)}%` }} />
-        {TICKS.map((az) => (
-          <span key={az} className={az % 90 === 0 ? 'sf-tick cardinal' : az % 30 === 0 ? 'sf-tick major' : 'sf-tick'} style={{ left: at(az) }}>
-            {az % 30 === 0 && <b>{CARDINALS[az] ?? az}</b>}
-          </span>
-        ))}
+        <span className="sf-compass-slide" style={{ transform: `translateX(${(-wrap360(headingDeg) / 360) * 100}%)` }}>
+          {TAPE}
+        </span>
         <span className={earth.up ? 'sf-mark earth' : 'sf-mark earth hidden'} style={{ left: at(earth.azDeg) }} />
         <span className={sun.up ? 'sf-mark sun' : 'sf-mark sun hidden'} style={{ left: at(sun.azDeg) }} />
         <span className="sf-compass-needle" />

@@ -261,13 +261,41 @@ export function slopeDegFrom(x: Uint8Array | Uint8ClampedArray, y: Uint8Array | 
 }
 
 /**
- * Where a landing fits, across the whole grid: from 1 (it fits) to 0 for each pixel, `sub` pixels
- * along each light cell. `slopeDeg` holds the slope for each pixel, or is null when it could not
- * be read. With `soft`, the Sun and Earth verdict is read between the light cells' middles rather
- * than cell by cell, so a picture of it has no squares: a way of drawing a grid that is known only
- * at those middles, not finer knowledge of the ground.
+ * The share (0 to 1) of each picture pixel's ground that is not too steep to land on. The two slope
+ * images hold `per` values along each of the picture's pixels (`x` and `y`, row by row from the
+ * top, 8 bits each as `slopeDegFrom` reads them). Each value is one piece of ground, steeper than
+ * `maxSlopeDeg` or not, and a pixel is the share of its pieces that are not. Averaging the slopes
+ * first would call a pixel that is half steep and half level wholly level.
  */
-export function fitField(gaps: GridGaps, req: Requirements, maxSlopeDeg: number, sub: number, slopeDeg: Float32Array | null, soft = false): Float32Array {
+export function flatShare(x: Uint8Array | Uint8ClampedArray, y: Uint8Array | Uint8ClampedArray, slopeMax: number, per: number, maxSlopeDeg: number): Float32Array {
+  const across = Math.round(Math.sqrt(x.length))
+  const side = across / per
+  // The square of the rise over run each 8-bit value stands for, and of the limit's.
+  const squares = Float64Array.from({ length: 256 }, (_, value) => (((value - 128) / 127) * slopeMax) ** 2)
+  const limit = Math.tan((maxSlopeDeg * Math.PI) / 180) ** 2
+  const share = new Float32Array(side * side)
+  for (let row = 0; row < side; row += 1) {
+    for (let col = 0; col < side; col += 1) {
+      let flat = 0
+      for (let dRow = 0; dRow < per; dRow += 1) {
+        const at = (row * per + dRow) * across + col * per
+        for (let dCol = 0; dCol < per; dCol += 1) if (squares[x[at + dCol]] + squares[y[at + dCol]] <= limit) flat += 1
+      }
+      share[row * side + col] = flat / (per * per)
+    }
+  }
+  return share
+}
+
+/**
+ * Where a landing fits, across the whole grid: from 1 (it fits) to 0 for each pixel, `sub` pixels
+ * along each light cell. `flat` holds the share of each pixel's ground that is not too steep
+ * (`flatShare`), or is null when the slope could not be read: a pixel's value is the Sun and Earth
+ * verdict there times that share. With `soft`, the Sun and Earth verdict is read between the light
+ * cells' middles rather than cell by cell, so a picture of it has no squares: a way of drawing a
+ * grid that is known only at those middles, not finer knowledge of the ground.
+ */
+export function fitField(gaps: GridGaps, req: Requirements, sub: number, flat: Float32Array | null, soft = false): Float32Array {
   const { size } = gaps
   const light = new Float32Array(size * size)
   for (let cell = 0; cell < light.length; cell += 1) light[cell] = lightVerdict(gaps, cell, req) === FITS ? 1 : 0
@@ -282,12 +310,13 @@ export function fitField(gaps: GridGaps, req: Requirements, maxSlopeDeg: number,
     const fy = y - y0
     for (let col = 0; col < side; col += 1) {
       const pixel = row * side + col
-      if (slopeDeg && slopeDeg[pixel] > maxSlopeDeg) continue
+      const share = flat ? flat[pixel] : 1
+      if (share === 0) continue
       const x = soft ? Math.min(last, Math.max(0, (col + 0.5) / sub - 0.5)) : Math.floor(col / sub)
       const x0 = Math.floor(x)
       const x1 = Math.min(last, x0 + 1)
       const fx = x - x0
-      field[pixel] = (light[y0 * size + x0] * (1 - fx) + light[y0 * size + x1] * fx) * (1 - fy) + (light[y1 * size + x0] * (1 - fx) + light[y1 * size + x1] * fx) * fy
+      field[pixel] = share * ((light[y0 * size + x0] * (1 - fx) + light[y0 * size + x1] * fx) * (1 - fy) + (light[y1 * size + x0] * (1 - fx) + light[y1 * size + x1] * fx) * fy)
     }
   }
   return field
@@ -297,10 +326,11 @@ export function fitField(gaps: GridGaps, req: Requirements, maxSlopeDeg: number,
  * A patch laid into a field of where a landing fits (`fitField`): inside the patch, each of the
  * field's pixels becomes the share of the patch's pixels under it where a landing fits, so ground
  * the grid's one value a cell could not tell apart is told apart. `gaps` are the patch's own, one
- * per patch pixel. A pixel too steep stays at 0, as in the field. Nothing is changed unless the
- * patch's pixels divide the field's exactly.
+ * per patch pixel. `flat` is the field's own (`fitField`): the share of a pixel that is not too
+ * steep scales it as it does there. Nothing is changed unless the patch's pixels divide the
+ * field's exactly.
  */
-export function layPatch(field: Float32Array, sub: number, gridSize: number, patch: LightPatch, gaps: GridGaps, req: Requirements, maxSlopeDeg: number, slopeDeg: Float32Array | null): void {
+export function layPatch(field: Float32Array, sub: number, gridSize: number, patch: LightPatch, gaps: GridGaps, req: Requirements, flat: Float32Array | null): void {
   const per = patch.sub / sub
   if (!Number.isInteger(per) || per < 1 || gaps.size !== patch.size) return
   const side = gridSize * sub
@@ -308,14 +338,15 @@ export function layPatch(field: Float32Array, sub: number, gridSize: number, pat
   for (let j = 0; j < across; j += 1) {
     for (let i = 0; i < across; i += 1) {
       const pixel = (patch.row * sub + j) * side + patch.col * sub + i
-      if (slopeDeg && slopeDeg[pixel] > maxSlopeDeg) continue
+      const share = flat ? flat[pixel] : 1
+      if (share === 0) continue
       let fits = 0
       for (let dj = 0; dj < per; dj += 1) {
         for (let di = 0; di < per; di += 1) {
           if (lightVerdict(gaps, (j * per + dj) * patch.size + i * per + di, req) === FITS) fits += 1
         }
       }
-      field[pixel] = fits / (per * per)
+      field[pixel] = (share * fits) / (per * per)
     }
   }
 }
@@ -389,9 +420,8 @@ export function blurReads(pixelM: number, spread: Spread): number {
  * longer along the approach is those two and a third along the approach's line, which together make
  * the same stretched bell curve. Pixels are `pixelM` meters; the picture's top is the map's up.
  */
-export function oddsField(field: Float32Array, side: number, pixelM: number, spread: Spread, atLeastPx = 0): Float32Array {
-  // `atLeastPx` softens a picture by at least that many pixels, so a tight spread does not show the grid.
-  const across = Math.max(sigmaM(spread.accuracyM) / pixelM, atLeastPx)
+export function oddsField(field: Float32Array, side: number, pixelM: number, spread: Spread): Float32Array {
+  const across = sigmaM(spread.accuracyM) / pixelM
   const round = bellWeights(across, true)
   let odds = blurAlong(blurAlong(field, side, round, 1, 0), side, round, 0, 1)
   if (spread.stretch > 1) {

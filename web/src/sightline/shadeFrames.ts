@@ -1,3 +1,4 @@
+import type { SlopeImages } from '../data/loadMissionGrid'
 import type { ShadeAnswer, ShadeAsk } from './shadeWorker'
 
 /**
@@ -44,14 +45,19 @@ function canvasOf(answer: ShadeAnswer): HTMLCanvasElement | null {
   return image
 }
 
-/** Give the worker the whole grid's slope: once, before the first polar picture. A copy is sent; the page keeps its own. */
-export function giveSlope(slope: Float32Array | null): Promise<void> {
-  return ask({ kind: 'slope', slope }).then(() => undefined)
+/** Give the worker the whole grid's slope images: once, before the first polar picture. They are handed over, not copied: the page has no other use for them. */
+export function giveSlope(slope: SlopeImages | null): Promise<void> {
+  return ask({ kind: 'slope', slope }, slope ? [slope.x.buffer, slope.y.buffer] : []).then(() => undefined)
 }
 
 /** The polar picture for a landing, or null when the mission runs past the grid. */
 export function polarPicture(body: Omit<Extract<ShadeAsk, { kind: 'polar' }>, 'id' | 'kind'>): Promise<HTMLCanvasElement | null> {
   return ask({ kind: 'polar', ...body }).then(canvasOf)
+}
+
+/** The wide grid's picture for a landing, or null when there is no wide grid, it could not be read, or the mission runs past it. */
+export function widePicture(body: Omit<Extract<ShadeAsk, { kind: 'wide' }>, 'id' | 'kind'>): Promise<HTMLCanvasElement | null> {
+  return ask({ kind: 'wide', ...body }).then(canvasOf)
 }
 
 /** The whole Moon's picture for a landing, or null when the mission runs past the year's positions. */

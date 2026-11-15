@@ -264,12 +264,39 @@ export class SurfaceViewer {
     this.scene.add(this.stars, this.world)
     this.disposables.push(square, sunMaterial, earthMaterial, this.earthUniforms.map.value)
 
+    this.warmUp()
     new THREE.TextureLoader().load(EARTH_MAP_URL, (texture) => {
       texture.colorSpace = THREE.SRGBColorSpace
       texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy()
       this.earthUniforms.map.value = texture
       this.disposables.push(texture)
+      if (!this.lost) this.renderer.initTexture(texture)
+      this.warmUp()
       this.schedule()
+    })
+  }
+
+  /**
+   * Draws everything once with the Sun and Earth shrunk to nothing, so their shaders are compiled and
+   * their pictures are on the graphics card before anything moves. Without this the first frame in
+   * which Earth (or the Sun) comes into view paid for it: about 70 ms on a slow phone, a visible
+   * stall in the middle of a turn or of time playing. This frame is drawn over by the first real one.
+   */
+  private warmUp(): void {
+    if (this.lost) return
+    const bodies = [this.sun, this.earth]
+    const kept = bodies.map((mesh) => ({ visible: mesh.visible, scale: mesh.scale.clone() }))
+    for (const mesh of bodies) {
+      mesh.visible = true
+      mesh.scale.setScalar(1e-6)
+      // Wherever the camera points, they are drawn: a body out of view would be skipped, and not warmed.
+      mesh.frustumCulled = false
+    }
+    this.renderer.render(this.scene, this.camera)
+    bodies.forEach((mesh, i) => {
+      mesh.visible = kept[i].visible
+      mesh.scale.copy(kept[i].scale)
+      mesh.frustumCulled = true
     })
   }
 

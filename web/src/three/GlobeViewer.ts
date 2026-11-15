@@ -85,9 +85,11 @@ export interface GlobeShade {
   /** The whole Moon, laid out like a map of the world: longitude across from 180° W, latitude down from the north pole. */
   wash: ShadeBlend<HTMLCanvasElement>
   /**
-   * A finer picture of the ground round the south pole, shown in the wash's place as far as it
-   * reaches: laid out as a `GlobeOverlay` is. Null for none.
+   * A picture of the ground round the south pole from the terrain's own light, shown in the wash's
+   * place as far as it reaches: laid out as a `GlobeOverlay` is. Null for none.
    */
+  wide: (ShadeBlend<HTMLCanvasElement> & { halfWidthM: number; radiusM: number }) | null
+  /** A finer picture of the ground nearest the pole, shown in the wide one's place as far as it reaches, laid out the same way. Null for none. */
   polar: (ShadeBlend<HTMLCanvasElement> & { halfWidthM: number; radiusM: number }) | null
   /** How much of the Moon the shade hides at its strongest, 0 to 1. Each pixel's own alpha scales it down (the pictures are faint where few landings fit). */
   opacity: number
@@ -114,6 +116,11 @@ uniform sampler2D polarTo;
 uniform float polarBlend;
 uniform float polarOn;
 uniform float polarSize; // Moon radius / the polar picture's full width on the ground
+uniform sampler2D wideFrom;
+uniform sampler2D wideTo;
+uniform float wideBlend;
+uniform float wideOn;
+uniform float wideSize; // the same for the wide picture
 uniform float shadeMix;
 varying vec2 vShadeUv;
 varying vec3 vShadeView;
@@ -124,15 +131,20 @@ void main() {
   vec2 disk = vShadeView.xy;
   vec3 up = normalize((vec4(disk, sqrt(max(1.0 - dot(disk, disk), 0.0)), 0.0) * viewMatrix).xyz).zxy;
   vec2 ground = 2.0 * up.xy / max(1.0 - up.z, 1.0);
+  // Each picture is shown whole, to the corners of its square, and gives way to what lies under it
+  // only over its outer twentieth: the wash knows no terrain, and should stand in for as little of
+  // the ground a picture holds as an edge without a step needs. A picture's alpha is how strongly
+  // its color is drawn (faint where few landings fit), not how much of it there is: a picture takes
+  // the place of what is under it by its square alone, strength and all. The wide picture first,
+  // then the finer one over its middle.
+  vec2 atWide = 0.5 + (ground * wideSize).yx;
+  vec2 insideWide = clamp(atWide, 0.0, 1.0);
+  vec4 wide = mix(texture2D(wideFrom, insideWide), texture2D(wideTo, insideWide), wideBlend);
+  shade = mix(shade, wide, wideOn * smoothstep(1.0, 0.95, 2.0 * max(abs(atWide.x - 0.5), abs(atWide.y - 0.5))) * step(up.z, 0.0));
   vec2 at = 0.5 + (ground * polarSize).yx;
-  // The polar picture is shown as a disc that gives way to the wash over its outer third, so its
-  // square never shows.
-  float fade = smoothstep(1.0, 0.66, 2.0 * length(at - 0.5));
   vec2 inside = clamp(at, 0.0, 1.0);
   vec4 polar = mix(texture2D(polarFrom, inside), texture2D(polarTo, inside), polarBlend);
-  // A picture's alpha is how strongly its color is drawn (faint where few landings fit), not how much
-  // of it there is: the polar picture takes the wash's place by its disc alone, strength and all.
-  shade = mix(shade, polar, polarOn * fade * step(up.z, 0.0));
+  shade = mix(shade, polar, polarOn * smoothstep(1.0, 0.95, 2.0 * max(abs(at.x - 0.5), abs(at.y - 0.5))) * step(up.z, 0.0));
   gl_FragColor = vec4(shade.rgb, shade.a * shadeMix);
   #include <colorspace_fragment>
 }
@@ -755,7 +767,7 @@ export class GlobeViewer {
     if (!this.shade) {
       const none = () => ({ value: null as THREE.Texture | null })
       const material = new THREE.ShaderMaterial({
-        uniforms: { washFrom: none(), washTo: none(), washBlend: { value: 0 }, polarFrom: none(), polarTo: none(), polarBlend: { value: 0 }, polarOn: { value: 0 }, polarSize: { value: 1 }, shadeMix: { value: 0 } },
+        uniforms: { washFrom: none(), washTo: none(), washBlend: { value: 0 }, polarFrom: none(), polarTo: none(), polarBlend: { value: 0 }, polarOn: { value: 0 }, polarSize: { value: 1 }, wideFrom: none(), wideTo: none(), wideBlend: { value: 0 }, wideOn: { value: 0 }, wideSize: { value: 1 }, shadeMix: { value: 0 } },
         vertexShader: SHADE_VERTEX,
         fragmentShader: SHADE_FRAGMENT,
         transparent: true,
@@ -770,7 +782,7 @@ export class GlobeViewer {
       this.shade = { mesh, material, textures: new Map() }
     }
     const { mesh, material, textures } = this.shade
-    const wanted = new Set<HTMLCanvasElement>([shade.wash.from, shade.wash.to, ...(shade.polar ? [shade.polar.from, shade.polar.to] : [])])
+    const wanted = new Set<HTMLCanvasElement>([shade.wash.from, shade.wash.to, ...(shade.wide ? [shade.wide.from, shade.wide.to] : []), ...(shade.polar ? [shade.polar.from, shade.polar.to] : [])])
     for (const [image, texture] of textures) {
       if (wanted.has(image)) continue
       texture.dispose()
@@ -800,6 +812,13 @@ export class GlobeViewer {
       material.uniforms.polarTo.value = textureOf(shade.polar.to, false)
       material.uniforms.polarBlend.value = shade.polar.mix
       material.uniforms.polarSize.value = shade.polar.radiusM / (2 * shade.polar.halfWidthM)
+    }
+    material.uniforms.wideOn.value = shade.wide ? 1 : 0
+    if (shade.wide) {
+      material.uniforms.wideFrom.value = textureOf(shade.wide.from, false)
+      material.uniforms.wideTo.value = textureOf(shade.wide.to, false)
+      material.uniforms.wideBlend.value = shade.wide.mix
+      material.uniforms.wideSize.value = shade.wide.radiusM / (2 * shade.wide.halfWidthM)
     }
     material.uniforms.shadeMix.value = shade.opacity
     mesh.visible = true

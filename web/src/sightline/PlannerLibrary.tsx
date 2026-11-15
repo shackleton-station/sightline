@@ -99,6 +99,10 @@ export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMon
           <input type="checkbox" checked={filters.fitsOnly} onChange={(event) => set({ fitsOnly: event.target.checked })} />
           <span>Fits my mission</span>
         </label>
+        <label className="lib-check" title="The same place and hour saved in several plans is shown once, from the newest of them">
+          <input type="checkbox" checked={filters.oneEach} onChange={(event) => set({ oneEach: event.target.checked })} />
+          <span>One card per landing</span>
+        </label>
         {filtering(filters) && (
           <button type="button" className="sl-small" onClick={() => setFilters(NO_FILTERS)}>
             Clear
@@ -106,7 +110,7 @@ export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMon
         )}
       </form>
       <p className="lib-count" aria-live="polite">
-        {cards.length === 0 ? 'Nobody has saved a plan yet. Save one from Share and it appears here.' : `${shown.length} of ${cards.length} saved landings, judged against your mission.`}
+        {cards.length === 0 ? 'Nobody has saved a plan yet. Save one from Share and it appears here.' : `${shown.length} shown of ${cards.length} saved landings, judged against your mission.`}
         <button type="button" className="lib-reload" onClick={onReload}>
           Read again
         </button>

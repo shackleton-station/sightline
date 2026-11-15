@@ -31,7 +31,7 @@ interface Props {
  * Landing accuracy: a lander aimed at the site comes down somewhere around it. The panel says the
  * verdict on the left again for the aim point, then shows "Where the lander may come down" as the
  * Planner has it (`LandingRain`): the ground's photo tinted by what a landing there does, simulated
- * landers falling on it, the tally, a better place to aim, and how the map is made. Under it, the
+ * landers falling on it (played in once as the panel opens), the tally, a better place to aim, and how the map is made. Under it, the
  * switch that shades the same question on the Moon.
  *
  * The ground is judged at landing points round the target, each as the verdict judges a point
@@ -52,9 +52,9 @@ export function AccuracyDrawer({ site, mission, heights, start, landing, verdict
         </p>
       )}
       <div className="sl-np sl-accuracy-rain">
-        <LandingRain site={site} mission={mission} heights={heights} start={start} landing={landing} verdict={verdict} spread={spread} onSpread={onSpread} onAim={onAim} compact />
+        <LandingRain site={site} mission={mission} heights={heights} start={start} landing={landing} verdict={verdict} spread={spread} onSpread={onSpread} onAim={onAim} compact playOnOpen />
       </div>
-      <label className="sl-check sl-accuracy-shade" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely. A coarser picture than this panel's: Sun and Earth every 120 m, from 2 m up.">
+      <label className="sl-check sl-accuracy-shade" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely. A coarser picture than this panel's: Sun and Earth every 120 m (every 20 m round the ridge sites), from 2 m up with any part of Earth counting.">
         <input type="checkbox" role="switch" checked={shade} onChange={() => onShade(!shade)} />
         <span>Shade the Moon by landings that fit</span>
       </label>

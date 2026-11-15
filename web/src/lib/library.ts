@@ -37,6 +37,8 @@ export interface LibraryCard {
   /** Names this card: the plan and the scenario's place in it. */
   key: string
   entry: LibraryEntry
+  /** How many listed plans hold this same landing, the place and the hour: 1 when only this one does. Counted by `filterCards`. */
+  copies: number
   /** The scenario as the screen holds one; null when its landing is outside the data. */
   scenario: SightlineScenario | null
   /** The site's name, or the coordinates of a custom point. */
@@ -104,7 +106,7 @@ export function cardsOf(entries: LibraryEntry[], start: string, hours: number, s
     const landing = hourOf(start, entry.landing)
     const inData = Number.isInteger(landing) && landing >= 0 && landing < hours
     const month = inData ? locateHour(start, landing).month : entry.landing.slice(0, 7)
-    const base = { key: `${entry.plan}.${nth}`, entry, scenario: inData ? { site: entry.site, landing } : null, month }
+    const base = { key: `${entry.plan}.${nth}`, entry, copies: 1, scenario: inData ? { site: entry.site, landing } : null, month }
     if (!listed || !inData) {
       return [{ ...base, place: listed ? listed.site.name : point ? `Custom point, ${pointWords(point.lat, point.lon)}` : entry.site, site: listed?.site ?? null, fits: null, problems: [], monthShare: null, bands: null, sunShare: null, earthShare: null }]
     }
@@ -128,9 +130,11 @@ export interface LibraryFilters {
   fitsOnly: boolean
   /** At least this share of the landing's month has a day that fits, in percent; 0 shows all. */
   minMonthPct: number
+  /** One card for each landing: the same place and hour saved in several plans is shown once, from the newest of them. On unless switched off. */
+  oneEach: boolean
 }
 
-export const NO_FILTERS: LibraryFilters = { words: '', site: '', from: '', to: '', fitsOnly: false, minMonthPct: 0 }
+export const NO_FILTERS: LibraryFilters = { words: '', site: '', from: '', to: '', fitsOnly: false, minMonthPct: 0, oneEach: true }
 
 /** Whether any filter is set. */
 export function filtering(filters: LibraryFilters): boolean {
@@ -140,7 +144,7 @@ export function filtering(filters: LibraryFilters): boolean {
 /** The cards the filters let through, in the order given. Every word typed must be in the plan's name or the place's. */
 export function filterCards(cards: LibraryCard[], filters: LibraryFilters): LibraryCard[] {
   const words = filters.words.toLowerCase().split(/\s+/).filter(Boolean)
-  return cards.filter((card) => {
+  const passed = cards.filter((card) => {
     const text = `${card.entry.title} ${card.place}`.toLowerCase()
     if (!words.every((word) => text.includes(word))) return false
     if (filters.site && card.entry.site !== filters.site) return false
@@ -150,6 +154,15 @@ export function filterCards(cards: LibraryCard[], filters: LibraryFilters): Libr
     if (filters.minMonthPct > 0 && (card.monthShare === null || card.monthShare * 100 < filters.minMonthPct)) return false
     return true
   })
+  // How many plans hold each landing is counted over the whole library, not over what the other filters let through.
+  const landing = (card: LibraryCard) => `${card.entry.site}@${card.entry.landing}`
+  const held = new Map<string, number>()
+  for (const card of cards) held.set(landing(card), (held.get(landing(card)) ?? 0) + 1)
+  const counted = passed.map((card) => ({ ...card, copies: held.get(landing(card)) ?? 1 }))
+  if (!filters.oneEach) return counted
+  // The first of each landing is kept: the library comes newest plan first, so that is the newest plan's.
+  const seen = new Set<string>()
+  return counted.filter((card) => !seen.has(landing(card)) && seen.add(landing(card)))
 }
 
 /**

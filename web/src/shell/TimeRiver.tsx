@@ -32,14 +32,35 @@ export function TimeRiver({ track, index, onIndex, landing, missionHours, previo
   const segments = useMemo(() => riverSegments(track), [track])
   const marks = useMemo(() => dayMarks(track), [track])
 
+  // Playing moves on one hour every PLAY_STEP_MS, counted on the screen's own frames from when play
+  // started: hours come at an even pace, with no drift from timers firing late, and each on a frame.
+  const playFrom = useRef<{ time: number; hour: number } | null>(null)
+  const latest = useRef({ shown, last, onIndex })
   useEffect(() => {
-    if (!playing) return
-    const timer = setTimeout(() => {
-      if (shown >= last) setPlaying(false)
-      else onIndex(shown + 1)
-    }, PLAY_STEP_MS)
-    return () => clearTimeout(timer)
-  }, [playing, shown, last, onIndex])
+    latest.current = { shown, last, onIndex }
+  }, [shown, last, onIndex])
+  useEffect(() => {
+    if (!playing) {
+      playFrom.current = null
+      return
+    }
+    let request = 0
+    const frame = (time: number) => {
+      const now = latest.current
+      // A drag or a month step while playing: count on from where time now is.
+      const counted = playFrom.current && playFrom.current.hour + Math.floor((time - playFrom.current.time) / PLAY_STEP_MS)
+      if (!playFrom.current || counted === null || now.shown < playFrom.current.hour || now.shown > counted + 1) playFrom.current = { time, hour: now.shown }
+      const due = playFrom.current.hour + Math.floor((time - playFrom.current.time) / PLAY_STEP_MS)
+      if (now.shown >= now.last) {
+        setPlaying(false)
+        return
+      }
+      if (due > now.shown) now.onIndex(Math.min(due, now.shown + 1))
+      request = requestAnimationFrame(frame)
+    }
+    request = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(request)
+  }, [playing])
 
   const at = (sample: number) => `${(100 * sample) / Math.max(last, 1)}%`
 
