@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import type { MastHeight, SiteInfo, SiteSpread, Summary } from '../data/contract'
-import { loadMastHeights, loadSpread } from '../data/loadSite'
+import type { MastHeight, SiteInfo, Summary } from '../data/contract'
+import { loadMastHeights } from '../data/loadSite'
 import { ANTENNA_HEIGHTS_M, HEIGHT_MEANS, heightsWords, isBaseHeights, type MissionHeights, PANEL_HEIGHTS_M } from '../lib/heights'
 import type { Requirements } from '../lib/mission'
 import { CLEARANCE_CHOICES_DEG, MISSION_RANGES, NO_LIMIT_H, PRESETS, presetOf, SILENCE_NO_LIMIT_STOP, SILENCE_RANGE, type SightlineMission, silenceHours, silenceStop } from '../lib/sightlineMission'
-import { accuracyNote, heightNote } from '../lib/sightlineNotes'
+import { heightNote } from '../lib/sightlineNotes'
 
 interface Props {
   mission: SightlineMission
@@ -75,29 +75,31 @@ function HeightChoice({ mission, onMission, off }: Pick<Props, 'mission' | 'onMi
 }
 
 /**
- * What the hourly numbers assume: the height above the ground and how close the landing comes.
- * Where the heights can be chosen the first note is left to the choice itself.
+ * What the hourly numbers assume about height, where the heights cannot be chosen: the height above
+ * the ground they are worked out for, and what going higher does. Where the heights can be chosen
+ * the choice itself says it, so there is nothing to add. How close the landing comes is the Accuracy
+ * panel's subject, and is said there only.
  */
-export function Assumptions({ site, month, year, summary, heights, choice }: Pick<Props, 'site' | 'month' | 'year' | 'summary'> & { heights: MissionHeights; choice: boolean }) {
-  const [loaded, setLoaded] = useState<{ siteId: string; heights: MastHeight[] | null; spread: SiteSpread | null } | null>(null)
+export function Assumptions({ site, year, summary, heights, choice }: Pick<Props, 'site' | 'month' | 'year' | 'summary'> & { heights: MissionHeights; choice: boolean }) {
+  const [loaded, setLoaded] = useState<{ siteId: string; heights: MastHeight[] | null } | null>(null)
   useEffect(() => {
+    if (choice) return
     let current = true
-    Promise.all([loadMastHeights(site).catch(() => null), loadSpread(site).catch(() => null)]).then(([heights, spread]) => {
-      if (current) setLoaded({ siteId: site.id, heights, spread })
-    })
+    loadMastHeights(site)
+      .catch(() => null)
+      .then((heights) => {
+        if (current) setLoaded({ siteId: site.id, heights })
+      })
     return () => {
       current = false
     }
-  }, [site])
+  }, [site, choice])
+  if (choice) return null
   const here = loaded?.siteId === site.id ? loaded : null
-  // Until the site's files arrive the notes give the figure they are sure of, and nothing more.
+  // Until the site's file arrives the note gives the figure it is sure of, and nothing more.
   return (
     <div className="sl-assume">
-      {!choice && <p>{!isBaseHeights(heights) ? `Height above ground: ${heightsWords(heights)}, chosen in the Planner.` : summary ? heightNote(here?.heights ?? null, year, summary.obs_height_m) : 'Height above ground: …'}</p>}
-      <p>
-        {here ? accuracyNote(here.spread, month, summary) : 'Landing accuracy: …'}
-        {here?.spread && !isBaseHeights(heights) ? ' These figures are for 2 m.' : ''}
-      </p>
+      <p>{!isBaseHeights(heights) ? `Height above ground: ${heightsWords(heights)}, chosen in the Planner.` : summary ? heightNote(here?.heights ?? null, year, summary.obs_height_m) : 'Height above ground: …'}</p>
     </div>
   )
 }
