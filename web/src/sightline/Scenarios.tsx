@@ -1,5 +1,5 @@
 import { formatDuration } from '../lib/nextChange'
-import { MAX_SCENARIOS, SCENARIO_LETTERS } from '../lib/sightlineMission'
+import { addScenarioMeans, MAX_SCENARIOS, SCENARIO_LETTERS } from '../lib/sightlineMission'
 
 interface TabsProps {
   count: number
@@ -7,6 +7,8 @@ interface TabsProps {
   onSelect: (index: number) => void
   /** Add what is on screen as a new scenario; left out once there are four. */
   onAdd: () => void
+  /** What that adds, in words: the site on show and the hour on the time bar. Left out where the page adds something else. */
+  adds?: string
   /** Remove a scenario; offered on every tab while there is more than one. */
   onRemove: (index: number) => void
 }
@@ -16,7 +18,7 @@ interface TabsProps {
  * small "−" at its right edge, which removes that one whichever is selected; then "+" adds what is
  * on screen. With one scenario there is nothing to remove.
  */
-export function ScenarioTabs({ count, active, onSelect, onAdd, onRemove }: TabsProps) {
+export function ScenarioTabs({ count, active, onSelect, onAdd, adds, onRemove }: TabsProps) {
   return (
     <div className="sl-tabs" role="group" aria-label="Scenarios">
       {Array.from({ length: count }, (_, i) => (
@@ -32,7 +34,7 @@ export function ScenarioTabs({ count, active, onSelect, onAdd, onRemove }: TabsP
         </span>
       ))}
       {count < MAX_SCENARIOS && (
-        <button type="button" data-tour="add" aria-label="Add a scenario" title="Adds this site, at the hour on the time bar, as another scenario to compare." onClick={onAdd}>
+        <button type="button" data-tour="add" aria-label="Add a scenario" title={adds ? addScenarioMeans(adds) : 'Adds this site, at the hour on the time bar, as another scenario to compare.'} onClick={onAdd}>
           +
         </button>
       )}

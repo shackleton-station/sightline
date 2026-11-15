@@ -2214,6 +2214,21 @@ button.sl-moment-heights[aria-expanded='true'] {
   margin-top: 0.6rem;
 }
 
+/* "Add scenario D", with what it adds in quiet type under it: the site on show at the time bar's hour. */
+.sl-compare-add {
+  display: grid;
+  justify-items: start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.sl-compare-add small {
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
 /* The way to the full comparison: at the panel's end, on the right. */
 .sl-compare-full {
   margin-left: auto;

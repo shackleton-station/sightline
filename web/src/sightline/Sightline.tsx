@@ -514,6 +514,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const surfaceTint = fitShade ? `${surfaceLink(scenarios, active, start, mission)}${accuracyUsed ? spreadLink(spread) : ''}&odds=1` : null
   // The pointer or the keyboard has been on the Surface button: its frame is loaded at once.
   const [surfaceNear, setSurfaceNear] = useState(false)
+  // What "add a scenario" adds, said wherever it is offered: the site on show at the hour on the time bar.
+  const addWords = `${site.name} · ${clockTime(start, hour)}`
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
   const scoutView = active > 0 ? view : `${view}&sc=0`
   useEffect(() => {
@@ -1008,7 +1010,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             </div>
             {/* The scenarios, on a row of their own; the undo notice sits at the row's end for a few seconds, so nothing moves and nothing is over the Moon. */}
             <div className="sl-tabs-row">
-              <ScenarioTabs count={scenarios.length} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} onRemove={removeScenario} />
+              <ScenarioTabs count={scenarios.length} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} adds={addWords} onRemove={removeScenario} />
               {removed && <RemovedNotice letter={SCENARIO_LETTERS[removed.index]} onUndo={undoRemove} />}
             </div>
             <Answer
@@ -1403,7 +1405,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         />
       )}
       {shown && !planner && drawer === 'compare' && (
-        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} onFull={() => {
+        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} adds={addWords} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} onFull={() => {
           // The full comparison is the Planner's Compare tab; in the Planner the only panel is Scout's.
           setDrawer(null)
           setNewPlanner(false)

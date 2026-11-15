@@ -171,6 +171,8 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
   // row of the scenario on show: which row, and the whole stretch it belongs to. Its words show over its own row.
   const [pointed, setPointed] = useState<({ row: number } & RiverSegment) | null>(null)
   const [focused, setFocused] = useState(false)
+  // The flag under the pointer or the keyboard: its mission is previewed as a thin outline on its row.
+  const [previewed, setPreviewed] = useState<string | null>(null)
   const point = (event: PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect()
     const tracks = [...(event.currentTarget.parentElement?.querySelectorAll('.sl-site-row .sl-track') ?? [])]
@@ -321,10 +323,18 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                           className={`sl-flag${state ? ` is-${state}` : ''}${where ? ` is-${where}` : ''}`}
                           aria-pressed={one.active}
                           aria-label={`Scenario ${one.letter}: ${one.full}`}
-                          title={`Scenario ${one.letter}: lands at ${one.siteName} on ${one.full.replace(`${one.siteName} · `, '')}${where ? `, ${where} the days shown` : ''}. Press to select it.`}
+                          title={`Scenario ${one.letter}: lands at ${one.siteName} on ${one.full.replace(`${one.siteName} · `, '')}${where ? `, ${where} the days shown` : ''}. ${one.active ? 'Press to move the time bar back to its landing.' : 'Press to select it and move the time bar to its landing.'}`}
                           data-hour={one.landing}
+                          onPointerEnter={() => setPreviewed(one.key)}
+                          onPointerLeave={() => setPreviewed((current) => (current === one.key ? null : current))}
+                          onFocus={() => setPreviewed(one.key)}
+                          onBlur={() => setPreviewed((current) => (current === one.key ? null : current))}
                           style={{ left: places ? `${places[i]}px` : `calc(${at(Math.min(Math.max(one.landing + 0.5 - from, 0), count))} - ${FLAG_REM / 2}rem)` }}
-                          onClick={() => onSelect(one.key)}
+                          onClick={() => {
+                            // A flag is its landing's mark: a press selects the scenario and goes to that hour.
+                            onSelect(one.key)
+                            clock.setHour(one.landing)
+                          }}
                         >
                           {where === 'before' && '‹'}
                           {one.letter}
@@ -333,7 +343,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                       )
                     })}
                     {/* The selected mission, named beside its flag. */}
-                    {selected >= 0 && places && (
+                    {selected >= 0 && places && side && (
                       <span className={`sl-span-label is-${side}`} style={{ left: `${side === 'right' ? places[selected] + flagWidth : places[selected]}px` }}>
                         {missionLabel(site.scenarios[selected].letter, missionHours)}
                       </span>
@@ -346,15 +356,18 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                           <rect key={run.from} className={`sl-run is-${run.state}`} x={run.from} y={BAND[run.state].y} width={run.to - run.from} height={BAND[run.state].height} />
                         ))}
                     </svg>
-                    {/* Each mission from its landing to its end: the selected one lit, with the row dimmed on either side of it; the others a thin outline. */}
+                    {/* One mission is drawn on a row, from its landing to its end: the selected one, lit, with the row dimmed on
+                        either side of it. Every other scenario is its flag alone, so two missions at one site never lie over each
+                        other; pointing at a flag, or reaching it with the keyboard, previews its mission as a thin outline. */}
                     {site.scenarios.map((one) => {
+                      if (!one.active && one.key !== previewed) return null
                       const first = Math.max(one.landing, from)
                       const end = Math.min(one.landing + missionHours, to)
                       if (end <= first) return null
                       return (
                         <span
                           key={one.key}
-                          className={`sl-span${one.active ? ' is-lit' : ''}${one.landing >= from ? ' has-start' : ''}${one.landing + missionHours <= to ? ' has-end' : ''}`}
+                          className={`sl-span${one.active ? ' is-lit' : ' is-preview'}${one.landing >= from ? ' has-start' : ''}${one.landing + missionHours <= to ? ' has-end' : ''}`}
                           data-scenario={one.letter}
                           data-hours={end - first}
                           style={{ left: at(first - from), width: at(end - first) }}

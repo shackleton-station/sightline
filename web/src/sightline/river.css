@@ -230,6 +230,11 @@
   border-right-width: 1px;
 }
 
+/* A mission previewed from its flag (the pointer or the keyboard is on it) lies over the lit one. */
+.sl-span.is-preview {
+  z-index: 2;
+}
+
 /* The selected mission is lit: a full outline, and the row dimmed on either side of it. */
 .sl-span.is-lit {
   z-index: 1;
