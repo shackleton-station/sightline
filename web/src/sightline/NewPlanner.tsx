@@ -30,9 +30,8 @@ import './library.css'
 import { NearbyGround } from './NearbyGround'
 import { useHorizons, useMissionTracks } from './useMissionTracks'
 import { LandingRain } from './LandingRain'
-import { useMissionGrid } from './useMissionGrid'
 import { DEFAULT_SPREAD, type Spread } from '../lib/landingOdds'
-import { isBaseHeights } from '../lib/heights'
+import { DEFAULT_HEIGHTS, isBaseHeights } from '../lib/heights'
 import { siteValue } from './site'
 import '../planner/planner.css'
 import '../planner/planner-brief.css'
@@ -153,7 +152,6 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   // A ridge site, or a point of your own on a ridge site's map (where Aim and Go there lead).
   const anchor = useMemo(() => (view && sites ? nearbyAnchor(view.row.site, sites.map((one) => one.site)) : null), [view, sites])
   const accuracyWanted = tab === 'find' && view !== null && anchor !== null
-  const missionGrid = useMissionGrid(start, view ? hourOf(start, view.landing.t) : 0, mission.requirements.missionDays, accuracyWanted)
   const why = useMemo(() => (view ? briefWhy(view.row.flags, view.answer.span, view.viable, view.answer.days, mission.requirements) : null), [view, mission.requirements])
   // The library's scenarios and the tray's, measured against the mission on screen. The grid gives each
   // card the share of its month's days with a landing that fits.
@@ -400,7 +398,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                 {accuracyWanted && (
                   <div className="np-accuracy">
                     <h5>Where the lander may come down</h5>
-                    <LandingRain site={view.row.site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} onAim={(lat, lon) => onScenario({ site: `${lat},${lon}`, landing: hourOf(start, view.landing.t) })} />
+                    <LandingRain site={view.row.site} mission={mission} heights={isCustomSite(view.row.site) ? DEFAULT_HEIGHTS : mission.heights} start={start} landing={hourOf(start, view.landing.t)} spread={spread} onSpread={setSpread} onAim={(lat, lon) => onScenario({ site: `${lat},${lon}`, landing: hourOf(start, view.landing.t) })} />
                   </div>
                 )}
                 {anchor && (

@@ -10,6 +10,7 @@ import {
   monthSummary,
   monthTrack,
   nearResolutionM,
+  polarXY,
   slopeAt,
   Terrain,
   type TerrainAssets,
@@ -17,6 +18,7 @@ import {
   yearSummary,
 } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
+import { blockReachM, polarBlock, type PolarGround } from '../lib/pointHorizons'
 import { spanHours, type YearSpan, yearsOf } from '../lib/span'
 import type { BandAccuracy, CustomMeta, MastHeight, SiteInfo } from './contract'
 
@@ -142,6 +144,19 @@ export async function loadDrawingTerrain(lat: number, lon: number, polarReachM: 
   const drawingTiles: TileStore = new Map()
   await loadTiles(assets.meta, lat, lon, drawingTiles, readTile, polarReachM)
   return new Terrain(assets, drawingTiles)
+}
+
+/**
+ * The ground the fast horizons are worked out from (`pointHorizons.ts`), for points within
+ * `aroundM` of a point near the south pole: the coarse polar map, and the fine terrain around the
+ * points as one block. The tiles are the custom points' own, so a point opened before costs nothing.
+ */
+export async function loadPolarGround(lat: number, lon: number, aroundM: number): Promise<PolarGround> {
+  const assets = await loadTerrainAssets()
+  const reach = blockReachM(assets.meta, aroundM)
+  await loadTiles(assets.meta, lat, lon, tiles, readTile, reach)
+  const { x, y } = polarXY(lat, lon)
+  return { meta: assets.meta, polarFar: assets.polarFar, block: polarBlock(assets.meta, tiles, x, y, reach) }
 }
 
 interface LoadedModel {

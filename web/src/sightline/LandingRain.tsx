@@ -1,21 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
-import { slopePartFor, slopePartNow } from '../data/loadMissionGrid'
+import type { FieldAsk } from '../data/landingField'
+import { polarLatLon, polarXY } from '../lib/customModel'
+import type { MissionHeights } from '../lib/heights'
+import { latticeFor, verdictPicture } from '../lib/landingField'
 import {
   ACCURACY_RANGE,
   ACCURACY_SHARE,
-  bestCentredAim,
+  bestAim,
   cellAtM,
-  cellCentreM,
-  cellChances,
   FIT_COLOR,
   FITS,
-  landingOdds,
   type Miss,
   MISS_COLORS,
   MISS_WORDS,
   MISSES,
   missOf,
+  oddsWords,
   RING_SHARES,
   radiusHolding,
   reachM,
@@ -23,24 +24,39 @@ import {
   type Spread,
   verdictColor,
 } from '../lib/landingOdds'
-import { planeLatLon, planeXY } from '../lib/lightGrid'
 import { type TrekWindow, trekLayer, trekWindow } from '../lib/trekLayers'
 import { useFinePhoto } from '../data/finePhoto'
-import { fitMapAround, squareAround } from '../lib/missionGrid'
 import type { SightlineMission } from '../lib/sightlineMission'
 import { useWidth } from '../lib/useWidth'
 import { clock } from './clockFace'
 import { LandingExplain } from './LandingExplain'
-import { type MissionGrid, REACH_M } from './useMissionGrid'
+import { useFieldReadings, useLandingFields } from './useLandingFields'
+
+/** Pixels along a side of the picture of the ground's verdicts, before it is drawn at the stage's size. */
+const GROUND_PX = 320
+
+/** Each verdict's color as red, green and blue: the fit's first, then each reason's. */
+const VERDICT_RGB = Array.from({ length: MISSES.length + 1 }, (_, code) => {
+  const hex = verdictColor(code)
+  return [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16))
+})
 
 interface Props {
   site: SiteInfo
   mission: SightlineMission
-  grid: MissionGrid
+  /** The heights the landing points are worked out at: those the site's verdict is for. */
+  heights: MissionHeights
+  /** The landing: the first hour of the data, and the landing's hours after it. */
+  start: string
+  landing: number
+  /** The verdict for the aim point itself, which the map under the cross agrees with: null where it fits, the reason where it does not, undefined when there is none to agree with. */
+  verdict?: Miss | null
   spread: Spread
   onSpread: (spread: Spread) => void
   /** Move the target to a point (a better place to aim). */
   onAim: (lat: number, lon: number) => void
+  /** In a side panel: a shorter opening, and "How is this worked out?" starts closed. */
+  compact?: boolean
 }
 
 /** How many simulated landers a run drops, and how fast (landers a second). */
@@ -77,35 +93,26 @@ function drop(spread: Spread): { x: number; y: number } {
  * where a landing still gets through the mission and in each reason's colour where it doesn't, and
  * simulated landers raining in on the real miss distribution for the accuracy chosen, each leaving a
  * mark. A tally beside it counts how many fit and why the others don't, closing on the odds the model
- * gives. The same map and odds as the main screen's Landing accuracy panel.
+ * gives. The same map and odds as the line under the verdict and Compare's row.
+ *
+ * The ground is judged at landing points round the target, each as the verdict judges a point: its
+ * own skyline from the 20 m terrain, with the mission's heights and Earth clearance
+ * (`lib/landingField.ts`). The picture is read between those points, so it has no squares.
  */
-export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Props) {
-  const { meta, gaps } = grid
+export function LandingRain({ site, mission, heights, start, landing, verdict, spread, onSpread, onAim, compact = false }: Props) {
   const { requirements, maxSlopeDeg } = mission
-  const [, setArrived] = useState(0)
-  const square = useMemo(() => (meta ? squareAround(meta, site.lat, site.lon, REACH_M) : null), [meta, site.lat, site.lon])
-  const squareKey = square ? `${square.col},${square.row},${square.cells}` : null
-  useEffect(() => {
-    if (!meta || !square) return
-    let current = true
-    void slopePartFor(meta, square).then(() => current && setArrived((count) => count + 1))
-    return () => {
-      current = false
-    }
-    // The key names the square: the same key is the same ground.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [meta, squareKey])
-  const slope = square ? slopePartNow(square) : undefined
-  const map = useMemo(
-    () => (meta && gaps && square && slope !== undefined ? fitMapAround(meta, gaps, square, site.lat, site.lon, requirements, maxSlopeDeg, slope) : null),
-    [meta, gaps, square, slope, site.lat, site.lon, requirements, maxSlopeDeg],
-  )
-  const chances = useMemo(() => (map ? cellChances(map, spread) : null), [map, spread])
-  const odds = useMemo(() => (map && chances ? landingOdds(map, chances) : null), [map, chances])
+  // The landing points round the target, for the spread in force: their lattice changes with it.
+  const lattice = useMemo(() => latticeFor(spread), [spread])
+  const ask: FieldAsk = { lat: site.lat, lon: site.lon, panelM: heights.panelM, antennaM: heights.antennaM, startIso: start, landing, missionDays: requirements.missionDays, clearanceDeg: requirements.minEarthClearanceDeg, lattice }
+  const [points] = useLandingFields([ask])
+  const [reading] = useFieldReadings([points], mission, spread, [verdict])
+  const map = reading?.map ?? null
+  const chances = reading?.chances ?? null
+  const odds = reading?.odds ?? null
+  const margins = reading?.margins ?? null
   const searchM = map ? Math.max(0, reachM(map) - 1.25 * spread.accuracyM * spread.stretch) : 0
-  // Aims are tried at the light grid's cell centres only, where its light is known, so the brief at the new target agrees.
-  const aim = useMemo(() => (map && meta && odds && searchM > 0 ? bestCentredAim(map, spread, meta.pixel_m, searchM, odds) : null), [map, meta, odds, spread, searchM])
-  const viewM = map && meta ? Math.min(Math.max(1.6 * spread.accuracyM * spread.stretch, 2 * meta.pixel_m), reachM(map)) : 0
+  const aim = useMemo(() => (map && chances && searchM > 0 ? bestAim(map, chances, searchM) : null), [map, chances, searchM])
+  const viewM = map ? Math.min(Math.max(1.6 * spread.accuracyM * spread.stretch, 100), reachM(map)) : 0
 
   // The slider: shown at once, applied when it rests, so the odds and the better aim are worked out once.
   // Every scatter control (here and in "How this works") goes through one draft, applied when it rests.
@@ -125,7 +132,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
   const started = useRef(0)
   // Only the button plays landers in; anything else shows them already down.
   const wantPlay = useRef(false)
-  const runFor = `${squareKey}|${spread.accuracyM}|${spread.stretch}|${spread.bearingDeg}|${map ? map.verdict.length : 0}|${requirements.missionDays}|${requirements.maxSunGapH}|${requirements.maxEarthGapH}|${maxSlopeDeg}|${runKey}`
+  const runFor = `${site.lat},${site.lon}@${landing}|${verdict}|${heights.panelM}|${heights.antennaM}|${requirements.minEarthClearanceDeg}|${spread.accuracyM}|${spread.stretch}|${spread.bearingDeg}|${map ? map.verdict.length : 0}|${requirements.missionDays}|${requirements.maxSunGapH}|${requirements.maxEarthGapH}|${maxSlopeDeg}|${runKey}`
   const still = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   useEffect(() => {
@@ -186,38 +193,37 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
   const [box, width] = useWidth()
   const canvas = useRef<HTMLCanvasElement>(null)
   const ground = useMemo(() => {
-    if (!map || viewM === 0) return null
-    // One pixel per cell, then scaled up with smoothing: the cells' colours blend instead of showing as blocks.
-    const side = Math.max(1, Math.round((2 * viewM) / map.cellM) + 2)
-    const off = document.createElement('canvas')
-    off.width = side
-    off.height = side
-    const g = off.getContext('2d')
-    if (!g) return null
-    for (let at = 0; at < map.verdict.length; at += 1) {
-      const { x, y } = cellCentreM(map, at)
-      const i = Math.round((x + viewM) / map.cellM)
-      const j = Math.round((viewM - y) / map.cellM)
-      if (i < 0 || j < 0 || i >= side || j >= side) continue
-      g.fillStyle = verdictColor(map.verdict[at])
-      g.fillRect(i, j, 1, 1)
+    if (!margins || viewM === 0) return null
+    // The verdict read at every pixel from the landing points' margins, then drawn at the stage's size with its edges softened.
+    const codes = verdictPicture(margins, viewM, GROUND_PX)
+    const picture = new ImageData(GROUND_PX, GROUND_PX)
+    for (let at = 0; at < codes.length; at += 1) {
+      const [red, green, blue] = VERDICT_RGB[codes[at]]
+      picture.data[4 * at] = red
+      picture.data[4 * at + 1] = green
+      picture.data[4 * at + 2] = blue
+      picture.data[4 * at + 3] = 255
     }
+    const off = document.createElement('canvas')
+    off.width = GROUND_PX
+    off.height = GROUND_PX
+    off.getContext('2d')?.putImageData(picture, 0, 0)
     return off
-  }, [map, viewM])
+  }, [margins, viewM])
 
   // The real ground under the colours: LROC's south-pole photo mosaic (our 1 m tiles round the ridge
-  // sites, Moon Trek's elsewhere), cut for this square. The light grid and Moon Trek's map share one
+  // sites, Moon Trek's elsewhere), cut for this square. The terrain and Moon Trek's map share one
   // projection (polar stereographic, x toward 90° E, y toward 0° E, the same radius), so its metres
   // are the fit map's metres.
   const fine = useFinePhoto(true)
   const [photo, setPhoto] = useState<{ key: string; win: TrekWindow; image: HTMLCanvasElement } | null>(null)
   const sidePx = Math.min(width, 600)
-  const photoKey = meta && viewM > 0 && sidePx > 0 ? `${site.id}|${Math.round(viewM)}|${Math.round(sidePx)}|${fine ? 'fine' : 'trek'}` : null
+  const photoKey = viewM > 0 && sidePx > 0 ? `${site.id}|${Math.round(viewM)}|${Math.round(sidePx)}|${fine ? 'fine' : 'trek'}` : null
   useEffect(() => {
-    if (!meta || !photoKey) return
+    if (!photoKey) return
     const layer = trekLayer('photo')
     if (!layer) return
-    const middle = planeXY(meta, site.lat, site.lon)
+    const middle = polarXY(site.lat, site.lon)
     const ratio = window.devicePixelRatio || 1
     const win = trekWindow(layer, middle, viewM * 1.05, (2 * viewM) / (sidePx * ratio), fine)
     if (!win) return
@@ -276,12 +282,11 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
 
     context.imageSmoothingEnabled = true
     context.imageSmoothingQuality = 'high'
-    const cellPx = map.cellM * perM
-    if (shownPhoto && meta) {
+    if (shownPhoto) {
       // The photo, placed by its own metres round the target; then the verdicts laid over it as colour
       // only, so the craters, ridges and shadows keep their own light and dark.
       const { win, image } = shownPhoto
-      const middle = planeXY(meta, site.lat, site.lon)
+      const middle = polarXY(site.lat, site.lon)
       const left = win.centreXM - win.halfWidthM - middle.x
       const top = win.centreYM + win.halfHeightM - middle.y
       context.fillStyle = '#000'
@@ -289,14 +294,14 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
       context.drawImage(image, px(left), py(top), win.widthPx * win.metresPerPixel * perM, win.heightPx * win.metresPerPixel * perM)
       context.globalCompositeOperation = 'color'
       context.globalAlpha = 0.85
-      context.drawImage(ground, -cellPx / 2, -cellPx / 2, side + cellPx, side + cellPx)
+      context.drawImage(ground, 0, 0, side, side)
       context.globalCompositeOperation = 'source-over'
       context.globalAlpha = 0.16
-      context.drawImage(ground, -cellPx / 2, -cellPx / 2, side + cellPx, side + cellPx)
+      context.drawImage(ground, 0, 0, side, side)
       context.globalAlpha = 1
     } else {
       context.globalAlpha = 0.78
-      context.drawImage(ground, -cellPx / 2, -cellPx / 2, side + cellPx, side + cellPx)
+      context.drawImage(ground, 0, 0, side, side)
       context.globalAlpha = 1
     }
     // A soft vignette, so the eye goes to the middle.
@@ -387,12 +392,18 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
     context.fillRect(11, side - 12, barM * perM, 2)
     context.font = '11px system-ui, sans-serif'
     context.fillText(`${barM} m`, 11, side - 16)
-  }, [map, ground, landers, width, viewM, spread, aim, still, shownPhoto, meta, site.lat, site.lon])
+  }, [map, ground, landers, width, viewM, spread, aim, still, shownPhoto, site.lat, site.lon])
 
-  if (meta === null || grid.state === 'failed') return <p className="sl-quiet">The light grid could not be read.</p>
-  if (grid.state === 'past') return <p className="sl-quiet">The mission runs past the last month of the light grid, so the ground around this landing can't be judged.</p>
-  if (meta && !square) return <p className="sl-quiet">{site.name} is outside the light grid, which covers the ground within about {Math.round(meta.half_width_m / 1000)} km of the south pole.</p>
-  if (!meta || !map || !odds) return <p className="sl-quiet">Reading the ground around {site.name}…</p>
+  const answer = points.answer
+  if (!answer && points.failed) return <p className="sl-quiet">The terrain around {site.name} could not be read.</p>
+  if (answer?.state === 'past') return <p className="sl-quiet">The mission runs past the years there are Sun and Earth positions for, so the ground around this landing can't be judged.</p>
+  if (answer?.state === 'outside') return <p className="sl-quiet">{site.name} is outside the fine terrain round the south pole, which holds every skyline within about 100 km of it.</p>
+  if (!map || !odds)
+    return (
+      <p className="sl-quiet" role="status">
+        Working out the landing points around {site.name}… {points.progress > 0 ? `${Math.round(100 * points.progress)}%` : ''}
+      </p>
+    )
 
   // The tally so far: how many fit, and why the rest don't.
   const down = landers.length
@@ -407,16 +418,20 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
   const pct = (n: number) => (down === 0 ? 0 : Math.round((100 * n) / down))
   const better = aim && aim.fit > odds.fit + 0.005 ? aim : null
   const takeAim = () => {
-    if (!aim || !meta) return
-    const target = planeXY(meta, site.lat, site.lon)
-    const { lat, lon } = planeLatLon(meta, target.x + aim.x, target.y + aim.y)
+    if (!aim) return
+    const target = polarXY(site.lat, site.lon)
+    const { lat, lon } = polarLatLon(target.x + aim.x, target.y + aim.y)
     onAim(Number(lat.toFixed(6)), Number(lon.toFixed(6)))
   }
 
   return (
     <div className="np-rain">
       <p className="np-lead">
-        <b>Will your mission still work if the lander misses its mark?</b> The brief judges one exact point, but a lander comes down anywhere within about {shownM} m of its aim, and on a ridge the Sun and Earth can be lost within that distance. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails. <b>Aim</b> moves your target so more landings fit.
+        <b>Will your mission still work if the lander misses its mark?</b>{' '}
+        {compact
+          ? `A lander comes down anywhere within about ${shownM} m of its aim. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails.`
+          : `The brief judges one exact point, but a lander comes down anywhere within about ${shownM} m of its aim, and on a ridge the Sun and Earth can be lost within that distance. Each dot is one simulated landing: green ground keeps power and radio for your whole mission, other colours say what fails.`}{' '}
+        <b>Aim</b> moves your target so more landings fit.
       </p>
       {better ? (
         <p className="np-act">
@@ -437,11 +452,11 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
       </div>
       <div className="np-rain-side">
         <p className="np-rain-big">
-          <strong>{down === 0 ? '…' : `${pct(fitCount)}%`}</strong>
+          <strong>{oddsWords(odds.fit)}</strong>
           <span>
-            of {down} simulated landers came down where the mission fits
+            of landings come down where the mission fits
             <br />
-            <small>the model's odds: {Math.round(odds.fit * 100)}%</small>
+            <small>{down === 0 ? 'no simulated landers down yet' : `${pct(fitCount)}% of the ${down} simulated landers shown`}</small>
           </span>
         </p>
         <div className="np-rain-bars">
@@ -505,7 +520,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
           )}
         </p>
       </div>
-      <LandingExplain map={map} viewM={viewM} odds={odds} spread={shownSpread} onSpread={setDraft} simulated={{ down, fit: fitCount }} cellM={map.cellM} />
+      <LandingExplain map={map} viewM={viewM} odds={odds} spread={shownSpread} onSpread={setDraft} simulated={{ down, fit: fitCount }} cellM={lattice.stepM} startOpen={!compact} />
     </div>
   )
 }
