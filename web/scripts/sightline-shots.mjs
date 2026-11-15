@@ -2567,6 +2567,17 @@ const SCENES = [
     notes: [['frame rate with a layer and its close-up on, while time plays', `(async () => { const zoomIn = () => [...document.querySelectorAll('.zoom-buttons button')].find((b) => b.getAttribute('aria-label') === 'Zoom in'); for (let i = 0; i < 15 && !zoomIn().disabled; i += 1) { zoomIn().click(); await new Promise((done) => setTimeout(done, 250)) } await new Promise((done) => setTimeout(done, 6000)); ${click('Play')}; const words = await ${FRAME_RATE}; ${click('Pause')}; return words + ', level ' + document.querySelector('.sl-moon').dataset.layerLevel })()`]],
   },
   {
+    // The way to the rover where the mission is chosen, for a visitor who never opens Scout.
+    name: 'rover-line',
+    hash: '#a=shackleton-rim@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',
+    checks: [
+      [
+        'under the mission\'s examples one line, in sight, names Canada\'s utility rover; choosing Long stay opens nothing; the line opens the rover\'s panel, which calls Long stay an example and tells a visitor on another mission where to choose it',
+        `(async () => { const wait = (ms) => new Promise((done) => setTimeout(done, ms)); const preset = (name) => [...document.querySelectorAll('.sl-mission-inline .sl-presets button')].find((b) => b.textContent.trim().startsWith(name)); document.querySelector('.sl-mission-open').click(); await wait(500); const line = document.querySelector('.sl-mission-inline .sl-rover-line'); const words = (line?.textContent ?? 'no line').replace(/\\s+/g, ' ').trim(); if (window.innerWidth < 761) line?.scrollIntoView({ block: 'center' }); const box = line?.getBoundingClientRect(); const seen = Boolean(box) && box.height > 10 && box.width > 100 && box.top >= 0 && box.bottom <= window.innerHeight && document.elementFromPoint(box.left + 4, box.top + box.height / 2)?.closest('.sl-rover-line') === line; preset('Long stay').click(); await wait(600); const quiet = document.querySelector('.sl-rover') === null && ${text('.sl-mission-open b')} === 'Long stay · 60 days'; preset('Short stay').click(); await wait(400); document.querySelector('.sl-mission-inline .sl-rover-line button').click(); await wait(700); const why = (document.querySelector('.sl-rover-why')?.textContent ?? 'no panel').replace(/\\s+/g, ' ').trim(); return (words === 'Long stay is the kind of mission Canada’s utility rover faces. About the rover ›' && seen && quiet && /Long stay is an example and not the rover’s own figures: 60 days, at most 14 days without Sun and no limit on time without Earth; choose it under Mission and the verdict on the left says whether this landing gets through\\.$/.test(why) && !/the mission is now/.test(why) && why.split('. ').length === 2) || words + ' | in sight: ' + seen + ' | Long stay opened nothing: ' + quiet + ' | ' + why })()`,
+      ],
+    ],
+  },
+  {
     // Scout's one idea: plan for the Canadian Space Agency's utility rover.
     name: 'rover',
     hash: '#a=shackleton-rim@2027-05&t=133&limits=14_24_99999_1_1&mode=plan',

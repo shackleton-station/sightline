@@ -193,6 +193,35 @@
           "targets": [".sl-horizons"]
         }
       ]
+    },
+    {
+      "id": "rover",
+      "name": "A real mission: Canada's rover",
+      "about": "A long stay through two weeks without the Sun.",
+      "steps": [
+        {
+          "id": "rover-mission",
+          "title": "A long stay",
+          "say": "The mission is now Long stay, an example and not the rover's own figures: 60 days, at most 14 days without the Sun.",
+          "state": { "view": "plan", "mission": "long" },
+          "targets": [".sl-mission-open"]
+        },
+        {
+          "id": "rover-verdict",
+          "title": "Why the pole is hard",
+          "say": "Near the pole the skyline can hide the Sun for days. The verdict says whether this landing gets through the longest dark spell.",
+          "state": { "view": "plan", "mission": "long" },
+          "targets": [".sl-verdict"]
+        },
+        {
+          "id": "rover-next",
+          "title": "Where it could land",
+          "say": "Press the next landing that fits to move there. The Planner's rover example shows every site, month by month.",
+          "state": { "view": "plan", "mission": "long" },
+          "targets": [".sl-next", "[data-tour=\"planner\"]"],
+          "wide": true
+        }
+      ]
     }
   ]
 }
