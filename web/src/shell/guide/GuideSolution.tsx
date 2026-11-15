@@ -43,7 +43,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, to
 
   const pipeline: FlowStep[] = [
     { name: 'NASA data', does: 'The shape of the Moon, and where the Sun and Earth are.', tech: 'LOLA laser altimeter terrain · NAIF SPICE kernels' },
-    { name: 'The skyline', does: `How high the land stands in ${directions} directions around the site.`, tech: 'ray march to 150 km over the terrain, on a sphere' },
+    { name: 'The skyline', does: `How high the land stands in ${directions} directions around the site.`, tech: 'ray march to 200 km over the terrain, on a sphere' },
     { name: 'Every hour', does: `Is the Sun or Earth above that skyline, ${height} off the ground?`, tech: 'SPICE positions in the MOON_ME frame, with light time' },
     { name: 'The answer', does: `Hourly visibility for ${siteCount} sites, ${span}.`, tech: 'static JSON and terrain tiles · all times in UTC' },
   ]
@@ -51,7 +51,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, to
   // The map of the polar ground's light: the same calculation, at every pixel. Its numbers are read
   // from the pipeline's own files, like every other number here.
   const everyPixel: FlowStep[] = [
-    { name: 'The same calculation', does: 'The skyline and the hourly check a listed site gets.', tech: `${directions} directions, out to 200 km, ${height} above the ground` },
+    { name: 'The same calculation', does: 'The skyline and the hourly check a listed site gets.', tech: `the same ${directions} directions, out to the same 200 km, ${height} above the ground` },
     { name: 'At every pixel', does: light ? `Each ${light.pixelM} m of a ${light.widthKm} km square on the south pole${light.wide ? `, and each ${light.wide.pixelM} m of a ${light.wide.widthKm} km one around it` : ''}.` : 'Every pixel of a square on the south pole.', tech: `${light ? `${light.millionsOfPixels.toFixed(1)} million` : 'millions of'} pixels · Python compiled with Numba` },
     { name: 'Kept as changes', does: 'A pixel’s month is the hours its Sun and Earth come and go.', tech: 'one file of a few megabytes a month · Cloud Storage' },
     { name: 'Drawn by your graphics card', does: 'Moving time changes one number; nothing is sent again.', tech: 'integer textures · a WebGL2 shader in Three.js' },
@@ -76,7 +76,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, to
     {
       name: 'Planner',
       question: 'What if the date slips?',
-      does: 'Find shows, month by month, the days with a landing that fits at every listed site. When a landing does not fit, the plan names the next one that does. Set your own limits, or read the Sun from a solar panel’s height and Earth from an antenna’s.',
+      does: 'Find shows a year month by month: the days with a landing that fits at every listed site. Months differ, because the Moon has seasons. When a landing does not fit, the plan names the next one that does. Set your own limits, or read the Sun from a solar panel’s height and Earth from an antenna’s.',
       sample: 'Next landing that fits →',
     },
     {

@@ -53,6 +53,14 @@ export function GuideEarthDay({ data }: { data: ScenarioData }) {
           </p>
         </li>
       </ul>
+      <p className="how-caption">
+        Earth’s axis tilts 23.4° and it turns once a day. The Moon’s tilts only 1.5°, and it turns once a month. With no air to hold heat, the ground at the Moon’s equator swings
+        from about −178 °C to +117 °C (
+        <a href="https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html" target="_blank" rel="noreferrer">
+          NASA’s Moon fact sheet
+        </a>
+        ).
+      </p>
       <p className="how-note">
         Stretches are counted inside the month, from the hourly data. To see the two side by side, open “⋯” on the time bar and tick “A day on Earth” (it is offered while the bar
         shows less than a year).
