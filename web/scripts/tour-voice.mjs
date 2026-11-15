@@ -8,6 +8,8 @@
 //   node scripts/tour-voice.mjs            render every step
 //   node scripts/tour-voice.mjs --step=scout   render that step alone (the others' files are left as they are)
 //   node scripts/tour-voice.mjs --check    render nothing; fail if a file is missing or older than its words
+//   node scripts/tour-voice.mjs --tour=five   the same for the five-minute tour (src/sightline/tour5.json,
+//                                          public/tour/voice5/); it takes --step and --check too
 //
 // It calls Google Cloud Text-to-Speech as the person signed in to gcloud, billed to the project
 // named by GOOGLE_CLOUD_PROJECT (or gcloud's own), exactly as the web server does it
@@ -18,8 +20,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const webDir = fileURLToPath(new URL('..', import.meta.url))
-const tour = JSON.parse(readFileSync(`${webDir}src/sightline/tour.json`, 'utf8'))
-const outDir = `${webDir}public/tour/voice/`
+/** Which tour: the one-minute tour, or the five-minute tour with --tour=five. Each has its own file of steps and its own folder of voice files. */
+const five = process.argv.includes('--tour=five')
+const tour = JSON.parse(readFileSync(`${webDir}src/sightline/${five ? 'tour5' : 'tour'}.json`, 'utf8'))
+const outDir = `${webDir}public/tour/${five ? 'voice5' : 'voice'}/`
 const VOICE = process.env.VOICE_NAME ?? 'en-US-Chirp3-HD-Leda'
 /** What each file was rendered from, so --check can tell when a step's words have changed since. */
 const indexFile = `${outDir}index.json`
@@ -63,8 +67,15 @@ for (const step of tour.steps.filter((one) => !only || one.id === only)) {
   const { audioContent } = await response.json()
   const bytes = Buffer.from(audioContent, 'base64')
   writeFileSync(`${outDir}${step.id}.mp3`, bytes)
-  lines[step.id] = { hash: hashOf(step.say), bytes: bytes.length, say: step.say }
-  console.log(`ok   ${step.id}.mp3  ${(bytes.length / 1024).toFixed(0)} kB`)
+  // How long the line lasts, where ffprobe is at hand: a presenter's tour is timed by it.
+  let seconds = null
+  try {
+    seconds = Math.round(Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', `${outDir}${step.id}.mp3`], { encoding: 'utf8' }).trim()) * 10) / 10
+  } catch {
+    // No ffprobe: the file is written all the same.
+  }
+  lines[step.id] = { hash: hashOf(step.say), bytes: bytes.length, ...(seconds ? { seconds } : {}), say: step.say }
+  console.log(`ok   ${step.id}.mp3  ${(bytes.length / 1024).toFixed(0)} kB${seconds ? `  ${seconds} s` : ''}`)
 }
 writeFileSync(indexFile, `${JSON.stringify({ voice: VOICE, disclosure: tour.voice.disclosure, lines }, null, 2)}\n`)
 console.log(`Wrote ${only ? 1 : tour.steps.length} file(s) and index.json to ${outDir}`)
