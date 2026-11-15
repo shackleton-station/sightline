@@ -5,6 +5,12 @@ import { degWords } from '../../src/lib/sightline'
 import { type Args, monthArg, siteArg, type ToolContext } from './args'
 import { fact, type Fact, monthWords, type ToolResult } from './facts'
 
+/** A height from a level horizon said with its side, never with a minus sign: "0.8° below a level horizon". */
+const fromLevel = (deg: number) => {
+  const tenths = Math.round(deg * 10) / 10
+  return `${degWords(Math.abs(tenths))} ${tenths < 0 ? 'below' : 'above'} a level horizon`
+}
+
 /** "once", "twice", "5 times". */
 const times = (count: number) => (count === 1 ? 'once' : count === 2 ? 'twice' : `${count} times`)
 
@@ -36,7 +42,7 @@ export async function explainThePole(args: Args, ctx: ToolContext): Promise<Tool
     fact('moon_day', 'How long the Sun takes to go once round the horizon: a day on the Moon', SUN_ROUND),
     fact('site', 'The site these figures are for', site.name),
     fact('month', 'The month these figures are for', monthWords(month)),
-    fact('sun_highest_here', "The highest the Sun's center gets there in that month, from a level horizon", degWords(sun.highestDeg)),
+    fact('sun_highest_here', "The highest the Sun's center gets there in that month, said with its side of a level horizon", fromLevel(sun.highestDeg)),
     fact(
       'sun_rises_here',
       'How often the Sun rises there in that month, as it sits after "the Sun"',
@@ -44,8 +50,8 @@ export async function explainThePole(args: Args, ctx: ToolContext): Promise<Tool
     ),
     fact('longest_sunlight_here', 'The longest stretch of sunlight there in that month', sun.longestUpH === 0 ? 'none' : formatDuration(sun.longestUpH)),
     fact('longest_dark_here', 'The longest stretch without the Sun there in that month', sun.longestDownH === 0 ? 'none: it never goes dark' : formatDuration(sun.longestDownH)),
-    fact('earth_lowest_here', "The lowest Earth's center gets there in that month, from a level horizon", degWords(Math.min(...earth))),
-    fact('earth_highest_here', "The highest Earth's center gets there in that month, from a level horizon", degWords(Math.max(...earth))),
+    fact('earth_lowest_here', "The lowest Earth's center gets there in that month, said with its side of a level horizon", fromLevel(Math.min(...earth))),
+    fact('earth_highest_here', "The highest Earth's center gets there in that month, said with its side of a level horizon", fromLevel(Math.max(...earth))),
   ]
   return { ok: true, title: `Why the pole is hard, with ${site.name} in ${monthWords(month)}`, facts }
 }

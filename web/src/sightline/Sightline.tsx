@@ -78,6 +78,7 @@ import type { GuidesFile, TourFile } from '../lib/tour'
 import guidesFile from './guides.json'
 import tourFile from './tour.json'
 import { AccuracyDrawer } from './AccuracyDrawer'
+import { fitLayerOffered } from '../lib/fitLayer'
 import { FitLegend } from './FitLegend'
 import { useMissionGrid, useMoonShade } from './useMissionGrid'
 import { useFieldReadings, useLandingFields } from './useLandingFields'
@@ -115,6 +116,9 @@ import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useSce
 import { useGuideVideos } from './useGuideVideos'
 import { ViewSwitch } from './ViewSwitch'
 import { PlayControl, ScoutLine } from './WatchControls'
+
+/** Whether "Landings that fit" is offered on this page load: it is not, unless the address asks for it. */
+const FIT_LAYER = fitLayerOffered()
 
 // The brief brings the old Planner page's own code and styles: loaded only when it is opened.
 const BriefSheet = lazy(() => import('./BriefSheet'))
@@ -1112,8 +1116,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const closeUp = () => {
     if (mode !== 'site' && tourAt === null) setMode('site')
   }
-  // "Landings that fit" as a layer on the Moon, in every view.
+  // "Landings that fit" as a layer on the Moon, in every view. While the layer is not offered
+  // (`fitLayerOffered`) nothing switches it on: its switches are not drawn, and this does nothing.
   const showFitShade = (on: boolean) => {
+    if (!FIT_LAYER) return
     setFitShade(on)
     if (!on) return
     setAccuracyUsed(true)
@@ -1122,8 +1128,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   }
   const openAccuracy = () => {
     // Opening it shades the Moon too, in the view the visitor is in; the panel's switch and the key
-    // on the Moon take the shading off. Closing the panel leaves it as the visitor set it.
-    showFitShade(true)
+    // on the Moon take the shading off. Closing the panel leaves it as the visitor set it. With the
+    // layer not offered, opening the panel still counts as Landing accuracy being in use.
+    if (FIT_LAYER) showFitShade(true)
+    else setAccuracyUsed(true)
     setDrawer('accuracy')
   }
   // From Layers the shading is switched on close up, as NASA's maps are.
@@ -1695,9 +1703,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         }} />
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer long={presetOf(mission)?.id === 'long'} onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} heights={siteHeights} start={start} landing={scenario.landing} verdict={aimVerdicts[active]} spread={spread} onSpread={setSpread} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} heights={siteHeights} start={start} landing={scenario.landing} verdict={aimVerdicts[active]} spread={spread} onSpread={setSpread} shade={FIT_LAYER ? fitShade : null} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, slopeKm, lander: closenessWords(spread), leavesOut: shadeLeavesOut(mission.heights, mission.requirements.minEarthClearanceDeg) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
+      {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={FIT_LAYER ? { on: fitShade, here: fitHere, slopeKm, lander: closenessWords(spread), leavesOut: shadeLeavesOut(mission.heights, mission.requirements.minEarthClearanceDeg) } : null} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
             if (next !== null) closeUp()
             // One coloring of the ground at a time: a map takes the place of "Landings that fit".
             if (next !== null) setFitShade(false)
