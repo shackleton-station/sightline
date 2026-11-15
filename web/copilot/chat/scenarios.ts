@@ -27,13 +27,17 @@ const FIGURES: Record<(typeof COMPARE_ROWS)[number]['key'], { key: string; label
 }
 
 /**
- * Reads a Sightline link (one that says which scenario is on show, `sc=`). The scenarios keep the
- * letters the page gives them. Each listed site's figures are worked out by the same function as the
+ * Reads a Sightline link: one that says which scenario is on show (`sc=`), as the screen always
+ * sends it, or one that carries the heights of the solar panel or the antenna (`hp=`, `ha=`), which
+ * only that screen writes. A shared or older link may have the heights without the mark; they are
+ * used all the same, with the first scenario on show. The scenarios keep the letters the page gives them. Each listed site's figures are worked out by the same function as the
  * page's Compare table (`measureScenario`), so the co-pilot and the table cannot disagree. Null for
  * any other page's link.
  */
 export async function scenarioScene(hash: unknown, base: ViewState, data: SiteData): Promise<ScenarioScene | null> {
-  if (typeof hash !== 'string' || hash.length > 1500 || !new URLSearchParams(hash.replace(/^#/, '')).has('sc')) return null
+  if (typeof hash !== 'string' || hash.length > 1500) return null
+  const params = new URLSearchParams(hash.replace(/^#/, ''))
+  if (!params.has('sc') && !params.has('hp') && !params.has('ha')) return null
   const sites = await data.sites()
   const span = await data.flags(sites[0].id)
   const link = readScenarioLink(hash, span.start, span.sun.length)
@@ -104,8 +108,12 @@ async function elsewhere(key: string, letter: string, scenario: SightlineScenari
       ]
     : [fact(`${key}_next_landing`, `Scenario ${letter}: the next landing at its site that meets the mission limits`, 'none in the data')]
   const found = nearestFittingSite(site, scenario.landing, mission, listed)
-  const label = `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`
-  return [...nextFacts, fact(`${key}_fits_at_another_site`, label, found ? `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away` : 'none: on this date no other site of the group meets them')]
+  // Two facts, one or the other, each made to sit inside a sentence: the place where the same date
+  // fits ("it fits at {{…}}"), or a clause saying that none of the group's other sites does.
+  const other = found
+    ? fact(`${key}_fits_at_another_site`, `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`, `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away`)
+    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on the same landing date, as a clause that stands in a sentence`, 'none of the other sites in its group fits on this date')
+  return [...nextFacts, other]
 }
 
 /** One scenario's Compare figures, written as the table writes them. */

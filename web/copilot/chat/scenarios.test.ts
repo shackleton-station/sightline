@@ -56,8 +56,10 @@ describe('scenarioScene', () => {
     expect(value('scenario_a_fits_at_another_site')).toBe('Peak near Shackleton, 42 km away')
     // On a date that fits at no ridge site it says so, and only for the scenario on show.
     const none = await scenarioScene(TWO, viewFrom(TWO), data)
-    expect(none?.facts.find((item) => item.key === 'scenario_b_fits_at_another_site')?.value).toBe('none: on this date no other site of the group meets them')
+    expect(none?.facts.find((item) => item.key === 'scenario_b_fits_at_another_site')).toBeUndefined()
+    expect(none?.facts.find((item) => item.key === 'scenario_b_no_other_site_fits')?.value).toBe('none of the other sites in its group fits on this date')
     expect(none?.facts.find((item) => item.key === 'scenario_a_fits_at_another_site')).toBeUndefined()
+    expect(none?.facts.find((item) => item.key === 'scenario_a_no_other_site_fits')).toBeUndefined()
   })
 
   it("leaves another page's link alone", async () => {

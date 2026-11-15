@@ -290,3 +290,63 @@ describe('9. a button that changes the limits', () => {
     expect(tried.ok && tried.reply.actions).toHaveLength(1)
   })
 })
+
+describe('10. the fact that no other site fits', () => {
+  /** Apollo 11, landing 6 May 2027 at 13:00: it does not fit, and no other Apollo site fits on that date either. */
+  const APOLLO = '#a=apollo-11@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&sc=0'
+
+  it('is a clause that stands in a sentence: the old label-like value, with its colon, is gone from every fact Scout is given', async () => {
+    const scene = await scenarioScene(APOLLO, viewFrom(APOLLO), data)
+    expect(scene?.facts.find((item) => item.key === 'scenario_a_no_other_site_fits')?.value).toBe('none of the other sites in its group fits on this date')
+    // The exact fragment that reached a visitor ("On the date of scenario A, none: on this date no other site of the group meets them.").
+    for (const item of scene?.facts ?? []) {
+      expect(item.value, item.key).not.toMatch(/none: on this date/)
+      expect(item.value, item.key).not.toMatch(/^none:/)
+    }
+  })
+
+  it('reads as a sentence when Scout uses it', async () => {
+    const outcome = await ask(scripted([answer('The next landing at Apollo 11 that fits is {{r0.scenario_a_next_landing}}, and {{r0.scenario_a_no_other_site_fits}}.')]), APOLLO, 'When is the next landing here that fits?')
+    expect(outcome.ok && outcome.reply.text).toBe('The next landing at Apollo 11 that fits is 11 May 2027, 13:00 UTC, and none of the other sites in its group fits on this date.')
+  })
+
+  it('where another site does fit, names the place and its distance, and says nothing of "none"', async () => {
+    const first = '#a=connecting-ridge@2027-05&t=0&limits=14_24_99999_1_1&mode=plan&sc=0'
+    const scene = await scenarioScene(first, viewFrom(first), data)
+    expect(scene?.facts.find((item) => item.key === 'scenario_a_fits_at_another_site')?.value).toBe('Peak near Shackleton, 42 km away')
+    expect(scene?.facts.some((item) => item.key === 'scenario_a_no_other_site_fits')).toBe(false)
+  })
+})
+
+describe('11. a link that carries the heights without the scenario mark', () => {
+  /** A shared or older link: the solar panel at 10 m, and no `sc`. */
+  const NO_MARK = '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&hp=10'
+
+  it('is read as the screen\'s link is: the heights are used, with the first scenario on show', async () => {
+    const scene = await scenarioScene(NO_MARK, viewFrom(NO_MARK), high)
+    const value = (key: string) => scene?.facts.find((item) => item.key === key)?.value
+    expect(value('scenario_on_screen')).toBe('A: Connecting Ridge, landing 6 May 2027, 13:00 UTC')
+    expect(value('panel_height')).toBe('10 m')
+    expect(value('scenario_a_longest_time_without_sun')).toBe('72 h')
+    expect(value('scenario_a_next_landing')).toBe('25 May 2027, 12:00 UTC')
+  })
+
+  it('answers 72 h for the 10 m panel', async () => {
+    const model = scripted([answer('With the solar panel at {{r0.panel_height}}, the longest time without the Sun during this mission is {{r0.scenario_a_longest_time_without_sun}}.')])
+    const outcome = await ask(model, NO_MARK, 'My solar panel is 10 m above the ground. How long is the longest dark spell during my mission now?', high)
+    expect(outcome.ok && outcome.reply.text).toBe('With the solar panel at 10 m, the longest time without the Sun during this mission is 72 h.')
+  })
+
+  it('where the heights\' files cannot be read, says plainly that its figures are for 2 m', async () => {
+    const scene = await scenarioScene(NO_MARK, viewFrom(NO_MARK), data)
+    const value = (key: string) => scene?.facts.find((item) => item.key === key)?.value
+    expect(value('heights_above_ground')).toMatch(/The scenario figures here are for 2 m/)
+    expect(value('scenario_a_longest_time_without_sun')).toBe('95 h')
+  })
+
+  it('still leaves alone a link with neither the mark nor a height: another page\'s', async () => {
+    const other = '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan'
+    expect(await scenarioScene(other, viewFrom(other), high)).toBeNull()
+  })
+})
+
