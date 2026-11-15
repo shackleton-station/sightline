@@ -3689,6 +3689,11 @@ button.sl-moment-heights[aria-expanded='true'] {
   line-height: 1rem;
 }
 
+/* A figure with its unit, or a limit ("limit 24 h"), is never broken across two lines. */
+.sl-keep {
+  white-space: nowrap;
+}
+
 .sl-fact-check:has(> i) {
   padding-left: 0;
 }
