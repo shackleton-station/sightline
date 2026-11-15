@@ -14,6 +14,7 @@ import { NothingWorks } from '../planner/NothingWorks'
 import { SlipCheck } from '../planner/SlipCheck'
 import { type Plan, usePlannerView } from '../planner/usePlannerView'
 import { WindowGrid } from '../planner/WindowGrid'
+import { nearbyAnchor } from '../lib/nearby'
 import type { PlannerSite } from '../planner/plannerModel'
 import { type KeptPick, PlannerAlternatives } from './PlannerAlternatives'
 import { PlannerLocation } from './PlannerLocation'
@@ -137,7 +138,9 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
   const view = usePlannerView(sites, plan, fallback, slipDays)
   // Find: where around the aim point a landing still fits, for the ridge sites the light grid covers.
   const [spread, setSpread] = useState<Spread>(DEFAULT_SPREAD)
-  const accuracyWanted = tab === 'find' && view !== null && Boolean(view.row.site.nearby_half_m)
+  // A ridge site, or a point of your own on a ridge site's map (where Aim and Go there lead).
+  const anchor = useMemo(() => (view && sites ? nearbyAnchor(view.row.site, sites.map((one) => one.site)) : null), [view, sites])
+  const accuracyWanted = tab === 'find' && view !== null && anchor !== null
   const missionGrid = useMissionGrid(start, view ? hourOf(start, view.landing.t) : 0, mission.requirements.missionDays, accuracyWanted)
   const why = useMemo(() => (view ? briefWhy(view.row.flags, view.answer.span, view.viable, view.answer.days, mission.requirements) : null), [view, mission.requirements])
   const [obsHeightM, setObsHeightM] = useState<number | null>(null)
@@ -342,7 +345,9 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                     <LandingRain site={view.row.site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} onAim={(lat, lon) => onScenario({ site: `${lat},${lon}`, landing: hourOf(start, view.landing.t) })} />
                   </div>
                 )}
-                <NearbyGround
+                {anchor && (
+<NearbyGround
+                  anchor={anchor}
                   site={view.row.site}
                   month={view.month}
                   mission={mission}
@@ -351,6 +356,7 @@ export function NewPlanner({ start, hours, flagged, scenarios, facts, mission, o
                   onScenario({ site: atSite ? siteValue(view.row.site) : siteValue(customSiteInfo(lat, lon)), landing: hourOf(start, view.landing.t) })
                 }}
                 />
+                )}
               </>
             )}
           </div>

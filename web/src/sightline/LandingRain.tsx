@@ -415,6 +415,9 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
 
   return (
     <div className="np-rain">
+      <p className="np-lead">
+        A lander never comes down exactly where it is aimed. Each dot is one simulated landing around your target, {Math.round(100 * ACCURACY_SHARE)}% of them within {shownM} m; the ground under it is green where a landing still gets through your mission and coloured by the reason where it doesn't. <b>Aim</b> moves your target to where more of them would fit.
+      </p>
       {better ? (
         <p className="np-act">
           <button type="button" className="np-act-go" onClick={takeAim} title="Move the target to the better place to aim, marked with a diamond on the map">

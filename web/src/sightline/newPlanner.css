@@ -3000,3 +3000,16 @@
   width: max-content;
   margin: 0.4rem 0 0;
 }
+
+.sl-np .np-lead {
+  grid-column: 1 / -1;
+  max-width: 62ch;
+  margin: -0.2rem 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.sl-np .np-lead b {
+  color: var(--text, inherit);
+}
