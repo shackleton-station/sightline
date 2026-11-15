@@ -159,7 +159,16 @@ function Group({ marker, side, states, onChoose }: GroupProps) {
           {marker.sites.map((site) => {
             const state = states.get(site.id)
             return (
-              <button key={site.id} type="button" role="menuitem" onClick={() => onChoose(site)}>
+              <button
+                key={site.id}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  // The pick is made: the list goes, so it does not stay open over the Moon.
+                  setOpen(false)
+                  onChoose(site)
+                }}
+              >
                 <i className={`sl-swatch${state ? ` is-${state}` : ''}`} aria-hidden="true" />
                 <span>
                   {site.name}

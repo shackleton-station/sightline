@@ -1142,7 +1142,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                     setHour(landing)
                     return true
                   }}
-                  missionName={presetOf(mission)?.label ?? 'Custom mission'}
+                  missionName={`${presetOf(mission)?.label ?? 'Custom mission'} · ${mission.requirements.missionDays} ${mission.requirements.missionDays === 1 ? 'day' : 'days'}`}
                   mission={missionWords(mission)}
                   missionOpen={missionHere}
                   onMission={toggleMission}
@@ -1483,6 +1483,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             }}
             onKeep={addScenario}
             onClose={() => setBrief(false)}
+            backTo={full ? 'the Planner' : 'the Moon'}
             saved={savedPlan.plan ? <SavedBrief plan={savedPlan.plan} /> : null}
           />
         </Suspense>
@@ -1571,6 +1572,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           mode={mode}
           onMode={setMode}
           onSurfaceNear={() => setSurfaceNear(true)}
+          onBrief={() => setBrief(true)}
           onHow={() => setHow(true)}
           hype={hypeFound ? { open: drawer === 'hype', onOpen: () => setDrawer(drawer === 'hype' ? null : 'hype') } : null}
           onTour={() => startTour()}

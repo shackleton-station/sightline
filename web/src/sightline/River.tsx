@@ -158,6 +158,8 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
       },
       (reason: unknown) => {
         if (!(reason instanceof HourlyProblem)) console.error(reason)
+        // Why it failed is said under "More", which opens for it.
+        setMenu('more')
         setHourly({ kind: 'failed', message: reason instanceof HourlyProblem ? reason.message : 'The file could not be made just now. Try again in a moment.' })
       },
     )
@@ -165,6 +167,8 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
   const speed = SPEEDS.find((one) => one.hoursPerSecond === clock.hoursPerSecond) ?? SPEEDS.find((one) => one.hoursPerSecond === DEFAULT_SPEED) ?? SPEEDS[0]
   // At a year's width an Earth day is narrower than a pixel, so the row is offered up to a month, and only while the rows are open.
   const earthDayOffered = zoom !== 'year' && !folded
+  // Whether the hourly file is the only thing "More" would hold.
+  const onlyHourly = !earthDayOffered && !(keyInMenu && !folded)
 
   const dragging = useRef(false)
   // The band under the pointer, or, with the keyboard on the time bar, the band the line is in on the
@@ -234,7 +238,13 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
                   ))}
                 </span>
               )}
-              {/* "More" holds what is rarely needed (the hourly file, "A day on Earth") and what a narrow header has no room for: the key. */}
+              {/* "More" holds what is rarely needed (the hourly file, "A day on Earth") and what a narrow header has no room for: the key.
+                  When the hourly file is all it would hold, the file's own button stands in its place: a menu of one is a press too many. */}
+              {onlyHourly && hourly.kind !== 'failed' ? (
+                <button type="button" className="sl-small sl-hourly" aria-busy={hourly.kind === 'working'} title="Saves a CSV file of the scenario on show: one row for each hour of its mission." onClick={saveHourly}>
+                  {hourly.kind === 'working' ? 'Reading…' : 'Hourly CSV'}
+                </button>
+              ) : (
               <button
                 type="button"
                 className="sl-small sl-more"
@@ -249,6 +259,7 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
               >
                 ⋯
               </button>
+              )}
               <button type="button" className="sl-small sl-fold" aria-expanded={!folded} onClick={() => onFold(!folded)}>
                 {folded ? 'Open' : 'Fold'}
               </button>

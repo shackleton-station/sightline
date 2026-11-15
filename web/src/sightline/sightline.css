@@ -2854,9 +2854,9 @@ button.sl-moment-heights[aria-expanded='true'] {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.3rem 0.4rem;
-  /* A stage made narrow by a panel has the Moon's disc close to this corner: there Layers drops under
-     the three views, so the control stays off the disc. */
-  max-width: 36%;
+  /* One row wherever it clears the Moon's disc: with a panel open at 1440 by 900 it still does. Only in
+     a stage narrower than that (a panel open at 1366 by 768) does Layers drop under the three views. */
+  max-width: 37%;
 }
 
 .sl-view-switch .sl-heights {
@@ -2868,8 +2868,9 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-view-switch button {
+  flex: none;
   min-height: 1.75rem;
-  padding: 0 0.7rem;
+  padding: 0 0.5rem;
   border: 0;
   background: none;
   color: #fff;
@@ -2900,8 +2901,12 @@ button.sl-moment-heights[aria-expanded='true'] {
   background: rgb(10 12 24 / 78%);
 }
 
+/* With its panel open Layers is outlined and lettered in gold, not filled: the filled one is the view on show. */
 .sl-view-switch .sl-view-layers[aria-pressed='true'] {
   border-color: var(--gold);
+  background: rgb(10 12 24 / 78%);
+  color: var(--gold);
+  font-weight: 600;
 }
 
 .sl-view-switch .sl-rail-credit {
