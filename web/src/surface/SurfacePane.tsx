@@ -116,8 +116,8 @@ export function SurfacePane(props: Props) {
   const { headingDeg, pitchDeg, fovDeg, stretch } = look
   useEffect(() => onLens(fovDeg, stretch), [onLens, fovDeg, stretch])
 
-  const sun = useMemo(() => ({ azDeg: sky.sunAz, elDeg: sky.sunEl, radiusDeg: discs.sun, up: now.sun_up }), [sky.sunAz, sky.sunEl, discs.sun, now.sun_up])
-  const earth = useMemo(() => ({ azDeg: sky.earthAz, elDeg: sky.earthEl, radiusDeg: discs.earth, up: now.earth_up }), [sky.earthAz, sky.earthEl, discs.earth, now.earth_up])
+  const sun = useMemo(() => ({ azDeg: sky.sunAz, elDeg: sky.sunEl, radiusDeg: discs.sun, aboveDeg: sky.sunEl - skylineAt(sky.sunAz), up: now.sun_up }), [sky.sunAz, sky.sunEl, discs.sun, now.sun_up, skylineAt])
+  const earth = useMemo(() => ({ azDeg: sky.earthAz, elDeg: sky.earthEl, radiusDeg: discs.earth, aboveDeg: sky.earthEl - skylineAt(sky.earthAz), up: now.earth_up }), [sky.earthAz, sky.earthEl, discs.earth, now.earth_up, skylineAt])
   const frame = useMemo<SurfaceFrame>(
     () => ({ look: { headingDeg, pitchDeg, fovDeg, stretch }, sun: { ...sun, share: now.sun_frac }, earth }),
     [headingDeg, pitchDeg, fovDeg, stretch, sun, earth, now.sun_frac],
