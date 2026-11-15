@@ -107,9 +107,10 @@ export const CLEARANCE_CHOICES_DEG = [0, ...EARTH_CLEARANCES_DEG]
 /**
  * The presets, named by what the mission needs, not by the vehicle. Every value is an example to
  * start from, not a real spacecraft's figure. The short stay is the default mission: 14 Earth
- * days. The long stay is 60 Earth days and lasts through 14 days of darkness. It sets no limit on
- * radio silence: near the south pole Earth is below the skyline for about two weeks at a time, so a
- * two-day limit ruled out almost every site. The page says "darkness", never "lunar night" or "lunar day": near the
+ * days, with at most 24 h of darkness and at most 24 h of radio silence. The long stay is 60 Earth
+ * days and lasts through 14 days of darkness. It sets no limit on radio silence: near the south pole
+ * Earth is below the skyline for about two weeks at a time, so over 60 days a limit of a day or two
+ * ruled out almost every site. The page says "darkness", never "lunar night" or "lunar day": near the
  * south pole the terrain decides when a site is lit, so those terms mislead.
  */
 export const PRESETS: { id: string; label: string; mission: SightlineMission }[] = [

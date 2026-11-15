@@ -16,7 +16,7 @@ describe('another site for the same landing (the verdict\'s "Fits at … on this
   it('is the nearest site of the same group where the verdict\'s own rules pass on that date', async () => {
     const listed = await everySite()
     const ridge = listed.find((entry) => entry.site.id === 'connecting-ridge')!
-    const landing = hourOf(ridge.flags.start, '2027-05-01T00:00:00Z')
+    const landing = hourOf(ridge.flags.start, '2027-04-30T00:00:00Z')
     // The landing does not fit here, and of the other three ridge sites only one fits on this date.
     expect(fitProblems(ridge.flags, landing, DEFAULT_MISSION, ridge.site.slope?.deg ?? null).length).toBeGreaterThan(0)
     const found = nearestFittingSite(ridge.site, landing, DEFAULT_MISSION, listed)
