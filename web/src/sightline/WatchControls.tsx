@@ -108,7 +108,7 @@ export function ScoutLine({ line, state, open, onOpen, chat, view, onShow, onPla
   }
 
   return (
-    <div className={open ? 'sl-scout is-open' : 'sl-scout sl-fade'}>
+    <div className={open ? 'sl-scout is-open' : 'sl-scout'}>
       <button
         type="button"
         className="scout-face"
@@ -232,7 +232,7 @@ export function PlayControl({ clock, date, span, minimised, onMinimise }: PlayPr
   )
   if (minimised) {
     return (
-      <div className="sl-pill sl-fade is-min">
+      <div className="sl-pill is-min">
         <button type="button" className="sl-round" aria-label={`Show the date control. ${date}`} title={`Shows the date control. Now ${date}.`} onClick={() => onMinimise(false)}>
           {clock.playing ? '▶' : '❚❚'}
         </button>
@@ -240,7 +240,7 @@ export function PlayControl({ clock, date, span, minimised, onMinimise }: PlayPr
     )
   }
   return (
-    <div className="sl-pill sl-fade" role="group" aria-label="Time">
+    <div className="sl-pill" role="group" aria-label="Time">
       {play}
       <output className="sl-date">{date}</output>
       <select

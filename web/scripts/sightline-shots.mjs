@@ -854,8 +854,8 @@ const SCENES = [
     hash: '',
     checks: [
       ['time is playing', `${text('.sl-date')} !== '1 May 2027'`],
-      ['the controls fade after three seconds', "document.querySelector('.sightline').classList.contains('is-idle')", 3400],
-      ['a key brings them back', `(${key('Shift')}, true) && new Promise((done) => setTimeout(() => done(!document.querySelector('.sightline').classList.contains('is-idle')), 100))`],
+      ['with the pointer at rest for over three seconds nothing a visitor needs has faded: the title, what the picture is, "Plan a landing", the tour, the key and the date are all in sight', "(() => { const seen = (selector) => { const el = document.querySelector(selector); return el !== null && Number(getComputedStyle(el).opacity) === 1 && getComputedStyle(el).visibility === 'visible' && el.getBoundingClientRect().height > 0 }; const parts = ['.sl-brand h1', '.sl-brand-view', '.sl-top .is-main', '.sl-tour-chip', '.sl-watch-key', '.sl-pill']; const gone = parts.filter((part) => !seen(part)); return (gone.length === 0 && document.querySelector('.sl-brand-view').textContent.trim() === 'Seen from above the south pole') || 'faded or missing: ' + gone.join(', ') })()", 3600],
+      ['the candidate sites near the south pole are named as what they are, not as a number of sites', "(() => { const labels = [...document.querySelectorAll('.sl-group-label')].map((label) => label.textContent.trim()); return labels.some((label) => /^South pole: 4 candidate sites( \\+ \\d more)?$/.test(label)) || labels.join(' | ') })()"],
       ['Earth moves smoothly as time plays: no jump from one frame to the next over ten seconds', earthSteady(10000, 4)],
     ],
     // The Moon playing: frames drawn in three seconds, and the share that took longer than 25 ms.

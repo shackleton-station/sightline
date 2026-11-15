@@ -361,6 +361,12 @@
   font-size: 0.8125rem;
 }
 
+/* What the picture is, under the tagline: quieter, so the title still leads. */
+.sl-brand .sl-brand-view {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+}
+
 .sl-top {
   position: absolute;
   top: 0.9rem;
@@ -529,7 +535,7 @@
 
 @media (max-width: 760px) {
   .sl-tour-chip {
-    top: 7.4rem;
+    top: 8.1rem;
   }
 }
 
@@ -2786,9 +2792,18 @@ button.sl-moment-heights[aria-expanded='true'] {
     font-size: 1.35rem;
   }
 
-  /* The tagline wraps beside the two buttons instead of running under them. */
+  /* The name stands beside the two buttons; the tagline and what the picture is run under them, a line each,
+     so neither wraps onto the key at any phone's width (375 px wrapped it to three lines). */
   .sl-brand {
-    max-width: calc(100% - 16rem);
+    max-width: none;
+  }
+
+  .sl-brand p {
+    white-space: nowrap;
+  }
+
+  .sl-brand h1 + p {
+    margin-top: 1rem;
   }
 
   .sl-pill .sl-wide {
@@ -4216,7 +4231,7 @@ button.sl-moment-heights[aria-expanded='true'] {
 
   /* On a phone the foot of the stage is Scout's and the play control's: the key sits under the name. */
   .sl-watch-key {
-    top: 5.3rem;
+    top: 6.1rem;
     right: auto;
     bottom: auto;
     left: var(--sl-edge);

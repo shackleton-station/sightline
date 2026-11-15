@@ -132,6 +132,8 @@ function lonLatOf(direction: readonly [number, number, number]): { lon: number; 
 
 /** How close to a zoom limit counts as being at it, as a share of the limit. */
 const ZOOM_SLACK = 1e-6
+/** The listed sites' group that holds the candidate landing sites near the south pole. */
+const CANDIDATES_GROUP = 'South pole ridges'
 
 export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, onRingedHidden, turnTo = null, recentreWords = null, focus, onChoose, onPoint, onPick, onRecentre, corner, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
   const stage = useRef<HTMLDivElement>(null)
@@ -323,7 +325,17 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
     const grouped = groupOverlapping(placedSites).map((members) => {
       const selected = members.find((member) => member.site.id === selectedId) ?? members.find((member) => ringIds.includes(member.site.id))
       const alone = members.length === 1
-      const text = alone ? members[0].site.name : selected ? `${selected.site.name} + ${members.length - 1} more` : `${members.length} sites`
+      // A cluster made only of the south pole's candidate sites says so: they are what the page is about, and "4 sites" hid them.
+      // (Where the Moon is drawn small, another site may stand in the same cluster: it is counted after them.)
+      const candidates = members.filter((member) => member.site.group === CANDIDATES_GROUP).length
+      const others = members.length - candidates
+      const text = alone
+        ? members[0].site.name
+        : selected
+          ? `${selected.site.name} + ${members.length - 1} more`
+          : candidates >= 2
+            ? `South pole: ${candidates} candidate sites${others > 0 ? ` + ${others} more` : ''}`
+            : `${members.length} sites`
       const middle = alone ? members[0] : middleOf(members)
       return { key: members.map((member) => member.site.id).join('+'), sites: members.map((member) => member.site), x: middle.x, y: middle.y, text, selected: selected !== undefined, reach: alone ? DOT_REACH_PX : GROUP_REACH_PX }
     })

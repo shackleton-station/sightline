@@ -1252,11 +1252,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         )}
         {!bare && !plan && (
           <>
-            <header className="sl-brand sl-fade">
+            {/* The title, what the picture is, and the way in never fade by themselves: "Hide all" is the way to a bare Moon. */}
+            <header className="sl-brand">
               <h1>Sightline</h1>
               <p>Where to land on the Moon, and when</p>
+              <p className="sl-brand-view">Seen from above the south pole</p>
             </header>
-            <div className="sl-top sl-fade">
+            <div className="sl-top">
               <button type="button" className="is-main" data-tour="plan" title="Opens the plan: a site, a landing and a mission to check (P)." onClick={() => openPlan(null)}>
                 Plan a landing
               </button>
@@ -1299,7 +1301,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {/* On a phone Scout's open card is a sheet across the bottom, where the play control would be. */}
         {/* What a dot's shape and colour say: both tell what is in view at that site at this moment. */}
         {!bare && !plan && !(scoutOpen && room === 'phone') && (
-          <ul className="sl-watch-key sl-fade" aria-label="What the dots mean">
+          <ul className="sl-watch-key" aria-label="What the dots mean">
             <li>
               <i className="is-sun" aria-hidden="true" /> Sun
             </li>
@@ -1316,7 +1318,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         )}
         {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
         {!bare && !plan && tourAt === null && !(scoutOpen && room === 'phone') && (
-          <button type="button" className={tourTaken ? 'sl-tour-chip sl-fade' : 'sl-tour-chip sl-fade is-new'} title="Scout shows you round the screen, one step at a time." onClick={() => startTour()}>
+          <button type="button" className={tourTaken ? 'sl-tour-chip' : 'sl-tour-chip is-new'} title="Scout shows you round the screen, one step at a time." onClick={() => startTour()}>
             <span aria-hidden="true">▶</span> One-minute tour
           </button>
         )}
