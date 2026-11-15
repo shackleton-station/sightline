@@ -258,3 +258,37 @@ def test_rays_that_leave_the_polar_dem_read_the_whole_moon_map_as_a_site_does(tm
         # Without the whole-Moon map the far hills are missing, so the two must differ.
         alone = lightgrid.horizons(terrain, observer_at(terrain, site_lat, site_lon), distances)[0]
         assert np.max(np.abs(alone - reference.el_deg)) > 0.05
+
+
+def test_a_patch_is_whole_cells_of_the_grid_split_into_the_terrains_pixels() -> None:
+    # A point 30 m right and 50 m below the middle of cell (col 600, row 400) of the fine grid.
+    half = lightgrid.GRID_SIZE * lightgrid.PIXEL_M / 2.0
+    x = -half + 600.5 * lightgrid.PIXEL_M + 30.0
+    y = half - 400.5 * lightgrid.PIXEL_M - 50.0
+    patch = lightgrid.patch_around(x, y)
+    assert (patch.col, patch.row) == (600 - 25, 400 - 25)
+    assert (patch.cells, patch.sub, patch.size, patch.pixel_m) == (51, 6, 306, 20.0)
+    px, py = lightgrid.patch_xy_m(patch)
+    assert px.shape == py.shape == (306, 306)
+    # Row 0 is on top, column 0 on the left, values at pixel centers 20 m apart.
+    assert py[0, 0] > py[1, 0] and px[0, 1] > px[0, 0]
+    assert px[0, 1] - px[0, 0] == pytest.approx(20.0)
+    assert px[0, 0] == pytest.approx(patch.x_left_m + 10.0)
+    assert py[0, 0] == pytest.approx(patch.y_top_m - 10.0)
+    # The six by six pixels of the middle cell average to that cell's center in the fine grid.
+    gx, gy = lightgrid.grid_xy_m()
+    first = 25 * 6
+    assert px[first : first + 6, first : first + 6].mean() == pytest.approx(gx[400, 600])
+    assert py[first : first + 6, first : first + 6].mean() == pytest.approx(gy[400, 600])
+    # The point is in the patch pixel its own coordinates say.
+    col = int((x - patch.x_left_m) // patch.pixel_m)
+    row = int((patch.y_top_m - y) // patch.pixel_m)
+    assert abs(px[row, col] - x) <= 10.0 and abs(py[row, col] - y) <= 10.0
+    assert (col // 6, row // 6) == (25, 25)
+
+
+def test_a_patch_that_does_not_fit_is_refused() -> None:
+    with pytest.raises(ValueError, match="outside the grid"):
+        lightgrid.patch_around(-61_000.0, 0.0)
+    with pytest.raises(ValueError, match="whole number"):
+        lightgrid.patch_around(0.0, 0.0, patch_pixel_m=50.0)
