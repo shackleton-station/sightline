@@ -13,6 +13,7 @@ import { HeaderTools } from './HeaderTools'
 import { saveHourlyCsv, saveText } from './hourlyExport'
 import { AdvancedControls, MissionControls } from './MissionDrawer'
 import { PlannerCompare } from './PlannerCompare'
+import { PlannerCompareMore } from './PlannerCompareMore'
 import { PlannerDetail } from './PlannerDetail'
 import { type FindSite, PlannerFind } from './PlannerFind'
 import type { PlannerTab } from './plannerFit'
@@ -196,7 +197,11 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
           ) : (
             <>
               <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} bounds={landingBounds} onFar={onFarLanding} />
-              <PlannerDetail start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} landings={landings} active={active} onSelect={onSelect} />
+              {scenarios.length > 1 ? (
+                <PlannerCompareMore start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} active={active} onSelect={onSelect} onRemove={onRemove} />
+              ) : (
+                <PlannerDetail start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} landings={landings} active={active} onSelect={onSelect} />
+              )}
             </>
           )}
         </div>
