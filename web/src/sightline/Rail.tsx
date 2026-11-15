@@ -114,7 +114,7 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
   )
   const ways = (
     <>
-      <button type="button" data-tour="guide" title="Opens the Guide: the tour, the videos, and how the numbers are made." onClick={onHow}>
+      <button type="button" data-tour="guide" title="Opens the Guide: the tour, the feature guides, and how the numbers are made." onClick={onHow}>
         Guide
       </button>
       {/* A house, with the word beside it only in a phone's menu, where every other row is a word. */}

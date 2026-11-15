@@ -12,7 +12,7 @@ import { ServiceStatus } from '../components/ServiceStatus'
 import { TrustNotes } from '../components/TrustNotes'
 import { chapterTime } from '../lib/guideVideo'
 import { monthLabel } from '../lib/months'
-import { pct } from '../lib/verdict'
+import { wholePct } from '../lib/verdict'
 import { DataSources } from './DataSources'
 import './how.css'
 
@@ -124,7 +124,7 @@ const STACK: { layer: string; items: string[] }[] = [
 
 /**
  * The Guide: where to start (the tour and the videos), how to use the screen, then how it works: how
- * the numbers are made, why to trust them, what the site runs on, and how the co-pilot stays honest.
+ * the numbers are made, why to trust them, what the site runs on, and how Scout stays honest.
  */
 export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTaken = false, guides = [], onGuide, videos = null, openAtVideo = false, why = null, openAtWhy = false }: Props) {
   // Arriving from a scrolled page would otherwise open this one part-way down.
@@ -185,7 +185,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
     { name: 'The answer', does: `hourly visibility for ${siteCount} sites, ${span}`, tech: 'static JSON and terrain tiles' },
   ]
 
-  // The Atlas's map of the polar ground: the same calculation, at every pixel. Its numbers are read
+  // The map of the polar ground's light: the same calculation, at every pixel. Its numbers are read
   // from the pipeline's own files, like every other number here.
   const light = useLightChecks()
   const everyPixel: Step[] = [
@@ -198,7 +198,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
   const counts = useQuestionCounts()
   const services = useServiceStatus()
   const scoutModel = copilotModel(services)
-  const sunShare = data ? pct(data.summary.pct_sun) : '…'
+  const sunShare = data ? wholePct(data.summary.pct_sun) : '…'
   const copilot: Step[] = [
     { name: 'You ask', does: '“How sunny is it here this month?”', tech: 'POST /api/chat' },
     { name: 'The model picks a tool', does: 'it may only call our own read-only functions', tech: 'Claude tool use: month_summary' },
@@ -316,10 +316,10 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
           and nothing is made up by an AI.
         </p>
         <p>
-          Two things are made by AI, and carry an “AI” tag where they appear: Scout’s answers, which a language model writes from our numbers (its voice is synthetic too), and
-          Scout’s mark, the round badge beside its name. Scout’s answers and its mark are AI-generated.
+          Two things are made by AI, and carry an “AI” tag where they appear: Scout’s answers, which a language model writes from our numbers (his voice is synthetic too), and
+          Scout’s mark, the round badge beside his name. Scout’s answers and his mark are AI-generated.
         </p>
-        {/* Which model, from what the co-pilot service reports right now, so this cannot go stale. */}
+        {/* Which model, from what Scout's service reports right now, so this cannot go stale. */}
         <p className="how-scout-model">
           Scout is Anthropic’s Claude{scoutModel ? ` (${scoutModel})` : ''}. He reads the same data as the screen, through the service’s read-only tools, and never works out a number himself:
           the server fills in every number, date and time from that data.
@@ -368,13 +368,19 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
               For {data.site.name}, {monthLabel(data.month)}:
             </p>
             <TrustNotes data={data} />
+            {/* The plan's line gives another figure for the same agreement: said here, so the two do not read as a disagreement. */}
+            <p className="how-caption">
+              Two figures are given for JPL Horizons, and they measure the same agreement. The one above is the pipeline’s own check at the moments it counts, on directions before they are
+              rounded. The plan’s line, “Matches Horizons within 0.01°”, is every hour of the tracks the screen draws, which are stored to 0.01°: there the largest gap is the
+              rounding.
+            </p>
           </>
         ) : (
           <p className="how-caption">Loading the checks for this site…</p>
         )}
       </Act>
 
-      <Act number={4} title="The whole pole, not only the listed sites" lede={`A planner wants to ask about any ground, not only the ${siteCount} listed sites. So the Atlas runs the same calculation at every pixel, and the light you see on its map is the answer itself.`}>
+      <Act number={4} title="The whole pole, not only the listed sites" lede={`A planner wants to ask about any ground, not only the ${siteCount} listed sites. So the same calculation is run at every pixel of the polar ground: it is what “Light and shadow” draws, in Layers, and what “Landings that fit” is worked out from.`}>
         <Flow steps={everyPixel} label="How the map of the polar ground is made" />
         {light ? (
           <p className="how-caption">
@@ -388,9 +394,6 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         ) : (
           <p className="how-caption">Loading the checks for the map…</p>
         )}
-        <p className="how-caption">
-          <a href="/atlas/">Open the Atlas</a> to tap any ground, or <a href="/briefing/">play the two-minute briefing</a>.
-        </p>
       </Act>
 
       <Act number={5} title="What it runs on" lede="The whole site is described in code, so it can be rebuilt from nothing in minutes. There are no passwords or keys anywhere in it.">
@@ -405,9 +408,9 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
           objective (99.5% of requests succeed) alerts us when failures pile up, every request is traced so we can
           see where a slow one spent its time, and a budget alert watches the spending.
         </p>
-        <h3>When someone asks the co-pilot a question</h3>
+        <h3>When someone asks Scout a question</h3>
         <Flow steps={COUNT} label="How a question is counted" />
-        <h3>Co-pilot questions today</h3>
+        <h3>Questions to Scout today</h3>
         <QuestionCounts counts={counts} />
         <h3>The services, right now</h3>
         <p className="how-caption">
@@ -431,10 +434,10 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         </dl>
       </Act>
 
-      <Act number={6} title="How the co-pilot stays honest" lede="A language model is good with words and unreliable with numbers. So ours is never allowed to write one.">
-        <Flow steps={copilot} label="How the co-pilot answers" />
+      <Act number={6} title="How Scout stays honest" lede="A language model is good with words and unreliable with numbers. So Scout’s is never allowed to write one.">
+        <Flow steps={copilot} label="How Scout answers" />
         <p className="how-caption">
-          The same rule covers its buttons: the server rebuilds each one from parts it has checked, so the model can
+          The same rule covers his buttons: the server rebuilds each one from parts it has checked, so the model can
           only send you to a real site, month and hour.
         </p>
       </Act>

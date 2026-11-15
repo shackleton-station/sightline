@@ -3,7 +3,7 @@ import type { ScenarioData } from '../data/scenarioData'
 import { formatDuration } from './nextChange'
 import { monthLong, monthName } from './months'
 import { panelSunlight } from './power'
-import { pct } from './verdict'
+import { pct, wholePct } from './verdict'
 
 /** Below this monthly swing in solar elevation (degrees), a site behaves like the pole. */
 const POLAR_SUN_SWING_DEG = 10
@@ -229,7 +229,7 @@ export function whyHard(data: ScenarioData, mission?: { days: number; sunGapH: n
       ? `Earth never rises here in ${name}, so every message needs a relay.`
       : stats.pct_earth === 100
         ? `Earth is in view all of ${name} here, so the terrain never blocks the radio.`
-        : `Earth is hidden ${pct(100 - stats.pct_earth)} of ${name} here, for up to ${formatDuration(stats.max_earth_gap_h)} at a stretch.`,
+        : `Earth is hidden ${wholePct(100 - stats.pct_earth)} of ${name} here, for up to ${formatDuration(stats.max_earth_gap_h)} at a stretch.`,
   )
 
   // At a pole the month matters as much as the place: said only where the year's months really differ.
@@ -237,7 +237,7 @@ export function whyHard(data: ScenarioData, mission?: { days: number; sunGapH: n
   if (polar && months.length > 1) {
     const least = extreme(months, (a, b) => a.pct_sun < b.pct_sun)
     const most = extreme(months, (a, b) => a.pct_sun > b.pct_sun)
-    if (most.pct_sun - least.pct_sun >= 10) sentences.push(`The month matters too: the Sun is up ${pct(least.pct_sun)} of ${monthLong(least.month)} and ${pct(most.pct_sun)} of ${monthLong(most.month)}.`)
+    if (most.pct_sun - least.pct_sun >= 10) sentences.push(`The month matters too: the Sun is up ${wholePct(least.pct_sun)} of ${monthLong(least.month)} and ${wholePct(most.pct_sun)} of ${monthLong(most.month)}.`)
   }
   return sentences
 }

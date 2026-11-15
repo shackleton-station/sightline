@@ -6,6 +6,17 @@ export function pct(value: number): string {
   return `${value.toFixed(1)}%`
 }
 
+/**
+ * A share as a whole percent, for prose where a tenth of a percent is more than a reader can use.
+ * Never "0%" or "100%" for a share that is not: those read "under 1%" and "over 99%".
+ */
+export function wholePct(value: number): string {
+  const rounded = Math.round(value)
+  if (rounded <= 0 && value > 0) return 'under 1%'
+  if (rounded >= 100 && value < 100) return 'over 99%'
+  return `${rounded}%`
+}
+
 /** One-line plain-English result, using only numbers from the pipeline. */
 export function verdict(summary: Summary): string {
   return (
@@ -40,14 +51,14 @@ function compareWithMap(
 ): TrustNote {
   const difference = Math.abs(ours - map)
   const numbers =
-    `${pct(ours)} here, ${pct(map)} on NASA's PGDA map ` +
+    `${wholePct(ours)} here, ${wholePct(map)} on NASA's PGDA map ` +
     `(neighboring pixels ${low.toFixed(0)}–${high.toFixed(0)}%)`
   if (difference <= grid.rmse) {
     return { text: `${name} agrees with NASA's map: ${numbers}.`, warning: false }
   }
   return {
     text:
-      `${name} at this site is not confirmed: ${numbers}. That's ${difference.toFixed(1)} points ` +
+      `${name} at this site is not confirmed: ${numbers}. That's about ${difference.toFixed(0)} points ` +
       `apart; across ${grid.n} other pixels the typical difference is ${grid.mae.toFixed(1)}.`,
     warning: true,
   }

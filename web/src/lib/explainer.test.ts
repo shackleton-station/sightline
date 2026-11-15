@@ -167,8 +167,8 @@ describe('whyHard, the Guide\'s "Why this site is hard"', () => {
     expect(whyHard(data, { days: 14, sunGapH: 95 })).toEqual([
       'At Test Ridge the Sun never climbs: in May its elevation stays between −1.0° and 0.5° from level, so the skyline decides when there is sunlight.',
       'The longest stretch without the Sun here in 2027 is 4 d 4 h; during your 14-day mission from this landing the Sun is down for 95 h.',
-      'Earth is hidden 50.0% of 2027 here, for up to 14 d 5 h at a stretch.',
-      'The month matters too: the Sun is up 52.0% of May and 100.0% of January.',
+      'Earth is hidden 50% of 2027 here, for up to 14 d 5 h at a stretch.',
+      'The month matters too: the Sun is up 52% of May and 100% of January.',
     ])
   })
 
