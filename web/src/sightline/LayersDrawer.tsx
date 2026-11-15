@@ -41,6 +41,9 @@ interface Props {
   onShowHow: (() => void) | null
 }
 
+/** Said beside a greyed layer, so it reads as out of reach on a phone too, where hover text never shows. */
+const NotHere = () => <span className="sl-layer-tag">Not at this site</span>
+
 /**
  * Layers, in two groups. "Whole Moon": the place names, which change no view. "South pole, close
  * up": this app's own light and shadow and the share of landings that fit, and NASA's maps of the
@@ -94,16 +97,18 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
       {/* A layer that does not reach the site on show is greyed and says how far it goes; one already on can still be switched off. */}
       <ul className="sl-layer-own sl-layer-ground">
         <li>
-          <label title={shade.here ? 'Darkens the ground the Sun cannot reach at the hour on the time bar.' : outside(lightKm, 'This app’s light grid')}>
+          <label className={shade.here ? undefined : 'sl-layer-off'} title={shade.here ? 'Darkens the ground the Sun cannot reach at the hour on the time bar.' : outside(lightKm, 'This app’s light grid')}>
             <input type="checkbox" role="switch" checked={shade.on && shade.here} disabled={!shade.here} onChange={() => onShade(!shade.on)} />
             <span>Light and shadow</span>
+            {!shade.here && <NotHere />}
           </label>
         </li>
         {odds && (
           <li>
-            <label title={odds.here || odds.on ? 'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.' : outside(lightKm, 'The terrain this layer is worked out from')}>
+            <label className={odds.here || odds.on ? undefined : 'sl-layer-off'} title={odds.here || odds.on ? 'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.' : outside(lightKm, 'The terrain this layer is worked out from')}>
               <input type="checkbox" role="switch" checked={odds.on} disabled={!odds.here && !odds.on} onChange={() => onOdds(!odds.on)} />
               <span>Landings that fit</span>
+              {!odds.here && !odds.on && <NotHere />}
             </label>
           </li>
         )}
@@ -127,9 +132,10 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
       <ul className="sl-layer-list">
         {TREK_LAYERS.map((item) => (
           <li key={item.id}>
-            <label title={reach[item.id] ? item.says : outside(trekReachKm(item), 'This map')}>
+            <label className={reach[item.id] || layer === item.id ? undefined : 'sl-layer-off'} title={reach[item.id] ? item.says : outside(trekReachKm(item), 'This map')}>
               <input type="checkbox" role="switch" checked={layer === item.id} disabled={!reach[item.id] && layer !== item.id} onChange={() => onLayer(layer === item.id ? null : item.id)} />
               <span>{item.label}</span>
+              {!reach[item.id] && layer !== item.id && <NotHere />}
             </label>
           </li>
         ))}

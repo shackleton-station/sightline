@@ -1903,9 +1903,32 @@ button.sl-moment-heights[aria-expanded='true'] {
   margin-top: 0;
 }
 
+/* A layer that does not reach the site on show: dimmed, no pointer, and tagged "Not at this site". */
 .sl-layer-own input:disabled + span,
 .sl-layer-list input:disabled + span {
   color: var(--soft);
+}
+
+.sl-layer-list label.sl-layer-off,
+.sl-layer-own label.sl-layer-off,
+.sl-layer-off input {
+  cursor: not-allowed;
+}
+
+.sl-layer-off input,
+.sl-layer-off > span:not(.sl-layer-tag) {
+  opacity: 0.5;
+}
+
+.sl-layer-tag {
+  margin-left: auto;
+  padding: 0.05rem 0.45rem;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  color: var(--soft);
+  /* 12 px: the smallest type the screen sets. */
+  font-size: 0.75rem;
+  white-space: nowrap;
 }
 
 .sl-layer-shade {
