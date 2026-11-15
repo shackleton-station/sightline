@@ -47,16 +47,20 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
   const now = track[Math.min(index, track.length - 1)]
   const discs = radii[Math.min(index, radii.length - 1)]
   const sky = useGlide({ sunAz: now.sun_az, sunEl: now.sun_el, earthAz: now.earth_az, earthEl: now.earth_el }, `${site.id}@${month}`, still)
-  // The hours either side of this one, as dots along each body's path.
+  // Each body's path over the whole month, drawn as a line across the picture.
+  const wholeMonth = useMemo(
+    () => ({
+      sun: track.map((point) => ({ azDeg: point.sun_az, elDeg: point.sun_el, up: point.sun_up })),
+      earth: track.map((point) => ({ azDeg: point.earth_az, elDeg: point.earth_el, up: point.earth_up })),
+    }),
+    [track],
+  )
+  // The hours either side of this one, as dots along that path.
   const hours = useMemo(() => {
     const from = Math.max(index - HOURS_BEFORE, 0)
-    const near = track.slice(from, index + HOURS_AFTER + 1)
-    return {
-      first: from,
-      sun: near.map((point) => ({ azDeg: point.sun_az, elDeg: point.sun_el, up: point.sun_up })),
-      earth: near.map((point) => ({ azDeg: point.earth_az, elDeg: point.earth_el, up: point.earth_up })),
-    }
-  }, [track, index])
+    const to = index + HOURS_AFTER + 1
+    return { first: from, sun: wholeMonth.sun.slice(from, to), earth: wholeMonth.earth.slice(from, to), month: wholeMonth }
+  }, [wholeMonth, index])
 
   // Zoom and stretch go to both views, so they stay at one scale. The arrow keys and the phone's
   // sensor steer one: the view last touched, the Sun's to begin with.
