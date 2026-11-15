@@ -148,7 +148,7 @@ async function elsewhere(key: string, letter: string, scenario: SightlineScenari
   // fits ("it fits at {{…}}"), or a clause saying that none of the group's other sites does.
   const other = found
     ? fact(`${key}_fits_at_another_site`, `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`, `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away`)
-    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on the same landing date, as a clause that stands in a sentence`, `no other ${GROUP_SITE[site.group] ?? 'site in its group'} fits on that date`)
+    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on this scenario's own landing date, not on its next landing's, as a clause that stands in a sentence`, `no other ${GROUP_SITE[site.group] ?? 'site in its group'} fits on ${whenLabel(isoAt(own.flags.start, scenario.landing)).split(',')[0]} either`)
   return alone ? nextFacts : [...nextFacts, other]
 }
 

@@ -57,7 +57,7 @@ describe('scenarioScene', () => {
     // On a date that fits at no ridge site it says so, and only for the scenario on show.
     const none = await scenarioScene(TWO, viewFrom(TWO), data)
     expect(none?.facts.find((item) => item.key === 'scenario_b_fits_at_another_site')).toBeUndefined()
-    expect(none?.facts.find((item) => item.key === 'scenario_b_no_other_site_fits')?.value).toMatch(/^no other (south pole|Apollo|CLPS) site fits on that date$/)
+    expect(none?.facts.find((item) => item.key === 'scenario_b_no_other_site_fits')?.value).toMatch(/^no other (south pole|Apollo|CLPS) site fits on 6 May 2027 either$/)
     expect(none?.facts.find((item) => item.key === 'scenario_a_fits_at_another_site')).toBeUndefined()
     expect(none?.facts.find((item) => item.key === 'scenario_a_no_other_site_fits')).toBeUndefined()
   })
