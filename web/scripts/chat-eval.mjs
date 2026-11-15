@@ -49,7 +49,7 @@ const sentencesIn = (text) => text.trim().split(/(?<=[.!?])\s+(?=[A-Z"“])/).fi
 const MARGINAL_VIEW = '#a=connecting-ridge@2027-02&t=113&limits=14_24_99999_1_1&mode=plan&sc=0'
 /** Two scenarios, neither of which fits: Connecting Ridge on 6 May 2027 and Shackleton Rim on 21 June 2027, 17:00 UTC. */
 const TWO_VIEW = '#a=connecting-ridge@2027-05&t=132&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-06-21T17&sc=0'
-/** A landing that does not fit: Connecting Ridge, 6 May 2027, 12:00 UTC, 14 days with at most 24 h of dark and no limit on radio silence. */
+/** A landing that does not fit: Connecting Ridge, 6 May 2027, 12:00 UTC, Short stay. */
 const PLAN_VIEW = '#a=connecting-ridge@2027-05&t=132&limits=14_24_99999_1_1&mode=plan&sc=0'
 const GAP_MS = quick ? 0 : 11_000
 /** Second tries allowed over the whole run. In quick mode two questions and one retry stay well inside 6 a minute. */

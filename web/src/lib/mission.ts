@@ -27,16 +27,15 @@ export function isNoGapLimit(hours: number): boolean {
 
 /**
  * The mission every page and Scout start from, and the one a link with no limits is read with: 14
- * days, 24 h of dark survived, 24 h of radio silence survived, the Sun and Earth up at landing, any
- * part of Earth counting. The challenge is about sunlight and a direct line to Earth, so the mission
- * a visitor starts from limits both: without a limit on radio silence a landing read "Fits" with
- * Earth out of view for most of the stay. This is the only place the numbers are written, so the
- * same question gets the same answer wherever it is asked.
+ * days, 24 h of dark survived, the Sun and Earth up at landing, no limit on radio silence, any part
+ * of Earth counting. With these the answer is plain visibility, which is what the challenge asks.
+ * This is the only place the numbers are written, so the same question gets the same answer wherever
+ * it is asked.
  */
 export const DEFAULT_REQUIREMENTS: Requirements = {
   missionDays: 14,
   maxSunGapH: 24,
-  maxEarthGapH: 24,
+  maxEarthGapH: NO_GAP_LIMIT_H,
   sunAtLanding: true,
   earthAtLanding: true,
   minEarthClearanceDeg: 0,

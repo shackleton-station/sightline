@@ -9,12 +9,12 @@ describe('a scenario in the address', () => {
   const hours = 35064
   it('is written in the app\'s own link format, which the other pages read', () => {
     const link = scenarioLink([{ site: 'connecting-ridge', landing: 2880 + 133 }], 0, START, DEFAULT_MISSION)
-    expect(link).toBe('#a=connecting-ridge@2027-05&t=133&limits=14_24_24_1_1&mode=plan')
+    expect(link).toBe('#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan')
   })
   it('gives the Surface view the scenario on show as its own site and hour, not scenario A', () => {
     const two = [{ site: 'connecting-ridge', landing: 2880 }, { site: 'shackleton-rim', landing: 3624 + 22 }]
     expect(surfaceLink(two, 0, START, DEFAULT_MISSION)).toBe(scenarioLink([two[0]], 0, START, DEFAULT_MISSION))
-    expect(surfaceLink(two, 1, START, DEFAULT_MISSION)).toBe('#a=shackleton-rim@2027-06&t=22&limits=14_24_24_1_1&mode=plan')
+    expect(surfaceLink(two, 1, START, DEFAULT_MISSION)).toBe('#a=shackleton-rim@2027-06&t=22&limits=14_24_99999_1_1&mode=plan')
     expect(surfaceLink(two, 7, START, DEFAULT_MISSION)).toBe(surfaceLink(two, 0, START, DEFAULT_MISSION))
   })
   it('reads back what it wrote, custom points included', () => {
@@ -114,7 +114,7 @@ describe('the mission', () => {
     expect(presetOf({ ...rover, maxSlopeDeg: 14 })).toBeNull()
   })
   it('is said in a few words', () => {
-    expect(missionWords(DEFAULT_MISSION)).toBe('14 days on the surface, survives 24 h of darkness, the Sun and Earth in view at landing, at most 24 h of radio silence, ground up to 10°')
+    expect(missionWords(DEFAULT_MISSION)).toBe('14 days on the surface, survives 24 h of darkness, the Sun and Earth in view at landing, ground up to 10°')
     // The Long stay sets no limit on radio silence, so it has nothing to say about it.
     expect(missionWords(rover)).toBe('60 days on the surface, survives 336 h of darkness, the Sun and Earth in view at landing, ground up to 15°')
     expect(missionWords({ ...rover, requirements: { ...rover.requirements, maxEarthGapH: 48 } })).toContain('at most 48 h of radio silence')
@@ -132,7 +132,7 @@ describe('scenarios A to D', () => {
   ]
   it('travel in one link: A as the link\'s own site and hour, B to D in its shortlist', () => {
     const link = scenarioLink(four, 2, START, DEFAULT_MISSION)
-    expect(link).toBe('#a=connecting-ridge@2027-05&t=133&limits=14_24_24_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~-88.5,40@2028-01-11T00~de-gerlache-rim@2027-01-01T12&sc=2')
+    expect(link).toBe('#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-05-06T13~-88.5,40@2028-01-11T00~de-gerlache-rim@2027-01-01T12&sc=2')
     expect(readScenarioLink(link, START, hours)).toEqual({ scenarios: four, active: 2, mission: DEFAULT_MISSION })
   })
   it('are four at most, and an active one that isn\'t there falls back to A', () => {
@@ -155,7 +155,7 @@ describe('Compare', () => {
   it('gives the reasons a scenario doesn\'t fit, the slope last', () => {
     const measure = measureScenario({ site: 'x', landing: 48 }, site, flags, mission, 12)
     expect(measure.sunPct).toBe(50)
-    expect(measure.problems).toEqual(['Earth is out of view at landing.', 'Earth is gone for 48 h during the mission; your limit is 24 h.', 'The ground slopes 12.0°; your limit is 10°.'])
+    expect(measure.problems).toEqual(['Earth is out of view at landing.', 'The ground slopes 12.0°; your limit is 10°.'])
   })
   it('has no numbers for a mission that runs past the data', () => {
     expect(measureScenario({ site: 'x', landing: 72 }, site, flags, mission, null).sunPct).toBeNull()
@@ -180,10 +180,7 @@ describe('the radio-silence slider', () => {
   it('has one stop after its last hour, for no limit, which a link carries as it always did', () => {
     expect(silenceStop(NO_LIMIT_H)).toBe(404)
     expect(silenceHours(404)).toBe(NO_LIMIT_H)
-    const free = { ...DEFAULT_MISSION, requirements: { ...DEFAULT_MISSION.requirements, maxEarthGapH: silenceHours(404) } }
-    expect(scenarioLink([{ site: 'connecting-ridge', landing: 0 }], 0, START, free)).toContain('limits=14_24_99999_1_1')
-    // The short stay's own limit travels as its hours.
-    expect(scenarioLink([{ site: 'connecting-ridge', landing: 0 }], 0, START, DEFAULT_MISSION)).toContain('limits=14_24_24_1_1')
+    expect(scenarioLink([{ site: 'connecting-ridge', landing: 0 }], 0, START, DEFAULT_MISSION)).toContain('limits=14_24_99999_1_1')
   })
   it('is hours everywhere else', () => {
     expect(silenceStop(48)).toBe(48)

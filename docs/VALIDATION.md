@@ -1174,9 +1174,8 @@ within 0.6 of a point of the thrown ones in every case.
 **The grid as the layer reads it, against each ridge site's track.** `npx tsx
 scripts/success-layer-check.ts <month>` (from `web/`) reads the month from the live site and, for a
 landing at every hour of it, compares the grid's cell at the site with the site's own track, which is
-worked out at its exact point. The mission is 14 days, at most 24 h of dark, no limit on radio
-silence, Sun and Earth up at landing: the Short stay as it was when this was run (it now also limits
-radio silence to 24 h; the script keeps the mission it measured). Share of hours that agree:
+worked out at its exact point. Short stay mission (14 days, at most 24 h of dark, Sun and Earth up at
+landing). Share of hours that agree:
 
 | Month | Site | Sun up | Earth up | Verdict |
 | --- | --- | --- | --- | --- |
@@ -1255,8 +1254,7 @@ no cells. That filling-in is a way of drawing and counting between known points,
 of the ground. At the aim point itself the verdict's own answer is used, so the panel and the verdict
 cannot disagree there.
 
-**One site by hand.** Peak near Shackleton, Short stay as it then was (no limit on radio silence),
-100 m accuracy (one-off script, 2026-11-15):
+**One site by hand.** Peak near Shackleton, Short stay, 100 m accuracy (one-off script, 2026-11-15):
 landing 24 November 2026, the site fits and over 99% of landings do; 14 December 2026, the site fits
 and 80% do, the rest where Earth is out of view at landing; 16 November and 5 December, the site does
 not fit (Earth out of view) and under 1% do. Along the lattice's middle row the longest dark spell

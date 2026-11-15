@@ -62,10 +62,6 @@ export function blockedBy(flags: SiteFlags, mission: SightlineMission, slopeDeg:
   if (opens({ ...requirements, sunAtLanding: false, earthAtLanding: false })) {
     return { short: 'Sun and Earth not both in view at landing', full: 'No hour that meets your other limits has the Sun and Earth both in view at landing. Without that need a landing would fit.' }
   }
-  // Earth out of view both at landing and for longer than the limit, as on the far side: one reason, not two.
-  if (requirements.earthAtLanding && opens({ ...requirements, earthAtLanding: false, maxEarthGapH: NO_GAP_LIMIT_H })) {
-    return { short: 'Earth not in view', full: `No hour that meets your other limits has Earth in view at landing, and after it Earth is out of view for longer than your ${requirements.maxEarthGapH} h limit. Without those two needs a landing would fit.` }
-  }
   return { short: 'more than one limit', full: 'More than one of your limits blocks every landing here: taking any one of them away is not enough.' }
 }
 

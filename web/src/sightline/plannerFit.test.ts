@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import type { SiteInfo } from '../data/contract'
 import { decodeRuns, type SiteFlags } from '../lib/flags'
 import { monthSpans } from '../lib/grid'
-import { NO_GAP_LIMIT_H } from '../lib/mission'
 import { DEFAULT_MISSION, fitProblems, PRESETS, type SightlineMission } from '../lib/sightlineMission'
 import { checkOverview, dataFile } from '../lib/testData'
 import { blockedBy, cellDetail, cellWords, findRow, fitHours, nextFit, plannerTabIn, runningTotals, withPlannerTab , findTally, monthsWithFit } from './plannerFit'
@@ -171,14 +170,9 @@ describe('why a site has no landing', () => {
   })
 
   it('names Earth at landing where Earth is never in view, as on the far side', () => {
-    // The short stay also limits radio silence, which Earth never in view breaks too: one reason is given for the two.
     const why = blockedBy(made(always, () => false), DEFAULT_MISSION, 2)!
-    expect(why.short).toBe('Earth not in view')
-    expect(why.full).toBe('No hour that meets your other limits has Earth in view at landing, and after it Earth is out of view for longer than your 24 h limit. Without those two needs a landing would fit.')
-    // With no limit on radio silence, the need at landing is the one named.
-    const free = blockedBy(made(always, () => false), { ...DEFAULT_MISSION, requirements: { ...DEFAULT_MISSION.requirements, maxEarthGapH: NO_GAP_LIMIT_H } }, 2)!
-    expect(free.short).toBe('Earth not in view at landing')
-    expect(free.full).not.toMatch(/99999/)
+    expect(why.short).toBe('Earth not in view at landing')
+    expect(why.full).not.toMatch(/99999/)
   })
 
   it('gives a reason for every listed site that has no landing for the short stay, and none for one that has', () => {
