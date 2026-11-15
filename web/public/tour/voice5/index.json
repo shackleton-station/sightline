@@ -3,64 +3,64 @@
   "disclosure": "AI-generated voice",
   "lines": {
     "challenge": {
-      "hash": "a9230331465812cf",
-      "bytes": 94656,
-      "seconds": 23.7,
-      "say": "This is the Moon, seen from above its south pole, with time running. A lander there needs two things from the sky: the Sun, for power, and Earth, for a direct radio link. Near the pole both sit low on the horizon, so the hills around a site decide when each is in view. NASA's own tools can answer that, but slowly. Sightline answers it on one screen."
+      "hash": "32eae9a7b30f73d7",
+      "bytes": 83904,
+      "seconds": 21,
+      "say": "This is the Moon, seen from above its south pole. A lander there needs two things from the sky: the Sun, for power, and Earth, for a direct radio link. It is nothing like Earth: the Moon turns once a month, and near its pole the Sun and Earth never climb. They skim the horizon, so the hills decide when each is in view."
     },
     "plan": {
-      "hash": "d30be350e46b8a2b",
-      "bytes": 94176,
-      "seconds": 23.5,
-      "say": "A plan is three choices. Where: a site from the list, the Apollo landings, NASA's commercial landers, other countries' landers and future targets, or any point on the Moon, by its coordinates. When: a landing date and hour, in UTC. And the mission: a short stay of fourteen days, never more than a day without the Sun or Earth."
+      "hash": "a29c38158ca65064",
+      "bytes": 104352,
+      "seconds": 26.1,
+      "say": "Every answer starts from a plan: three choices. Where: a site from the list, the Apollo landings, NASA's commercial landers, other countries' landers and future targets, or any point on the Moon, by its coordinates. When: a landing date and hour, in UTC. And what the mission needs. Ours lands on Connecting Ridge on the sixth of May 2027, for a short stay of fourteen days."
     },
     "verdict": {
-      "hash": "70d7cbd422e099e8",
-      "bytes": 90336,
-      "seconds": 22.6,
-      "say": "The answer comes first, in words. A landing fits the mission, fits with little margin, or does not fit, and Sightline says why. Under it are the numbers behind the answer: the Sun, with its elevation and the share of the mission it is in view; Earth, the same way; the two together; and the slope of the ground. This landing does not fit."
+      "hash": "bfba134a85265414",
+      "bytes": 97152,
+      "seconds": 24.3,
+      "say": "So, does it fit? The answer comes first. This landing does not, and Sightline says why: the Sun is down for ninety-five hours and Earth is out of view for a hundred and sixty-nine, against a limit of a day each. Under it are the numbers: the Sun's elevation, a key measure for power, and its share of the mission; Earth, the same way; and the ground's slope."
     },
     "slipped": {
-      "hash": "7aca761f781f062a",
-      "bytes": 94656,
-      "seconds": 23.7,
-      "say": "Now the real problem. Launch dates slip, and a landing that worked on paper may not work a month later. So when a landing does not fit, Sightline names the next one that does. One press, and that landing is in the plan beside the first: the same site, a later date, a green verdict. In separate tools, that means starting again in each one."
+      "hash": "f8fc0b4f35db6127",
+      "bytes": 80064,
+      "seconds": 20,
+      "say": "Now the real problem: launch dates slip. Sightline names the next landing that fits. One press, and it is in the plan beside the first, as scenario B: the same site, on the twenty-second of June, nearly seven weeks later, with a green verdict. In separate tools, that means starting again in each one."
     },
     "skyline": {
-      "hash": "4922451af2caab6a",
-      "bytes": 96192,
-      "seconds": 24,
-      "say": "This is the view from the ground. You are standing at the site, looking toward the Sun in one window and toward Earth in the other, over the real skyline, traced from NASA's laser-measured terrain. It counts down to sunset and to Earthset. The strip underneath is the whole horizon at once: above the skyline a body is in view, and below it the ground is in the way."
+      "hash": "f54baa9eb8e065eb",
+      "bytes": 86784,
+      "seconds": 21.7,
+      "say": "So why does it not fit? One window faces the Sun, the other Earth, over the real skyline, traced from NASA's laser-measured terrain. Both are low, and each counts down: sunset in five and a half days, Earthset in seven. Seen from the Moon, Earth stays in one place; near the pole that place is the skyline, so here it sets."
     },
     "time": {
-      "hash": "d08bb066b0dc17b2",
-      "bytes": 92736,
-      "seconds": 23.2,
-      "say": "Time is the other half of the answer. The bands run on from the landing: gold for the Sun, blue for Earth, green for both at once. You can play it, move along it, or step back to see a day, a month or a whole year. Over a year the pattern shifts, because the Moon has seasons, and that is why some months have no landing that fits."
+      "hash": "5b8f58e161eb6633",
+      "bytes": 95904,
+      "seconds": 24,
+      "say": "Now run the mission forward. Gold is the Sun, blue is Earth, green is both. The frame marks the fourteen days, and the gaps inside it are the verdict's reasons: the Sun gone for four days, Earth gone for the whole second week. Play it, or step back to a day, a month or a year. Over a year the pattern shifts: the Moon has seasons too."
     },
     "ground": {
-      "hash": "4f3e99effd763df0",
-      "bytes": 100224,
-      "seconds": 25.1,
-      "say": "From orbit, close on the site, or standing on the surface: three views of the same hour. Close in, Layers puts NASA's own maps over the ground: photos, steep ground, permanent shadow, temperature. And every plan opens the same place in Quickmap, Moon Trek and JPL Horizons, the tools the challenge names, so anyone can check our answer."
+      "hash": "b786cde7de8f74c3",
+      "bytes": 88704,
+      "seconds": 22.2,
+      "say": "Now look at the ground itself. Three views show the same hour: the whole Moon from orbit, the site close up, and the view standing on the surface. Layers puts NASA's own maps over the ground: photos, steep ground, permanent shadow, temperature. And every plan opens the same place in Quickmap, Moon Trek and JPL Horizons, so anyone can check our answer."
     },
     "compare": {
-      "hash": "18600399c96a40cd",
-      "bytes": 88032,
-      "seconds": 22,
-      "say": "Planners rarely have one option. Compare sets up to four scenarios side by side: different sites, or one site on different dates. Each row is one measure, and a star marks the best value in it. There is no single blended score, on purpose. The weights behind one would be invented, and the trade-offs belong to the planner."
+      "hash": "93ad5dcc7deb4f09",
+      "bytes": 90912,
+      "seconds": 22.7,
+      "say": "Waiting is one answer. Would moving be another? Compare sets the scenarios side by side: A failed, B is the later date, and C and D are two other sites near the pole on the original date. Neither fits, though one is sunlit for two thirds of the mission and the other for a seventh. A star marks the best in each row; there is no blended score."
     },
     "planner": {
-      "hash": "5af9f304c7332f72",
-      "bytes": 88512,
-      "seconds": 22.1,
-      "say": "The Planner turns the question around. Instead of one landing, it shows every listed site against every month of the year, and counts the days with a landing that fits. The greener the cell, the more days; none means none. A site that never fits says which limit blocks it. And NASA's future landing targets can be added as rows of their own."
+      "hash": "f67b557ef8cf8990",
+      "bytes": 98112,
+      "seconds": 24.5,
+      "say": "So was May ever possible? The Planner steps back to every listed site against every month of the year, counting the days with a landing that fits. In May 2027, none of the four ridge sites at the pole has one. In June, Connecting Ridge has three. A site that never fits says which limit blocks it, and NASA's future landing targets can be added as rows."
     },
     "accuracy": {
-      "hash": "616cc72253ecf321",
-      "bytes": 78624,
-      "seconds": 19.7,
-      "say": "No lander comes down exactly on its mark. So Landing accuracy asks what a miss would change. This landing fits exactly on its aim point, and yet most of the touchdowns within reach of it would not. Sightline says what goes wrong in those, and offers a better place to aim, a short way off, where more of them fit."
+      "hash": "f45e27fed90e29c2",
+      "bytes": 91296,
+      "seconds": 22.8,
+      "say": "We chose B. But no lander comes down exactly on its mark. B fits on its aim point, and yet, of the touchdowns within about a hundred meters of it, only thirty-eight percent would. Landing accuracy shows what goes wrong in the rest, and offers a better aim: forty-four meters away, where sixty percent fit. Near the pole, a few meters matter."
     },
     "trust": {
       "hash": "f6fbba2ee45b710f",
@@ -69,10 +69,22 @@
       "say": "Can it be trusted? Every number is computed from public NASA data by our own code, then checked against NASA three ways. The positions are compared with JPL Horizons at every hour. The long-run sunlight, with NASA's own map. And the model, with dated photos taken from orbit. The Guide tells that story for a first-time visitor, and says plainly what Sightline cannot tell you."
     },
     "scout": {
-      "hash": "9dabc1274762fb3e",
-      "bytes": 90336,
-      "seconds": 22.6,
-      "say": "Last, Scout. Ask a question in plain words, and he looks the answer up in the same data. He is an AI, and he is never allowed to write a number himself: the server fills in every figure. Try a real mission, Canada's utility rover, or share any plan as a link. It is live now, at lunar sightline dot com. Thank you."
+      "hash": "9b1121acc141ef3b",
+      "bytes": 63552,
+      "seconds": 15.9,
+      "say": "Or just ask. Scout takes a question in plain words and looks the answer up in the same data the screen uses. He is an AI, and he is never allowed to write a number himself: the server fills in every figure, so what he says matches what you see."
+    },
+    "scenarios": {
+      "hash": "4edd2bfe86d7ea5e",
+      "bytes": 109152,
+      "seconds": 27.3,
+      "say": "The plan now holds two options, each with a letter: A, the first landing, and B, the later one. A letter is one scenario: a site and a landing hour. The plus adds another, up to four. There: scenario C. Change its site or date, and the whole screen answers for it. The minus on a letter drops it, and Undo brings it back."
+    },
+    "yours": {
+      "hash": "2bddb399e88a9c56",
+      "bytes": 84864,
+      "seconds": 21.2,
+      "say": "That is Sightline: one plan, asked, answered, changed and checked. It is yours to use. A planner gets every hour as a table to download, and the links to NASA's own tools. A class gets the Guide. Anyone can ask Scout. Try a real mission, Canada's utility rover, or share any plan as a link."
     }
   }
 }

@@ -1095,6 +1095,18 @@
   margin: 0.3rem 0;
 }
 
+/* The chapter of the tour's story, over the first step of each. */
+.how-use-chapter {
+  display: block;
+  margin: 0.7rem 0 0.15rem -1.4rem;
+  color: var(--how-gold, var(--gold));
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 /* Narrow screens: the bar's links take a row of their own, and each tool and check is one column. */
 @media (max-width: 760px) {
   .how {

@@ -75,7 +75,7 @@ import { HypeDrawer } from './HypeDrawer'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
 import { prepareFiles } from '../lib/prepare'
-import type { GuidesFile, LongTourFile, TourFile } from '../lib/tour'
+import { type GuidesFile, type LongTourFile, type TourFile, tourMeans } from '../lib/tour'
 import guidesFile from './guides.json'
 import tourFile from './tour.json'
 import longTourFile from './tour5.json'
@@ -181,7 +181,7 @@ const NO_SITES: string[] = []
 const TOUR = tourFile as TourFile
 /** The feature guides: short tours of one feature each, in the main tour's format, run by the same engine. */
 const GUIDES = (guidesFile as GuidesFile).guides
-/** The tour: twelve steps through the whole screen, to read alone in about a minute or to hear, and present, in about five. */
+/** The tour: one landing plan followed across the whole screen, in four chapters, to read alone or to hear in Scout's voice. */
 const LONG_TOUR = longTourFile as LongTourFile
 
 /** The phone's bottom sheet has three heights: the answer; half the screen; nearly all of it. */
@@ -390,7 +390,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [howAtVideo, setHowAtVideo] = useState(false)
   // The Guide opened at "Why this site is hard": Scout's ready idea leads there.
   const [howAtWhy, setHowAtWhy] = useState(false)
-  /** The Guide opens at its proof for the five-minute tour's step about trust. */
+  /** The Guide opens at its proof for the tour's step about trust. */
   const [howAtProof, setHowAtProof] = useState(false)
 
   // The listed sites' flags with the Sun seen from the panel's height and Earth from the antenna's.
@@ -936,7 +936,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const { view, show, open, pair, stage, play } = tourStep.state
     // The rover's guide is about the Long stay example: it is the mission while its steps are on.
     if (tourStep.state.mission === 'long') setMission((current) => ({ ...ROVER_PRESET.mission, heights: current.heights }))
-    // The five-minute tour is told on the Short stay, whatever mission the visitor had: leaving it puts theirs back.
+    // The tour is told on the Short stay, whatever mission the visitor had: leaving it puts theirs back.
     if (tourStep.state.mission === 'short') setMission(DEFAULT_MISSION)
     setBare(false)
     // A step may open the panel it is about; every other panel is shut.
@@ -967,9 +967,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     // gets the app's two nearby sites on one date, once.
     const named = (tourStep.state.scenarios ?? []).map((one) => ({ site: one.site, landing: hourOf(start, one.landing) })).filter((one) => sites.some((listed) => listed.id === one.site) && Number.isInteger(one.landing) && one.landing >= 0 && one.landing < hours)
     if (named.length > 0) {
-      setScenarios(named)
-      setActive(0)
-      setHour(named[0].landing)
+      // The scenario on show is the step's own choice: the first, unless it says another.
+      const onShow = Math.min(tourStep.state.active ?? 0, named.length - 1)
+      // A step that carries the plan on names it again, so the plan is the story's wherever the reader has jumped from; the same plan is left as it is.
+      setScenarios((current) => (current.length === named.length && current.every((one, i) => one.site === named[i].site && one.landing === named[i].landing) ? current : named))
+      setActive(onShow)
+      setHour(named[onShow].landing)
       tourPlanned.current = true
     } else if (tourGuide === null) setHour(scenario.landing)
     else if (pair && !tourPlanned.current && pairWords) {
@@ -986,8 +989,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     // the Moon's full room. Leaving the tour puts it back as the visitor had it.
     setSkyMin(show !== 'skyline')
     if (show === 'time') setRiverMin(false)
-    // On a phone the strips are down the sheet: it opens to its full height for them, to half for the rest.
-    setSheet(show ? SHEET_HEIGHTS : 2)
+    // On a phone the strips are down the sheet: it opens to its full height for them, and for a step that rings more than half a screen holds; to half for the rest.
+    setSheet(show || tourStep.state.tall ? SHEET_HEIGHTS : 2)
     // The step alone decides when this runs: the setters and the data it reads do not change while a tour is on.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [tourStep])
@@ -1162,7 +1165,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', scoutPanel && drawer !== null && drawer !== 'scout' && !planner ? 'has-both-panels' : '', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', docked ? 'has-dock' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
-    <div className={classes}>
+    <div className={classes} data-touring={tourStep?.state.open === 'planner-find' || tourStep?.state.open === 'planner-compare' ? 'planner' : undefined}>
       <Tips />
       {tourAt !== null && (
         <Tour
@@ -1528,7 +1531,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         )}
         {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
         {!bare && !plan && tourAt === null && !(scoutOpen && room === 'phone') && (
-          <button type="button" className={tourTaken ? 'sl-tour-chip' : 'sl-tour-chip is-new'} title="Scout shows you round the whole screen in twelve steps: about a minute to read, about five to hear." onClick={() => startTour()}>
+          <button type="button" className={tourTaken ? 'sl-tour-chip' : 'sl-tour-chip is-new'} title={tourMeans(LONG_TOUR)} onClick={() => startTour()}>
             <span aria-hidden="true">▶</span> Take the tour
           </button>
         )}

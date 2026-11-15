@@ -8,7 +8,7 @@
 //   node scripts/tour-voice.mjs            render every step
 //   node scripts/tour-voice.mjs --step=scout   render that step alone (the others' files are left as they are)
 //   node scripts/tour-voice.mjs --check    render nothing; fail if a file is missing or older than its words
-//   node scripts/tour-voice.mjs --tour=five   the same for the five-minute tour (src/sightline/tour5.json,
+//   node scripts/tour-voice.mjs --tour=five   the same for the tour the screen runs (src/sightline/tour5.json,
 //                                          public/tour/voice5/); it takes --step and --check too
 //
 // It calls Google Cloud Text-to-Speech as the person signed in to gcloud, billed to the project
@@ -20,7 +20,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const webDir = fileURLToPath(new URL('..', import.meta.url))
-/** Which tour: the one-minute tour, or the five-minute tour with --tour=five. Each has its own file of steps and its own folder of voice files. */
+/** Which tour: the walkthrough video's steps (tour.json), or with --tour=five the tour the screen runs (tour5.json). Each has its own file of steps and its own folder of voice files. */
 const five = process.argv.includes('--tour=five')
 const tour = JSON.parse(readFileSync(`${webDir}src/sightline/${five ? 'tour5' : 'tour'}.json`, 'utf8'))
 const outDir = `${webDir}public/tour/${five ? 'voice5' : 'voice'}/`
