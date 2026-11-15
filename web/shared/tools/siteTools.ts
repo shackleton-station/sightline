@@ -197,7 +197,8 @@ const IN_VIEW = { both: 'the Sun and Earth', sun: 'the Sun only', earth: 'Earth 
  * Every listed site at one hour: what is in view there, the Sun, Earth, both or neither. These are
  * the states the markers on the Moon show (`stateAt` on each site's hours), so the answer to "where
  * can a lander see Earth right now" is read from the data for that hour, never inferred from a
- * month's share. With no time given it is the hour on the visitor's time bar.
+ * month's share. With no time given it is the hour the question is about: the real hour for a
+ * question about the present, the hour on the visitor's time bar otherwise.
  */
 export async function sitesInView(args: Args, ctx: ToolContext): Promise<ToolResult> {
   const all = await ctx.data.allFlags()
@@ -225,7 +226,7 @@ export async function sitesInView(args: Args, ctx: ToolContext): Promise<ToolRes
     ok: true,
     title: `All listed sites at ${whenLabel(iso)}: what is in view`,
     facts: [
-      fact('time', args.time === undefined && ctx.hourIso ? 'The hour this is for: the hour on the visitor\'s time bar' : 'The hour this is for', whenLabel(iso)),
+      fact('time', 'The hour this is for', whenLabel(iso)),
       ...lists.flatMap(([key, what, pass]) => [
         fact(key, `Where ${what === 'neither the Sun nor Earth in view' ? 'neither the Sun nor Earth is in view' : `${what.replace(' in view', '')} ${what.startsWith('the Sun and Earth') ? 'are' : 'is'} in view`} at this hour: the listed sites, by region, as words that follow "in view"`, grouped(pass)),
         fact(`${key}_count`, `How many listed sites have ${what} at this hour`, count(pass)),

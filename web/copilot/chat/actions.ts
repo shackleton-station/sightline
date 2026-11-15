@@ -84,6 +84,9 @@ function buildAction(args: Args, base: ViewState, sites: SiteInfo[], flags: Site
       }
     }
     const month = args.month === undefined ? base.a.month : monthArg(args.month, flags)
+    // With no month or hour asked for, the button opens the site at the date the answer is about (the
+    // base view's own hour), so "Show me" and "Plan this" under it go there and not to a month's first hour.
+    const index = args.month === undefined ? base.index : 0
     // A button for one of several months (or sites) a tool found tied for best opens the first of
     // them and says there are others, so a tie never reads as one winner. Buttons for the others
     // become the same button, and only one is kept.
@@ -105,7 +108,7 @@ function buildAction(args: Args, base: ViewState, sites: SiteInfo[], flags: Site
     }
     return {
       label: `Open ${site.name}, ${monthWords(month)}`,
-      hash: encodeView({ ...base, a: { site: site.id, month }, b: null, index: 0 }),
+      hash: encodeView({ ...base, a: { site: site.id, month }, b: null, index }),
     }
   }
 

@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
-import { askCopilot, type ChatMessage, MAX_QUESTION_CHARS, stillWaitingText } from '../lib/chatClient'
+import { askCopilot, type ChatMessage, MAX_QUESTION_CHARS, stillWaitingText, viewWithNow } from '../lib/chatClient'
 import { copilotModel, readServices } from '../data/serviceStatus'
 import { useCooldown } from '../lib/cooldown'
 import type { RiverState } from '../lib/river'
@@ -98,7 +98,8 @@ export function useScoutChat(taken?: (message: string) => boolean): ScoutChat {
       setThread(next)
       setWaiting(true)
       setStep(null)
-      return askCopilot(next, view, setStep).then((answer) => {
+      // The real hour goes with the question: "now" and "this month" mean the real date, not the time bar's.
+      return askCopilot(next, viewWithNow(view), setStep).then((answer) => {
         if (answer.retryAfterSeconds) cooldown.start(answer.retryAfterSeconds)
         setThread([...next, answer])
         setWaiting(false)
@@ -219,6 +220,12 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, why, o
                 {action.label}
               </button>
             ))}
+            {/* The answer was about the present and the time bar is on another day: one press asks the same for the bar's date. */}
+            {message.ask && i === thread.length - 1 && (
+              <button type="button" className="sl-small sl-ask-again" disabled={waiting} onClick={() => void chat.ask(message.ask?.question ?? '', view)}>
+                {message.ask.label}
+              </button>
+            )}
           </div>
         ))}
         {waiting && (

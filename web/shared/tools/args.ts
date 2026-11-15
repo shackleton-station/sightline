@@ -11,7 +11,7 @@ export interface ToolContext {
   requirements: Requirements
   /** The ground the visitor tapped on the Atlas map, if any. It comes with the request, never from the model. */
   spot?: { lat: number; lon: number } | null
-  /** The hour on the visitor's time bar, as an ISO time: what "now" means to them. It comes with the request, never from the model. */
+  /** The hour the question is about, as an ISO time: the real hour for a question about the present, the hour on the visitor's time bar otherwise. It comes with the request, never from the model. */
   hourIso?: string
   /** The way to ask NASA JPL Horizons, where there is one (the co-pilot service). */
   horizons?: HorizonsAsk

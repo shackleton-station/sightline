@@ -15,6 +15,7 @@ import type { Model } from '../model'
 import { claudeMessage, toolUse } from '../standIns'
 import { asksToChangeLimits, buildActions, viewFrom } from './actions'
 import { runChat, viewFacts } from './chat'
+import { asksAboutPresent, dateBasis, realHourIso } from './dates'
 import { systemPrompt } from './prompt'
 import { scenarioScene } from './scenarios'
 
@@ -73,7 +74,9 @@ function scripted(...turns: Call[][]) {
   for (const turn of turns) generate.mockImplementationOnce(async () => claudeMessage({ content: [{ type: 'thinking', thinking: '', signature: 'sig' }, ...turn.map((made) => toolUse(made.name, made.args))] }))
   return { generate }
 }
-const ask = (model: Model, hash: string, text: string, from = data) => runChat({ turns: [{ role: 'user', text }], view: viewFrom(hash), viewHash: hash }, { model, data: from, wait: async () => {} })
+/** The real date in these tests: 15 November 2026, 02:00 UTC (the night Rodrigo asked). */
+const REAL_NOW = Date.parse('2026-11-15T02:00:00Z')
+const ask = (model: Model, hash: string, text: string, from = data, clock = REAL_NOW) => runChat({ turns: [{ role: 'user', text }], view: viewFrom(hash), viewHash: hash }, { model, data: from, wait: async () => {}, clock: () => clock })
 
 describe('1. a solar panel at 10 m', () => {
   it('gives Scout the heights as facts he can cite, and the scenario\'s figures at them: 72 h of darkness, next landing 25 May 12:00', async () => {
@@ -367,10 +370,11 @@ describe('12. "where can a lander see Earth right now?", asked on the opening sc
     expect(await scenarioScene(`${WATCH}&hp=10`, viewFrom(WATCH), high)).toBeNull()
   })
 
-  it('says so in the instructions: never "the site on your screen", and "now" is the hour on the time bar', () => {
+  it('says so in the instructions: never "the site on your screen", and words about the present mean the real date', () => {
     const rules = systemPrompt({ first_year: 2026, last_year: 2049 })
     expect(rules).toMatch(/If r0 has no_site_chosen.*Never say "the site on your screen"/)
-    expect(rules).toMatch(/"Now" and "right now" mean the hour on the visitor's time bar/)
+    expect(rules).toMatch(/Words about the present \("now", "today", "tonight", "this month", "this year"\) mean the real date, whatever the time bar shows/)
+    expect(rules).toMatch(/Every answer that depends on a date says the date it used, in passing/)
     expect(rules).toMatch(/call sites_in_view and lead with its list for that hour/)
     expect(rules).toMatch(/never guess what a site "should" see/)
   })
@@ -396,37 +400,128 @@ describe('12. "where can a lander see Earth right now?", asked on the opening sc
     for (const site of sites) expect(value(`at_${site.id.replace(/[^a-z0-9]+/g, '_')}`), site.id).toBe(words[marker.get(site.id) ?? ''])
   })
 
-  it('with no time given, is for the hour on the visitor\'s time bar, and says so', async () => {
+  it('with no time given, is for the hour the question is about, which comes with the request', async () => {
     const result = await runTool('sites_in_view', {}, { ...context, hourIso: '2026-12-10T00:00:00Z' })
     if (!result.ok) throw new Error(result.error)
-    const time = result.facts.find((item) => item.key === 'time')
-    expect(time?.value).toBe('10 December 2026, 00:00 UTC')
-    expect(time?.label).toMatch(/the hour on the visitor's time bar/)
+    expect(result.facts.find((item) => item.key === 'time')?.value).toBe('10 December 2026, 00:00 UTC')
   })
 
-  it('answers with the list for that hour, and the sites the Moon rings are the ones the first sentence names', async () => {
-    const model = scripted([{ name: 'sites_in_view', args: {} }], [answer('At the hour on the time bar, {{r0.time}}, Earth is in view {{r1.earth_in_view}}. That is {{r1.earth_in_view_count}}.')])
+  it('answers with the list for the real hour, says which hour, and the Moon rings the sites the first sentence names', async () => {
+    const model = scripted([{ name: 'sites_in_view', args: {} }], [answer('Right now, {{r0.time}}, Earth is in view {{r1.earth_in_view}}. That is {{r1.earth_in_view_count}}.')])
     const outcome = await ask(model, WATCH, QUESTION)
     if (!outcome.ok) throw new Error('no answer')
     const text = outcome.reply.text
-    expect(text).toMatch(/^At the hour on the time bar, 10 December 2026, 00:00 UTC, Earth is in view /)
+    // The real hour, not the time bar's 10 December.
+    expect(text).toMatch(/^Right now, 15 November 2026, 02:00 UTC, Earth is in view /)
     expect(text).not.toMatch(/the site on your screen/)
     expect(text).not.toMatch(/should see/)
     // What Scout was sent says no site is chosen, and names none as the screen's.
     const sent = String(model.generate.mock.calls[0][0].messages[0].content)
     expect(sent).toMatch(/- no_site_chosen: /)
     expect(sent).not.toMatch(/^- site: /m)
-    // The Moon rings the sites the first sentence names: exactly the sites with Earth in view at that hour.
+    expect(sent).toMatch(/- date_asked: the present: the real date, not the time bar/)
+    // The Moon rings the sites the first sentence names: exactly the sites with Earth in view at the real hour.
     const all = await data.allFlags()
     const sites = all.map(({ site }) => site)
-    const hour = hourOf(all[0].flags.start, '2026-12-10T00:00:00Z')
+    const hour = hourOf(all[0].flags.start, '2026-11-15T02:00:00Z')
     const withEarth = all.filter(({ flags }) => ['both', 'earth'].includes(stateAt(flags, hour))).map(({ site }) => site.id).sort()
     const ringed = ringedSites(outcome.reply, sites, () => null)
     expect([...ringed].sort()).toEqual(withEarth)
     expect([...ringed].sort()).toEqual(sitesNamedIn(firstSentence(text), sites).sort())
     expect(withEarth.length).toBeGreaterThan(1)
-    // Connecting Ridge has Earth out of view at that hour: it is not ringed, and not named first.
-    expect(ringed).not.toContain('connecting-ridge')
+    // The time bar is on another day: one short sentence says so, and one button asks the same for the bar's date.
+    expect(text).toMatch(/ The time bar is on 10 December 2026\.$/)
+    expect(outcome.reply.ask).toEqual({ label: 'Ask for 10 December 2026', question: 'Where can a lander see Earth right now? (for the date on the time bar)' })
   })
 })
 
+describe('13. words about the present mean the real date; words about the screen mean the time bar', () => {
+  /** The opening screen with its time bar run on to 10 December 2026, while the real date is 15 November 2026. */
+  const WATCH = '#a=connecting-ridge@2026-12&t=216&limits=14_24_99999_1_1&mode=plan&watch=1'
+  const sentTo = (model: ReturnType<typeof scripted>) => String(model.generate.mock.calls[0][0].messages[0].content)
+
+  it('decides which date a question is about from its words', () => {
+    for (const question of ['Where can a lander see Earth right now?', 'Which site has the most Sun this month?', 'Is the Sun up today?', 'What can I see tonight?', 'Which site is best this year?', 'Is Earth in view from here right now?']) {
+      expect(dateBasis(question, false), question).toBe('present')
+      expect(asksAboutPresent(question), question).toBe(true)
+    }
+    for (const question of ['What about at this time?', 'And on this date?', 'Does this landing fit?', 'How long is the longest dark spell during my mission now?', 'Where can a lander see Earth right now? (for the date on the time bar)']) {
+      expect(dateBasis(question, false), question).toBe('screen')
+      expect(asksAboutPresent(question), question).toBe(false)
+    }
+    // With no word about time: the plan on screen in Plan, the present on the opening screen, and no note either way.
+    expect(dateBasis('Which site is best?', false)).toBe('screen')
+    expect(dateBasis('Which site is best?', true)).toBe('present')
+    expect(asksAboutPresent('Which site is best?')).toBe(false)
+  })
+
+  it('"which site has the most Sun this month" answers for November 2026 and says so, with the bar on 10 December', async () => {
+    const model = scripted([{ name: 'best_sites', args: { month: '2026-11', measure: 'sun' } }], [answer('This month, {{r0.month}}, the Sun is up most at {{r1.best_sites}}, with {{r1.best_value}}.')])
+    const outcome = await ask(model, WATCH, 'Which site has the most Sun this month?')
+    if (!outcome.ok) throw new Error('no answer')
+    expect(outcome.reply.text).toMatch(/^This month, November 2026, the Sun is up most at /)
+    expect(outcome.reply.text).toMatch(/ The time bar is on 10 December 2026\.$/)
+    expect(outcome.reply.ask?.label).toBe('Ask for 10 December 2026')
+    // Scout was handed November as the month to use, and December only as the time bar's.
+    expect(sentTo(model)).toMatch(/- month: November 2026/)
+    expect(sentTo(model)).toMatch(/- year: 2026/)
+    expect(sentTo(model)).toMatch(/- time_bar: 10 December 2026, 00:00 UTC/)
+    expect(sentTo(model)).not.toMatch(/- month: December 2026/)
+  })
+
+  it('"what about at this time" uses the time bar\'s hour, with no note', async () => {
+    const model = scripted([{ name: 'sites_in_view', args: {} }], [answer('At that time, {{r0.time}}, Earth is in view {{r1.earth_in_view}}.')])
+    const outcome = await ask(model, WATCH, 'What about at this time?')
+    if (!outcome.ok) throw new Error('no answer')
+    expect(outcome.reply.text).toMatch(/^At that time, 10 December 2026, 00:00 UTC, Earth is in view /)
+    expect(outcome.reply.text).not.toMatch(/The time bar is on/)
+    expect(outcome.reply.ask).toBeUndefined()
+    expect(sentTo(model)).toMatch(/- date_asked: what the screen shows: the date on the time bar/)
+    expect(sentTo(model)).toMatch(/- real_time: 15 November 2026, 02:00 UTC/)
+  })
+
+  it('the button\'s own question, asked, is about the time bar', async () => {
+    const model = scripted([{ name: 'sites_in_view', args: {} }], [answer('On the time bar\'s date, {{r0.time}}, Earth is in view {{r1.earth_in_view}}.')])
+    const outcome = await ask(model, WATCH, 'Where can a lander see Earth right now? (for the date on the time bar)')
+    expect(outcome.ok && outcome.reply.text).toMatch(/^On the time bar's date, 10 December 2026, 00:00 UTC, /)
+    expect(outcome.ok && outcome.reply.ask).toBeUndefined()
+  })
+
+  it('adds no note when the time bar is within a day of the real date', async () => {
+    const near = '#a=connecting-ridge@2026-11&t=345&limits=14_24_99999_1_1&mode=plan&watch=1'
+    const outcome = await ask(scripted([{ name: 'sites_in_view', args: {} }], [answer('Right now, {{r0.time}}, Earth is in view {{r1.earth_in_view}}.')]), near, 'Where can a lander see Earth right now?')
+    expect(outcome.ok && outcome.reply.text).not.toMatch(/The time bar is on/)
+    expect(outcome.ok && outcome.reply.ask).toBeUndefined()
+  })
+
+  it('takes the hour the page sent with the question when it is near the server\'s clock, and the server\'s own when it is not', () => {
+    expect(realHourIso('#a=connecting-ridge@2026-12&t=216&watch=1&now=2026-11-15T03', REAL_NOW)).toBe('2026-11-15T03:00:00Z')
+    expect(realHourIso('#a=connecting-ridge@2026-12&t=216&watch=1&now=2031-01-01T00', REAL_NOW)).toBe('2026-11-15T02:00:00Z')
+    expect(realHourIso('#a=connecting-ridge@2026-12&t=216&watch=1&now=nonsense', REAL_NOW)).toBe('2026-11-15T02:00:00Z')
+    expect(realHourIso(undefined, Date.parse('2026-11-15T02:40:00Z'))).toBe('2026-11-15T03:00:00Z')
+  })
+
+  it('says so plainly when the real date is outside the data, and answers for the nearest date inside it', async () => {
+    const model = scripted([answer('The real date is outside the data, so this is for {{r0.time}}.')])
+    const outcome = await ask(model, WATCH, 'Is the Sun up right now?', data, Date.parse('2055-03-03T10:00:00Z'))
+    expect(outcome.ok && outcome.reply.text).toMatch(/^The real date is outside the data, so this is for 31 December 2049, 23:00 UTC\./)
+    expect(sentTo(model)).toMatch(/- real_date_outside_data: the real date, 3 March 2055, 10:00 UTC, is outside the data; this is for the nearest date inside it/)
+  })
+
+  it('"Show me" and "Plan this" under such an answer open the date it was about, not the time bar\'s', async () => {
+    const model = scripted([answer('Right now, {{r0.time}}, look at Shackleton Rim.', { actions: [{ type: 'open', site: 'shackleton-rim' }] })])
+    const outcome = await ask(model, WATCH, 'Where is the Sun up right now?')
+    if (!outcome.ok) throw new Error('no answer')
+    // 15 November 2026, 02:00 UTC is hour 338 of November.
+    expect(outcome.reply.actions[0].hash).toMatch(/^#a=shackleton-rim@2026-11&t=338&/)
+    expect(outcome.reply.actions[0].label).toBe('Open Shackleton Rim, November 2026')
+  })
+
+  it('in Plan, a question with no word about time is about the plan on screen, as before', async () => {
+    const plan = '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&sc=0'
+    const model = scripted([answer('It fails because {{r0.scenario_a_reason_1}}.')])
+    const outcome = await ask(model, plan, "Why doesn't this landing fit?")
+    expect(outcome.ok && outcome.reply.text).toBe('It fails because the Sun is gone for 95 h during the mission; your limit is 24 h.')
+    expect(sentTo(model)).toMatch(/- time: 6 May 2027, 13:00 UTC/)
+  })
+})

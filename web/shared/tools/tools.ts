@@ -48,7 +48,7 @@ const TOOLS: Record<string, Tool> = {
   },
   sites_in_view: {
     description:
-      'Every listed site at one hour: which have the Sun, Earth, both or neither in view, as lists by region. Use it for "where can a lander see Earth (or the Sun, or both) right now": it is read from the data for that hour, the same states the markers on the Moon show. Leave time out for the hour on the visitor\'s time bar.',
+      'Every listed site at one hour: which have the Sun, Earth, both or neither in view, as lists by region. Use it for "where can a lander see Earth (or the Sun, or both) right now": it is read from the data for that hour, the same states the markers on the Moon show. Leave time out for the hour the question is about (r0\'s time).',
     parameters: () => ({ properties: { time: TIME }, required: [] }),
     run: sitesInView,
   },
