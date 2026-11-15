@@ -426,6 +426,11 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
 
   return (
     <div className="np-rain">
+      {/* The one figure the panel is about, first and once: every other line refers to it without writing it again. */}
+      <p className="np-rain-big">
+        <strong>{oddsWords(odds.fit)}</strong>
+        <span>of landings come down where the mission fits</span>
+      </p>
       <p className="np-lead">
         <b>Will your mission still work if the lander misses its mark?</b>{' '}
         {compact
@@ -439,26 +444,20 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
             ◆ Aim {Math.round(Math.hypot(better.x, better.y))} m away at {clock(better.x, better.y)}
           </button>
           <span>
-            <b className="is-better">{Math.round(better.fit * 100)}%</b> of landings fit instead of <b>{Math.round(odds.fit * 100)}%</b>
+            Aiming there raises it to <b>{Math.round(better.fit * 100)}%</b>.
           </span>
         </p>
       ) : (
         <p className="np-act is-done">
-          <span>✓ Your target is already the best place to aim within reach: {Math.round(odds.fit * 100)}% of landings fit.</span>
+          <span>✓ Your target is already the best place to aim within reach.</span>
         </p>
       )}
       <div className="np-rain-stage" ref={box}>
         <canvas ref={canvas} role="img" aria-label={`Simulated landings around ${site.name}: ${pct(fitCount)}% of ${down} so far came down where the mission fits; the model gives ${Math.round(odds.fit * 100)}%.`} />
       </div>
       <div className="np-rain-side">
-        <p className="np-rain-big">
-          <strong>{oddsWords(odds.fit)}</strong>
-          <span>
-            of landings come down where the mission fits
-            <br />
-            <small>{down === 0 ? 'no simulated landers down yet' : `${pct(fitCount)}% of the ${down} simulated landers shown`}</small>
-          </span>
-        </p>
+        {/* The dots on the map, counted: a count, not a second percentage beside the one at the top. */}
+        <p className="np-rain-shown">{down === 0 ? 'No simulated landers down yet.' : `${fitCount} of the ${down} simulated landers shown so far came down where it fits.`}</p>
         <div className="np-rain-bars">
           <div className="np-rain-bar">
             <span className="np-rain-name">
