@@ -68,7 +68,7 @@ export function renderAnswer(draft: string, book: FactBook, allowedWords: string
   }
   const written = numberWritten(rest)
   if (written) return { ok: false, problem: written }
-  if (filled.length > MAX_CHARS) return { ok: false, problem: 'Too long. Use two to four sentences.' }
+  if (filled.length > MAX_CHARS) return { ok: false, problem: 'Too long. At most three sentences and about sixty words: say each figure once and leave the list of limits out.' }
   return { ok: true, text: filled }
 }
 
