@@ -4,7 +4,7 @@ import { decodeRuns, type SiteFlags } from '../lib/flags'
 import { monthSpans } from '../lib/grid'
 import { DEFAULT_MISSION, fitProblems, PRESETS, type SightlineMission } from '../lib/sightlineMission'
 import { checkOverview, dataFile } from '../lib/testData'
-import { cellDetail, cellWords, findRow, fitHours, nextFit, plannerTabIn, runningTotals, withPlannerTab , findTally, monthsWithFit } from './plannerFit'
+import { blockedBy, cellDetail, cellWords, findRow, fitHours, nextFit, plannerTabIn, runningTotals, withPlannerTab , findTally, monthsWithFit } from './plannerFit'
 
 const overview = checkOverview()
 const sites = dataFile<SiteInfo[]>('sites.json')
@@ -144,5 +144,43 @@ describe('monthsWithFit and findTally', () => {
   it('adds the grid up: cells with a landing, the tight ones among them, and all of them', () => {
     expect(findTally([[cell(0), cell(3), cell(1)], [cell(2), cell(0), cell(9)]])).toEqual({ withLanding: 4, tight: 2, total: 6, sites: 2 })
     expect(findTally([])).toEqual({ withLanding: 0, tight: 0, total: 0, sites: 0 })
+  })
+})
+
+describe('why a site has no landing', () => {
+  const HOURS = 90 * 24
+  const made = (sun: (hour: number) => boolean, earth: (hour: number) => boolean): SiteFlags => ({ start: '2027-01-01T00:00:00Z', sun: Array.from({ length: HOURS }, (_, hour) => sun(hour)), earth: Array.from({ length: HOURS }, (_, hour) => earth(hour)), earthAbove: {} }) as unknown as SiteFlags
+  const always = () => true
+
+  it('says nothing where a landing fits', () => {
+    expect(blockedBy(made(always, always), DEFAULT_MISSION, 2)).toBeNull()
+  })
+
+  it('names ground too steep for the mission first, with both figures in the sentence', () => {
+    const why = blockedBy(made(always, always), DEFAULT_MISSION, 13)!
+    expect(why.short).toBe('too steep: 13.0°')
+    expect(why.full).toBe('The ground slopes 13.0°; your limit is 10°. No landing fits here while that limit stands.')
+  })
+
+  it('names the limit on darkness where the nights are longer than it', () => {
+    // Ten days of Sun, ten days without: every 14-day mission meets a night longer than 24 h.
+    const flags = made((hour) => Math.floor(hour / (10 * 24)) % 2 === 0, always)
+    expect(fitHours(flags, DEFAULT_MISSION, 2).some((one) => one === 1)).toBe(false)
+    expect(blockedBy(flags, DEFAULT_MISSION, 2)!.short).toBe('dark over 24 h')
+  })
+
+  it('names Earth at landing where Earth is never in view, as on the far side', () => {
+    const why = blockedBy(made(always, () => false), DEFAULT_MISSION, 2)!
+    expect(why.short).toBe('Earth not in view at landing')
+    expect(why.full).not.toMatch(/99999/)
+  })
+
+  it('gives a reason for every listed site that has no landing for the short stay, and none for one that has', () => {
+    for (const site of sites) {
+      const flags = flagsOf(site.id)
+      const slope = site.slope?.deg ?? null
+      const none = !fitHours(flags, DEFAULT_MISSION, slope).some((one) => one === 1)
+      expect(blockedBy(flags, DEFAULT_MISSION, slope) !== null, site.id).toBe(none)
+    }
   })
 })

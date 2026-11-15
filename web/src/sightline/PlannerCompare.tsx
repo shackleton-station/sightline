@@ -28,6 +28,10 @@ interface Props {
   onChange: (index: number, scenario: SightlineScenario) => void
   onAdd: (scenario: SightlineScenario) => void
   onRemove: (index: number) => void
+  /** The first and last hour of all the data, as a date field holds them; without them the years on hand bound a landing's date. */
+  bounds?: { first: string; last: string }
+  /** Move a scenario's landing to a date beyond the years on hand; false if the data does not cover it. */
+  onFar?: (index: number, value: string) => boolean
 }
 
 /** How many days apart the labels under the aligned rows are, so about ten fit. */
@@ -61,12 +65,13 @@ function SiteOptions({ sites, custom }: { sites: SiteInfo[]; custom: SiteInfo | 
  * place in its header; the rows in groups, the verdict first; a last column that adds a scenario;
  * and under the table each mission from its own landing.
  */
-export function PlannerCompare({ start, hours, flagged, scenarios, facts, mission, groups, active, onSelect, onChange, onAdd, onRemove }: Props) {
+export function PlannerCompare({ start, hours, flagged, scenarios, facts, mission, groups, active, onSelect, onChange, onAdd, onRemove, bounds, onFar }: Props) {
   const missionH = mission.requirements.missionDays * 24
   const step = dayStep(mission.requirements.missionDays)
   const sites = useMemo(() => flagged.map(({ site }) => site), [flagged])
-  const first = fieldAt(start, 0)
-  const last = fieldAt(start, hours - 1)
+  // A landing's date may be any the data covers: one beyond the years on hand loads them.
+  const first = bounds?.first ?? fieldAt(start, 0)
+  const last = bounds?.last ?? fieldAt(start, hours - 1)
   const room = scenarios.length < MAX_SCENARIOS
   const letter = SCENARIO_LETTERS[scenarios.length]
 
@@ -108,7 +113,7 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
                         lastField={last}
                         onPick={(value) => {
                           const picked = hourFromField(start, value, hours)
-                          if (picked === null) return false
+                          if (picked === null) return onFar ? onFar(i, value) : false
                           onChange(i, { ...scenario, landing: picked })
                           return true
                         }}

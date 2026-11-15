@@ -30,7 +30,7 @@ interface SunHeights {
 }
 
 /** The site's skyline and the mission's hours of the track, once loaded; null if they failed. */
-type Loaded = { key: string; sky: { horizon: HorizonPoint[]; during: TrackPoint[]; heights: SunHeights } | null }
+type Loaded = { key: string; sky: { horizon: HorizonPoint[]; during: TrackPoint[]; heights: SunHeights; centre: number } | null }
 
 /** The months ("YYYY-MM") the hours from `from` to `to` fall in, in order. */
 function monthsBetween(start: string, from: number, to: number): string[] {
@@ -133,10 +133,9 @@ const COMPASS = [
  * where each is at landing: the same drawing as the Moon screen's "What the lander sees", sized
  * for the brief. Heights are stretched so the terrain and the low Sun can be told apart.
  */
-function SkylinePicture({ horizon, during, t }: { horizon: HorizonPoint[]; during: TrackPoint[]; t: string }) {
+function SkylinePicture({ horizon, during, t, centre }: { horizon: HorizonPoint[]; during: TrackPoint[]; t: string; centre: number }) {
   const [ref, width] = useWidth()
   const drawn = useMemo(() => {
-    const centre = skylineCentre(during)
     return {
       centre,
       land: skylineHorizon(horizon, centre),
@@ -144,7 +143,7 @@ function SkylinePicture({ horizon, during, t }: { horizon: HorizonPoint[]; durin
       earth: splitAtWrap(during.map((point) => ({ az: skylineX(point.earth_az, centre), el: point.earth_el }))),
       domain: skylineDomain(horizon, during),
     }
-  }, [horizon, during])
+  }, [horizon, during, centre])
   const now = during.find((point) => point.t === t) ?? null
   const bottom = SKY_HEIGHT - SKY_MARGIN.bottom
   const x = scaleLinear([0, 360], [SKY_MARGIN.left, Math.max(width - SKY_MARGIN.right, SKY_MARGIN.left + 1)])
@@ -228,7 +227,8 @@ export function LandingSky({ site, flags, t, requirements }: Props) {
           const ms = Date.parse(point.t)
           return ms >= fromMs && ms <= endMs
         })
-        if (current) setLoaded({ key, sky: { horizon, during, heights: sunHeights(during, horizon, t) } })
+        // The strip's middle is chosen as the plan's skyline chooses it, from Earth over the landing's whole month, so both read in one order.
+        if (current) setLoaded({ key, sky: { horizon, during, heights: sunHeights(during, horizon, t), centre: skylineCentre(tracks[0] ?? during) } })
       })
       .catch((reason: unknown) => {
         console.error(reason)
@@ -308,7 +308,7 @@ export function LandingSky({ site, flags, t, requirements }: Props) {
       </div>
 
       <h4 className="pl-sky-sub">What the lander sees</h4>
-      {sky ? <SkylinePicture horizon={sky.horizon} during={sky.during} t={t} /> : <p className="pl-sky-small">{sky === null ? 'The skyline didn’t load.' : 'Drawing the skyline…'}</p>}
+      {sky ? <SkylinePicture horizon={sky.horizon} during={sky.during} t={t} centre={sky.centre} /> : <p className="pl-sky-small">{sky === null ? 'The skyline didn’t load.' : 'Drawing the skyline…'}</p>}
     </section>
   )
 }
