@@ -201,7 +201,8 @@ export function PlannerFind({ start, hours, flagged, scenarios, shown: onShow, s
             <tbody key={group}>
               <tr className="pl-group-row">
                 <th scope="colgroup" colSpan={shown.length + 2}>
-                  {group}
+                  {/* Held at the left like the site names, while the grid scrolls sideways in its box. */}
+                  <span>{group}</span>
                 </th>
               </tr>
               {sites.map(({ site }) => (
