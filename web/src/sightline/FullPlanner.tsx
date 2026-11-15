@@ -12,12 +12,9 @@ import { ExportMenu } from './ExportMenu'
 import { HeaderTools } from './HeaderTools'
 import { saveHourlyCsv, saveText } from './hourlyExport'
 import { AdvancedControls, MissionControls } from './MissionDrawer'
-import { buildGrid } from '../planner/plannerModel'
-import { cardsOf, type LibraryCard } from '../lib/library'
 import { MAX_SCENARIOS } from '../lib/sightlineMission'
 import { LibraryTray } from './LibraryTray'
-import { PlannerLibrary } from './PlannerLibrary'
-import { useLibrary, useTray } from './useLibrary'
+import { useLibraryCards } from './useLibrary'
 import './library.css'
 import { PlannerCompare } from './PlannerCompare'
 import { PlannerCompareMore } from './PlannerCompareMore'
@@ -79,6 +76,8 @@ interface Props {
   sunlightWm2: (number | null | undefined)[]
   /** A notice for the header's last row: a saved plan's name and note. */
   banner?: ReactNode
+  /** Open the Library page: the tray's "Find more". */
+  onLibrary: () => void
 }
 
 const TABS: { id: PlannerTab; label: string; title: string }[] = [
@@ -98,7 +97,7 @@ const ROOM_FOR_BOTH_PX = 1000
  * scenarios side by side. The Moon stays as a small live view in the corner (drawn by the screen,
  * not here), and is itself a way back.
  */
-export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, dataYears, onYear, landingBounds, onFarLanding, banner = null }: Props) {
+export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, dataYears, onYear, landingBounds, onFarLanding, banner = null, onLibrary }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -127,23 +126,10 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
   })
   const spans = useMemo(() => monthSpans(start, hours), [start, hours])
 
-  // The library: landings other people saved, to search and pull into Compare. It is a third tab that
-  // the link does not hold (a saved plan opens on Find or Compare), and it is read from the plans
-  // service the first time it or the tray is opened, not before.
-  const [libraryOpen, setLibraryOpen] = useState(false)
-  const [libraryWanted, setLibraryWanted] = useState(false)
-  const wantLibrary = useCallback(() => setLibraryWanted(true), [])
-  const library = useLibrary(libraryWanted || libraryOpen)
-  const [tray, toggleTray] = useTray()
-  // Each card's share of its month's days with a landing that fits: the month grid's own count, built only once the library is wanted.
-  const grid = useMemo(() => (libraryWanted || libraryOpen ? buildGrid(flagged, mission.requirements) : null), [libraryWanted, libraryOpen, flagged, mission.requirements])
-  const monthShare = useCallback((siteId: string, at: string) => grid?.rows.find((row) => row.site.id === siteId)?.cells.find((cell) => cell.month === at)?.share ?? null, [grid])
-  const libraryCards = useMemo(() => (library.state.kind === 'ready' ? cardsOf(library.state.entries, start, hours, flagged, mission, monthShare) : []), [library.state, start, hours, flagged, mission, monthShare])
-  const trayCards = useMemo(() => cardsOf(tray, start, hours, flagged, mission, monthShare), [tray, start, hours, flagged, mission, monthShare])
-  const letterOf = (card: LibraryCard) => {
-    const i = scenarios.findIndex((scenario) => scenario.site === card.scenario?.site && scenario.landing === card.scenario.landing)
-    return i < 0 ? null : SCENARIO_LETTERS[i]
-  }
+  // The tray: landings pulled in from the Library page, to add to Compare. Read and worked out only once it is opened.
+  const [trayWanted, setTrayWanted] = useState(false)
+  const wantTray = useCallback(() => setTrayWanted(true), [])
+  const library = useLibraryCards({ wanted: trayWanted, start, hours, flagged, mission, scenarios })
 
   const exportTable = () => {
     const csv = plannerCsv(
@@ -175,28 +161,15 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
         <h2>Planner</h2>
         <div className="pl-tabs" role="tablist" aria-label="Planner">
           {TABS.map((one) => (
-            <button
-              key={one.id}
-              type="button"
-              role="tab"
-              aria-selected={one.id === tab && !libraryOpen}
-              title={one.title}
-              onClick={() => {
-                setLibraryOpen(false)
-                onTab(one.id)
-              }}
-            >
+            <button key={one.id} type="button" role="tab" aria-selected={one.id === tab} title={one.title} onClick={() => onTab(one.id)}>
               {one.label}
             </button>
           ))}
-          <button type="button" role="tab" aria-selected={libraryOpen} title="Shows landings other people saved: search them and pull them in to compare." onClick={() => setLibraryOpen(true)}>
-            Library
-          </button>
         </div>
         <LibraryTray
           start={start}
-          cards={trayCards}
-          letterOf={letterOf}
+          cards={library.trayCards}
+          letterOf={library.letterOf}
           room={scenarios.length < MAX_SCENARIOS}
           onCompare={(card) => {
             if (!card.scenario) return
@@ -205,13 +178,10 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
             onAdd(card.scenario)
             onSelect(working)
           }}
-          onRemove={toggleTray}
-          onOpenCompare={() => {
-            setLibraryOpen(false)
-            onTab('compare')
-          }}
-          onOpenLibrary={() => setLibraryOpen(true)}
-          onWanted={wantLibrary}
+          onRemove={library.toggle}
+          onOpenCompare={() => onTab('compare')}
+          onOpenLibrary={onLibrary}
+          onWanted={wantTray}
         />
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
         <span className="pl-tools">
@@ -250,19 +220,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
         </div>
 
         <div className="sl-full-main">
-          {libraryOpen ? (
-            <PlannerLibrary
-              start={start}
-              state={library.state}
-              cards={libraryCards}
-              sites={flagged.map((one) => one.site)}
-              firstMonth={start.slice(0, 7)}
-              lastMonth={new Date(Date.parse(start) + (hours - 1) * 3_600_000).toISOString().slice(0, 7)}
-              tray={tray}
-              onToggle={toggleTray}
-              onReload={library.reload}
-            />
-          ) : tab === 'find' ? (
+          {tab === 'find' ? (
             <PlannerFind start={start} hours={hours} flagged={findSites} scenarios={scenarios} shown={{ siteId: facts[active].site.id, landing: scenarios[active].landing }} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} dataYears={dataYears} onYear={onYear} />
           ) : (
             <>

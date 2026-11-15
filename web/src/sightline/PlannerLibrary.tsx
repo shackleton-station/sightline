@@ -16,18 +16,26 @@ interface Props {
   lastMonth: string
   tray: LibraryEntry[]
   onToggle: (entry: LibraryEntry) => void
+  /** Put a card's landing in the plan and show it there: the plan column at the top left of the main screen. */
+  onShow: (card: LibraryCard) => void
+  /** The letter a card's landing has in the plan already, or null. */
+  letterOf: (card: LibraryCard) => string | null
+  /** Whether the plan has room for one more scenario. */
+  room: boolean
   onReload: () => void
+  /** Open the saved plan a landing came from, as its link would. */
+  onOpenPlan: (id: string) => void
 }
 
 /** How much of a month must have a day that fits: the stops of the last filter, in percent. */
 const MONTH_STOPS = [0, 10, 25, 50, 75]
 
 /**
- * The Library: every scenario in the plans people have saved, to search and filter. A card pulled
+ * The Library's list: every scenario in the plans people have saved, to search and filter. A card pulled
  * in goes to the tray (the lander at the top), and from there into Compare. Whether a card fits is
  * judged against the mission on screen, not the one it was saved with.
  */
-export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMonth, tray, onToggle, onReload }: Props) {
+export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMonth, tray, onToggle, onShow, letterOf, room, onReload, onOpenPlan }: Props) {
   const [filters, setFilters] = useState<LibraryFilters>(NO_FILTERS)
   const set = (change: Partial<LibraryFilters>) => setFilters((before) => ({ ...before, ...change }))
   const shown = useMemo(() => filterCards(cards, filters), [cards, filters])
@@ -94,7 +102,7 @@ export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMon
         )}
       </form>
       <p className="lib-count" aria-live="polite">
-        {cards.length === 0 ? 'Nobody has saved a plan yet. Save one from Share and it appears here.' : `${shown.length} of ${cards.length} saved landings, judged against the mission on the left.`}
+        {cards.length === 0 ? 'Nobody has saved a plan yet. Save one from Share and it appears here.' : `${shown.length} of ${cards.length} saved landings, judged against your mission.`}
         <button type="button" className="lib-reload" onClick={onReload}>
           Read again
         </button>
@@ -103,15 +111,25 @@ export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMon
       <ul className="lib-grid">
         {shown.map((card) => {
           const kept = inTray(tray, card.entry)
+          const letter = letterOf(card)
           return (
             <li key={card.key}>
               <LibraryCardView card={card} start={start}>
                 <button type="button" className="sl-small lib-pull" aria-pressed={kept} disabled={!card.scenario || (!kept && full)} title={kept ? 'Take it out of the tray' : full ? `The tray holds ${MAX_TRAY}` : 'Put it in the tray, to compare'} onClick={() => onToggle(card.entry)}>
                   {kept ? '✓ In the tray' : 'Pull in'}
                 </button>
-                <a className="lib-open" href={`#plan=${card.entry.plan}`} title="Opens the saved plan this landing came from">
+                <button
+                  type="button"
+                  className="sl-small"
+                  disabled={!card.scenario || (letter === null && !room)}
+                  title={letter ? `Shows scenario ${letter} in the plan, on the main screen` : room ? 'Adds this landing to your plan and shows it there, on the main screen' : 'The plan holds four scenarios: remove one first'}
+                  onClick={() => onShow(card)}
+                >
+                  Show in plan
+                </button>
+                <button type="button" className="lib-open" title="Opens the whole saved plan this landing came from" onClick={() => onOpenPlan(card.entry.plan)}>
                   Open plan
-                </a>
+                </button>
               </LibraryCardView>
             </li>
           )
