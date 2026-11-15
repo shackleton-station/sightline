@@ -29,6 +29,7 @@ import { useFinePhoto } from '../data/finePhoto'
 import { fitMapAround, squareAround } from '../lib/missionGrid'
 import type { SightlineMission } from '../lib/sightlineMission'
 import { useWidth } from '../lib/useWidth'
+import { LandingExplain } from './LandingExplain'
 import { type MissionGrid, REACH_M } from './useMissionGrid'
 
 interface Props {
@@ -105,13 +106,15 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
   const viewM = map && meta ? Math.min(Math.max(1.6 * spread.accuracyM * spread.stretch, 2 * meta.pixel_m), reachM(map)) : 0
 
   // The slider: shown at once, applied when it rests, so the odds and the better aim are worked out once.
-  const [draftM, setDraftM] = useState<number | null>(null)
+  // Every scatter control (here and in "How this works") goes through one draft, applied when it rests.
+  const [draft, setDraft] = useState<Spread | null>(null)
   useEffect(() => {
-    if (draftM === null || draftM === spread.accuracyM) return
-    const wait = window.setTimeout(() => onSpread({ ...spread, accuracyM: draftM }), 250)
+    if (draft === null || (draft.accuracyM === spread.accuracyM && draft.stretch === spread.stretch && draft.bearingDeg === spread.bearingDeg)) return
+    const wait = window.setTimeout(() => onSpread(draft), 250)
     return () => window.clearTimeout(wait)
-  }, [draftM, spread, onSpread])
-  const shownM = draftM ?? spread.accuracyM
+  }, [draft, spread, onSpread])
+  const shownSpread = draft ?? spread
+  const shownM = shownSpread.accuracyM
 
   // The run: landers fall in over time; a new run starts when the ground or the accuracy changes.
   const [landers, setLanders] = useState<Lander[]>([])
@@ -458,7 +461,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
           <span>
             {Math.round(100 * ACCURACY_SHARE)}% of landings within <b>{shownM} m</b>
           </span>
-          <input type="range" min={ACCURACY_RANGE.min} max={ACCURACY_RANGE.max} step={ACCURACY_RANGE.step} value={shownM} onChange={(event) => setDraftM(Number(event.target.value))} />
+          <input type="range" min={ACCURACY_RANGE.min} max={ACCURACY_RANGE.max} step={ACCURACY_RANGE.step} value={shownM} onChange={(event) => setDraft({ ...shownSpread, accuracyM: Number(event.target.value) })} />
         </label>
         <p className="np-rain-actions">
           {!still && (
@@ -487,6 +490,7 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
           )}
         </p>
       </div>
+      <LandingExplain map={map} viewM={viewM} odds={odds} spread={shownSpread} onSpread={setDraft} simulated={{ down, fit: fitCount }} cellM={map.cellM} />
     </div>
   )
 }
