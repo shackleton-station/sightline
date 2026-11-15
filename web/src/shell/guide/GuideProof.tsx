@@ -8,6 +8,7 @@ import { TrustNotes } from '../../components/TrustNotes'
 import { monthLabel } from '../../lib/months'
 import { degWords } from '../../lib/sightline'
 import { GuideStep } from './GuideParts'
+import { EARTH_STAYS_PUT, LIBRATION, SEASONS } from '../../lib/moonExplained'
 
 interface Props {
   data: ScenarioData | null
@@ -104,13 +105,11 @@ export function GuideProof({ data, span, light }: Props) {
       <h3>What the positions include</h3>
       <p className="how-caption how-positions">
         The Sun’s and Earth’s positions come from NASA’s SPICE kernels: one file says where the Sun, Earth and Moon are, another how the Moon is turned. So the Moon’s orbit and
-        its libration, the slow wobble that moves Earth around its place in the Moon’s sky, are in every hour. Seen from one place on the Moon, Earth otherwise stays put: it is in
-        view all the time from the Apollo sites and never from Chang’e 4, on the far side. Near the pole it sits at the skyline, so that wobble is why it rises and sets there.
+        its {LIBRATION}, are in every hour. {EARTH_STAYS_PUT}
         {earthSwing && ` At ${data?.site.name} in ${monthLabel(data?.month ?? '')}, Earth’s elevation goes from ${earthSwing.low} to ${earthSwing.high} from level.`}
       </p>
       <p className="how-caption how-seasons">
-        The Moon’s seasons are in there too. Its axis tilts only 1.5°, so over a year the Sun at the pole stands up to 1.5° higher or lower. Near the pole that is enough to
-        change how long a site is sunlit, which is one reason some months have no landing that fits.
+        The Moon’s seasons are in there too. {SEASONS}
       </p>
 
       <h3>{data ? `For ${data.site.name}, ${monthLabel(data.month)}` : 'For the site on show'}</h3>

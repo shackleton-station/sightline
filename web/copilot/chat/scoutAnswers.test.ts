@@ -11,7 +11,10 @@ import { betterDate, type SightlineMission, steadierLanding } from '../../src/li
 import type { Bucket } from '../../shared/bucket'
 import { siteData } from '../../shared/tools/data'
 import { distanceWords, isoAt, limitFacts, reasonClause, whenLabel } from '../../shared/tools/facts'
+import { whyWords } from '../../shared/tools/landingTools'
 import { runTool } from '../../shared/tools/tools'
+import { EARTH_STAYS_PUT, LIBRATION, SEASONS, SUN_AND_EARTH_SKIM, SUN_CIRCLES, TILT_AND_TURN } from '../../src/lib/moonExplained'
+import { degWords } from '../../src/lib/sightline'
 import type { Model } from '../model'
 import { claudeMessage, toolUse } from '../standIns'
 import { asksToChangeLimits, buildActions, viewFrom } from './actions'
@@ -750,6 +753,101 @@ describe('18. a site may be called by the short form of its name', () => {
     const outcome = await ask(scripted([{ name: 'site_info', args: { site: 'chandrayaan-3' } }], [answer('The Chandrayaan-3 site is at {{r1.latitude}}, {{r1.longitude}}.')]), '#a=connecting-ridge@2027-05&t=0&limits=14_72_72_1_1&mode=learn', 'Where exactly is the Chandrayaan-3 site?')
     expect(outcome.ok && outcome.reply.text).toBe('The Chandrayaan-3 site is at 69.374°S, 32.320°E.')
     expect(outcome.ok && outcome.fellBack).toBe(false)
+  })
+})
+
+describe('19. a teacher\'s "why" is answered from the Guide\'s own explanations', () => {
+  it('the lookup returns the Guide\'s sentences as they stand, and the site\'s own figures for the month beside them', async () => {
+    const { values } = await facts('explain_the_pole', { site: 'connecting-ridge', month: '2027-05' })
+    expect(values.why_sun_and_earth_are_low).toBe(SUN_AND_EARTH_SKIM)
+    expect(values.how_the_sun_moves).toBe(SUN_CIRCLES)
+    expect(values.moon_and_earth_days).toBe(TILT_AND_TURN)
+    expect(values.why_earth_rises_and_sets).toBe(`The Moon has a ${LIBRATION}. ${EARTH_STAYS_PUT}`)
+    expect(values.why_dates_matter).toBe(`The Moon has seasons too. ${SEASONS}`)
+    expect(TILT_AND_TURN).toContain(values.moon_tilt)
+    expect(TILT_AND_TURN).toContain(values.earth_tilt)
+    expect(values.site).toBe('Connecting Ridge')
+    expect(values.month).toBe('May 2027')
+    // The site's figures are the ones the Guide's "A day here" card reads from the same hourly track.
+    const track = (await data.scenario('connecting-ridge', '2027-05')).track
+    expect(values.sun_highest_here).toBe(degWords(Math.max(...track.map((point) => point.sun_el))))
+    expect(values.sun_rises_here).toMatch(/^(never rises|does not rise, because it is already up|rises (once|twice|\d+ times))$/)
+    expect(values.longest_dark_here).toMatch(/^(\d+ h|\d+ d \d+ h|none: it never goes dark)$/)
+  })
+
+  it('the Guide shows those same sentences from the same place, so the two cannot drift', () => {
+    const page = (name: string) => readFileSync(fileURLToPath(new URL(`../../src/shell/guide/${name}.tsx`, import.meta.url)), 'utf8')
+    expect(page('GuideChallenge')).toContain('intro={SUN_AND_EARTH_SKIM}')
+    expect(page('GuideSolution')).toContain('{SUN_CIRCLES}')
+    expect(page('GuideEarthDay')).toContain('{TILT_AND_TURN}')
+    expect(page('GuideProof')).toContain('{LIBRATION}')
+    expect(page('GuideProof')).toContain('{EARTH_STAYS_PUT}')
+    expect(page('GuideProof')).toContain('{SEASONS}')
+    // Not typed out a second time in any of them.
+    for (const name of ['GuideChallenge', 'GuideSolution', 'GuideEarthDay', 'GuideProof']) expect(page(name)).not.toMatch(/never climb|once every 29\.5 Earth days|tilts only 1\.5°|slow wobble/)
+  })
+
+  it('is asked for in the instructions: a "why" is answered, never declined, and only what is truly outside the data is turned down', () => {
+    const rules = systemPrompt({ first_year: 2026, last_year: 2049 })
+    expect(rules).toMatch(/A "why" or "how does it work" question about the Moon's south pole is inside what you know/)
+    expect(rules).toMatch(/Call explain_the_pole for the site on the visitor's screen and its month/)
+    expect(rules).toMatch(/Never say you cannot explain these\./)
+    expect(rules).toMatch(/truly outside the data \(costs, weather, other years, other worlds, a lander's hardware, other missions' plans\)/)
+    expect(rules).not.toMatch(/other worlds, general knowledge\)/)
+  })
+
+  it('through the whole chat: the explanation and the site\'s figure reach the visitor, with no number typed by the model', async () => {
+    const model = scripted([{ name: 'explain_the_pole', args: { site: 'connecting-ridge', month: '2027-05' } }], [answer('{{r1.why_sun_and_earth_are_low}} At {{r1.site}} in {{r1.month}} the Sun gets no higher than {{r1.sun_highest_here}} from level.')])
+    const outcome = await ask(model, '#a=connecting-ridge@2027-05&t=132&limits=14_24_99999_1_1&mode=plan&sc=0', 'Why is the Sun so low here?')
+    expect(outcome.ok && outcome.fellBack).toBe(false)
+    expect(outcome.ok && outcome.reply.text).toMatch(/^Near the Moon’s south pole the Sun and Earth never climb\. They skim the horizon, .* At Connecting Ridge in May 2027 the Sun gets no higher than [−\d.]+° from level\.$/)
+  })
+})
+
+describe('20. a heading is never what a reference fills in', () => {
+  it('a ranked option\'s "why" is a clause that follows its name, not the list\'s tags', async () => {
+    expect(whyWords(['Meets your limits', 'Shortest time without Sun on this list'])).toBe('meets the limits and has the shortest time without the Sun of these options')
+    expect(whyWords(['The Sun is gone for 95 h during the mission; your limit is 24 h.'])).toBe('does not meet the limits because the Sun is gone for 95 h, past the 24 h limit')
+    expect(whyWords(['Earth is out of view at landing.', 'The Sun is gone for 41 h during the mission; your limit is 24 h.', 'Shortest time without Earth on this list'])).toBe(
+      'does not meet the limits because Earth is out of view at landing and the Sun is gone for 41 h, past the 24 h limit and has the shortest time without Earth of these options',
+    )
+    const { values } = await facts('rank_options', { options: [{ site: 'connecting-ridge', time: '2027-05-06T12' }, { site: 'shackleton-rim', time: '2027-06-21T17' }, { site: 'de-gerlache-rim', time: '2027-06-01T00' }] })
+    const whys = Object.entries(values).filter(([key]) => key.endsWith('_why')).map(([, value]) => value)
+    expect(whys.length).toBe(3)
+    for (const why of whys) {
+      expect(why).toMatch(/^(meets the limits|does not meet the limits because )/)
+      expect(why).not.toMatch(/on this list|Meets your limits|Shortest/)
+    }
+  })
+
+  it('no fact of any tool has a value that is one of its own result\'s labels, or that reads as a tag from a list', async () => {
+    const samples: [string, Record<string, unknown>][] = [
+      ['site_info', { site: 'chandrayaan-3' }],
+      ['conditions_at', { site: 'connecting-ridge', time: '2027-06-20T00' }],
+      ['month_summary', { site: 'connecting-ridge', month: '2027-05' }],
+      ['year_summary', { site: 'connecting-ridge', year: 2027 }],
+      ['best_months', { site: 'shackleton-rim', measure: 'sun', year: 2027 }],
+      ['best_sites', { month: '2027-07', measure: 'sun' }],
+      ['best_sites_in_year', { year: 2027, measure: 'landing', group: 'south_pole' }],
+      ['compare_sites', { site_a: 'shackleton-rim', site_b: 'apollo-11', month: '2028-03' }],
+      ['landing_windows', { site: 'shackleton-rim', month: '2027-08' }],
+      ['next_landing', { site: 'connecting-ridge', time: '2027-05-06T12' }],
+      ['rank_options', { options: [{ site: 'connecting-ridge', time: '2027-05-06T12' }, { site: 'shackleton-rim', time: '2027-06-21T17' }] }],
+      ['explain_the_pole', { site: 'connecting-ridge', month: '2027-05' }],
+    ]
+    for (const [tool, args] of samples) {
+      const { values, labels } = await facts(tool, args)
+      const names = new Set(Object.values(labels))
+      for (const [key, value] of Object.entries(values)) {
+        expect(names.has(value), `${tool}.${key} is a label: ${value}`).toBe(false)
+        expect(value, `${tool}.${key}`).not.toMatch(/ on this list$|^Meets your limits/)
+      }
+    }
+  })
+
+  it('and a reference is filled with the fact\'s value, whatever its label says', () => {
+    const book = new Map([['r1', [{ key: 'option_1_why', label: 'Shortest time without Sun on this list', value: 'meets the limits' }]]])
+    expect(renderAnswer('Connecting Ridge {{r1.option_1_why}}.', book, ['Connecting Ridge'])).toEqual({ ok: true, text: 'Connecting Ridge meets the limits.' })
   })
 })
 
