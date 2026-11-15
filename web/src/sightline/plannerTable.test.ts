@@ -155,8 +155,10 @@ describe('compareGroups', () => {
   })
 
   it('says whether each scenario fits, with the reasons in the column\'s short words, and waits for one still being worked out', () => {
-    expect(row('fits').cells).toEqual(['✗ No: Sun down for 95 h; your limit is 24 h', '✓ Yes', null])
+    // The second lands with 26% of the Sun's disc in view, which the mission needs at landing: a marginal fit, as the plan column calls it.
+    expect(row('fits').cells).toEqual(['✗ No: Sun down for 95 h; your limit is 24 h', "◇ Yes, marginal: 26% of the Sun's disc is in view at landing", null])
     expect(row('fits').fits).toEqual([false, true, null])
+    expect(row('fits').verdicts).toEqual(['miss', 'marginal', null])
     expect(row('fits').best).toEqual([false, false, false])
   })
 

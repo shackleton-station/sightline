@@ -4,6 +4,7 @@ import type { SiteInfo, Summary } from '../data/contract'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { monthSpans } from '../lib/grid'
 import { measureScenario, missionWords, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
+import { marginalAtLanding } from '../lib/landingVerdict'
 import { spanOfHours } from '../lib/span'
 import { useWidth } from '../lib/useWidth'
 import { Mascot } from '../scout/Mascot'
@@ -118,6 +119,7 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
       groups.flatMap((group) => group.rows),
       measures,
       missionWords(mission),
+      landings.map((landing) => marginalAtLanding(mission.requirements, landing)),
     )
     saveText('sightline-scenarios.csv', csv)
   }

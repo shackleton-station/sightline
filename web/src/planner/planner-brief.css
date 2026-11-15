@@ -64,6 +64,34 @@
   color: var(--pl-paper-tight);
 }
 
+/* The stamp is the verdict on the brief's landing: green for a plain fit, orange for a marginal one, red for a miss. */
+.pl-brief.is-marginal {
+  border-top-color: var(--pl-paper-tight);
+}
+
+.pl-brief.is-fits .pl-stamp {
+  border-style: solid;
+  color: var(--pl-paper-works);
+}
+
+.pl-brief.is-marginal .pl-stamp,
+.pl-brief .pl-marginal {
+  color: var(--pl-paper-tight);
+}
+
+.pl-brief.is-marginal .pl-stamp {
+  border-style: solid;
+}
+
+.pl-brief .pl-marginal {
+  font-weight: 600;
+}
+
+.pl-brief.is-miss .pl-stamp {
+  border-style: solid;
+  color: #a3212b;
+}
+
 .pl-brief.none .pl-stamp {
   border-style: dotted;
   color: var(--pl-paper-ink);

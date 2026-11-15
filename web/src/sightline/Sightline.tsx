@@ -10,7 +10,8 @@ import { HYPE_HASH, isHypeWord } from '../lib/hypeEgg'
 import { ringedSites } from '../lib/scoutRing'
 import { horizonAt } from '../lib/customModel'
 import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
-import { chipWords, earthShare as earthShareOf, marginalReasons, shortWhen } from '../lib/sightlineSky'
+import { chipWords, earthShare as earthShareOf, shortWhen } from '../lib/sightlineSky'
+import { marginalAtLanding } from '../lib/landingVerdict'
 import { bodyRadiiDeg } from '../lib/surfaceView'
 import { HowItWorks } from '../shell/HowItWorks'
 import { hourOf, locateHour, missionEarth } from '../lib/mission'
@@ -381,10 +382,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const shares = useLandingShares(scenarios, facts, start, held, lit.applied)
   // The average sunlight on a panel over each mission: read only while one of the two Compare tables is open.
   const sunlightWm2 = useMissionSunlight(scenarios, facts, start, held, lit.applied, mission.requirements.missionDays, full || drawer === 'compare')
-  const marginalAt = (i: number) => {
-    const at = shares[i]
-    return at ? marginalReasons(mission.requirements.sunAtLanding ? at.sun : null, mission.requirements.earthAtLanding ? at.earth : null, at.earthUp) : []
-  }
+  const marginalAt = (i: number) => marginalAtLanding(mission.requirements, shares[i])
   const marginal = problems && problems.length === 0 ? marginalAt(active) : []
   // The next landing that fits, offered only when this one does not: the first later hour that meets
   // the Sun and Earth limits, moved on, in the same sunlit stretch, to where at least half the Sun's

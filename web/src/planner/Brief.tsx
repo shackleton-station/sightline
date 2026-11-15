@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
 import type { SiteInfo } from '../data/contract'
+import { useDiscsAtLanding } from '../data/landingDiscs'
+import { landingVerdict, marginalAtLanding } from '../lib/landingVerdict'
 import type { Requirements } from '../lib/mission'
 import { monthLabel } from '../lib/months'
 import type { Landing, MonthAnswer } from './monthAnswer'
 import { DayStrip } from './DayStrip'
 import type { OtherSite } from './plannerModel'
-import { landingWords, missionFacts, missionWords, placeWords, plural, verdictWords, whenUtc, windowWords } from './words'
+import { landingWords, missionFacts, missionWords, placeWords, plural, stampWords, verdictWords, whenUtc, windowWords } from './words'
 
 interface Props {
   site: SiteInfo
@@ -37,24 +39,27 @@ interface Props {
   children: ReactNode
 }
 
-const STAMP = { works: 'Works', tight: 'Tight', none: 'No landing' }
-
 /**
  * The answer for the chosen site and month, written as a one-page brief: sentences first, numbers
- * second. It is the same sheet on screen and on paper.
+ * second. It is the same sheet on screen and on paper. Its stamp is the verdict on the landing it is
+ * written for, the plan column's own: a plain fit, a marginal one (under half of a disc the mission
+ * needs is in view at landing), or a miss.
  */
 export function Brief({ site, month, requirements, start, answer, landing, others, obsHeightM, link, kept, onKeep, onDay, onUseBest, onPick, sky, why = null, keepWords = { keep: 'Keep this option', kept: 'On the short list' }, children }: Props) {
   const verdict = verdictWords(site.name, month, requirements, answer)
-  const works = landing.problems.length === 0
+  // How much of the Sun and of Earth shows at the landing's hour: what makes a fit a marginal one.
+  const discs = useDiscsAtLanding(site, landing.t)
+  const fit = landingVerdict(landing.problems, marginalAtLanding(requirements, discs))
+  const works = fit.state !== 'miss'
   const isBest = landing.hour === answer.best.hour
   const dayOf = (hour: number) => Math.floor((hour - answer.span.from) / 24)
   const facts = missionFacts(landing, requirements)
-  const said = landingWords(isBest, answer.days, monthLabel(month))
+  const said = landingWords(isBest, answer.days, monthLabel(month), fit.state)
   return (
-    <article className={`pl-brief ${verdict.status}`} id="brief" aria-labelledby="pl-brief-title">
+    <article className={`pl-brief ${verdict.status} is-${fit.state}`} id="brief" aria-labelledby="pl-brief-title" data-verdict={fit.state}>
       <header className="pl-brief-head">
         <p className="pl-label">Landing brief</p>
-        <p className="pl-stamp">{STAMP[verdict.status]}</p>
+        <p className="pl-stamp">{stampWords(answer.days, fit.state, fit.mark)}</p>
         <h2 id="pl-brief-title">
           {site.name}, {monthLabel(month)}
         </h2>
@@ -77,7 +82,7 @@ export function Brief({ site, month, requirements, start, answer, landing, other
         <h3 className="pl-label" id="pl-days-title">
           Landing days, {monthLabel(month)} (UTC)
         </h3>
-        <DayStrip month={month} answer={answer} plannedDay={dayOf(landing.hour)} bestDay={answer.days > 0 ? dayOf(answer.best.hour) : null} onDay={onDay} />
+        <DayStrip month={month} answer={answer} plannedDay={dayOf(landing.hour)} bestDay={answer.days > 0 && !(isBest && fit.state !== 'fits') ? dayOf(answer.best.hour) : null} onDay={onDay} />
         {answer.windows.length > 0 && (
           <ul className="pl-windows">
             {answer.windows.map((window) => (
@@ -99,7 +104,14 @@ export function Brief({ site, month, requirements, start, answer, landing, other
           </button>
         </div>
         {works ? (
-          <p>{facts.join(' ')}</p>
+          <>
+            {fit.state === 'marginal' && (
+              <p className="pl-marginal">
+                {fit.mark} {fit.words}: it meets every limit, but {fit.reasons.join(', and ')}.
+              </p>
+            )}
+            <p>{facts.join(' ')}</p>
+          </>
         ) : (
           <>
             <p>A landing then misses your limits:</p>

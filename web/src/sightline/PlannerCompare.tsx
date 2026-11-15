@@ -183,9 +183,10 @@ export function PlannerCompare({ start, hours, flagged, scenarios, facts, missio
                   </th>
                   {row.cells.map((cell, i) => {
                     const state = row.states?.[i]
-                    const fits = row.fits?.[i]
+                    // The verdict's cell is drawn in its state's color: green for a plain fit, orange for a marginal one, red for a miss.
+                    const verdict = row.verdicts?.[i]
                     return (
-                      <td key={i} className={[row.best[i] || fits ? 'is-best' : '', row.fits ? 'sl-full-fit' : ''].filter(Boolean).join(' ') || undefined} data-state={state ?? undefined}>
+                      <td key={i} className={[row.best[i] || verdict === 'fits' ? 'is-best' : '', verdict === 'marginal' ? 'is-marginal' : '', row.fits ? 'sl-full-fit' : ''].filter(Boolean).join(' ') || undefined} data-state={state ?? undefined} data-verdict={verdict ?? undefined}>
                         {state && (
                           <>
                             <i className={`sl-key is-${state}`} aria-hidden="true" />{' '}

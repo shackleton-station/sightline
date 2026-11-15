@@ -1,3 +1,4 @@
+import { gapLimitsWords } from '../lib/landingVerdict'
 import type { SiteInfo, TrackPoint } from '../data/contract'
 import { monthSpans } from '../lib/grid'
 import { type Cell, cellAt, cellsUpAt, cellsWithSunAtLeast, type LightMeta, type LightMonth, rangeWords, spotAt } from '../lib/lightGrid'
@@ -263,7 +264,7 @@ export function buildBriefing(input: BriefingInput): { chapters: Chapter[]; reco
   }
 
   const recommendation = recommend(candidates, requirements, month)
-  const mission = `a ${requirements.missionDays}-day mission that can go ${requirements.maxSunGapH} h without the Sun and ${requirements.maxEarthGapH} h without Earth`
+  const mission = `a ${requirements.missionDays}-day mission that ${gapLimitsWords(requirements.maxSunGapH, requirements.maxEarthGapH, '')}`
   const closing = (): Pick<Chapter, 'siteId' | 'month' | 'hours' | 'caption'> => {
     if (!recommendation) {
       return {

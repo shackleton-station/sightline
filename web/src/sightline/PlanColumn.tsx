@@ -7,6 +7,7 @@ import { parseCoordinate } from '../lib/customModel'
 import { horizonsQueryUrl } from '../lib/horizonsLink'
 import { moonTrekUrl, quickmapUrl } from '../lib/openIn'
 import { shortReason } from '../lib/sightlineSky'
+import { landingVerdict } from '../lib/landingVerdict'
 import { NOT_A_LOGIN } from './inputs'
 import { LandingPick } from './LandingPick'
 import { siteValue, targetAt, targetValue } from './site'
@@ -263,15 +264,16 @@ export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission 
       </div>
     )
   }
-  const fits = problems.length === 0
-  const kind = !fits ? 'is-miss' : marginal.length > 0 ? 'is-marginal' : 'is-fit'
-  const reasons = fits ? marginal : problems
+  const verdict = landingVerdict(problems, marginal)
+  const fits = verdict.state !== 'miss'
+  const kind = { fits: 'is-fit', marginal: 'is-marginal', miss: 'is-miss' }[verdict.state]
+  const reasons = verdict.reasons
   const more = reasons.length - REASONS_SHOWN
   return (
     <div className={`sl-verdict ${kind}`}>
       <p className="sl-verdict-line">
         <span className="sl-verdict-words">
-          <span aria-hidden="true">{!fits ? '✗' : marginal.length > 0 ? '◇' : '✓'}</span> {!fits ? 'Does not fit the mission' : marginal.length > 0 ? 'Fits, marginal' : 'Fits the mission'}
+          <span aria-hidden="true">{verdict.mark}</span> {verdict.words}
         </span>
         <button type="button" className="sl-link sl-why" title="Asks Scout why this landing fits or does not, and what would change it." onClick={onWhy}>
           Why?

@@ -2,17 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import type { SiteInfo, TrackPoint } from '../data/contract'
 import { isCustomSite } from '../data/customSite'
 import { loadScenarioAt } from '../data/heights'
+import { discsAt } from '../data/landingDiscs'
 import { loadScenario, loadSiteFlags, loadYearPositions } from '../data/loadSite'
 import type { FlaggedSite } from '../data/useAllFlags'
-import { horizonAt } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
 import type { MissionHeights } from '../lib/heights'
 import { locateHour } from '../lib/mission'
 import { panelSunlight } from '../lib/power'
 import { spanOfHours, type YearSpan } from '../lib/span'
 import type { SightlineScenario } from '../lib/sightlineMission'
-import { earthShare } from '../lib/sightlineSky'
-import { bodyRadiiDeg } from '../lib/surfaceView'
 import { useFutureTargets } from '../data/futureTargets'
 import { siteFor } from './site'
 
@@ -92,8 +90,6 @@ export interface LandingShares {
   earthAboveDeg: number
 }
 
-const HOUR_MS = 3_600_000
-
 /**
  * The share of the Sun's and Earth's discs in view at each scenario's landing. The Sun's is the
  * pipeline's own (`sun_frac`). Earth's is worked out the same way, from how far Earth's centre is
@@ -114,12 +110,7 @@ export function useLandingShares(scenarios: SightlineScenario[], facts: Scenario
       const year = Number(month.slice(0, 4))
       Promise.all([loadScenarioAt(site, month, years, { panelM, antennaM }), loadYearPositions(year).catch(() => null)])
         .then(([data, positions]) => {
-          const point = data.track[Math.min(index, data.track.length - 1)]
-          const hourOfYear = Math.round((Date.parse(point.t) - Date.UTC(year, 0, 1)) / HOUR_MS)
-          const sunAboveDeg = point.sun_el - horizonAt(data.horizon, point.sun_az)
-          const earthAboveDeg = point.earth_el - horizonAt(data.earthHorizon ?? data.horizon, point.earth_az)
-          const earth = positions ? earthShare(earthAboveDeg, bodyRadiiDeg(positions, hourOfYear, site.lat, site.lon).earth) : null
-          if (current) setShares((before) => ({ ...before, [key]: { sun: point.sun_frac, earth, earthUp: point.earth_up, sunElDeg: point.sun_el, earthElDeg: point.earth_el, sunAboveDeg, earthAboveDeg } }))
+          if (current) setShares((before) => ({ ...before, [key]: discsAt(data, index, positions, site) }))
         })
         // Without the shares a landing that fits is simply not called marginal.
         .catch((reason: unknown) => console.error(reason))
