@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { type LevelPitch, towardLevel } from '../lib/surfacePitch'
 import { boundedLook, faceToward, framingPitch, type Look, turnBetween } from '../lib/surfaceView'
 import type { SkyPair } from './useGlide'
 
@@ -21,6 +22,8 @@ interface Options {
   openingStretch?: number
   /** Reduced motion: turns happen at once. */
   still: boolean
+  /** The pitch both views share while both bodies fit in one picture, so eye level sits at one height. */
+  level?: LevelPitch | null
 }
 
 export interface LookControls {
@@ -43,7 +46,7 @@ const where = (sky: SkyPair, body: Body) => (body === 'sun' ? { az: sky.sunAz, e
  * Which way the visitor looks. Facing the Sun or Earth latches on: the view keeps that body in the
  * middle while time plays, until the visitor steers by hand.
  */
-export function useLook({ sky, body, skylineAt, siteId, offCenter, openingFovDeg, openingStretch = 1, still }: Options): LookControls {
+export function useLook({ sky, body, skylineAt, siteId, offCenter, openingFovDeg, openingStretch = 1, still, level = null }: Options): LookControls {
   const [look, setLook] = useState<Look>({ headingDeg: sky.sunAz, pitchDeg: sky.sunEl, fovDeg: openingFovDeg, stretch: openingStretch })
   const [following, setFollowing] = useState<Body | null>(null)
   const turning = useRef(0)
@@ -51,7 +54,7 @@ export function useLook({ sky, body, skylineAt, siteId, offCenter, openingFovDeg
   // Where to point to face a body: at its azimuth, tipped so the land under it is in view too.
   const toward = (body: Body, from: SkyPair, lens: Look) => {
     const { az, el } = where(from, body)
-    return { headingDeg: az, pitchDeg: framingPitch(el, skylineAt(az), lens, offCenter) }
+    return { headingDeg: az, pitchDeg: towardLevel(framingPitch(el, skylineAt(az), lens, offCenter), level) }
   }
   // While following, the view points at the body wherever it has got to.
   const shown = following ? boundedLook({ ...look, ...toward(following, sky, look) }) : look

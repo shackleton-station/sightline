@@ -1,9 +1,11 @@
 import { lazy, type ReactNode, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import type { HorizonPoint, SiteInfo, TrackPoint } from '../data/contract'
+import { horizonAt } from '../lib/customModel'
+import { levelPitch } from '../lib/surfacePitch'
 import type { BodyRadii, Look } from '../lib/surfaceView'
 import type { GroundTint } from '../three/SurfaceViewer'
 import { StageActions } from './StageActions'
-import { type PaneControls, SurfacePane } from './SurfacePane'
+import { offCenterNow, type PaneControls, SurfacePane } from './SurfacePane'
 import { useGlide } from './useGlide'
 import type { Body } from './useLook'
 import { hasTouchPointer, useMotionLook } from './useMotionLook'
@@ -76,6 +78,22 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
   // The lens the views have, so one drawn again (after the graphics come back) starts at the same scale.
   const [lens, setLens] = useState<{ fovDeg: number; stretch: number } | null>(null)
   const onLens = useCallback((fovDeg: number, stretch: number) => setLens({ fovDeg, stretch }), [])
+  // One pitch for both views while the Sun, Earth and the skyline under each fit in one picture:
+  // eye level then sits at the same height left and right. Where they cannot, each keeps its own.
+  const level = useMemo(
+    () =>
+      lens
+        ? levelPitch(
+            [
+              { bodyElDeg: sky.sunEl, skylineElDeg: horizonAt(horizon, sky.sunAz) },
+              { bodyElDeg: sky.earthEl, skylineElDeg: horizonAt(horizon, sky.earthAz) },
+            ],
+            lens,
+            offCenterNow(),
+          )
+        : null,
+    [lens, sky.sunEl, sky.sunAz, sky.earthEl, sky.earthAz, horizon],
+  )
   const { status, start, stop } = useMotionLook(steerTouched, setLensAll)
   const toggleMotion = () => (status === 'on' || status === 'asking' ? stop() : void start())
   const onLost = useCallback(() => setFlat(true), [])
@@ -111,6 +129,7 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
             discs={discs}
             hours={hours}
             still={still}
+            level={level}
             opening={lens}
             keys={body === touched}
             showLens={at === VIEWS.length - 1}
