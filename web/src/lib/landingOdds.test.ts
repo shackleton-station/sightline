@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   ACCURACY_SHARE,
+  aimOdds,
   bestAim,
+  bestCentredAim,
   cellAtM,
   cellCentreM,
   cellChances,
@@ -341,5 +343,31 @@ describe('the odds, checked by throwing landings', () => {
         expect(Math.abs(worked - drawn), `${JSON.stringify(spread)} on ground ${seed}: worked ${worked.toFixed(4)}, thrown ${drawn.toFixed(4)}`).toBeLessThan(0.006)
       }
     }
+  })
+})
+
+describe('a better place to aim, at a light cell centre', () => {
+  // 30 m slope cells, four to a 120 m light cell; the target 50 m right of and 20 m below a light
+  // cell's corner, so the light cells' centres are not on the target's own grid of offsets.
+  const shifted = (keep: (x: number, y: number) => boolean) => only({ size: 48, cellM: 30, leftM: -770, topM: 700, verdict: new Uint8Array(48 * 48) }, keep)
+
+  it('lands on a light cell centre, with the odds of aiming there', () => {
+    const map = shifted((x, y) => Math.hypot(x - 180, y - 60) < 150)
+    const here = oddsFor(map, round(150))
+    const aim = bestCentredAim(map, round(150), 120, 600, here)
+    if (!aim) throw new Error('no better aim')
+    // Centres sit at leftM + 60 + 120k across and topM - 60 - 120k down.
+    expect((((aim.x - map.leftM - 60) % 120) + 120) % 120).toBeCloseTo(0, 9)
+    expect((((map.topM - 60 - aim.y) % 120) + 120) % 120).toBeCloseTo(0, 9)
+    expect(Math.hypot(aim.x - 180, aim.y - 60)).toBeLessThanOrEqual(85)
+    expect(aim.fit).toBeGreaterThan(here.fit + 0.3)
+    expect(aim.fit).toBeCloseTo(aimOdds(map, round(150), aim.x, aim.y).fit, 9)
+  })
+
+  it('is none when nothing nearby is better, or the good ground is off the map', () => {
+    const centred = shifted((x, y) => Math.hypot(x, y) < 200)
+    expect(bestCentredAim(centred, round(150), 120, 600, oddsFor(centred, round(150)))).toBeNull()
+    const corner = shifted((x, y) => x > 550 && y > 550)
+    expect(bestCentredAim(corner, round(300), 120, 2000, oddsFor(corner, round(300)))).toBeNull()
   })
 })

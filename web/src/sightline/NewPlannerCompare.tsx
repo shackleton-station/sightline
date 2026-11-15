@@ -1,10 +1,11 @@
-import type { TrackPoint } from '../data/contract'
+import type { HorizonPoint, TrackPoint } from '../data/contract'
 import { LandingSky } from '../planner/LandingSky'
 import { clockTime } from '../lib/sightline'
 import { shortReason } from '../lib/sightlineSky'
 import { type ScenarioMeasure, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../lib/sightlineMission'
-import { PlannerPower } from './PlannerPower'
-import { PlannerSunChart } from './PlannerSunChart'
+import { MissionPlayback } from './MissionPlayback'
+import { PicksScorecard } from './PicksScorecard'
+import { MissionCharts } from './MissionCharts'
 import type { ScenarioFacts } from './useScenarioFacts'
 
 interface Props {
@@ -15,6 +16,8 @@ interface Props {
   measures: (ScenarioMeasure | null)[]
   /** Each pick's mission hour by hour, for the Sun chart and the power budget. */
   tracks: (TrackPoint[] | null | undefined)[]
+  /** Each pick's skyline, for the playback. */
+  horizons: (HorizonPoint[] | null | undefined)[]
   active: number
   onSelect: (index: number) => void
   onRemove: (index: number) => void
@@ -32,7 +35,7 @@ function isoAt(start: string, hour: number): string {
  * hour by hour, the Sun's height and the skyline), then the Sun's height for every pick on one scale
  * and a rough power budget. The columns line up row for row so the eye can run across them.
  */
-export function NewPlannerCompare({ start, scenarios, facts, mission, measures, tracks, active, onSelect, onRemove, heightsNote }: Props) {
+export function NewPlannerCompare({ start, scenarios, facts, mission, measures, tracks, horizons, active, onSelect, onRemove, heightsNote }: Props) {
   if (scenarios.length < 2) {
     return (
       <div className="np-compare-empty" role="tabpanel" aria-label="Compare">
@@ -43,6 +46,12 @@ export function NewPlannerCompare({ start, scenarios, facts, mission, measures, 
   }
   return (
     <div className="np-compare" role="tabpanel" aria-label="Compare">
+      <PicksScorecard rows={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, measure: measures[i], track: tracks[i] }))} mission={mission} active={active} onSelect={onSelect} />
+      <MissionPlayback
+        picks={scenarios.map((scenario, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, flags: facts[i].flags, t: isoAt(start, scenario.landing), track: tracks[i], horizon: horizons[i] }))}
+        requirements={mission.requirements}
+      />
+      <h3 className="np-compare-sub">Each pick in full</h3>
       <div className="np-compare-cols" style={{ gridTemplateColumns: `repeat(${scenarios.length}, minmax(17rem, 1fr))` }}>
         {scenarios.map((scenario, i) => {
           const fact = facts[i]
@@ -77,8 +86,11 @@ export function NewPlannerCompare({ start, scenarios, facts, mission, measures, 
         })}
       </div>
       <div className="np-compare-all">
-        <PlannerSunChart rows={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i] }))} missionDays={mission.requirements.missionDays} />
-        <PlannerPower columns={scenarios.map((_, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, track: tracks[i], sunGapH: measures[i]?.sunGapH ?? null }))} heightsNote={heightsNote} />
+        <MissionCharts
+          picks={scenarios.map((scenario, i) => ({ letter: SCENARIO_LETTERS[i], name: facts[i].site.name, flags: facts[i].flags, t: isoAt(start, scenario.landing), track: tracks[i] }))}
+          requirements={mission.requirements}
+          heightsNote={heightsNote}
+        />
       </div>
     </div>
   )

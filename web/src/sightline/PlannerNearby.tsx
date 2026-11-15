@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import type { SiteInfo } from '../data/contract'
 import { loadSpread, loadSummary } from '../data/loadSite'
 import { NearbyMap } from '../components/NearbyMap'
@@ -10,6 +10,10 @@ interface Props {
   month: string
   /** A spot on the map chosen: add it as a scenario, as the month's own "Add" does. */
   onSpot: (lat: number, lon: number) => void
+  /** Always show the map, with no button (the New Planner's Find). */
+  open?: boolean
+  /** More to show under the map: other ways to read the ground. */
+  children?: ReactNode
 }
 
 /**
@@ -18,9 +22,10 @@ interface Props {
  * map of the ground around the site with better places to look. Only the ridge sites have this
  * ground worked out; elsewhere it says nothing.
  */
-export function PlannerNearby({ site, month, onSpot }: Props) {
+export function PlannerNearby({ site, month, onSpot, open = false, children }: Props) {
   const [spread, setSpread] = useState<{ key: string; text: string | null } | null>(null)
-  const [mapOpen, setMapOpen] = useState(false)
+  const [toggled, setMapOpen] = useState(false)
+  const mapOpen = open || toggled
   const key = `${site.id}@${month}`
   useEffect(() => {
     if (!site.nearby_half_m) return
@@ -42,14 +47,17 @@ export function PlannerNearby({ site, month, onSpot }: Props) {
     <section className="pl-nearby" aria-label={`The ground around ${site.name}`}>
       <h5>A few metres make a difference</h5>
       <p>{text === undefined ? 'Reading how much this month changes close by…' : (text ?? `How much ${monthLabel(month)} changes close by isn't worked out here.`)}</p>
-      <button type="button" className="sl-small" aria-expanded={mapOpen} onClick={() => setMapOpen(!mapOpen)}>
-        {mapOpen ? 'Hide the ground around it' : `Show the ground around ${site.name}`}
-      </button>
+      {!open && (
+        <button type="button" className="sl-small" aria-expanded={mapOpen} onClick={() => setMapOpen(!mapOpen)}>
+          {mapOpen ? 'Hide the ground around it' : `Show the ground around ${site.name}`}
+        </button>
+      )}
       {mapOpen && (
         <div className="pl-nearby-map">
           <NearbyMap anchor={site} point={site} month={month} mode="plan" onOpen={onSpot} />
         </div>
       )}
+      {children}
     </section>
   )
 }
