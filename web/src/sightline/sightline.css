@@ -4478,67 +4478,115 @@ button.sl-moment-heights[aria-expanded='true'] {
   pointer-events: none;
 }
 
-/* The card: type a room can read, on a card no wider than the plan's column, so in its corner it
-   lies over the column's foot and not over the Moon's strips. */
+/* The card: two sentences set large enough to read at a glance, on a card no wider than the plan's
+   column, so in its home corner it lies over the column's foot and not over the Moon's strips. It
+   glides when a step sends it to the other side (at once where motion is reduced). */
 .sl-tour {
   position: fixed;
   z-index: 46;
-  width: 19.5rem;
+  width: 22.5rem;
   max-width: calc(100vw - 24px);
-  padding: 0.9rem 1rem 0.8rem;
+  padding: 0.7rem 1rem 0.8rem;
   border: 1.5px solid var(--gold-deep);
   border-radius: 14px;
   /* Opaque: on a phone it lies over the sheet, and nothing under it may show through its words. */
   background: #15121c;
   box-shadow: 0 10px 26px rgb(0 0 0 / 55%);
+  transition: left 0.28s ease-out;
 }
 
-.sl-tour-head {
+@media (prefers-reduced-motion: reduce) {
+  .sl-tour {
+    transition: none;
+  }
+}
+
+/* On a step about the Moon itself the Moon fills the window's height, and its edge comes close to
+   the card's corner: the card is narrower there, so it stands clear of the disc. */
+.sl-tour[data-beside-moon] {
+  width: 18.5rem;
+}
+
+.sl-tour[data-beside-moon] .sl-tour-title {
+  font-size: 1.3rem;
+}
+
+.sl-tour[data-beside-moon] .sl-tour-dots {
+  gap: 0.2rem;
+}
+
+.sl-tour[data-beside-moon] .sl-tour-dots button {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+/* Over the title: the chapter of the story, and the way out, which says what it does and is the quietest thing in the card. */
+.sl-tour .sl-tour-top {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 0.6rem;
-}
-
-.sl-tour-heading {
-  min-width: 0;
-}
-
-/* Over the title: which step, and for a presenter the time gone against the whole. */
-.sl-tour .sl-tour-meta {
-  display: flex;
-  gap: 0.45rem;
   margin: 0;
-  color: var(--soft);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
+}
+
+.sl-tour-chapter {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--gold);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.sl-tour-clock::before {
-  content: '· ';
+.sl-tour .sl-tour-close {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--soft);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.sl-tour .sl-tour-close:hover,
+.sl-tour .sl-tour-close:focus-visible {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.sl-tour-name {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
 }
 
 .sl-tour .sl-tour-title {
-  margin: 0.05rem 0 0;
+  min-width: 0;
+  margin: 0;
   font-family: var(--serif);
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 600;
   line-height: 1.15;
 }
 
 .sl-tour-say {
-  margin: 0.6rem 0 0.7rem;
-  font-size: 1.5rem;
+  margin: 0.55rem 0 0.7rem;
+  font-size: 1.375rem;
   line-height: 1.3;
 }
 
-/* A feature guide's step says a sentence or two, not a line for a room: set smaller, so the card stays a card. */
+/* A feature guide's step says a sentence or two of its own length: set smaller, so the card stays a card. */
 .sl-tour-say.is-long {
   font-size: 1.0625rem;
   line-height: 1.4;
 }
 
-/* A dot a step: where the tour is, and a way to any step. */
+/* A dot a step: where the tour is, and a way to any step. A wider gap parts one chapter's dots from the next. */
 .sl-tour .sl-tour-dots {
   display: flex;
   flex-wrap: wrap;
@@ -4550,6 +4598,10 @@ button.sl-moment-heights[aria-expanded='true'] {
 
 .sl-tour-dots li {
   display: flex;
+}
+
+.sl-tour-dots li.is-new-chapter {
+  margin-left: 0.55rem;
 }
 
 .sl-tour .sl-tour-dots button {
@@ -4597,6 +4649,24 @@ button.sl-moment-heights[aria-expanded='true'] {
   gap: 0.4rem;
 }
 
+/* The voice's row spans the card, so Back and Next are the card's last row on every step. */
+.sl-tour .sl-tour-voice {
+  flex: 1 0 100%;
+}
+
+/* Beside Back and Next, at the card's right edge: which step, and under it the time gone against the whole. */
+.sl-tour .sl-tour-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin: 0 0 0 auto;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
 .sl-tour-voice small {
   color: var(--soft);
   font-size: 0.6875rem;
@@ -4633,23 +4703,15 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-weight: 600;
 }
 
-/* The way out says what it does, and is the quietest thing in the card. */
-.sl-tour .sl-tour-close {
-  border-color: transparent;
-  background: transparent;
-  color: var(--soft);
-}
-
-.sl-tour .sl-tour-close:hover,
-.sl-tour .sl-tour-close:focus-visible {
-  color: var(--ink);
-}
-
-/* The Guide, while a step of the tour has it open: its page moves over, so the card stands in a
-   clear margin and covers nothing a room would read. */
+/* The Guide and the Planner, while a step of the tour has one open: the page makes room on its
+   left, so the card stands in its home corner and covers nothing the step is about. */
 @media (min-width: 761px) {
   .sl-how.is-toured {
-    padding-left: 21rem;
+    padding-left: 24rem;
+  }
+
+  .sightline[data-touring='planner'] .sl-full[data-room='wide'] .sl-full-body {
+    grid-template-columns: 22.6rem minmax(0, 1fr);
   }
 }
 
@@ -4680,33 +4742,31 @@ button.sl-moment-heights[aria-expanded='true'] {
 
 @media (max-width: 760px) {
   /* On a phone the card spans the screen and is as short as it can be, so it can sit between the
-     Moon and the play control when that is what it rings: type for the hand, not for a room, the
-     count beside the title, no dots and no "Play through" (Back and Next are there), and its foot one row. */
-  .sl-tour {
+     Moon and the play control when that is what it rings: type for the hand, the chapter and the
+     way out on one line, no dots, no clock and no "Play through" (Back and Next are there), and
+     its foot one row. */
+  .sl-tour,
+  .sl-tour[data-beside-moon] {
     width: calc(100vw - 24px);
-    padding: 0.6rem 0.75rem 0.55rem;
+    padding: 0.45rem 0.75rem 0.5rem;
+    transition: none;
   }
 
-  .sl-tour-head {
-    align-items: center;
+  .sl-tour-name {
+    gap: 0.45rem;
+    margin-top: 0.1rem;
   }
 
-  .sl-tour-heading {
-    display: flex;
-    flex: 1;
-    flex-direction: row-reverse;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
-
-  .sl-tour .sl-tour-title {
-    margin: 0;
+  .sl-tour .sl-tour-title,
+  .sl-tour[data-beside-moon] .sl-tour-title {
     font-size: 1.0625rem;
   }
 
-  .sl-tour .sl-tour-meta {
-    font-size: 0.75rem;
+  /* Scout's mark, smaller, so the title's row is one line of type high. */
+  .sl-tour-name > :first-child {
+    flex: none;
+    width: 22px;
+    height: 22px;
   }
 
   .sl-tour-clock,
@@ -4717,9 +4777,9 @@ button.sl-moment-heights[aria-expanded='true'] {
 
   .sl-tour-say,
   .sl-tour-say.is-long {
-    margin: 0.4rem 0 0.5rem;
-    font-size: 0.9375rem;
-    line-height: 1.35;
+    margin: 0.3rem 0 0.4rem;
+    font-size: 0.875rem;
+    line-height: 1.32;
   }
 
   .sl-tour .sl-tour-foot {
@@ -4727,8 +4787,9 @@ button.sl-moment-heights[aria-expanded='true'] {
     gap: 0.3rem;
   }
 
-  /* "AI-generated voice" stands under "Listen", so the row holds Back, Next and the way out too. */
-  .sl-tour-voice {
+  /* "AI-generated voice" stands under "Listen", so the row holds Back, Next and the count too. */
+  .sl-tour .sl-tour-voice {
+    flex: 0 1 auto;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.1rem;
@@ -4742,6 +4803,11 @@ button.sl-moment-heights[aria-expanded='true'] {
   .sl-tour-nav {
     flex-wrap: nowrap;
     gap: 0.3rem;
+    margin-left: auto;
+  }
+
+  .sl-tour .sl-tour-meta {
+    margin-left: 0.2rem;
   }
 
   .sl-tour .sl-small {

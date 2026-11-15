@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RiverState } from '../lib/river'
-import { type Box, type Disc, placeBubble, type TourStep, voiceFile } from '../lib/tour'
+import { type Box, type Disc, type Place, placeBubble, type TourStep, voiceFile } from '../lib/tour'
 import { Mascot } from '../scout/Mascot'
 
 interface Props {
@@ -43,6 +43,8 @@ const MOVE_MS = 280
 const HOLD_MS = 900
 /** With this much of the window lit, the step is about the whole screen: nothing is shaded. */
 const WHOLE_SCREEN = 0.6
+/** How far the card keeps from the window's foot on a laptop, where it is held by its foot so "Back" and "Next" never move up or down. */
+const FOOT_PX = 12
 
 /** The lit parts of the page: a box round each thing ringed or lit, and the Moon's disc when the step is about the Moon itself. */
 interface Lit {
@@ -94,13 +96,16 @@ function moonDisc(): Disc | null {
  * Scout's tour, and the feature guides: he walks the visitor through the real screen. Each step has
  * already put the app in its state (the screen does that). This shades the page a little except
  * what the step is about, which keeps its full brightness and gets a ring, and draws Scout's card:
- * the step's count and title, a line a room can read, a dot for each step, Back and Next, and a way
- * out. The shade takes no clicks, so whatever a step rings can still be pressed, and it moves with
- * the ring from step to step (at once where motion is reduced). The card is never over what it
- * rings nor over the Moon's disc. Arrow keys and a clicker's Page Down and Page Up step it; Escape
- * closes it. "Listen" plays each line in Scout's voice from a file rendered ahead of time, off
- * until pressed, so there is never sound without a click; "Play through" moves on when a line ends.
- * Dimming the page round what a step is about was Misha's idea (sightline#231).
+ * the chapter of the story the step is in, its title, two sentences that stand by themselves, a dot
+ * for each step (grouped by chapter, each a way to its step), Back and Next, and a way out. The
+ * shade takes no clicks, so whatever a step rings can still be pressed, and it moves with the ring
+ * from step to step (at once where motion is reduced). On a laptop the card has one home, the lower
+ * left corner, held by its foot so Back and Next stay where they are; it glides to the lower right
+ * only where the home would cover what the step rings, and is never over the Moon on a step about
+ * the Moon. Arrow keys and a clicker's Page Down and Page Up step it; Escape closes it. "Listen"
+ * plays each line in Scout's voice from a file rendered ahead of time, off until pressed, so there
+ * is never sound without a click; "Play through" moves on when a line ends. Dimming the page round
+ * what a step is about was Misha's idea (sightline#231).
  */
 export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, onVideo, tryIt, state }: Props) {
   const step = steps[at]
@@ -126,7 +131,7 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
   const bubble = useRef<HTMLElement>(null)
   const next = useRef<HTMLButtonElement>(null)
   const [rings, setRings] = useState<Box[]>([])
-  const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
+  const [place, setPlace] = useState<Place | null>(null)
   const [listen, setListen] = useState(false)
   const speaking = useRef<HTMLAudioElement | null>(null)
   // "Play through": each step's voice in turn, moving on by itself when a line ends. Off until pressed.
@@ -182,11 +187,18 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
       if (boxes.length === 0 && performance.now() - arrived < HOLD_MS) return
       setRings((before) => (JSON.stringify(before) === JSON.stringify(boxes) ? before : boxes))
       // Lit as well, with no ring: what the step names beside its subject, and the Moon when the step is about the Moon.
-      const also = (step.lit ?? []).filter((selector) => selector !== 'moon')
-      light({ boxes: [...boxes, ...also.flatMap((selector) => [...document.querySelectorAll(selector)]).filter(onScreen).map(boxOf)], moon: step.lit?.includes('moon') ? moonDisc() : null })
+      const also = (step.lit ?? [])
+        .filter((selector) => selector !== 'moon')
+        .flatMap((selector) => [...document.querySelectorAll(selector)])
+        .filter(onScreen)
+        .map(boxOf)
+      light({ boxes: [...boxes, ...also], moon: step.lit?.includes('moon') ? moonDisc() : null })
       const el = bubble.current
       if (!el) return
-      const at = placeBubble({ width: el.offsetWidth, height: el.offsetHeight }, { width: window.innerWidth, height: window.innerHeight }, boxes, moonDisc(), window.innerWidth < PHONE_UNDER_PX)
+      // On a laptop the card keeps clear of everything the step lights, ringed or not, and of the Moon's
+      // disc only on a step about the Moon itself. A phone has room to clear only what is ringed, and the Moon.
+      const phone = window.innerWidth < PHONE_UNDER_PX
+      const at = placeBubble({ width: el.offsetWidth, height: el.offsetHeight }, { width: window.innerWidth, height: window.innerHeight }, phone ? boxes : [...boxes, ...also], phone || step.lit?.includes('moon') ? moonDisc() : null, phone)
       setPlace((before) => (before && before.left === at.left && before.top === at.top ? before : at))
     }
     lay()
@@ -273,7 +285,7 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
     }
   }, [listen, step, voice])
 
-  // For a presenter: the time gone since the tour began, against the time it takes played through.
+  // The time gone since the tour began, against the time it takes played through.
   const whole = voice?.voice.seconds ?? null
   const [gone, setGone] = useState(0)
   useEffect(() => {
@@ -306,20 +318,29 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
       {rings.map((ring, i) => (
         <div key={i} className="sl-tour-ring" style={lit.boxes[i] ?? ring} aria-hidden="true" />
       ))}
-      <section ref={bubble} className="sl-tour" role="dialog" aria-label={name} data-step={step.id} data-pressed={step.press ? String(pressed) : undefined} style={place ? { left: place.left, top: place.top } : { visibility: 'hidden' }}>
+      <section
+        ref={bubble}
+        className="sl-tour"
+        role="dialog"
+        aria-label={name}
+        data-step={step.id}
+        data-side={place?.side}
+        // A step about the Moon itself has the Moon at full size beside the card: the card is narrower, to stand clear of it.
+        data-beside-moon={step.lit?.includes('moon') || undefined}
+        data-pressed={step.press ? String(pressed) : undefined}
+        // On a laptop the card is held by its foot, so Back and Next are at one height on every step; it glides when it changes side.
+        style={place ? (window.innerWidth < PHONE_UNDER_PX ? { left: place.left, top: place.top } : { left: place.left, bottom: FOOT_PX }) : { visibility: 'hidden' }}
+      >
         <header className="sl-tour-head">
-          <Mascot state={state} size={30} />
-          <div className="sl-tour-heading">
-            <p className="sl-tour-meta">
-              <span className="sl-tour-count">
-                {at + 1} of {steps.length}
-              </span>
-              {whole !== null && (
-                <span className="sl-tour-clock" title="The time gone since the tour began, and the time it takes played through with the voice.">
-                  {clockWords(gone)} of {clockWords(whole)}
-                </span>
-              )}
-            </p>
+          {/* Over the title: the chapter of the story this step is in (a feature guide's own name, for a guide), and the way out. */}
+          <p className="sl-tour-top">
+            <span className="sl-tour-chapter">{step.chapter ?? name}</span>
+            <button type="button" className="sl-tour-close" title="Leaves the tour and puts the screen back as you had it." onClick={onClose}>
+              Close the tour
+            </button>
+          </p>
+          <div className="sl-tour-name">
+            <Mascot state={state} size={30} />
             <h2 className="sl-tour-title">{step.title}</h2>
           </div>
         </header>
@@ -331,11 +352,18 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
             {tryIt.label} <span aria-hidden="true">›</span>
           </button>
         )}
-        {/* A dot a step: where the tour is, and a way to any step. */}
+        {/* A dot a step, grouped by chapter: where the tour is, and a way to any step. */}
         <ol className="sl-tour-dots" aria-label="Steps">
           {steps.map((one, i) => (
-            <li key={one.id}>
-              <button type="button" className={i === at ? 'is-here' : i < at ? 'is-seen' : undefined} aria-label={`Step ${i + 1}: ${one.title}`} aria-current={i === at ? 'step' : undefined} onClick={() => go(i)} />
+            <li key={one.id} className={i > 0 && one.chapter !== steps[i - 1].chapter ? 'is-new-chapter' : undefined}>
+              <button
+                type="button"
+                className={i === at ? 'is-here' : i < at ? 'is-seen' : undefined}
+                aria-label={`Step ${i + 1}: ${one.title}`}
+                aria-current={i === at ? 'step' : undefined}
+                title={one.chapter ? `Goes to step ${i + 1}, “${one.title}”, in “${one.chapter}”.` : `Goes to step ${i + 1}, “${one.title}”.`}
+                onClick={() => go(i)}
+              />
             </li>
           ))}
         </ol>
@@ -381,10 +409,18 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
             <button ref={next} type="button" className="sl-small sl-tour-next" onClick={forward}>
               {waiting ? 'Show it' : last ? finish : 'Next'}
             </button>
-            <button type="button" className="sl-small sl-tour-close" title="Leaves the tour and puts the screen back as you had it." onClick={onClose}>
-              Close the tour
-            </button>
           </span>
+          {/* Which step, and the time gone against the time the tour takes played through. */}
+          <p className="sl-tour-meta">
+            <span className="sl-tour-count">
+              {at + 1} of {steps.length}
+            </span>
+            {whole !== null && (
+              <span className="sl-tour-clock" title="The time gone since the tour began, and the time it takes played through with the voice.">
+                {clockWords(gone)} of {clockWords(whole)}
+              </span>
+            )}
+          </p>
         </footer>
       </section>
     </>

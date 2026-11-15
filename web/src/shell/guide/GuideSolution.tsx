@@ -173,9 +173,11 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
       <section className="how-use" aria-labelledby="how-use-title">
         <h3 id="how-use-title">How to use Sightline</h3>
         <ol className="how-use-steps">
-          {steps.map((step) => (
+          {steps.map((step, i) => (
             <li key={step.id}>
-              <b>{step.title}.</b> {step.line ?? step.say}
+              {/* The story's chapter, once, on the first step of each. */}
+              {step.chapter && step.chapter !== steps[i - 1]?.chapter && <i className="how-use-chapter">{step.chapter}</i>}{' '}
+              <b>{step.title.replace(/[.?]$/, '')}{/[?]$/.test(step.title) ? '?' : '.'}</b> {step.line ?? step.say}
             </li>
           ))}
         </ol>

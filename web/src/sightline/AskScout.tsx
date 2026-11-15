@@ -7,7 +7,9 @@ import { answerToSay } from '../lib/scoutVoice'
 import { Mascot } from '../scout/Mascot'
 import { useVoice } from '../scout/useVoice'
 import { NOT_A_LOGIN } from './inputs'
+import { type LongTourFile, tourMeans } from '../lib/tour'
 import tour from './tour.json'
+import longTourFile from './tour5.json'
 
 /** The disclosure Space Apps asks for, as a small tag beside Scout's name; the Guide says it in full. */
 export function AiTag() {
@@ -268,7 +270,7 @@ export function ScoutPanel({ chat, view, placeholder, state, ideas, idea, why, o
           </div>
         )}
       </div>
-      <button type="button" className={tourTaken ? 'sl-tour-here' : 'sl-tour-here is-new'} title="Scout shows you round the whole screen in twelve steps: about a minute to read, about five to hear." onClick={onTour}>
+      <button type="button" className={tourTaken ? 'sl-tour-here' : 'sl-tour-here is-new'} title={tourMeans(longTourFile as LongTourFile)} onClick={onTour}>
         <span aria-hidden="true">▶</span> Take the tour
       </button>
       <form className="sl-ask" autoComplete="off" onSubmit={send}>

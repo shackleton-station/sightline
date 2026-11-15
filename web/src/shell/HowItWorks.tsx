@@ -1,4 +1,4 @@
-import type { FeatureGuide, LongTourFile } from '../lib/tour'
+import { type FeatureGuide, type LongTourFile, tourTakes } from '../lib/tour'
 import tourFile from '../sightline/tour5.json'
 import type { GuideVideos } from '../sightline/useGuideVideos'
 import { useEffect, useRef, useState } from 'react'
@@ -31,7 +31,7 @@ interface Props {
   onTour?: () => void
   /** The visitor has taken the tour before: the button offers it again. */
   tourTaken?: boolean
-  /** Open at the proof step: the five-minute tour's step about trust leads here. */
+  /** Open at the proof step: the tour's step about trust leads here. */
   openAtProof?: boolean
   /** The feature guides (short tours of one feature each), and how to start one by its id. Sightline only. */
   guides?: FeatureGuide[]
@@ -97,7 +97,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
     whyHere.current?.focus({ preventScroll: true })
     whyHere.current?.scrollIntoView({ block: 'start' })
   }, [openAtWhy, hasWhy])
-  // From the five-minute tour's step about trust the sheet opens at "Make sure the math is right".
+  // From the tour's step about trust the sheet opens at "Make sure the math is right".
   // Its three checks come to the top, under the bar; again as the parts above them arrive and take their room.
   useEffect(() => {
     if (!openAtProof) return
@@ -196,7 +196,7 @@ export function HowItWorks({ data, siteCount, backLabel, onBack, onTour, tourTak
         )}
         {onTour && (
           <p className="how-start-note">
-            Scout walks you through the real screen in {TOUR.steps.length} steps: about a minute to read through, about five to hear with “Listen”.
+            Scout follows one landing plan across the real screen, in {tourTakes(TOUR)} with “Listen”.
           </p>
         )}
         {onScreen && (

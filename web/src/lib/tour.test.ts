@@ -53,8 +53,12 @@ describe("Scout's tour: the steps", () => {
     const section = readme.slice(readme.indexOf('## Using the site'))
     expect(readme).toContain('## Using the site')
     const onScreen = (longTourFile as LongTourFile).steps
-    expect(onScreen).toHaveLength(12)
-    for (const step of onScreen) expect(section, step.id).toContain(`**${step.title}.** ${step.line}`)
+    expect(onScreen).toHaveLength(14)
+    for (const step of onScreen) expect(section, step.id).toContain(`**${/[?]$/.test(step.title) ? step.title : `${step.title}.`}** ${step.line}`)
+    // Under its four chapters, in order.
+    const chapters = [...new Set(onScreen.map((step) => step.chapter))]
+    expect(chapters).toHaveLength(4)
+    expect(chapters.map((chapter) => section.indexOf(`*${chapter}*`)).every((place, i, all) => place > 0 && (i === 0 || place > all[i - 1]))).toBe(true)
   })
 })
 
@@ -104,40 +108,46 @@ describe('the feature guides', () => {
   })
 })
 
-describe("Scout's tour: where the bubble sits", () => {
+describe("Scout's tour: where the card sits", () => {
   const laptop = { width: 1366, height: 768 }
   const phone = { width: 390, height: 844 }
+  const home = { left: 12, top: 768 - 170 - 12, side: 'left' }
+  const across = { left: 1366 - 340 - 12, top: 768 - 170 - 12, side: 'right' }
 
-  it('is the lower left corner on a laptop, off the Moon', () => {
-    const disc = { x: 683, y: 384, r: 307 }
-    const at = placeBubble(BUBBLE, laptop, [{ left: 421, top: 708, width: 524, height: 48 }], disc, false)
-    expect(at).toEqual({ left: 12, top: 768 - 170 - 12 })
-    expect(overDisc({ ...at, ...BUBBLE }, disc)).toBe(false)
+  it('has one home on a laptop, the lower left corner', () => {
+    expect(placeBubble(BUBBLE, laptop, [{ left: 421, top: 708, width: 524, height: 48 }], null, false)).toEqual(home)
+    // With nothing ringed at all, too.
+    expect(placeBubble(BUBBLE, laptop, [], null, false)).toEqual(home)
   })
 
-  it('moves to another corner when the lower left holds what the step rings', () => {
-    const at = placeBubble(BUBBLE, laptop, [{ left: 16, top: 600, width: 300, height: 120 }], { x: 815, y: 230, r: 210 }, false)
-    expect(at).toEqual({ left: 1366 - 340 - 12, top: 768 - 170 - 12 })
+  it('moves to the lower right only when its home holds what the step is about', () => {
+    expect(placeBubble(BUBBLE, laptop, [{ left: 16, top: 600, width: 300, height: 120 }], null, false)).toEqual(across)
   })
 
-  it('never covers the Moon, even when that hides part of what is ringed', () => {
-    // The Moon fills both right corners, and what is ringed fills both left ones.
-    const disc = { x: 900, y: 300, r: 500 }
-    const rings = [
-      { left: 0, top: 560, width: 360, height: 200 },
-      { left: 0, top: 0, width: 360, height: 200 },
-    ]
-    const at = placeBubble(BUBBLE, laptop, rings, disc, false)
-    expect(overDisc({ ...at, ...BUBBLE }, disc)).toBe(false)
-    expect(at.left).toBe(12)
+  it('never goes to the top: with something in both lower corners it takes the one that hides less, its home on a tie', () => {
+    const left = { left: 0, top: 560, width: 360, height: 200 }
+    const right = { left: 1100, top: 700, width: 266, height: 60 }
+    expect(placeBubble(BUBBLE, laptop, [left, right], null, false)).toEqual(across)
+    expect(placeBubble(BUBBLE, laptop, [left, { ...left, left: 1366 - 360 }], null, false)).toEqual(home)
+    // A page that fills the window: still a lower corner.
+    expect(placeBubble(BUBBLE, laptop, [{ left: 0, top: 0, width: 1366, height: 768 }], null, false).top).toBe(home.top)
+  })
+
+  it('may lie over the Moon, except on a step about the Moon, which passes its disc', () => {
+    // A Moon so large it reaches the lower left corner: the card stays home unless the disc is passed.
+    const disc = { x: 300, y: 500, r: 320 }
+    expect(placeBubble(BUBBLE, laptop, [], null, false)).toEqual(home)
+    const clear = placeBubble(BUBBLE, laptop, [], disc, false)
+    expect(clear).toEqual(across)
+    expect(overDisc({ ...clear, ...BUBBLE }, disc)).toBe(false)
   })
 
   it('on a phone sits at the foot of the screen, or just above the play control when that is what it rings', () => {
     const disc = { x: 195, y: 390, r: 175 }
     const wide = { width: 366, height: 170 }
-    expect(placeBubble(wide, phone, [{ left: 16, top: 83, width: 230, height: 20 }], disc, true)).toEqual({ left: 12, top: 844 - 170 - 12 })
+    expect(placeBubble(wide, phone, [{ left: 16, top: 83, width: 230, height: 20 }], disc, true)).toMatchObject({ left: 12, top: 844 - 170 - 12 })
     const above = placeBubble(wide, phone, [{ left: 85, top: 783, width: 220, height: 45 }], disc, true)
-    expect(above).toEqual({ left: 12, top: 783 - 170 - 8 })
+    expect(above).toMatchObject({ left: 12, top: 783 - 170 - 8 })
     expect(overDisc({ ...above, ...wide }, disc)).toBe(false)
   })
 
@@ -147,6 +157,6 @@ describe("Scout's tour: where the bubble sits", () => {
       { left: 273, top: 720, width: 26, height: 23 },
       { left: 273, top: 756, width: 26, height: 23 },
     ]
-    expect(placeBubble(wide, phone, flags, null, true)).toEqual({ left: 12, top: 720 - 182 - 8 })
+    expect(placeBubble(wide, phone, flags, null, true)).toMatchObject({ left: 12, top: 720 - 182 - 8 })
   })
 })
