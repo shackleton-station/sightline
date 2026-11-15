@@ -2,11 +2,14 @@ import type { SiteInfo } from '../../src/data/contract'
 import { formatDuration } from '../../src/lib/nextChange'
 import { heightsWords, isBaseHeights } from '../../src/lib/heights'
 import { locateHour } from '../../src/lib/mission'
+import { horizonAt } from '../../src/lib/customModel'
+import { BASE_HEIGHT_M } from '../../src/lib/heights'
 import { entryAt } from '../../src/lib/shortlist'
 import { COMPARE_ROWS, measureScenario, nearestFittingSite, readScenarioLink, SCENARIO_LETTERS, type SightlineMission, type SightlineScenario } from '../../src/lib/sightlineMission'
 import type { ViewState } from '../../src/lib/urlState'
 import type { SiteData } from '../../shared/tools/data'
 import { fact, type Fact, isoAt, whenLabel } from '../../shared/tools/facts'
+import { marginalReasons, skylineFigure } from '../../src/lib/sightlineSky'
 import { nextLandingOnScreen } from '../../shared/tools/nextLanding'
 
 /** What the co-pilot is told when the visitor is on the Sightline screen, which holds up to four scenarios. */
@@ -126,9 +129,57 @@ async function figures(key: string, letter: string, scenario: SightlineScenario,
     const figure = FIGURES[row.key]
     return value === null ? [] : [fact(`${key}_${figure.key}`, `Scenario ${letter}: ${figure.label}`, `${value.toFixed(row.digits)}${figure.unit}`)]
   })
-  // The verdict in a few words, and each reason as a fact of its own that drops into a sentence
-  // ("because {{r0.scenario_a_reason_1}}"): no capital to start, no full stop to end.
-  const verdict = fact(`${key}_verdict`, `Scenario ${letter}: against the mission limits`, measure.problems.length === 0 ? 'meets the mission limits' : 'does not meet the mission limits')
+  // The verdict as the visitor's screen states it, one of three: it fits, it fits only marginally, or it
+  // does not fit. "Marginal" is the screen's own rule (lib/sightlineSky.ts): every limit is met, but at
+  // landing only a sliver of the Sun, or only the edge of Earth, is in view. Each reason is a fact of
+  // its own that drops into a sentence ("because {{r0.scenario_a_reason_1}}"): no capital, no full stop.
+  const fits = measure.problems.length === 0
+  const edge = fits ? await atLanding(scenario, site, flags.start, mission, data) : null
+  const marginal = edge ? marginalReasons(mission.requirements.sunAtLanding ? edge.sunShare : null, mission.requirements.earthAtLanding ? edge.earthShare : null, edge.earthUp) : []
+  const state = !fits ? 'does not fit' : marginal.length > 0 ? 'marginal' : 'fits'
+  const verdict = fact(
+    `${key}_verdict`,
+    `Scenario ${letter}: the verdict on the visitor's screen (state this one and no other)`,
+    state === 'does not fit' ? 'does not meet the mission limits' : state === 'marginal' ? 'meets the mission limits, but only as a marginal fit' : 'meets the mission limits',
+  )
+  const onScreen = fact(`${key}_verdict_words`, `Scenario ${letter}: the verdict's own words on the screen`, state === 'does not fit' ? 'Does not fit the mission' : state === 'marginal' ? 'Fits, marginal' : 'Fits the mission')
   const reasons = measure.problems.map((problem, i) => fact(`${key}_reason_${i + 1}`, `Scenario ${letter}: why it does not meet the mission limits`, problem.replace(/\.$/, '').replace(/^The /, 'the ')))
-  return [...rows, verdict, ...reasons]
+  const narrow = marginal.map((reason, i) => fact(`${key}_marginal_reason_${i + 1}`, `Scenario ${letter}: why the fit is only marginal (the screen's own line)`, reason))
+  const landing = edge
+    ? [
+        fact(`${key}_sun_at_landing`, `Scenario ${letter}: the Sun's centre at landing`, `${skylineFigure(edge.sunAboveDeg).figure} ${skylineFigure(edge.sunAboveDeg).side}`),
+        fact(`${key}_earth_at_landing`, `Scenario ${letter}: Earth's centre at landing`, `${skylineFigure(edge.earthAboveDeg).figure} ${skylineFigure(edge.earthAboveDeg).side}`),
+      ]
+    : []
+  return [...rows, verdict, onScreen, ...reasons, ...narrow, ...landing]
+}
+
+/**
+ * The landing hour of a scenario, for the screen's "marginal" rule: the share of the Sun's disc in
+ * view (the pipeline's own, at the solar panel's height), whether Earth is in view, and how far each
+ * centre is above the skyline. Earth's disc is half in view when its centre is on the skyline, so its
+ * share is under one half exactly when its centre is below it: that is all the rule asks, and it
+ * needs no size for Earth. Null when the hour cannot be read here (then nothing is called marginal,
+ * as on the screen while its figures load); Earth's part is left out at an antenna height other than
+ * the app's own, whose skyline is not held here.
+ */
+async function atLanding(scenario: SightlineScenario, site: SiteInfo, startIso: string, mission: SightlineMission, data: SiteData): Promise<{ sunShare: number | null; earthShare: number | null; earthUp: boolean; sunAboveDeg: number; earthAboveDeg: number } | null> {
+  try {
+    const { month, index } = locateHour(startIso, scenario.landing)
+    const [view, sunShares] = await Promise.all([data.scenario(site.id, month), data.sunSharesAt(site.id, month, mission.heights.panelM).catch(() => null)])
+    const point = view.track[Math.min(index, view.track.length - 1)]
+    const sunAboveDeg = point.sun_el - horizonAt(view.horizon, point.sun_az)
+    const earthAboveDeg = point.earth_el - horizonAt(view.earthHorizon ?? view.horizon, point.earth_az)
+    const baseAntenna = mission.heights.antennaM === BASE_HEIGHT_M
+    return {
+      sunShare: sunShares ? (sunShares[Math.min(index, sunShares.length - 1)] ?? null) : null,
+      // Under one half exactly when the centre is below the skyline: the two values stand for "more than half" and "less".
+      earthShare: baseAntenna ? (earthAboveDeg < 0 ? 0.25 : 0.75) : null,
+      earthUp: point.earth_up,
+      sunAboveDeg,
+      earthAboveDeg,
+    }
+  } catch {
+    return null
+  }
 }

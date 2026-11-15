@@ -72,6 +72,16 @@ export function renderAnswer(draft: string, book: FactBook, allowedWords: string
   return { ok: true, text: filled }
 }
 
+/**
+ * The lengths of time the visitor wrote themself, as they wrote them: "14-day", "3 days", "24 h". An
+ * answer may repeat these exact words ("for a 14-day mission"): they are the visitor's numbers, not
+ * the model's. A bare number is not one of them, so a figure still has to be a reference; nor is a
+ * height or a distance, which the answer cites from the facts that hold it.
+ */
+export function visitorsAmounts(question: string): string[] {
+  return [...new Set(question.match(/\b\d{1,4}(?:-| )(?:days?|hours?|h)\b/gi) ?? [])]
+}
+
 /** A suggested next question: short, one line, and with no numbers of the model's own. */
 export function cleanFollowup(value: unknown, allowedWords: string[]): string | null {
   if (typeof value !== 'string') return null

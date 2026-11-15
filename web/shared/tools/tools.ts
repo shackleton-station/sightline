@@ -2,7 +2,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 import { type Args, type ToolContext, ToolError } from './args'
 import type { ToolResult } from './facts'
 import { horizonsCheck } from './horizonsTool'
-import { bestMonths, bestSites, compareSites, landingWindowsInMonth, nextLanding, rankLandingOptions } from './landingTools'
+import { bestMonths, bestSites, bestSitesInYear, compareSites, landingWindowsInMonth, nextLanding, rankLandingOptions } from './landingTools'
 import { conditionsAtTime, monthSummary, siteInfo, yearSummary, sitesInView } from './siteTools'
 import { spotLight } from './spotTools'
 
@@ -84,6 +84,21 @@ const TOOLS: Record<string, Tool> = {
       required: ['month', 'measure'],
     }),
     run: bestSites,
+  },
+  best_sites_in_year: {
+    description:
+      'Ranks the listed sites, all of them or one group (the four south pole ridge sites, the Apollo sites, the CLPS sites, other countries\' sites), over one calendar year by a chosen measure, and gives each site\'s own best month of that year. One call answers "which site is best in a year, and when": use it instead of asking about each site in turn.',
+    parameters: () => ({
+      properties: {
+        year: { type: 'integer', description: 'The calendar year.' },
+        measure: MEASURE,
+        group: { type: 'string', enum: ['south_pole', 'apollo', 'clps', 'other_countries'], description: 'Only this group of sites. Leave out for all listed sites.' },
+        count: { type: 'integer', description: 'How many sites to return (default 4).' },
+        ...LIMITS,
+      },
+      required: ['year', 'measure'],
+    }),
+    run: bestSitesInYear,
   },
   landing_windows: {
     description: 'The stretches of hours in one month, at one site, when a landing meets the mission limits.',

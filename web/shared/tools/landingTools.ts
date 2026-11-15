@@ -107,6 +107,70 @@ export async function bestSites(args: Args, ctx: ToolContext): Promise<ToolResul
   }
 }
 
+/** The groups the listed sites come in, as a question names them, and the words for each in a sentence. */
+const GROUPS: Record<string, { group: string; words: string }> = {
+  south_pole: { group: 'South pole ridges', words: 'the south pole ridge sites' },
+  apollo: { group: 'Apollo', words: 'the Apollo sites' },
+  clps: { group: 'CLPS', words: 'the CLPS sites' },
+  other_countries: { group: 'Other countries', words: "other countries' sites" },
+}
+
+/**
+ * The listed sites (all of them, or one group) ranked over one calendar year, each with its own best
+ * month: one result for "which site is best in 2027, and when". Landing days are the days of the year
+ * with an hour that meets the limits; a share is the share of the year's hours. Sites that print the
+ * same are tied, as in a month's ranking.
+ */
+export async function bestSitesInYear(args: Args, ctx: ToolContext): Promise<ToolResult> {
+  const everySite = await ctx.data.allFlags()
+  const metric = metricArg(args.measure)
+  const requirements = limitsArg(ctx, args)
+  const year = typeof args.year === 'number' ? String(Math.round(args.year)) : ''
+  const asked = typeof args.group === 'string' ? GROUPS[args.group] : undefined
+  if (typeof args.group === 'string' && !asked) throw new ToolError(`Unknown group. Use one of: ${Object.keys(GROUPS).join(', ')}.`)
+  const all = asked ? everySite.filter(({ site }) => site.group === asked.group) : everySite
+  if (all.length === 0) throw new ToolError('No listed site is in that group.')
+
+  const rows = all.map(({ site, flags }) => {
+    const spans = monthSpans(flags.start, flags.sun.length).filter((span) => span.month.startsWith(`${year}-`))
+    if (spans.length === 0) throw new ToolError('No data for that year.')
+    const counted = metricFlags(metric, flags, requirements)
+    const cells = gridRow(counted, spans, metric)
+    const hours = spans.reduce((sum, span) => sum + (span.to - span.from), 0)
+    const days = cells.reduce((sum, cell) => sum + cell.days, 0)
+    const up = cells.reduce((sum, cell) => sum + cell.hours, 0)
+    const bestMonth = cells.reduce((top, cell) => (cell.share > top.share ? cell : top))
+    const tiedMonths = tiedWith(cells, bestMonth, printed(metric))
+    return {
+      site,
+      score: metric === 'landing' ? days / (hours / 24) : up / hours,
+      value: metric === 'landing' ? `${daysLabel(days)} of the year's ${hours / 24}` : `${Math.round((100 * up) / hours)}% of the year`,
+      best: tiedMonths.length > 1 ? `${monthsWords(tiedMonths.map((cell) => cell.month))}, tied at ${cellValue(metric, bestMonth)}` : `${monthWords(bestMonth.month)}, with ${cellValue(metric, bestMonth)}`,
+    }
+  })
+  const leader = rows.reduce((top, row) => (row.score > top.score ? row : top))
+  const best = tiedWith(rows, leader, (row) => row.value)
+  const tie = best.length > 1
+  rows.sort((a, b) => b.score - a.score)
+
+  const facts: Fact[] = [
+    fact('year', 'Year', year),
+    fact('sites_ranked', 'The sites ranked', asked ? `${asked.words} (${rows.length})` : `all ${rows.length} listed sites`),
+    fact('measure', 'Measured by', metric === 'landing' ? 'days of the year with an hour that meets the limits' : METRICS[metric]),
+  ]
+  if (metric === 'landing') facts.push(fact('limits', 'Checked against', limitsLabel(requirements)))
+  facts.push(fact('best_sites', tie ? 'The sites tied for best over the year: equal at the precision shown, so name them together and never one of them alone' : 'The best site over the year', listWords(best.map((row) => row.site.name))))
+  facts.push(fact('best_value', tie ? 'The value they share' : 'Its value', best[0].value))
+  facts.push(fact('best_tie', 'Whether the best is a tie', tieWords(best.length, rows.length, 'site', 'sites', 'best')))
+  rows.slice(0, countArg(args.count, 4, 1, 8)).forEach((row, i) => {
+    const shared = tie && best.includes(row) ? ' (one of the sites tied for best: see best_sites)' : ''
+    facts.push(fact(`place_${i + 1}_site`, `Place ${i + 1}${shared}`, row.site.name))
+    facts.push(fact(`place_${i + 1}_value`, 'Its value over the year', row.value))
+    facts.push(fact(`place_${i + 1}_best_month`, 'Its own best month of that year (when to go there)', row.best))
+  })
+  return { ok: true, title: `${asked ? asked.group : 'All listed sites'}, ${year}: ranking over the year`, facts }
+}
+
 /** When, in one month, a landing meets the limits. */
 export async function landingWindowsInMonth(args: Args, ctx: ToolContext): Promise<ToolResult> {
   const site = await siteArg(ctx, args.site)

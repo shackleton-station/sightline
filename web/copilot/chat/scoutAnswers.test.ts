@@ -17,6 +17,7 @@ import { asksToChangeLimits, buildActions, viewFrom } from './actions'
 import { runChat, viewFacts } from './chat'
 import { asksAboutPresent, dateBasis, realHourIso } from './dates'
 import { systemPrompt } from './prompt'
+import { renderAnswer, visitorsAmounts } from './render'
 import { scenarioScene } from './scenarios'
 
 // Nine things found by asking Scout 28 questions on the live site and setting each answer beside
@@ -525,3 +526,104 @@ describe('13. words about the present mean the real date; words about the screen
     expect(sentTo(model)).toMatch(/- time: 6 May 2027, 13:00 UTC/)
   })
 })
+
+describe('14. the verdict Scout is given is the screen\'s own, in its three states', () => {
+  const link = (site: string, month: string, index: number) => `#a=${site}@${month}&t=${index}&limits=14_24_99999_1_1&mode=plan&sc=0`
+  const of = async (hash: string) => Object.fromEntries(((await scenarioScene(hash, viewFrom(hash), data))?.facts ?? []).map((item) => [item.key, item.value]))
+
+  it('calls the judge\'s landing marginal, with the screen\'s reason and Earth\'s place at landing', async () => {
+    // Connecting Ridge, 5 February 2027, 17:00 UTC: every limit is met, but only the edge of Earth is in view.
+    const values = await of(link('connecting-ridge', '2027-02', 4 * 24 + 17))
+    expect(values.scenario_a_verdict).toBe('meets the mission limits, but only as a marginal fit')
+    expect(values.scenario_a_verdict_words).toBe('Fits, marginal')
+    expect(values.scenario_a_marginal_reason_1).toBe('only the edge of Earth is in view at landing')
+    expect(values.scenario_a_earth_at_landing).toMatch(/^\d+\.\d° below the skyline$/)
+    expect(values.scenario_a_reason_1).toBeUndefined()
+  })
+
+  it('says a plain fit and a miss as before, with nothing about a margin', async () => {
+    // 21 June 2027, 17:00 is the screen's "next landing that fits" from 6 May, a marginal one; a day later the Sun and Earth are well up.
+    const flags = await data.flags('connecting-ridge')
+    const fits = await of(link('connecting-ridge', '2027-06', 23 * 24 + 17))
+    const misses = await of(link('connecting-ridge', '2027-05', 133))
+    expect(misses.scenario_a_verdict).toBe('does not meet the mission limits')
+    expect(misses.scenario_a_verdict_words).toBe('Does not fit the mission')
+    expect(misses.scenario_a_marginal_reason_1).toBeUndefined()
+    expect(['meets the mission limits', 'meets the mission limits, but only as a marginal fit']).toContain(fits.scenario_a_verdict)
+    if (fits.scenario_a_verdict === 'meets the mission limits') expect(fits.scenario_a_marginal_reason_1).toBeUndefined()
+    expect(flags.start).toBe('2026-01-01T00:00:00Z')
+  })
+
+  it('marks a landing marginal exactly when the screen\'s rule does: Earth in view with its centre below the skyline, or under half the Sun\'s disc', async () => {
+    const { horizonAt } = await import('../../src/lib/customModel')
+    const { marginalReasons } = await import('../../src/lib/sightlineSky')
+    const view = await data.scenario('connecting-ridge', '2027-02')
+    for (const index of [100, 113, 130, 200, 400]) {
+      const point = view.track[index]
+      const earthAbove = point.earth_el - horizonAt(view.earthHorizon ?? view.horizon, point.earth_az)
+      const values = await of(link('connecting-ridge', '2027-02', index))
+      if (values.scenario_a_verdict === 'does not meet the mission limits') continue
+      const want = marginalReasons(point.sun_frac, earthAbove < 0 ? 0.25 : 0.75, point.earth_up)
+      expect(values.scenario_a_verdict === 'meets the mission limits, but only as a marginal fit', String(index)).toBe(want.length > 0)
+      expect(values.scenario_a_marginal_reason_1, String(index)).toBe(want[0])
+    }
+  })
+
+  it('tells Scout to state that verdict and no other', () => {
+    const prompt = systemPrompt([{ id: 'connecting-ridge', name: 'Connecting Ridge' }] as never)
+    expect(prompt).toContain('State that verdict and no other')
+    expect(prompt).toContain('never call a marginal fit a fit "with room to spare"')
+  })
+})
+
+describe('15. "which of the four south-pole sites is best in 2027, and when?" is one result', () => {
+  it('ranks the four south pole ridge sites over the year by landing days, each with its own best month', async () => {
+    const { values } = await facts('best_sites_in_year', { year: 2027, measure: 'landing', group: 'south_pole' })
+    expect(values.sites_ranked).toBe('the south pole ridge sites (4)')
+    const places = [1, 2, 3, 4].map((i) => values[`place_${i}_site`])
+    expect([...places].sort()).toEqual(['Connecting Ridge', 'Peak near Shackleton', 'Shackleton Rim', 'de Gerlache Rim'].sort())
+    for (const i of [1, 2, 3, 4]) {
+      expect(values[`place_${i}_value`]).toMatch(/^\d+ days of the year's 365$/)
+      expect(values[`place_${i}_best_month`]).toMatch(/2027/)
+    }
+    // Ranked: each place has at least as many days as the next.
+    const days = [1, 2, 3, 4].map((i) => Number(values[`place_${i}_value`].split(' ')[0]))
+    expect(days).toEqual([...days].sort((a, b) => b - a))
+    expect(values.best_sites.split(/, | and /)).toContain(places[0])
+  })
+
+  it('gives each site the days its twelve months add up to, and the best month the month ranking gives', async () => {
+    const year = await facts('best_sites_in_year', { year: 2027, measure: 'landing', group: 'south_pole' })
+    const place = [1, 2, 3, 4].find((i) => year.values[`place_${i}_site`] === 'de Gerlache Rim') as number
+    const months = await facts('best_months', { site: 'de-gerlache-rim', measure: 'landing', year: 2027, count: 6 })
+    expect(year.values[`place_${place}_best_month`]).toContain(months.values.best_months.split(/, | and | to /)[0].split(' ')[0])
+    expect(year.values[`place_${place}_best_month`]).toContain(months.values.best_value)
+  })
+
+  it('ranks all thirteen listed sites when no group is named, and refuses a group or year it does not have', async () => {
+    const all = await facts('best_sites_in_year', { year: 2027, measure: 'sun' })
+    expect(all.values.sites_ranked).toBe('all 13 listed sites')
+    expect(all.values.place_1_value).toMatch(/^\d+% of the year$/)
+    expect((await runTool('best_sites_in_year', { year: 2027, measure: 'sun', group: 'mars' }, context)).ok).toBe(false)
+    expect((await runTool('best_sites_in_year', { year: 1999, measure: 'sun' }, context)).ok).toBe(false)
+  })
+})
+
+describe('16. an answer may repeat the amounts the visitor typed, and still no number of its own', () => {
+  it('reads the amounts out of a question as they were written', () => {
+    expect(visitorsAmounts('Which of the four south-pole sites is best for a 14-day mission in 2027, and when?')).toEqual(['14-day'])
+    expect(visitorsAmounts('What if my mission were only 3 days long and I could go 48 h dark?')).toEqual(['3 days', '48 h'])
+    expect(visitorsAmounts('Which site is best?')).toEqual([])
+    // A height is not one of them: it is cited from the fact that holds it.
+    expect(visitorsAmounts('How long is the dark spell with my panel at 10 m?')).toEqual([])
+  })
+
+  it('lets "for a 14-day mission" through, and still refuses a figure typed by hand', () => {
+    const book = new Map([['r1', [{ key: 'best_sites', label: 'The best site', value: 'de Gerlache Rim' }]]])
+    const own = visitorsAmounts('Which site is best for a 14-day mission?')
+    expect(renderAnswer('For a 14-day mission {{r1.best_sites}} is best.', book, own).ok).toBe(true)
+    expect(renderAnswer('For a 14-day mission {{r1.best_sites}} is best, with 21 days.', book, own).ok).toBe(false)
+    expect(renderAnswer('For a 14-day mission {{r1.best_sites}} is best.', book, []).ok).toBe(false)
+  })
+})
+
