@@ -569,6 +569,44 @@
   font-size: 0.97rem;
 }
 
+/* "By the numbers": how much data the model works through, six counts with a few words under each. */
+.how-number-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.how-number-list > div {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-number-list dt {
+  color: var(--text);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.how-number-list dd {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 760px) {
+  .how-number-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .how-number-list dt {
+    font-size: 1.25rem;
+  }
+}
+
 /* What each of the mission's limits means: the limit's own label, then its line, as the mission's controls give it. */
 .how-limit-means {
   max-width: 46rem;

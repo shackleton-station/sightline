@@ -367,6 +367,18 @@
   font-size: 0.75rem;
 }
 
+/* How much data stands behind the picture: one more quiet line on a laptop; a phone's top is full without it. */
+.sl-brand .sl-brand-scale {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 760px) {
+  .sl-brand .sl-brand-scale {
+    display: none;
+  }
+}
+
 .sl-top {
   position: absolute;
   top: 0.9rem;
