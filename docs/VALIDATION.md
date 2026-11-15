@@ -737,7 +737,7 @@ On the 903 pixels where NASA's map reads 50% or more:
 ## 13. The Surface view: the picture against the track (2026-11-12)
 
 The Surface tab (`/surface/`) draws what the pipeline computed as a view from the site: the land is a shape whose
-top edge is `horizon.json` (the ground drawn under that edge is an illustration, and is not checked here), and the Sun and Earth are disks at the track's azimuth and elevation, hidden by the land in
+top edge is `horizon.json` (the ground under that edge is a plain fill, and is not checked here), and the Sun and Earth are disks at the track's azimuth and elevation, hidden by the land in
 front of them. Nothing new is computed for it. This section asks one thing: **does the picture show what the track
 says?** The geometry is plain functions (`web/src/lib/surfaceView.ts`), so it is checked without a graphics card, and
 the Three.js view sets its camera from the same functions.
