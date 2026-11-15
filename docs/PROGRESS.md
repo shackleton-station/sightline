@@ -395,3 +395,15 @@ Local Lead.
 - [x] The imported parts take the Planner's own type and words (`plannerHost.css`); "Your own point" is the Planner's own box (`PlannerOwnPoint.tsx`)
 - [ ] Left as they are until Rodrigo has seen this: the New Planner button and page
 - [ ] Would change in the detailed planner's own files, if they were ours to change: a prop for the suggestion button's words and one to leave out its cards for the scenarios; the slope limit in its grid and brief (they ignore it, so a site too steep shows no detail here)
+
+## Scout and custom points; a marginal fit offers a better hour (2026-11-15)
+
+From a UX review of the live site: Scout answered for the nearest listed site when asked about a custom
+point, so its numbers were not the screen's.
+
+- [x] The co-pilot works a custom point out itself, with the page's own code and files (`web/shared/tools/customPoints.ts`, read through `SiteData.site` and the other methods of `web/shared/tools/data.ts`): tools, scenario facts, verdict and buttons take its "lat,lon" id. Fine tiles come from the bucket (`tiles/<name>.bin.gz`); on a developer's machine from `web/public/tiles`. Without them the old answer stands (the nearest listed site, said once)
+- [x] Tests: the co-pilot's hours for a custom point equal the page's, hour for hour; the scenario facts equal `measureScenario`; five tools answer for a custom point (`web/shared/tools/customPoints.test.ts`)
+- [x] Plan column: "A landing with more margin" under a marginal verdict; "If the plan has to move" (opens the New Planner) when the verdict offers no landing or site itself; the brief's note for a custom point
+- [ ] Not checked: a real question to the model about a custom point (no model access on the machine this was built on), and that the co-pilot's service account can read `tiles/polar/` and `tiles/global/` in the bucket (it already reads `tiles/light/`). Ask Sebastian or Pat
+- [ ] Not done: the written brief for a custom point; the tools at heights other than 2 m for a custom point (the page does not offer them either)
+- [ ] On Windows, 56 tests fail before and after this change (`copilot/contract.test.ts`, `plans/contract.test.ts`, the two `build.test.ts`, `src/lib/plans.test.ts`): not looked into

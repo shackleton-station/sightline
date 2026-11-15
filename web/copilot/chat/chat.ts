@@ -77,12 +77,23 @@ export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: nu
   const sites = await data.sites()
   const [first] = sites
   const flags = await data.flags(first.id)
-  const describe = (siteId: string, key: string, label: string): Fact[] => {
+  const describe = async (siteId: string, key: string, label: string): Promise<Fact[]> => {
     const listed = sites.find((site) => site.id === siteId)
     if (listed) return [fact(key, label, listed.name)]
     const point = parseCustomSite(siteId)
     if (!point) return []
     const nearest = sites.map((site) => ({ site, km: distanceKm(point, site) })).sort((a, b) => a.km - b.km)[0]
+    // A custom point is worked out here by the page's own code (shared/tools/customPoints.ts), so the
+    // tools take its id like a listed site's and their numbers are the ones on the visitor's screen.
+    const worked = await data.site(siteId).catch(() => null)
+    if (worked) {
+      return [
+        fact(key, label, worked.name),
+        fact(`${key}_id`, 'Its site id for the tools (a custom point: their own coordinates, worked out for that exact point at 2 m above the ground, as on their screen)', worked.id),
+        fact(`${key}_nearest`, 'Nearest listed site (for context only: the figures are its own)', nearest.site.name),
+        fact(`${key}_nearest_distance`, 'Its distance from the custom point', distanceWords(nearest.km)),
+      ]
+    }
     return [
       fact(key, label, 'a custom point (not a listed site, so the tools cannot look it up; the column on the visitor\'s screen is worked out for the exact point, and your figures are for the nearest listed site)'),
       fact(`${key}_nearest`, 'Nearest listed site', nearest.site.name),
@@ -116,8 +127,8 @@ export async function viewFacts(view: ViewState, data: SiteData, spot: { lat: nu
     ]
   }
   return [
-    ...describe(view.a.site, 'site', 'Site on screen'),
-    ...(view.b ? describe(view.b.site, 'compared_with', 'Compared with') : []),
+    ...(await describe(view.a.site, 'site', 'Site on screen')),
+    ...(view.b ? await describe(view.b.site, 'compared_with', 'Compared with') : []),
     ...when,
     fact('limits', 'Mission limits', limitsLabel(view.requirements)),
     ...limitFacts(view.requirements),
@@ -200,6 +211,13 @@ export async function runChat(
   // so, and one button asks the same question for the bar's date. Only when the visitor used a word
   // about the present; a question with no date in it gets no note.
   const barApart = asksAboutPresent(asked) && Math.abs(barHour - realHour) > 24 ? { note: ` The time bar is on ${dayLabel(dates.barIso)}.`, ask: { label: `Ask for ${dayLabel(dates.barIso)}`, question: `${asked.trim().slice(0, 300)} (for the date on the time bar)` } } : null
+  // The custom points on the visitor's screen (the site on show, the one it is compared with, their
+  // other scenarios): each is worked out here like the page does, and then stands beside the listed
+  // sites wherever a site can be named: a tool's site, a button, the answer's words.
+  const customIds = [...new Set([view.a.site, view.b?.site, ...view.shortlist.map((entry) => entry.site)].filter((id): id is string => typeof id === 'string' && parseCustomSite(id) !== null))]
+  const customs = (await Promise.all(customIds.map((id) => deps.data.site(id).catch(() => null)))).filter((site): site is SiteInfo => site !== null)
+  const named = [...sites, ...customs]
+  allowedWords.push(...customs.map((site) => site.name))
   const context = { data: deps.data, requirements: view.requirements, spot: input.spot ?? null, horizons: deps.horizons, hourIso: isoAt(flags.start, hourOf(flags.start, `${view.a.month}-01T00:00:00Z`) + view.index) }
 
   const book: FactBook = new Map([['r0', [...(await viewFacts(view, deps.data, input.spot ?? null, watching, dates)), ...(scene?.facts ?? [])]]])
@@ -209,8 +227,8 @@ export async function runChat(
   // A button that changes the limits is offered only when the visitor asked what would change the
   // verdict: in so many words, or so that a tool had to try other limits to answer.
   let limitsAsked = asksToChangeLimits(input.turns.filter((turn) => turn.role === 'user').at(-1)?.text ?? '')
-  const declarations = toolDeclarations(sites.map((site) => site.id))
-  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: buildPrompt(input.turns, book.get('r0') ?? [], sites) }]
+  const declarations = toolDeclarations(named.map((site) => site.id))
+  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: buildPrompt(input.turns, book.get('r0') ?? [], named) }]
   let retriesLeft = ANSWER_RETRIES
   /** The fallback model, once one has written any part of this answer. */
   let servedBy: string | undefined
@@ -222,7 +240,7 @@ export async function runChat(
     reply: {
       text: barApart ? `${text}${barApart.note}` : text,
       ...(barApart ? { ask: barApart.ask } : {}),
-      actions: buildActions(answer?.actions, view, sites, flags, ties, limitsAsked),
+      actions: buildActions(answer?.actions, view, named, flags, ties, limitsAsked),
       sources,
       followups: (Array.isArray(answer?.followups) ? answer.followups : [])
         .map((item) => cleanFollowup(item, allowedWords))
