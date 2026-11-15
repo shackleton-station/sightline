@@ -58,6 +58,8 @@ interface Props {
   onAim: (lat: number, lon: number) => void
   /** In a side panel: a shorter opening, and "How is this worked out?" starts closed. */
   compact?: boolean
+  /** Play the landers in once, when the ground first shows: for a panel that has just been opened. */
+  playOnOpen?: boolean
 }
 
 /** How many simulated landers a run drops, and how fast (landers a second). */
@@ -100,7 +102,7 @@ function drop(spread: Spread): { x: number; y: number } {
  * own skyline from the 20 m terrain, with the mission's heights and Earth clearance
  * (`lib/landingField.ts`). The picture is read between those points, so it has no squares.
  */
-export function LandingRain({ site, mission, heights, start, landing, verdict, spread, onSpread, onAim, compact = false }: Props) {
+export function LandingRain({ site, mission, heights, start, landing, verdict, spread, onSpread, onAim, compact = false, playOnOpen = false }: Props) {
   const { requirements, maxSlopeDeg } = mission
   // The landing points round the target, for the spread in force: their lattice changes with it.
   const lattice = useMemo(() => latticeFor(spread), [spread])
@@ -131,8 +133,10 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
   const [playing, setPlaying] = useState(false)
   const [runKey, setRunKey] = useState(0)
   const started = useRef(0)
-  // Only the button plays landers in; anything else shows them already down.
-  const wantPlay = useRef(false)
+  // The button plays landers in, and so does the first ground a just-opened panel shows; any other change shows them already down.
+  const wantPlay = useRef(playOnOpen)
+  // The run being played in, by its key: an effect run twice for the same run (as React does while developing) plays it both times.
+  const playedFor = useRef<string | null>(null)
   const runFor = `${site.lat},${site.lon}@${landing}|${verdict}|${heights.panelM}|${heights.antennaM}|${requirements.minEarthClearanceDeg}|${spread.accuracyM}|${spread.stretch}|${spread.bearingDeg}|${map ? map.verdict.length : 0}|${requirements.missionDays}|${requirements.maxSunGapH}|${requirements.maxEarthGapH}|${maxSlopeDeg}|${runKey}`
   const still = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -143,13 +147,14 @@ export function LandingRain({ site, mission, heights, start, landing, verdict, s
       const cell = cellAtM(map, x, y)
       return { x, y, code: cell === null ? -1 : map.verdict[cell], at }
     }
-    // A new ground or accuracy shows its landers already down; "Drop landers" plays them in.
-    if (!wantPlay.current || still) {
+    // A new ground or accuracy shows its landers already down; "Drop landers" plays them in, as does a panel's first ground.
+    if (wantPlay.current) playedFor.current = runFor
+    wantPlay.current = false
+    if (playedFor.current !== runFor || still) {
       setLanders(Array.from({ length: LANDERS }, () => land(-FLARE_MS)))
       setPlaying(false)
       return
     }
-    wantPlay.current = false
     setLanders([])
     started.current = performance.now()
     setPlaying(true)
