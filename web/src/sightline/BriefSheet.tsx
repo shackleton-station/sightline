@@ -21,7 +21,7 @@ interface Props {
   scenario: SightlineScenario
   site: SiteInfo
   mission: SightlineMission
-  /** Whether there is room for another scenario ("Keep this option" adds one). */
+  /** Whether there is room for another scenario ("Add as a scenario" adds one). */
   room: boolean
   /** Move the scenario on show to another landing, or another site. */
   onLanding: (landing: number, site?: string) => void
@@ -87,6 +87,8 @@ export default function BriefSheet({ start, scenario, site, mission, room, onLan
           obsHeightM={data.obsHeightM}
           link={link}
           kept={kept || !room}
+          // This screen's word for a kept landing is a scenario; the short list is the other planner's.
+          keepWords={{ keep: 'Add as a scenario', kept: kept ? 'Added as a scenario' : 'Four scenarios already' }}
           onKeep={() => {
             onKeep({ site: site.id, landing: view.landing.hour })
             setKept(true)
