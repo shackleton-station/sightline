@@ -271,7 +271,7 @@ export function Verdict({ problems, marginal, next, elsewhere, onWhy, onMission 
     <div className={`sl-verdict ${kind}`}>
       <p className="sl-verdict-line">
         <span className="sl-verdict-words">
-          <span aria-hidden="true">{fits ? '✓' : '✗'}</span> {!fits ? 'Does not fit the mission' : marginal.length > 0 ? 'Fits, marginal' : 'Fits the mission'}
+          <span aria-hidden="true">{!fits ? '✗' : marginal.length > 0 ? '◇' : '✓'}</span> {!fits ? 'Does not fit the mission' : marginal.length > 0 ? 'Fits, marginal' : 'Fits the mission'}
         </span>
         <button type="button" className="sl-link sl-why" title="Asks Scout why this landing fits or does not, and what would change it." onClick={onWhy}>
           Why?

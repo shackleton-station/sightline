@@ -37,7 +37,7 @@
 }
 
 .sl-saved-card.is-problem {
-  border-left-color: #e8915a;
+  border-left-color: var(--sl-miss);
 }
 
 /* In the Planner: a row of the header, under its controls and as wide as they are. */
@@ -95,7 +95,7 @@
 }
 
 .sl-saved-card-problem {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 .sl-saved-card .sl-saved-card-away {

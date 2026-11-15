@@ -167,7 +167,7 @@
 
 .sl-share-problem {
   margin: 0;
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 @media (max-width: 760px) {

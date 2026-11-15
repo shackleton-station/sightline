@@ -7,6 +7,12 @@
   --sl-earth: #5b9bea;
   --sl-both: #57c08a;
   --sl-none: #8b91a0;
+  /* The verdict's three, wherever a landing is judged: it fits, it fits but only just, it does not
+     (or something failed outright). Red and orange are set apart in lightness as well as hue, and
+     each state has its own mark (✓, ◇, ✗), so colour is never the only sign. */
+  --sl-fits: var(--sl-both);
+  --sl-marginal: #ea8c4a;
+  --sl-miss: #e8505a;
   --sl-panel: rgb(18 15 24 / 92%);
   --sl-edge: max(1rem, env(safe-area-inset-left, 0px));
   --sl-edge-right: max(1rem, env(safe-area-inset-right, 0px));
@@ -821,9 +827,9 @@
   font-size: 0.875rem;
 }
 
-/* One warning colour, and only for a mission that does not fit (or an outright error). */
+/* One red, and only for a mission that does not fit (or an outright error). */
 .is-warn {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 /* Information, such as a close call: the muted text colour, with a small marker. */
@@ -936,7 +942,7 @@
 }
 
 .sl-numbers dd.sl-sub.is-warn {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 /* Under the numbers: how closely they match JPL Horizons, and NASA's own answer for this hour. Quiet, one line where it fits. */
@@ -1031,7 +1037,7 @@
 }
 
 .sl-verdict.is-fit {
-  color: var(--sl-both);
+  color: var(--sl-fits);
 }
 
 /* ---------- Scout's panel, on the right: the conversation down the whole height, the input at its foot ---------- */
@@ -2081,15 +2087,15 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-compare .sl-compare-verdict td.is-yes {
-  color: var(--sl-both);
+  color: var(--sl-fits);
 }
 
 .sl-compare .sl-compare-verdict td.is-marginal {
-  color: var(--gold);
+  color: var(--sl-marginal);
 }
 
 .sl-compare .sl-compare-verdict td.is-no {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 /* A fold over the rows that follow it: the angles at landing, closed until asked for. */
@@ -2138,7 +2144,7 @@ button.sl-moment-heights[aria-expanded='true'] {
 .sl-compare-why {
   margin: 0.6rem 0 0;
   padding-left: 1.1rem;
-  color: #e8915a;
+  color: var(--sl-miss);
   font-size: 0.8125rem;
 }
 
@@ -3032,7 +3038,7 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-full-table td.sl-full-fit:not(.is-best) {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 .sl-full-table .sl-key {
@@ -3483,7 +3489,7 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-over-gap.is-miss {
-  fill: #e8915a;
+  fill: var(--sl-miss);
   opacity: 0.24;
 }
 
@@ -3520,11 +3526,11 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-over-note.is-miss i {
-  background: color-mix(in srgb, #e8915a 55%, transparent);
+  background: color-mix(in srgb, var(--sl-miss) 55%, transparent);
 }
 
 .sl-over-note.is-miss > span > span {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 /* Days since landing, under the chart. */
@@ -3660,8 +3666,8 @@ button.sl-moment-heights[aria-expanded='true'] {
   margin-top: 0;
 }
 
-/* The verdict: the column's headline. Green with a tick when it fits, the Sun's gold when it fits
-   only marginally, the warning colour with a cross when it does not. */
+/* The verdict: the column's headline. Green with a tick when it fits, orange with a diamond when it
+   fits only marginally, red with a cross when it does not. */
 .sl-answer > .sl-verdict {
   margin-top: 0.7rem;
 }
@@ -3680,16 +3686,16 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-verdict.is-fit .sl-verdict-words {
-  color: var(--sl-both);
+  color: var(--sl-fits);
 }
 
 .sl-verdict.is-marginal .sl-verdict-words {
-  color: var(--sl-sun);
+  color: var(--sl-marginal);
 }
 
 .sl-verdict.is-miss .sl-verdict-words,
 .sl-verdict.is-miss .sl-reasons {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 .sl-verdict .sl-why {
@@ -3903,7 +3909,7 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-fact-small.is-warn {
-  color: #e8915a;
+  color: var(--sl-miss);
 }
 
 /* ---------- One tooltip for the whole screen ---------- */
