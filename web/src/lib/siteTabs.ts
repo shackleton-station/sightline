@@ -19,7 +19,7 @@ interface TabSpec {
 }
 
 /** The view a design opens on when nothing has been chosen yet. Its limits are the app's default mission (lib/mission.ts; siteTabs.test.ts holds them together). */
-export const DEFAULT_VIEW = '#a=connecting-ridge@2027-05&t=0&limits=14_24_99999_1_1&view=3d&mode=learn'
+export const DEFAULT_VIEW = '#a=connecting-ridge@2027-05&t=0&limits=14_24_24_1_1&view=3d&mode=learn'
 
 /**
  * Where the site as it was before Sightline lives: the Whole Moon page, the Classic and Mission
