@@ -413,3 +413,12 @@ point, so its numbers were not the screen's.
 - [ ] An answer kept from before the apply (the nearest-site one, for the same first question on the same view) can still be served for up to a day
 - [ ] Not done: the written brief for a custom point; the tools at heights other than 2 m for a custom point (the page does not offer them either)
 - [ ] On Windows, 56 tests fail before and after this change (`copilot/contract.test.ts`, `plans/contract.test.ts`, the two `build.test.ts`, `src/lib/plans.test.ts`): not looked into
+
+## Code freeze for the submission (2026-11-15)
+
+Misha asked for a freeze at 1:00 PM Eastern on Sunday Nov 15, so nothing merges to `main` after it.
+
+- [x] `FREEZE_AT` in `.github/workflows/ci.yml` (18:00 UTC): from then on the first step of both required jobs fails on every pull request. Pushes to `main` are not checked, so a merge made before the hour still deploys
+- [x] The time comparison run by hand, before and after the hour. Not seen failing in CI itself: that can only happen after the hour
+- [ ] Rodrigo: tick "Lock branch" on `main` at 1 PM (Settings, Branches). The check is a guard rail: an admin can merge past it, a pull request that was green before the hour stays green until its next commit, and a pull request can edit the check out
+- [ ] To lift the freeze: unlock `main`, then a pull request that sets `FREEZE_AT` to `""` (it is checked with its own copy of the file, so it passes)

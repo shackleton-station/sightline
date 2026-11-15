@@ -8,6 +8,14 @@ on:
 permissions:
   contents: read
 
+env:
+  # Code freeze. From this moment (UTC) every pull request fails CI, so nothing more merges to main.
+  # 2026-11-15T18:00:00Z is Sunday Nov 15, 1:00 PM Eastern. Set it to "" to lift the freeze: a pull
+  # request is checked with its own copy of this file, so the one that lifts it can pass.
+  # A guard rail, not a lock. Admins can merge past a red check, and a pull request that was green
+  # before the freeze stays green until its next commit. The lock is "Lock branch" on main (admin).
+  FREEZE_AT: "2026-11-15T18:00:00Z"
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -20,6 +28,15 @@ jobs:
       run:
         working-directory: pipeline
     steps:
+      - name: Code freeze
+        if: github.event_name == 'pull_request' && env.FREEZE_AT != ''
+        # Before the checkout, so the job's own folder is not there yet.
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ "$(date -u +%s)" -ge "$(date -u -d "$FREEZE_AT" +%s)" ]; then
+            echo "::error::Code freeze since $FREEZE_AT: main takes no more merges. See FREEZE_AT in .github/workflows/ci.yml."
+            exit 1
+          fi
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.0  # no moving major tag published; pin exact release
         with:
@@ -36,6 +53,15 @@ jobs:
       run:
         working-directory: web
     steps:
+      - name: Code freeze
+        if: github.event_name == 'pull_request' && env.FREEZE_AT != ''
+        # Before the checkout, so the job's own folder is not there yet.
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ "$(date -u +%s)" -ge "$(date -u -d "$FREEZE_AT" +%s)" ]; then
+            echo "::error::Code freeze since $FREEZE_AT: main takes no more merges. See FREEZE_AT in .github/workflows/ci.yml."
+            exit 1
+          fi
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
