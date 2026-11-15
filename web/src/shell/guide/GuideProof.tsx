@@ -45,6 +45,8 @@ export function GuideProof({ data, span, light }: Props) {
   const lit = photos?.groups.well_lit?.ground.clear
   const photoPct = lit?.balanced_agreement_pct != null ? Math.round(lit.balanced_agreement_pct) : null
   const height = data ? `${data.summary.obs_height_m} m` : '2 m'
+  // How many checks the pipeline ran on unrounded angles at the site on show: the same at every listed site.
+  const checksHere = data?.validation?.horizons.checks.length ?? null
   // The wobble in this site's own figures: how far Earth's elevation moves over the month on show.
   const earthEls = data ? data.track.map((point) => point.earth_el) : []
   const earthSwing = earthEls.length > 0 ? { low: degWords(Math.min(...earthEls)), high: degWords(Math.max(...earthEls)) } : null
@@ -57,8 +59,10 @@ export function GuideProof({ data, span, light }: Props) {
             <b>{largest <= 0.01 ? '0.01°' : `${largest.toFixed(2)}°`}</b>
             <h3>Positions match JPL Horizons</h3>
             <p>
-              NASA’s own calculator for where the Sun and Earth stand in a site’s sky. Over every hour of {span} at each of the {sites.length} listed sites, the largest gap from
-              the angles the screen draws is {largest.toFixed(3)}°. The feature guide “Check it in NASA’s tools” shows how to see NASA’s answer yourself.
+              NASA’s own calculator for where the Sun and Earth stand in a site’s sky. It is checked two ways, which give three figures. First, every hour of {span} at each of
+              the {sites.length} listed sites, on the angles the screen draws: those are stored to 0.01°, and the largest gap is {largest.toFixed(3)}°, which is that rounding. It
+              is the plan’s line “Matches Horizons within 0.01°”. Second, {checksHere ? `${checksHere} checks at each site` : 'a set of checks at each site'} on the angles before
+              they are rounded: under 0.001°, in this site’s notes below. The feature guide “Check it in NASA’s tools” shows how to see NASA’s answer yourself.
             </p>
           </li>
         )}
@@ -104,17 +108,15 @@ export function GuideProof({ data, span, light }: Props) {
         view all the time from the Apollo sites and never from Chang’e 4, on the far side. Near the pole it sits at the skyline, so that wobble is why it rises and sets there.
         {earthSwing && ` At ${data?.site.name} in ${monthLabel(data?.month ?? '')}, Earth’s elevation goes from ${earthSwing.low} to ${earthSwing.high} from level.`}
       </p>
+      <p className="how-caption how-seasons">
+        The Moon’s seasons are in there too. Its axis tilts only 1.5°, so over a year the Sun at the pole stands up to 1.5° higher or lower. Near the pole that is enough to
+        change how long a site is sunlit, which is one reason some months have no landing that fits.
+      </p>
 
       <h3>{data ? `For ${data.site.name}, ${monthLabel(data.month)}` : 'For the site on show'}</h3>
       {data ? (
         <>
           <TrustNotes data={data} />
-          {/* The plan's line gives another figure for the same agreement: said here, so the two do not read as a disagreement. */}
-          <p className="how-caption">
-            Two figures are given for JPL Horizons, and they measure the same agreement. The one above is the pipeline’s own check at the moments it counts, on directions before they are
-            rounded. The plan’s line, “Matches Horizons within 0.01°”, is every hour of the tracks the screen draws, which are stored to 0.01°: there the largest gap is the
-            rounding.
-          </p>
         </>
       ) : (
         <p className="how-caption">Loading the checks for this site…</p>
