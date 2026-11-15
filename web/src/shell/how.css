@@ -359,6 +359,188 @@
   margin-bottom: 0.5rem;
 }
 
+/* ---------- How the system is built: boxes by area, with the arrows drawn over them ---------- */
+.how > .how-system {
+  max-width: 74rem;
+}
+
+.how-system-head,
+.how-system-words {
+  max-width: 58rem;
+  margin-inline: auto;
+}
+
+/* The picture keeps its width: where the window is narrower, it scrolls sideways in its own frame. */
+.how-system-scroll {
+  margin-top: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.how-system-canvas {
+  position: relative;
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-areas:
+    'edge request build'
+    'key events watch';
+  gap: 1.5rem;
+  min-width: 66rem;
+  padding: 1rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.how-area {
+  padding: 0.6rem 0.75rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.how-area[data-area='edge'] {
+  grid-area: edge;
+}
+
+.how-area[data-area='request'] {
+  grid-area: request;
+}
+
+.how-area[data-area='build'] {
+  grid-area: build;
+}
+
+.how-area[data-area='key'] {
+  grid-area: key;
+}
+
+.how-area[data-area='events'] {
+  grid-area: events;
+}
+
+.how-area[data-area='watch'] {
+  grid-area: watch;
+}
+
+.how-step .how-area h3 {
+  margin: 0 0 0.6rem;
+  color: var(--dim);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The gaps between boxes are where the arrows run. */
+.how-area-boxes {
+  display: grid;
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.how-area[data-area='request'] .how-area-boxes {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 2.4rem;
+}
+
+.how-area[data-area='build'] .how-area-boxes {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1.8rem;
+}
+
+.how-area[data-area='events'] .how-area-boxes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 1.8rem;
+}
+
+.how-area[data-area='key'] .how-area-boxes,
+.how-area[data-area='watch'] .how-area-boxes {
+  gap: 0.6rem;
+}
+
+.how-box[data-box='redis'],
+.how-box[data-box='canary'] {
+  grid-column: 1 / -1;
+}
+
+.how-box {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #000;
+}
+
+.how-box[data-kind='ours'] {
+  border-color: #5b9bea;
+  background: #0f1a2b;
+}
+
+.how-box[data-kind='store'] {
+  border-color: var(--how-fits);
+  background: #0e1f18;
+}
+
+.how-box b {
+  display: block;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.how-box span {
+  color: var(--muted);
+}
+
+.how .how-area p {
+  margin: 0.6rem 0 0;
+  color: var(--dim);
+}
+
+.how-system-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.how-system-lines path {
+  fill: none;
+  stroke: #b9b09c;
+  stroke-width: 1.3;
+}
+
+.how-system-lines marker path {
+  fill: #b9b09c;
+  stroke: none;
+}
+
+.how-system-lines path[data-line='failure'] {
+  stroke-dasharray: 6 4;
+}
+
+.how-system-lines path[data-line='status'] {
+  stroke-dasharray: 1.5 4;
+}
+
+.how-system-words {
+  margin-top: 0.75rem;
+}
+
+/* Said only where it is true: under the width the picture needs. */
+.how .how-system-hint {
+  display: none;
+}
+
+@media (max-width: 1150px) {
+  .how .how-system-hint {
+    display: block;
+  }
+}
+
+.how-system-words ul {
+  padding-left: 1.2rem;
+  font-size: 0.94rem;
+}
+
 /* ---------- More, for a reader who wants it: shut until asked for ---------- */
 .how-more {
   margin-top: 0.75rem;
