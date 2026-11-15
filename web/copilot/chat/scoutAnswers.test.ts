@@ -329,7 +329,7 @@ describe('10. the fact that no other site fits', () => {
 
   it('is a clause that stands in a sentence: the old label-like value, with its colon, is gone from every fact Scout is given', async () => {
     const scene = await scenarioScene(APOLLO, viewFrom(APOLLO), data)
-    expect(scene?.facts.find((item) => item.key === 'scenario_a_no_other_site_fits')?.value).toBe('no other Apollo site fits on that date')
+    expect(scene?.facts.find((item) => item.key === 'scenario_a_no_other_site_fits')?.value).toBe('no other Apollo site fits on 6 May 2027 either')
     // The exact fragment that reached a visitor ("On the date of scenario A, none: on this date no other site of the group meets them.").
     for (const item of scene?.facts ?? []) {
       expect(item.value, item.key).not.toMatch(/none: on this date/)
@@ -339,7 +339,7 @@ describe('10. the fact that no other site fits', () => {
 
   it('reads as a sentence when Scout uses it', async () => {
     const outcome = await ask(scripted([answer('The next landing at Apollo 11 that fits is {{r0.scenario_a_next_landing}}, and {{r0.scenario_a_no_other_site_fits}}.')]), APOLLO, 'When is the next landing here that fits?')
-    expect(outcome.ok && outcome.reply.text).toBe('The next landing at Apollo 11 that fits is 11 May 2027, 13:00 UTC, and no other Apollo site fits on that date.')
+    expect(outcome.ok && outcome.reply.text).toBe('The next landing at Apollo 11 that fits is 11 May 2027, 13:00 UTC, and no other Apollo site fits on 6 May 2027 either.')
   })
 
   it('where another site does fit, names the place and its distance, and says nothing of "none"', async () => {
@@ -705,10 +705,12 @@ describe('17. facts a better answer is made from: why, how close, and what to tr
 
   it('the year\'s ranking says how far behind the runner-up is and gives each place what explains it: Sun, longest dark stretch, Earth', async () => {
     const { values } = await facts('best_sites_in_year', { year: 2027, measure: 'landing', group: 'south_pole' })
-    expect(values.runner_up).toMatch(/^[A-Za-z ]+, \d+ days? behind$/)
-    expect(values.runner_up.startsWith(values.place_2_site)).toBe(true)
+    expect(values.runner_up_site).toBe(values.place_2_site)
+    expect(values.runner_up_gap).toMatch(/^\d+ days? behind$/)
+    // A place's best month sits in a sentence: "…, each with 19 days on which a landing fits".
+    expect(values.place_1_best_month).toMatch(/^[A-Za-z, ]+ 2027, (each )?with \d+ days? on which a landing fits$/)
     const lead = Number(values.place_1_value.split(' ')[0]) - Number(values.place_2_value.split(' ')[0])
-    expect(values.runner_up).toBe(`${values.place_2_site}, ${lead} ${lead === 1 ? 'day' : 'days'} behind`)
+    expect(values.runner_up_gap).toBe(`${lead} ${lead === 1 ? 'day' : 'days'} behind`)
     for (const i of [1, 2, 3, 4]) {
       expect(values[`place_${i}_sun_share`]).toMatch(/^\d+%$/)
       // The same figures as the site's own year file, which the Guide's "Why this site is hard" reads.
