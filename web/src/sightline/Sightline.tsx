@@ -1597,7 +1597,6 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           compareOpen={drawer === 'compare'}
           onCompare={() => setDrawer(drawer === 'compare' ? null : 'compare')}
           accuracyOpen={drawer === 'accuracy'}
-          accuracyOn={fitShade}
           onAccuracy={() => (drawer === 'accuracy' ? setDrawer(null) : openAccuracy())}
           layersOpen={drawer === 'layers'}
           layerOn={layer !== null}

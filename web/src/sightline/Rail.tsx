@@ -18,8 +18,6 @@ interface Props {
   onCompare: () => void
   /** Landing accuracy: the ground around the target, and the odds of coming down where the mission fits. */
   accuracyOpen: boolean
-  /** Whether the Moon is shaded by where a landing fits (the button says so). */
-  accuracyOn: boolean
   onAccuracy: () => void
   /** Whether the Layers panel is open, and whether a Moon Trek layer is on (the button says so). */
   layersOpen: boolean
@@ -47,7 +45,7 @@ interface Props {
  * Layers) is on the Moon's own stage (ViewSwitch); on a phone, where the rail is one row over the
  * stage, that row carries the three views and "More" has Layers. Nothing here leaves the screen.
  */
-export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, accuracyOn, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onBrief, onHow, onTour, onHome, hype }: Props) {
+export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onScout, compareOpen, onCompare, accuracyOpen, onAccuracy, layersOpen, layerOn, onLayers, onPlanner, onNewPlanner, onBrief, onHow, onTour, onHome, hype }: Props) {
   // On a phone the rail is one row: the heights, Scout, and "More" for the rest, as a short menu.
   const compact = useCompact()
   const [more, setMore] = useState(false)
@@ -98,8 +96,6 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
       <button type="button" aria-pressed={accuracyOpen} title="Shows how likely a lander that misses its target still comes down where the mission fits." onClick={onAccuracy}>
         Landing <br />
         accuracy
-        {/* Says why the Moon is green and red, with the panel open or shut. */}
-        {accuracyOn && <small className="sl-rail-credit">Shading on</small>}
       </button>
       <button type="button" data-tour="planner" title="Opens the Planner: every site by month, and your scenarios side by side." onClick={onPlanner}>
         Planner
