@@ -113,7 +113,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, to
     {
       name: 'Custom point',
       question: 'What about somewhere new?',
-      does: `Plan a landing anywhere on the Moon. Around the south pole the same calculation is run at every pixel of the ground, so “Landings that fit” can shade ground that no listed site stands on.`,
+      does: `Plan a landing anywhere on the Moon. Around the south pole the same calculation is run at every pixel of the ground, so “Light and shadow”, in Layers, can show ground that no listed site stands on.`,
       sample: light ? (
         <>
           {light.millionsOfPixels.toFixed(1)} million pixels<small>one every {light.pixelM} m{light.wide ? ` or ${light.wide.pixelM} m` : ''}</small>
@@ -181,7 +181,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, to
         <summary>The whole pole, not only the listed sites</summary>
         <p>
           A planner wants to ask about any ground, not only the {siteCount} listed sites. So the same calculation is run at every pixel of the polar ground: it is what “Light and
-          shadow” draws, in Layers, and what “Landings that fit” is worked out from.
+          shadow” draws, in Layers.
         </p>
         <Flow steps={everyPixel} label="How the map of the polar ground is made" />
       </details>
