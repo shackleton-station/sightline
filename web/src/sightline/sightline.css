@@ -4004,6 +4004,9 @@ button.sl-moment-heights[aria-expanded='true'] {
 
 .sl-fact dt {
   display: flex;
+  /* Named, so the Sun's elevation can share the row's first line with its name. */
+  grid-row: 1;
+  grid-column: 1;
   align-items: center;
   gap: 0.45rem;
   margin: 0;
@@ -4027,6 +4030,18 @@ button.sl-moment-heights[aria-expanded='true'] {
 
 .sl-fact.is-earth .sl-fact-mark {
   background: var(--sl-earth);
+}
+
+/* The Sun's elevation at landing: on the row's first line, after its name, so it costs no height. */
+.sl-fact-level {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: center;
+  margin: 0 0 0 3.1rem;
+  color: var(--soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .sl-fact-main {

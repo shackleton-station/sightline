@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TrackPoint } from '../data/contract'
-import { lightHours, seriesPaths, spanStats } from './missionLight'
+import { lightHours, seriesPaths, spanStats, sunWhileUp } from './missionLight'
 
 /** A level skyline all the way round. */
 const LEVEL = Array.from({ length: 720 }, (_, i) => ({ az: i / 2, el: 0 }))
@@ -22,6 +22,19 @@ describe('lightHours', () => {
   it("falls back to the pipeline's flag where Earth's radius is not to hand", () => {
     const hours = lightHours([hour({ earth_up: true }), hour({ earth_up: false })], LEVEL, () => null)
     expect(hours.map((one) => one.earthPct)).toEqual([100, 0])
+  })
+})
+
+describe('sunWhileUp', () => {
+  it('gives the lowest and highest elevation over the hours with any of the Sun in view, and nothing when it is never up', () => {
+    const hours = [
+      { sun_up: false, sun_el: -43.6 },
+      { sun_up: true, sun_el: -2.04 },
+      { sun_up: true, sun_el: -1.16 },
+      { sun_up: false, sun_el: 3 },
+    ]
+    expect(sunWhileUp(hours)).toEqual({ lowDeg: -2.04, highDeg: -1.16 })
+    expect(sunWhileUp(hours.filter((hour) => !hour.sun_up))).toBeNull()
   })
 })
 

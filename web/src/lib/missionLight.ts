@@ -22,6 +22,18 @@ export function lightHours(track: TrackPoint[], earthHorizon: { az: number; el: 
   })
 }
 
+/** The Sun's elevation from level, in degrees, while any of it is in view: its lowest and highest. */
+export interface SunWhileUp {
+  lowDeg: number
+  highDeg: number
+}
+
+/** The lowest and highest elevation of the Sun over the hours given in which any of it is in view; null if it is never up. */
+export function sunWhileUp(track: Pick<TrackPoint, 'sun_up' | 'sun_el'>[]): SunWhileUp | null {
+  const up = track.filter((point) => point.sun_up).map((point) => point.sun_el)
+  return up.length > 0 ? { lowDeg: Math.min(...up), highDeg: Math.max(...up) } : null
+}
+
 /** A body over a mission, from its hourly up-or-down flags: the hours it is up, the mission's hours, and its longest time down. */
 export interface SpanStats {
   upHours: number

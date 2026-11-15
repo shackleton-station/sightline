@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHECK_MARK, gapCheck, landingCheck, landingWords, shareMeans, sharePct } from './columnStats'
+import { CHECK_MARK, elevationAtLanding, elevationMeans, gapCheck, landingCheck, landingWords, shareMeans, sharePct, WHILE_UP_MEANS, whileUpWords } from './columnStats'
 
 describe('gapCheck', () => {
   it('marks a gap past the limit as a miss, and one within it as within', () => {
@@ -53,5 +53,20 @@ describe('the words', () => {
     expect(shareMeans('sun', 10)).toBe('The share of the mission’s hours with any of the Sun in view from the panel, 10 m up. More means more solar power.')
     expect(shareMeans('earth', 2)).toBe('The share of the mission’s hours with Earth in view from the antenna, by your rule. More means more time with a direct radio link.')
     expect(shareMeans('earth', 4)).toBe('The share of the mission’s hours with Earth in view from the antenna, 4 m up, by your rule. More means more time with a direct radio link.')
+  })
+
+  it('says the Sun’s elevation by what it is measured from, at landing and over the sunlit hours', () => {
+    expect(elevationAtLanding(-1.24)).toBe('elevation −1.2° from level at landing')
+    expect(elevationAtLanding(36.44)).toBe('elevation 36.4° from level at landing')
+    // A hair below level is not written "−0.0°".
+    expect(elevationAtLanding(-0.04)).toBe('elevation 0.0° from level at landing')
+    expect(whileUpWords(-2.04, -1.16)).toBe('at −2.0° to −1.2°')
+    expect(whileUpWords(1.02, 1.04)).toBe('at 1.0°')
+  })
+
+  it('never leaves "elevation" bare in a hover text: each says a flat horizon', () => {
+    expect(elevationMeans(2)).toBe('The Sun’s elevation at landing: its height above a flat horizon, seen from the panel. From high ground the skyline lies below 0°, so a negative figure can still be in view.')
+    expect(elevationMeans(10)).toContain('seen from the panel, 10 m up.')
+    expect(WHILE_UP_MEANS).toContain('its height above a flat horizon')
   })
 })
