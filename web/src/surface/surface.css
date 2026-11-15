@@ -51,14 +51,17 @@
   overflow: hidden;
 }
 
+/* Two windows, one toward the Sun and one toward Earth, not one picture cut in two: a gap of the
+   page's own background between them, and each framed with the corners the app's panels have. */
 .sf-view.split .sf-pane {
-  right: 50%;
+  right: calc(50% + 4px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
 .sf-view.split .sf-pane + .sf-pane {
   right: 0;
-  left: 50%;
-  border-left: 1px solid var(--border);
+  left: calc(50% + 4px);
 }
 
 .sf-stage {
@@ -853,15 +856,13 @@
   /* Two views: one above the other, the first under the menus. */
   .sf-view.split .sf-pane {
     right: 0;
-    bottom: 50%;
+    bottom: calc(50% + 4px);
   }
 
   .sf-view.split .sf-pane + .sf-pane {
-    top: 50%;
+    top: calc(50% + 4px);
     bottom: 0;
     left: 0;
-    border-top: 1px solid var(--border);
-    border-left: 0;
   }
 
   .sf-view.split .sf-compass {
