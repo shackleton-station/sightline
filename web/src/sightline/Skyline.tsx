@@ -111,9 +111,8 @@ export function Skyline({ horizon, track, index, obsHeightM, above, folded, onFo
       <section id="sl-sky" className="sl-sky is-folded" aria-label="What the lander sees">
         <button type="button" className="sl-sky-bar" aria-expanded={false} title={STRIP_MEANS} onClick={() => onFold(false)}>
           <span className="sl-strip-title">What the lander sees</span> {readout}{' '}
-          <span className="sl-sky-open">
-            Open <span aria-hidden="true">▸</span>
-          </span>
+          {/* The same word, in the same place and dress, as the time bar's own "Open" when it is folded. */}
+          <span className="sl-small sl-sky-open">Open</span>
         </button>
       </section>
     )
