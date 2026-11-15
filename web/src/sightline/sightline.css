@@ -1259,6 +1259,8 @@
 .sl-sky-open {
   flex: none;
   margin-left: auto;
+  /* The time bar's header sets its buttons at this size; without it this one is a pixel smaller each way. */
+  font-size: 0.8125rem;
 }
 
 .sl-strip-title {
