@@ -101,6 +101,7 @@ import { SurfaceFrame } from './SurfaceFrame'
 import { useHeightFlags } from './useHeights'
 import { useLandingShares, useMissionSunlight, useScenarioFacts } from './useScenarioFacts'
 import { useGuideVideos } from './useGuideVideos'
+import { ViewSwitch } from './ViewSwitch'
 import { PlayControl, ScoutLine } from './WatchControls'
 
 // The brief brings the old Planner page's own code and styles: loaded only when it is opened.
@@ -523,6 +524,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [surfaceNear, setSurfaceNear] = useState(false)
   // What "add a scenario" adds, said wherever it is offered: the site on show at the hour on the time bar.
   const addWords = `${site.name} · ${clockTime(start, hour)}`
+  // The view switch's box on the stage, which Earth's mark keeps clear of.
+  const viewSwitchBox = useRef<HTMLDivElement>(null)
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
   const scoutView = active > 0 ? view : `${view}&sc=0`
   useEffect(() => {
@@ -1163,7 +1166,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       )}
 
       <main className="sl-stage">
+        {/* What the Moon shows, on its own stage: Orbit, Site, Surface and Layers, in the corner opposite the zoom buttons. */}
+        {shown && !planner && (
+          <ViewSwitch
+            box={viewSwitchBox}
+            mode={mode}
+            onMode={setMode}
+            onSurfaceNear={() => setSurfaceNear(true)}
+            layersOpen={drawer === 'layers'}
+            layerOn={layer !== null}
+            onLayers={() => setDrawer(drawer === 'layers' ? null : 'layers')}
+          />
+        )}
         <Stage
+          corner={viewSwitchBox}
           sites={dotSites}
           states={states}
           sun={sun}

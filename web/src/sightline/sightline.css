@@ -2831,6 +2831,79 @@ button.sl-moment-heights[aria-expanded='true'] {
   border-top: 1px solid var(--line);
 }
 
+/* ---------- The view switch: on the Moon's stage, in its top left corner ---------- */
+/* Orbit, Site, Surface as one control, and Layers beside it: they change what the stage shows, so they
+   are on it, with the weight of the zoom buttons in the corner opposite. Above the Surface frame. */
+.sl-view-switch {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.6rem;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  /* A stage made narrow by a panel has the Moon's disc close to this corner: there Layers drops under
+     the three views, so the control stays off the disc. */
+  max-width: 36%;
+}
+
+.sl-view-switch .sl-heights {
+  flex: none;
+  flex-direction: row;
+  border-color: #ffffff33;
+  border-radius: 999px;
+  background: rgb(10 12 24 / 78%);
+}
+
+.sl-view-switch button {
+  min-height: 1.75rem;
+  padding: 0 0.7rem;
+  border: 0;
+  background: none;
+  color: #fff;
+  font-size: 0.8125rem;
+  line-height: 1;
+}
+
+.sl-view-switch .sl-heights button + button {
+  border-left: 1px solid #ffffff33;
+}
+
+.sl-view-switch button:hover {
+  color: var(--gold);
+}
+
+.sl-view-switch button[aria-pressed='true'] {
+  background: var(--gold);
+  color: #1a1405;
+  font-weight: 600;
+}
+
+.sl-view-switch .sl-view-layers {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #ffffff33;
+  border-radius: 999px;
+  background: rgb(10 12 24 / 78%);
+}
+
+.sl-view-switch .sl-view-layers[aria-pressed='true'] {
+  border-color: var(--gold);
+}
+
+.sl-view-switch .sl-rail-credit {
+  font-size: 0.75rem;
+}
+
+/* On a phone the rail's one row, over the stage, carries the three views; "More" has Layers. */
+@media (max-width: 760px) {
+  .sl-view-switch {
+    display: none;
+  }
+}
+
 /* ---------- Share and How: two small icon buttons beside the name ---------- */
 .sl-head-tools {
   display: inline-flex;
