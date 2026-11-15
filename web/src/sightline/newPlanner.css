@@ -3094,3 +3094,7 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+.sl-np.is-inset.is-glance {
+  margin: 0 0 1.4rem;
+}
