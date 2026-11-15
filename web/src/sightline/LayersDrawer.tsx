@@ -26,9 +26,10 @@ interface Props {
    * "Landing odds", the app's own: the odds that a lander aimed at each point comes down where the
    * mission fits, shaded on the Moon. Whether it is on, whether the light grid reaches the site on show,
    * how far from the pole the slope is judged (km; null until known), the lander in words, and what
-   * the mission asks that the shading cannot count near the pole (null for nothing).
+   * the mission asks that the shading cannot count near the pole (null for nothing). Null while
+   * the layer is not offered (`lib/fitLayer.ts`): its switch and its note are then not drawn.
    */
-  odds: { on: boolean; here: boolean; slopeKm: number | null; lander: string; leavesOut: string | null }
+  odds: { on: boolean; here: boolean; slopeKm: number | null; lander: string; leavesOut: string | null } | null
   onOdds: (on: boolean) => void
   /** Open Landing accuracy: the odds for this landing, the reasons and a better place to aim. */
   onOddsDetails: () => void
@@ -102,13 +103,15 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
             {!shade.here && <NotHere />}
           </label>
         </li>
-        <li>
-          <label className={odds.here || odds.on ? undefined : 'sl-layer-off'} title={odds.here || odds.on ? 'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.' : outside(lightKm, 'The terrain this layer is worked out from')}>
-            <input type="checkbox" role="switch" checked={odds.on} disabled={!odds.here && !odds.on} onChange={() => onOdds(!odds.on)} />
-            <span>Landings that fit</span>
-            {!odds.here && !odds.on && <NotHere />}
-          </label>
-        </li>
+        {odds && (
+          <li>
+            <label className={odds.here || odds.on ? undefined : 'sl-layer-off'} title={odds.here || odds.on ? 'Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely.' : outside(lightKm, 'The terrain this layer is worked out from')}>
+              <input type="checkbox" role="switch" checked={odds.on} disabled={!odds.here && !odds.on} onChange={() => onOdds(!odds.on)} />
+              <span>Landings that fit</span>
+              {!odds.here && !odds.on && <NotHere />}
+            </label>
+          </li>
+        )}
       </ul>
       {shade.on && shade.here && (
         <p className="sl-layer-shade" role="status">
@@ -117,7 +120,7 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
             : `Shadow from the terrain at the hour on the time bar, from this app’s hourly light grid.${shade.cellM ? ` One cell is ${shade.cellM} m of ground${shade.wideCellM ? `, ${shade.wideCellM} m farther from the pole` : ''}; edges are blended between cells.` : ''}`}
         </p>
       )}
-      {odds.on && (
+      {odds?.on && (
         <p className="sl-layer-shade sl-layer-odds" role="status">
           Shaded for a landing at the hour on the time bar, by a lander that gets {odds.lander}. {odds.here ? `Round the south pole${lightKm ? `, out to ${lightKm} km,` : ''} it counts the hourly light on the terrain${odds.slopeKm ? `, and within ${odds.slopeKm} km the slope too` : ''}` : 'This site is outside the terrain grid round the south pole'}; elsewhere the Moon is taken as smooth.{odds.leavesOut ? ` Near the pole the light is known from 2 m up with any part of Earth counting, so the shading there does not count ${odds.leavesOut}; Landing accuracy does.` : ''}{' '}
           <button type="button" className="sl-link" onClick={onOddsDetails}>
@@ -125,7 +128,7 @@ export function LayersDrawer({ reach, lightKm, place, layer, onLayer, state, fin
           </button>
         </p>
       )}
-      <p className="sl-quiet">NASA’s maps of the ground, from Moon Trek. One at a time, in place of “Landings that fit”; switching one on goes to Site, where it is seen close.</p>
+      <p className="sl-quiet">NASA’s maps of the ground, from Moon Trek. One at a time{odds ? ', in place of “Landings that fit”' : ''}; switching one on goes to Site, where it is seen close.</p>
       <ul className="sl-layer-list">
         {TREK_LAYERS.map((item) => (
           <li key={item.id}>

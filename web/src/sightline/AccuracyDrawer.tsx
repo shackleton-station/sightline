@@ -19,8 +19,8 @@ interface Props {
   /** How the lander's misses are spread, and a change to it. */
   spread: Spread
   onSpread: (spread: Spread) => void
-  /** Whether the same verdicts are shaded on the Moon. */
-  shade: boolean
+  /** Whether the same verdicts are shaded on the Moon; null while that layer is not offered, and its switch is not drawn. */
+  shade: boolean | null
   onShade: (on: boolean) => void
   /** Move the scenario's target to a point. */
   onAim: (lat: number, lon: number) => void
@@ -54,10 +54,12 @@ export function AccuracyDrawer({ site, mission, heights, start, landing, verdict
       <div className="sl-np sl-accuracy-rain">
         <LandingRain site={site} mission={mission} heights={heights} start={start} landing={landing} verdict={verdict} spread={spread} onSpread={onSpread} onAim={onAim} compact playOnOpen />
       </div>
-      <label className="sl-check sl-accuracy-shade" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely. A coarser picture than this panel's: Sun and Earth every 120 m (every 20 m round the ridge sites), from 2 m up with any part of Earth counting.">
-        <input type="checkbox" role="switch" checked={shade} onChange={() => onShade(!shade)} />
-        <span>Shade the Moon by landings that fit</span>
-      </label>
+      {shade !== null && (
+        <label className="sl-check sl-accuracy-shade" title="Colors the Moon by how likely a landing aimed there comes down where the mission fits. Green is likely, amber uncertain, red unlikely. A coarser picture than this panel's: Sun and Earth every 120 m (every 20 m round the ridge sites), from 2 m up with any part of Earth counting.">
+          <input type="checkbox" role="switch" checked={shade} onChange={() => onShade(!shade)} />
+          <span>Shade the Moon by landings that fit</span>
+        </label>
+      )}
     </aside>
   )
 }
