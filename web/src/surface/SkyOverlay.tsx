@@ -1,9 +1,12 @@
 import { acrossDeg, diskOutline, elevationMarks, type Lens, project } from '../lib/surfaceView'
+import { skyTagWords } from '../lib/surfaceWords'
 
 export interface Marked {
   azDeg: number
   elDeg: number
   radiusDeg: number
+  /** Its centre's height above the skyline in its direction (degrees); negative when under it. */
+  aboveDeg: number
   /** The track's answer: is any part of it above the horizon? */
   up: boolean
 }
@@ -40,13 +43,6 @@ function markLabel(el: number, stepDeg: number): string {
   if (el === 0) return 'eye level'
   const size = Math.abs(el).toFixed(stepDeg < 1 ? 1 : 0)
   return `${el > 0 ? '+' : '−'}${size}°`
-}
-
-/** "El +1.2° · Az 123.4°": the body's centre as the track gives it, elevation above eye level and azimuth from north. */
-function angleLabel(body: Marked): string {
-  const el = `${body.elDeg < 0 ? '−' : '+'}${Math.abs(body.elDeg).toFixed(1)}°`
-  const az = `${(((body.azDeg % 360) + 360) % 360).toFixed(1)}°`
-  return `El ${el} · Az ${az}`
 }
 
 /**
@@ -96,10 +92,12 @@ export function SkyOverlay({ lens, width, height, sun, earth, hours, clearTopPx 
     const ry = (outline.ry * height) / 2
     const cx = px(outline.x)
     const cy = py(outline.y)
-    // Above the disk (name, then its angles); under it when that would run into the menus and compass.
-    const above = cy - ry - 30 > clearTopPx + 18
-    const nameY = above ? cy - ry - 30 : cy + ry + 26
-    const anglesY = above ? cy - ry - 13 : cy + ry + 43
+    // Above the disk (name, then its two lines); under it when that would run into the menus and compass.
+    // The skyline comes first: it decides whether the body is in view. Eye level is second.
+    const above = cy - ry - 46 > clearTopPx + 18
+    const nameY = above ? cy - ry - 46 : cy + ry + 26
+    const anglesY = above ? cy - ry - 29 : cy + ry + 43
+    const words = skyTagWords(body.aboveDeg, body.elDeg, body.radiusDeg, body.up)
     return (
       <g className={`sf-tag ${kind}${body.up ? '' : ' hidden'}`}>
         {!body.up && <ellipse cx={cx} cy={cy} rx={Math.max(rx, 3)} ry={Math.max(ry, 3)} />}
@@ -107,7 +105,10 @@ export function SkyOverlay({ lens, width, height, sun, earth, hours, clearTopPx 
           {body.up ? name : `${name}, behind the land`}
         </text>
         <text className="sf-tag-angles" x={cx} y={anglesY} textAnchor="middle">
-          {angleLabel(body)}
+          {words.skyline}
+        </text>
+        <text className="sf-tag-angles" x={cx} y={anglesY + 16} textAnchor="middle">
+          {words.level}
         </text>
       </g>
     )

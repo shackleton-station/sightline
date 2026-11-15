@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { BodyRadii } from '../lib/surfaceView'
 import { type MotionStatus, motionWords } from './useMotionLook'
 
@@ -17,6 +18,15 @@ const across = (radiusDeg: number) => (2 * radiusDeg).toFixed(2)
 export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM }: Props) {
   const steering = motion === 'on' || motion === 'asking'
   const words = motionWords(motion)
+  // Escape closes the note, wherever in this page the keyboard is.
+  const about = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && about.current?.open) about.current.open = false
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   return (
     <div className="sf-actions">
       {offerMotion && (
@@ -29,8 +39,11 @@ export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM 
           {words}
         </p>
       )}
-      <details className="sf-about">
-        <summary>What this picture is</summary>
+      <details className="sf-about" ref={about}>
+        {/* The one thing a viewer must not miss is on the picture itself; the link holds the rest. */}
+        <summary>
+          <span className="sf-about-short">Illustrated ground; the skyline is NASA LOLA data.</span> <span className="sf-about-more">What this picture is</span>
+        </summary>
         <ul>
           <li>
             The land is this site’s horizon, computed from NASA’s LOLA terrain for a point {obsHeightM} m above the ground: 720 directions, joined by
