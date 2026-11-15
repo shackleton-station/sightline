@@ -2806,6 +2806,11 @@ button.sl-moment-heights[aria-expanded='true'] {
     margin-top: 1rem;
   }
 
+  /* The name's box is its word, so it stands clear of the buttons beside it. */
+  .sl-brand h1 {
+    width: fit-content;
+  }
+
   .sl-pill .sl-wide {
     display: none;
   }
