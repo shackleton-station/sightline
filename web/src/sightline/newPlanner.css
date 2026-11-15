@@ -3011,7 +3011,10 @@
 }
 
 .sl-np .np-lead b {
+  color: var(--text, inherit);
+}
+
+.sl-np .np-lead b:first-child {
   display: block;
   margin-bottom: 0.25rem;
-  color: var(--text, inherit);
 }
