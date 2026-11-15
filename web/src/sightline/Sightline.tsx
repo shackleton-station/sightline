@@ -295,9 +295,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [bare, setBare] = useStored('clear', false)
   const [pillMin, setPillMin] = useStored('pillMin', false)
   const [riverMin, setRiverMin] = useStored('riverMin', false)
-  // The skyline strip ("What the lander sees") is folded until asked for, so the screen opens clean;
-  // whether it is open is kept for the visit, and a link that says so (`sky=1`) opens it.
-  const [skyMin, setSkyMin] = useStored('skyFolded', true, 'visit')
+  // The skyline strip ("What the lander sees") is open when Plan opens on a laptop (Rodrigo's word of
+  // 2026-11-15); on a phone, where it would take the Moon's room, it is folded until asked for. A
+  // visitor's own fold is kept for the visit, and a link that says so (`sky=1`) opens it anywhere.
+  const [skyMin, setSkyMin] = useStored('skyFolded', window.innerWidth < 761, 'visit')
   useEffect(() => {
     if (new URLSearchParams(window.location.hash.replace(/^#/, '')).get('sky') === '1') setSkyMin(false)
     // Read once, as the page opens: after that the fold is the visitor's.
