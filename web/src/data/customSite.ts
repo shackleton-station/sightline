@@ -10,6 +10,7 @@ import {
   monthSummary,
   monthTrack,
   nearResolutionM,
+  polarXY,
   slopeAt,
   Terrain,
   type TerrainAssets,
@@ -17,10 +18,11 @@ import {
   yearSummary,
 } from '../lib/customModel'
 import type { SiteFlags } from '../lib/flags'
+import { blockReachM, polarBlock, type PolarGround } from '../lib/pointHorizons'
 import { spanHours, type YearSpan, yearsOf } from '../lib/span'
 import type { BandAccuracy, CustomMeta, MastHeight, SiteInfo } from './contract'
 
-export const CUSTOM_GROUP = 'Custom'
+export { CUSTOM_GROUP, customSiteInfo, isCustomSite } from '../lib/customPoint'
 
 const base = () => import.meta.env.BASE_URL
 
@@ -144,6 +146,19 @@ export async function loadDrawingTerrain(lat: number, lon: number, polarReachM: 
   return new Terrain(assets, drawingTiles)
 }
 
+/**
+ * The ground the fast horizons are worked out from (`pointHorizons.ts`), for points within
+ * `aroundM` of a point near the south pole: the coarse polar map, and the fine terrain around the
+ * points as one block. The tiles are the custom points' own, so a point opened before costs nothing.
+ */
+export async function loadPolarGround(lat: number, lon: number, aroundM: number): Promise<PolarGround> {
+  const assets = await loadTerrainAssets()
+  const reach = blockReachM(assets.meta, aroundM)
+  await loadTiles(assets.meta, lat, lon, tiles, readTile, reach)
+  const { x, y } = polarXY(lat, lon)
+  return { meta: assets.meta, polarFar: assets.polarFar, block: polarBlock(assets.meta, tiles, x, y, reach) }
+}
+
 interface LoadedModel {
   model: CustomSiteModel
   meta: CustomMeta
@@ -177,27 +192,6 @@ function loadModel(site: SiteInfo, span: YearSpan): Promise<LoadedModel> {
     })
     return request
   }
-}
-
-/** A site for typed coordinates. */
-export function customSiteInfo(rawLat: number, rawLon: number): SiteInfo {
-  // About 3 cm on the ground. Also keeps numbers out of exponent form, which a link couldn't carry.
-  const lat = Number(rawLat.toFixed(6))
-  const lon = Number(rawLon.toFixed(6))
-  const latText = `${Math.abs(lat).toFixed(3)}°${lat < 0 ? 'S' : 'N'}`
-  const lonText = `${Math.abs(lon).toFixed(3)}°${lon < 0 ? 'W' : 'E'}`
-  return {
-    id: `custom:${lat},${lon}`,
-    name: `Custom point ${latText}, ${lonText}`,
-    lat,
-    lon,
-    source_url: '',
-    group: CUSTOM_GROUP,
-  }
-}
-
-export function isCustomSite(site: SiteInfo): boolean {
-  return site.group === CUSTOM_GROUP
 }
 
 export async function loadCustomMonth(site: SiteInfo, month: string, span: YearSpan) {

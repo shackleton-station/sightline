@@ -19,14 +19,22 @@ export interface HourDot {
   up: boolean
 }
 
+/** The hours just before and after the one on screen (`first` is the first one's hour of the month), and every hour of the month. */
+export interface HoursNear {
+  first: number
+  sun: HourDot[]
+  earth: HourDot[]
+  month: { sun: HourDot[]; earth: HourDot[] }
+}
+
 interface Props {
   lens: Lens
   width: number
   height: number
   sun: Marked
   earth: Marked
-  /** The Sun's and Earth's positions for the hours just before and after this one, from the track; `first` is the first one's hour of the month. */
-  hours: { first: number; sun: HourDot[]; earth: HourDot[] }
+  /** The Sun's and Earth's positions from the track: hour by hour around this one, and over the whole month. */
+  hours: HoursNear
   /** The menus and compass cover this much of the top of the picture (px): no marks are drawn under them. */
   clearTopPx: number
   /** The answer's band covers this much of the foot of the picture (px). */
@@ -40,6 +48,8 @@ const EYE_LEVEL_STEPS = 24
 /** Hour dots are kept at least this far apart, by showing one hour in every 1, 2, 3, 6, 12 or 24. */
 const MIN_DOT_GAP_PX = 9
 const HOUR_STRIDES = [1, 2, 3, 6, 12, 24]
+/** The month's path is drawn out to this many picture-widths (and heights) from the middle, so it runs off the edges. */
+const PATH_REACH = 1.5
 
 /** "+2°", "−0.5°", and "eye level" for zero. */
 function markLabel(el: number, stepDeg: number): string {
@@ -88,6 +98,44 @@ export function SkyOverlay({ lens, width, height, sun, earth, hours, clearTopPx,
     })
   }
 
+  // The month's path as a line, hour to hour: solid where the track has the body up, dashed where
+  // it is behind the land. It breaks where the path goes behind the visitor or round the back of the
+  // picture, and where it changes from up to hidden.
+  const reachX = width * PATH_REACH
+  const reachY = height * PATH_REACH
+  const path = (hoursOfMonth: HourDot[], kind: 'sun' | 'earth') => {
+    const runs: { up: boolean; points: string[] }[] = []
+    let run: { up: boolean; points: string[] } | null = null
+    let last: { x: number; y: number } | null = null
+    for (const hour of hoursOfMonth) {
+      const point = project(lens, hour.azDeg, hour.elDeg)
+      const x = px(point.x)
+      const y = py(point.y)
+      const shown = point.inFront && Math.abs(x - width / 2) < reachX && Math.abs(y - height / 2) < reachY
+      const jump = last !== null && Math.hypot(x - last.x, y - last.y) > width / 2
+      if (!shown || jump) {
+        run = null
+        last = shown ? { x, y } : null
+        if (!shown) continue
+      }
+      const at = `${x.toFixed(1)},${y.toFixed(1)}`
+      if (run && run.up !== hour.up) {
+        // The new run starts where the old one ended, so the line has no gap at the change.
+        run = { up: hour.up, points: [run.points[run.points.length - 1]] }
+        runs.push(run)
+      }
+      if (!run) {
+        run = { up: hour.up, points: [] }
+        runs.push(run)
+      }
+      run.points.push(at)
+      last = { x, y }
+    }
+    return runs
+      .filter((one) => one.points.length > 1)
+      .map((one, i) => <polyline key={i} className={`sf-path ${kind}${one.up ? '' : ' hidden'}`} points={one.points.join(' ')} />)
+  }
+
   const tag = (body: Marked, kind: 'sun' | 'earth', name: string) => {
     const outline = diskOutline(lens, body.azDeg, body.elDeg, body.radiusDeg)
     // A body the view is turned to is named even when it is above or below the picture: at that edge.
@@ -131,6 +179,8 @@ export function SkyOverlay({ lens, width, height, sun, earth, hours, clearTopPx,
           </text>
         </g>
       ))}
+      {path(hours.month.earth, 'earth')}
+      {path(hours.month.sun, 'sun')}
       {dots(hours.earth, 'earth', earth)}
       {dots(hours.sun, 'sun', sun)}
       {tag(earth, 'earth', 'Earth')}

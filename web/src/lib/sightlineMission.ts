@@ -2,7 +2,8 @@ import { ANTENNA_HEIGHTS_M, BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightFrom, heightsW
 import { diskShareWords } from './answer'
 import type { SiteInfo } from '../data/contract'
 import type { SiteFlags } from './flags'
-import { DEFAULT_REQUIREMENTS, EARTH_CLEARANCES_DEG, hourOf, landingProblems, locateHour, missionEarth, NO_GAP_LIMIT_H, type Requirements } from './mission'
+import type { Miss } from './landingOdds'
+import { DEFAULT_REQUIREMENTS, EARTH_CLEARANCES_DEG, hourOf, landingProblems, locateHour, longestDown, missionEarth, NO_GAP_LIMIT_H, type Requirements } from './mission'
 import { entryAt, GAP_TIE_H, measureEntry, toIso } from './shortlist'
 import { distanceKm, nextViable } from './slip'
 import { decodeView, encodeView } from './urlState'
@@ -397,4 +398,23 @@ export function rowLabels(scenarios: SightlineScenario[], siteNames: string[], s
  */
 export function addScenarioMeans(adds: string): string {
   return `Adds ${adds}, the hour on the time bar, as another scenario to compare.`
+}
+
+/**
+ * The first limit a landing breaks, as the Landing accuracy map names it, or null when it fits:
+ * the ground's slope first, then the limits in the verdict's own order. The same tests as
+ * `fitProblems`, on the same flags. Undefined when the mission runs past the end of the data, where
+ * there is no verdict to give.
+ */
+export function landingMiss(flags: SiteFlags, landing: number, mission: SightlineMission, slopeDeg: number | null): Miss | null | undefined {
+  const { requirements } = mission
+  const end = landing + requirements.missionDays * 24
+  if (end > flags.sun.length) return undefined
+  if (slopeDeg !== null && slopeDeg > mission.maxSlopeDeg) return 'slope'
+  const earth = missionEarth(flags, requirements)
+  if (requirements.sunAtLanding && !flags.sun[landing]) return 'sunAtLanding'
+  if (requirements.earthAtLanding && !earth[landing]) return 'earthAtLanding'
+  if (longestDown(flags.sun, landing, end) > requirements.maxSunGapH) return 'dark'
+  if (longestDown(earth, landing, end) > requirements.maxEarthGapH) return 'silence'
+  return null
 }

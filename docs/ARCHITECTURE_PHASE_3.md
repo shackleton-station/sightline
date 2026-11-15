@@ -232,7 +232,7 @@ Apply A creates six. Apply B creates none. Apply C removes two.
 | --- | --- | --- | --- | --- | --- |
 | 1 | A | `clps-copilot@…` (new) | `roles/aiplatform.user` | The project | It calls Gemini (`generateContent`). The narrowest predefined role that can; it cannot be narrowed to one model |
 | 2 | A | `clps-copilot@…` | `roles/pubsub.publisher` | The topic `clps-web-events` only | It publishes question events through the outbox |
-| 3 | A | `clps-copilot@…` | `roles/storage.objectViewer` | The bucket `clps-compute-6z1nc-web-assets`, condition `only-the-light-grid` (`resource.name.startsWith("projects/_/buckets/clps-compute-6z1nc-web-assets/objects/tiles/light/")`) | The tool that looks up tapped ground reads the light grid's months. It cannot read the terrain tiles or the video |
+| 3 | A | `clps-copilot@…` | `roles/storage.objectViewer` | The bucket `clps-compute-6z1nc-web-assets`, condition `only-the-light-grid-and-terrain-tiles` (objects under `tiles/light/`, `tiles/polar/` or `tiles/global/`; widened on 2026-11-15, pull request 182) | The tool that looks up tapped ground reads the light grid's months, and a custom point is worked out from the terrain tiles. It cannot read the video |
 | 4 | A | `clps-copilot@…` | `roles/cloudtrace.agent` | The project | It writes a trace per request |
 | 5 | A | `clps-web-deployer@…` (existing) | `roles/iam.serviceAccountUser` | The service account `clps-copilot` only | A deploy has to hand the service its identity |
 | 6 | A | `allUsers` | `roles/run.invoker` | The Cloud Run service `clps-copilot` | It is public, as the web server and plans are: the load balancer calls it for any visitor, and the deploy tests it on its own address |

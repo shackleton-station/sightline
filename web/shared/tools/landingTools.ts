@@ -1,7 +1,8 @@
 import { compareRows } from '../../src/lib/compare'
 import { type GridCell, type GridMetric, gridRow, metricFlags, monthSpans } from '../../src/lib/grid'
-import { landingWindows, missionEarth } from '../../src/lib/mission'
+import { landingWindows, longestDown, missionEarth } from '../../src/lib/mission'
 import { formatDuration } from '../../src/lib/nextChange'
+import { wholePct } from '../../src/lib/verdict'
 import { entryAt, measureEntry, rankOptions, toIso } from '../../src/lib/shortlist'
 import { type Args, countArg, limitsArg, monthArg, siteArg, timeArg, type ToolContext, ToolError } from './args'
 import { daysLabel, fact, type Fact, isoAt, limitsLabel, monthWords, type ToolResult, whenLabel } from './facts'
@@ -141,11 +142,27 @@ export async function bestSitesInYear(args: Args, ctx: ToolContext): Promise<Too
     const up = cells.reduce((sum, cell) => sum + cell.hours, 0)
     const bestMonth = cells.reduce((top, cell) => (cell.share > top.share ? cell : top))
     const tiedMonths = tiedWith(cells, bestMonth, printed(metric))
+    // Why a site does well or badly, whatever it is ranked by: how much of the year the Sun and Earth
+    // are in view there, and the longest stretch of the year without the Sun.
+    const [from, to] = [spans[0].from, spans[spans.length - 1].to]
+    const earth = missionEarth(flags, requirements)
+    const share = (series: boolean[]) => {
+      let seen = 0
+      for (let hour = from; hour < to; hour += 1) if (series[hour]) seen += 1
+      // As the screen writes a year's share: the pipeline's figure to one decimal, then to the whole percent.
+      return wholePct(Math.round((1000 * seen) / (to - from)) / 10)
+    }
     return {
       site,
+      days,
+      pct: Math.round((100 * up) / hours),
+      sun: share(flags.sun),
+      earth: share(earth),
+      dark: formatDuration(longestDown(flags.sun, from, to)),
       score: metric === 'landing' ? days / (hours / 24) : up / hours,
       value: metric === 'landing' ? `${days} of ${daysLabel(hours / 24)}` : `${Math.round((100 * up) / hours)}% of the year`,
-      best: tiedMonths.length > 1 ? `${monthsWords(tiedMonths.map((cell) => cell.month))}, tied at ${cellValue(metric, bestMonth)}` : `${monthWords(bestMonth.month)}, with ${cellValue(metric, bestMonth)}`,
+      // "December 2027, with 20 days on which a landing fits"; for a share, "with 97%".
+      best: `${tiedMonths.length > 1 ? `${monthsWords(tiedMonths.map((cell) => cell.month))}, each` : `${monthWords(bestMonth.month)},`} with ${cellValue(metric, bestMonth)}${metric === 'landing' ? ' on which a landing fits' : ''}`,
     }
   })
   const leader = rows.reduce((top, row) => (row.score > top.score ? row : top))
@@ -162,11 +179,22 @@ export async function bestSitesInYear(args: Args, ctx: ToolContext): Promise<Too
   facts.push(fact('best_sites', tie ? 'The sites tied for best over the year: equal at the precision shown, so name them together and never one of them alone' : 'The best site over the year', listWords(best.map((row) => row.site.name))))
   facts.push(fact('best_value', tie ? 'The value they share' : 'Its value', best[0].value))
   facts.push(fact('best_tie', 'Whether the best is a tie', tieWords(best.length, rows.length, 'site', 'sites', 'best')))
+  // How close the runner-up is, as a clause: the first site that is not among the best.
+  const next = rows.find((row) => !best.includes(row))
+  if (next) {
+    const behind = metric === 'landing' ? daysLabel(leader.days - next.days) : `${leader.pct - next.pct} ${leader.pct - next.pct === 1 ? 'percentage point' : 'percentage points'}`
+    facts.push(fact('runner_up_site', 'The runner-up: the best site that is not among the best', next.site.name))
+    facts.push(fact('runner_up_gap', 'How far behind the best the runner-up is, as it sits in a sentence ("{{…runner_up_site}} is {{…runner_up_gap}}")', `${behind} behind`))
+  }
   rows.slice(0, countArg(args.count, 4, 1, 8)).forEach((row, i) => {
     const shared = tie && best.includes(row) ? ' (one of the sites tied for best: see best_sites)' : ''
     facts.push(fact(`place_${i + 1}_site`, `Place ${i + 1}${shared}`, row.site.name))
     facts.push(fact(`place_${i + 1}_value`, 'Its value over the year', row.value))
     facts.push(fact(`place_${i + 1}_best_month`, 'Its own best month of that year (when to go there)', row.best))
+    // The why behind a place: cite the one that separates two sites.
+    facts.push(fact(`place_${i + 1}_sun_share`, 'Share of that year with the Sun in view there', row.sun))
+    facts.push(fact(`place_${i + 1}_longest_dark`, 'Its longest stretch without the Sun that year', row.dark))
+    facts.push(fact(`place_${i + 1}_earth_share`, 'Share of that year with Earth in view there', row.earth))
   })
   return { ok: true, title: `${asked ? asked.group : 'All listed sites'}, ${year}: ranking over the year`, facts }
 }
@@ -187,7 +215,7 @@ export async function landingWindowsInMonth(args: Args, ctx: ToolContext): Promi
     fact('site', 'Site', site.name),
     fact('month', 'Month', monthWords(month)),
     fact('limits', 'Checked against', limitsLabel(requirements)),
-    fact('window_count', 'Stretches of hours that meet the limits', String(windows.length)),
+    fact('window_count', 'How many stretches of hours meet the limits', `${windows.length} ${windows.length === 1 ? 'stretch' : 'stretches'}`),
   ]
   windows.slice(0, 4).forEach((window, i) => {
     facts.push(fact(`window_${i + 1}_start`, `Stretch ${i + 1} opens`, whenLabel(isoAt(flags.start, window.from))))

@@ -1,5 +1,5 @@
 import { isCustomSite } from '../data/customSite'
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useCallback, useMemo, useState } from 'react'
 import type { SiteInfo, Summary } from '../data/contract'
 import type { FlaggedSite } from '../data/useAllFlags'
 import { monthSpans } from '../lib/grid'
@@ -12,7 +12,12 @@ import { ExportMenu } from './ExportMenu'
 import { HeaderTools } from './HeaderTools'
 import { saveHourlyCsv, saveText } from './hourlyExport'
 import { AdvancedControls, MissionControls } from './MissionDrawer'
+import { MAX_SCENARIOS } from '../lib/sightlineMission'
+import { LibraryTray } from './LibraryTray'
+import { useLibraryCards } from './useLibrary'
+import './library.css'
 import { PlannerCompare } from './PlannerCompare'
+import { PlannerCompareMore } from './PlannerCompareMore'
 import { PlannerDetail } from './PlannerDetail'
 import { type FindSite, PlannerFind } from './PlannerFind'
 import type { PlannerTab } from './plannerFit'
@@ -71,6 +76,8 @@ interface Props {
   sunlightWm2: (number | null | undefined)[]
   /** A notice for the header's last row: a saved plan's name and note. */
   banner?: ReactNode
+  /** Open the Library page: the tray's "Find more". */
+  onLibrary: () => void
 }
 
 const TABS: { id: PlannerTab; label: string; title: string }[] = [
@@ -90,7 +97,7 @@ const ROOM_FOR_BOTH_PX = 1000
  * scenarios side by side. The Moon stays as a small live view in the corner (drawn by the screen,
  * not here), and is itself a way back.
  */
-export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, dataYears, onYear, landingBounds, onFarLanding, banner = null }: Props) {
+export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, dataYears, onYear, landingBounds, onFarLanding, banner = null, onLibrary }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -118,6 +125,11 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
     ties: shareTies(scenarios.map((scenario, i) => ({ site: scenario.site, siteId: siteIds[i], validation: siteIds[i] === null ? undefined : validations[siteIds[i]] }))),
   })
   const spans = useMemo(() => monthSpans(start, hours), [start, hours])
+
+  // The tray: landings pulled in from the Library page, to add to Compare. Read and worked out only once it is opened.
+  const [trayWanted, setTrayWanted] = useState(false)
+  const wantTray = useCallback(() => setTrayWanted(true), [])
+  const library = useLibraryCards({ wanted: trayWanted, start, hours, flagged, mission, scenarios })
 
   const exportTable = () => {
     const csv = plannerCsv(
@@ -154,6 +166,23 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
             </button>
           ))}
         </div>
+        <LibraryTray
+          start={start}
+          cards={library.trayCards}
+          letterOf={library.letterOf}
+          room={scenarios.length < MAX_SCENARIOS}
+          onCompare={(card) => {
+            if (!card.scenario) return
+            // Added for comparing, not opened: the scenario on show stays the one you are working on.
+            const working = active
+            onAdd(card.scenario)
+            onSelect(working)
+          }}
+          onRemove={library.toggle}
+          onOpenCompare={() => onTab('compare')}
+          onOpenLibrary={onLibrary}
+          onWanted={wantTray}
+        />
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
         <span className="pl-tools">
           <button type="button" className="sl-small" title="Opens a written summary of the scenario on show." onClick={onBrief}>
@@ -195,8 +224,13 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
             <PlannerFind start={start} hours={hours} flagged={findSites} scenarios={scenarios} shown={{ siteId: facts[active].site.id, landing: scenarios[active].landing }} spans={spans} year={year} mission={mission} onMission={onMission} count={scenarios.length} onAdd={onAdd} dataYears={dataYears} onYear={onYear} />
           ) : (
             <>
+              {scenarios.length > 1 && <PlannerCompareMore part="glance" start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} active={active} onSelect={onSelect} onRemove={onRemove} />}
               <PlannerCompare start={start} hours={hours} flagged={flagged} scenarios={scenarios} facts={facts} mission={mission} groups={groups} active={active} onSelect={onSelect} onChange={onChange} onAdd={onAdd} onRemove={onRemove} bounds={landingBounds} onFar={onFarLanding} />
-              <PlannerDetail start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} landings={landings} active={active} onSelect={onSelect} />
+              {scenarios.length > 1 ? (
+                <PlannerCompareMore part="rest" start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} active={active} onSelect={onSelect} onRemove={onRemove} />
+              ) : (
+                <PlannerDetail start={start} hours={hours} scenarios={scenarios} facts={facts} mission={mission} measures={measures} landings={landings} active={active} onSelect={onSelect} />
+              )}
             </>
           )}
         </div>

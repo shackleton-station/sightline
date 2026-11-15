@@ -429,8 +429,9 @@ describe('tools', () => {
       earth: 'out of view',
       landing: 'does not meet the limits',
       problem_1: 'Earth is out of view at landing',
-      next_landing: '21 June 2027, 17:00 UTC',
-      next_landing_wait: '41 h',
+      // The hour the screen offers: the first that fits with Earth's center above the skyline, not the edge of Earth alone.
+      next_landing: '22 June 2027, 07:00 UTC',
+      next_landing_wait: '2 d 7 h',
     })
   })
 
@@ -469,8 +470,10 @@ describe('tools', () => {
     expect(found.option_1_time).toBe('10 May 2027, 12:00 UTC')
   })
 
-  it("describe the visitor's view, and for a custom point name the nearest listed site", async () => {
-    const custom = await viewFacts(viewFrom('#a=-89.46,-137.2@2027-05&t=100&limits=14_72_72_1_1&mode=plan'), data)
+  it("describe the visitor's view, and for a custom point that cannot be worked out here name the nearest listed site", async () => {
+    // A store with no terrain tiles: a custom point cannot be worked out, whatever tiles this machine holds.
+    const noTiles = siteData(dataDir, { get: async () => null })
+    const custom = await viewFacts(viewFrom('#a=-89.46,-137.2@2027-05&t=100&limits=14_72_72_1_1&mode=plan'), noTiles)
     const found = Object.fromEntries(custom.map((item) => [item.key, item.value]))
     expect(found.site).toContain('custom point')
     expect(found.site_nearest).toBe('Connecting Ridge')

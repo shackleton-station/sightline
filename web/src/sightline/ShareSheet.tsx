@@ -2,6 +2,7 @@ import { type FormEvent, type KeyboardEvent, useLayoutEffect, useRef, useState }
 import { createPortal } from 'react-dom'
 import { copyWhenKnown } from '../lib/copyText'
 import { planLink } from '../lib/planLink'
+import { rememberPlan } from '../lib/myPlans'
 import { markSightline } from '../lib/planView'
 import { attemptFor, MAX_NOTE, MAX_TITLE, type SaveAttempt, savePlan } from '../lib/plans'
 import './shareSheet.css'
@@ -150,6 +151,8 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
       setState({ kind: 'failed', message: saveFailure(result.status) })
       return
     }
+    // Noted in this browser, so the Library can offer it under "Your plans" to pick up again.
+    rememberPlan(result.value, name)
     // A browser that neither copies nor refuses is not waited for: the sheet then says only that the plan is saved.
     const copiedNow = await Promise.race([copying, new Promise<boolean>((done) => window.setTimeout(() => done(false), COPY_WAIT_MS))])
     setState({ kind: 'saved', link: planLink(window.location.origin, result.value), copied: copiedNow })
@@ -179,6 +182,7 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
                 <p className="sl-share-kept">
                   It opens with the name and note on show. Kept {KEPT_DAYS} days, for anyone with the link.
                 </p>
+                <p className="sl-share-listed">Its name and landings are in the Planner’s library, for anyone to find.</p>
               </div>
               <button ref={first} type="button" className="sl-share-plain" onClick={onCopy}>
                 Copy link without the name or note
@@ -206,6 +210,7 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
                   </span>
                   <textarea name="plan-note" value={note} maxLength={MAX_NOTE} rows={2} onChange={(event) => setNote(event.target.value)} />
                 </label>
+                <p className="sl-share-listed">Its name and landings join the Planner’s library, for anyone to find. The note does not.</p>
                 <div className="sl-share-row">
                   <p className="sl-share-kept" id="sl-share-kept">
                     Kept {KEPT_DAYS} days, for anyone with the link.

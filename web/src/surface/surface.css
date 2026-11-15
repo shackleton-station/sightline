@@ -117,6 +117,27 @@
   fill: var(--text);
 }
 
+/* The month's path: a thin line under the hour dots, solid where the body is up, dashed behind the land. */
+.sf-path {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  opacity: 0.7;
+}
+
+.sf-path.sun {
+  stroke: var(--sun);
+}
+
+.sf-path.earth {
+  stroke: var(--earth);
+}
+
+.sf-path.hidden {
+  stroke-dasharray: 4 4;
+  opacity: 0.45;
+}
+
 .sf-hour {
   opacity: 0.75;
 }

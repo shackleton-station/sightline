@@ -2057,17 +2057,30 @@
   min-width: 0;
 }
 
+/* The panel's one figure: first, large, and in the text's own color. It is not green or gold, which
+   elsewhere mean "fits" and "better": a low share in green would read as good news. */
+.sl-np .np-rain-ask {
+  grid-column: 1 / -1;
+  margin: 0.7rem 0 0;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
 .sl-np .np-rain-big {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.8rem;
   margin: 0;
 }
 
 .sl-np .np-rain-big strong {
-  color: var(--both);
+  color: var(--text);
   font-family: var(--pl-mono);
-  font-size: 2.4rem;
+  font-size: 2.6rem;
+  /* "under 1%" stays on one line. */
+  white-space: nowrap;
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -2075,13 +2088,15 @@
 }
 
 .sl-np .np-rain-big span {
-  color: var(--soft);
-  font-size: 0.8125rem;
+  color: var(--text);
+  font-size: 0.9375rem;
   line-height: 1.35;
 }
 
-.sl-np .np-rain-big small {
+.sl-np .np-rain-shown {
+  margin: 0;
   color: var(--muted);
+  font-size: 0.8125rem;
 }
 
 .sl-np .np-rain-bars {
@@ -2953,12 +2968,9 @@
   line-height: 1.4;
 }
 
+/* The share the better aim gives: bold, in the line's own color and type, so the panel has one highlighted figure. */
 .sl-np .np-act b {
-  font-family: var(--pl-mono);
-}
-
-.sl-np .np-act .is-better {
-  color: var(--gold);
+  font-weight: 700;
 }
 
 .sl-np .np-act-go {
@@ -3004,7 +3016,7 @@
 .sl-np .np-lead {
   grid-column: 1 / -1;
   max-width: 62ch;
-  margin: 0.9rem 0 0.9rem;
+  margin: 0 0 0.9rem;
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.5;
@@ -3017,4 +3029,84 @@
 .sl-np .np-lead b:first-child {
   display: block;
   margin-bottom: 0.25rem;
+}
+
+/* The New Planner's Compare set inside the Planner's Compare: no page layout of its own. */
+.sl-np.is-inset {
+  grid-area: auto;
+  overflow: visible;
+  margin-top: 1.2rem;
+  padding: 0;
+  background: none;
+}
+
+/* Inside the Planner: its flat look. No boxed panels, a hairline over each section; the scorecard
+   as plain coloured values on hairline rows, like the Planner's own table. */
+.sl-np.is-inset .np-play,
+.sl-np.is-inset .np-mc {
+  margin-top: 1.6rem;
+  padding: 0.9rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+}
+
+.sl-np.is-inset .np-compare-sub {
+  margin-top: 1.6rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.sl-np.is-inset .np-score-grid {
+  gap: 0;
+}
+
+.sl-np.is-inset .np-score-row.is-head span {
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.sl-np.is-inset .np-score-name {
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.sl-np.is-inset .np-square {
+  min-height: 2.2rem;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.sl-np.is-inset .np-square.is-good,
+.sl-np.is-inset .np-square.is-close,
+.sl-np.is-inset .np-square.is-over,
+.sl-np.is-inset .np-square.is-none {
+  background: none;
+}
+
+.sl-np.is-inset .np-square i {
+  height: 2px;
+  opacity: 0.4;
+}
+
+.sl-np.is-inset .np-key {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.sl-np .np-near-spots li.is-here {
+  border-color: var(--gold);
+}
+
+.sl-np .np-near-here {
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sl-np.is-inset.is-glance {
+  margin: 0.9rem 0 1.4rem;
 }

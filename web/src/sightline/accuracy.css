@@ -22,10 +22,17 @@
   white-space: nowrap;
 }
 
-/* When the verdict for the exact point and the ground around it disagree, that is said with the answer. */
-.sl-accuracy .sl-accuracy-differs {
-  margin: 0.4rem 0 0;
+/* The verdict on the left, said again for the aim point, above the answer for the ground around it. */
+.sl-accuracy .sl-accuracy-point {
+  margin: 0.5rem 0 0;
+  padding-left: 0.5rem;
+  border-left: 3px solid var(--sl-fits);
   font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.sl-accuracy .sl-accuracy-point.is-miss {
+  border-left-color: var(--sl-miss);
 }
 
 .sl-accuracy .sl-accuracy-answer.is-fit strong {
@@ -128,4 +135,28 @@
 
 .sl-accuracy .sl-accuracy-more > h3:first-of-type {
   margin-top: 0.6rem;
+}
+
+/* "Where the lander may come down", as the Planner has it, inside the panel: the Planner's own rules
+   (newPlanner.css, under .sl-np) without the Planner's page box, and the panel wide enough for its map. */
+.sl-drawer.sl-accuracy {
+  width: min(23rem, 30vw);
+}
+
+.sl-accuracy .sl-np.sl-accuracy-rain {
+  grid-area: auto;
+  overflow: visible;
+  margin-top: 0.6rem;
+  padding: 0;
+  background: none;
+}
+
+.sl-accuracy .sl-accuracy-shade {
+  margin-top: 0.9rem;
+}
+
+@media (max-width: 760px) {
+  .sl-drawer.sl-accuracy {
+    width: auto;
+  }
 }

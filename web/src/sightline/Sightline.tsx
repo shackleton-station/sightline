@@ -11,7 +11,7 @@ import { ringedSites } from '../lib/scoutRing'
 import { horizonAt } from '../lib/customModel'
 import { BASE_HEIGHT_M, DEFAULT_HEIGHTS, heightsWords } from '../lib/heights'
 import { chipWords, earthShare as earthShareOf, shortWhen } from '../lib/sightlineSky'
-import { marginalAtLanding } from '../lib/landingVerdict'
+import { landingVerdict, marginalAtLanding } from '../lib/landingVerdict'
 import { bodyRadiiDeg } from '../lib/surfaceView'
 import { HowItWorks } from '../shell/HowItWorks'
 import { hourOf, locateHour, missionEarth } from '../lib/mission'
@@ -39,6 +39,7 @@ import {
   steadierLanding,
   DEFAULT_MISSION,
   fitProblems,
+  landingMiss,
   nearestFittingSite,
   MAX_SCENARIOS,
   measureScenario,
@@ -62,6 +63,8 @@ import { layersReach, lightReachKm } from '../lib/layerReach'
 import { Answer } from './Answer'
 import { ScoutPanel, useScoutChat } from './AskScout'
 import { FullPlanner } from './FullPlanner'
+import { LibraryPage } from './LibraryPage'
+import { planHash } from '../lib/plans'
 import { NewPlanner } from './NewPlanner'
 import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
@@ -76,7 +79,10 @@ import guidesFile from './guides.json'
 import tourFile from './tour.json'
 import { AccuracyDrawer } from './AccuracyDrawer'
 import { FitLegend } from './FitLegend'
-import { useMissionGrid, useMoonShade, useScenarioOdds } from './useMissionGrid'
+import { useMissionGrid, useMoonShade } from './useMissionGrid'
+import { useFieldReadings, useLandingFields } from './useLandingFields'
+import type { FieldAsk } from '../data/landingField'
+import { latticeFor } from '../lib/landingField'
 import { closenessWords } from '../lib/accuracyWords'
 import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spreadWords } from '../lib/landingOdds'
 import { defaultScenarios } from '../lib/defaultPair'
@@ -100,7 +106,7 @@ import {RemovedNotice, ScenarioTabs } from './Scenarios'
 import { siteValue } from './site'
 import { Skyline } from './Skyline'
 import { loadScenarioAt } from '../data/heights'
-import { firstFitFrom, goodLandingFrom } from './openingLanding'
+import { firstFitFrom, goodLandingFrom } from '../lib/openingLanding'
 import { Stage } from './Stage'
 import { bothPct } from './plannerTable'
 import { SurfaceFrame } from './SurfaceFrame'
@@ -194,6 +200,12 @@ interface Props {
  * The one screen. Watch is the Moon playing with everything else hideable; Plan puts a frame round
  * the Moon with the question (At, On, For) and the answer. One clock drives both.
  */
+/**
+ * The New Planner has no button since 2026-11-15: the rail offers one planner. It still opens from
+ * its own address, the site with "?new-planner" before any "#", which nothing in the app links to.
+ */
+const NEW_PLANNER_LINK = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('new-planner')
+
 export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Props) {
   // Every site's flags share one start and length: the years on hand. Clock hours count from that
   // start. More years are only ever added after them, so an hour keeps its number while the page is open.
@@ -218,7 +230,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [arrivedForHype] = useState(() => window.location.hash === HYPE_HASH)
   const [hypeFound, setHypeFound] = useState(arrivedForHype)
   useEffect(forgetOldHype, [])
-  const [plan, setPlan] = useState(linked !== null || arrivedForHype)
+  const [plan, setPlan] = useState(linked !== null || arrivedForHype || NEW_PLANNER_LINK)
   // Up to four scenarios, A to D; the column, the skyline and the answer are about the active one.
   // With none in the address, Plan starts with two: the two prospective sites at the same hour, so
   // Compare has something to compare from the first press.
@@ -253,10 +265,23 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const chat = useScoutChat(takenByScreen)
   // The Planner takes the whole window, with the Moon kept small in a corner; How it works opens as a sheet over the scene.
   // A link that names a Planner tab opens the Planner on it.
-  const [full, setFull] = useState(() => linked !== null && plannerTabIn(window.location.hash) !== null)
+  const [full, setFull] = useState(() => NEW_PLANNER_LINK || (linked !== null && plannerTabIn(window.location.hash) !== null))
   const [plannerTab, setPlannerTab] = useState<PlannerTab>(() => plannerTabIn(window.location.hash) ?? 'find')
   // Which Planner the whole window shows: the Find and Compare one, or the New Planner (the Planner page's look on this screen's data).
-  const [newPlanner, setNewPlanner] = useState(false)
+  const [newPlanner, setNewPlanner] = useState(NEW_PLANNER_LINK)
+  // The Library takes the Planner's place in the full view. It is not held in the link, and closing the full view closes it.
+  const [library, setLibrary] = useState(false)
+  // The id of a saved plan being opened again from the Library, until its link is in the address.
+  const [resuming, setResuming] = useState<string | null>(null)
+  useEffect(() => {
+    if (!full) setLibrary(false)
+  }, [full])
+  const openLibrary = () => {
+    // In the full view the only panel is Scout's.
+    if (drawer !== 'scout') setDrawer(null)
+    setLibrary(true)
+    setFull(true)
+  }
   const [how, setHow] = useState(openHow)
   // The written brief for the scenario on show, as a sheet too.
   const [brief, setBrief] = useState(false)
@@ -421,6 +446,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const landing = steadierLanding(flags, firstBetter.landing, mission, sunShares, monthStart, earthCenterAbove)
     return landing === scenario.landing ? null : { landing, waitH: landing - scenario.landing, marginal: marginalHour(mission.requirements, sunShares, earthCenterAbove, landing - monthStart) }
   }, [flags, firstBetter?.landing, firstBetter?.waitH, betterTrack, betterData, betterMonth.error, mission, betterAt.index, scenario.landing])
+  // A landing that fits only marginally is offered a steadier hour: the first one after it, in the
+  // same sunlit stretch of the same month, where at least half the Sun's disc shows and Earth's
+  // center is above the skyline (where the mission needs Earth at landing). The search is the one
+  // behind "Next landing that fits" (`steadierLanding`), so the two offers cannot disagree.
+  const steadier = useMemo(() => {
+    if (!flags || !here || marginal.length === 0) return null
+    const sunShares = here.track.map((point) => point.sun_frac)
+    const earthSkyline = here.earthHorizon ?? here.horizon
+    const earthCenterAbove = here.track.map((point) => point.earth_el - horizonAt(earthSkyline, point.earth_az) >= 0)
+    const landing = steadierLanding(flags, scenario.landing, mission, sunShares, scenario.landing - landingAt.index, earthCenterAbove)
+    return landing === scenario.landing ? null : { landing }
+    // `marginal` is a new list each time the page draws: its words say all that matters here.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [flags, here, marginal.join('|'), mission, scenario.landing, landingAt.index])
   // Another site for the same date, offered with the next landing when this one does not fit: the
   // nearest listed site of the same group where the verdict's own rules pass on this date.
   const misses = problems !== null && problems.length > 0
@@ -551,6 +590,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const withSky = (link: string) => (skyMin === skyStartsFolded ? link : `${link}&sky=${skyMin ? 0 : 1}`)
     setAddressBar(plan ? withSky(full ? withPlannerTab(view, plannerTab) : view) : window.location.pathname)
   }, [plan, view, full, plannerTab, skyMin, skyStartsFolded])
+  // A saved plan asked for from the Library. The Library closes first; this effect comes after the one
+  // above on purpose, so the plan's short link goes into the address after the screen has written its
+  // own, not before, and is still there to be read and opened (usePlanLink).
+  useEffect(() => {
+    if (resuming === null || full) return
+    window.location.hash = planHash(resuming)
+    setResuming(null)
+  }, [resuming, full])
 
   // A date the data covers but in a year not on hand: ask for the years, and go there once they
   // are here. A date far from the years on hand starts the screen again around it, on this link.
@@ -1023,23 +1070,39 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   }, [wantGrid, lightGrid.meta, lightGrid.month, lightGrid.wide, lightGrid.wideMeta, site.lat, site.lon, index])
   const planner = shown && full
   const savedCard = (inHeader: boolean) => <SavedPlanCard plan={savedPlan.plan} problem={savedPlan.problem} onDismiss={savedPlan.dismiss} inHeader={inHeader} layout={shown ? 'plan' : 'watch'} />
-  // Landing accuracy: the light grid read for the landing, for the panel's map and odds, and (when
-  // asked for) the same verdicts shaded on the Moon. Its months are megabytes, read only then.
-  const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, shown && !planner && drawer === 'accuracy')
+  // The light grid's description, for the shading of "Landings that fit" on the Moon. The panel's own
+  // map and odds no longer read the grid: they come from landing points (below).
+  const missionGrid = useMissionGrid(start, scenario.landing, mission.requirements.missionDays, false)
   // The shade on the Moon follows the time bar, as the Moon does: it is for a landing at the hour on show.
   const moonShade = useMoonShade(missionGrid.meta, start, hour, mission, spread, shown && !planner && fitShade)
   // Whether the light grid reaches the site on show: only there do the odds know the terrain.
   const fitHere = missionGrid.meta ? cellAt(missionGrid.meta, site.lat, site.lon) !== null : shadeHere
-  // Each scenario's odds of landing where the mission fits: read only once Landing accuracy is in use.
-  const odds = useScenarioOdds(
-    missionGrid.meta,
-    start,
-    scenarios,
-    facts.map((fact) => fact.site),
-    mission,
-    spread,
-    shown && accuracyUsed,
-  )
+  // Landing accuracy from landing points around each scenario's target, each judged as the verdict
+  // judges a point: worked out once Landing accuracy is in use, or for the scenario whose panel is open.
+  // A spread being dragged is worked out once it rests: its lattice of points changes with it.
+  const [restedSpread, setRestedSpread] = useState(spread)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setRestedSpread(spread), 250)
+    return () => window.clearTimeout(timer)
+  }, [spread])
+  const pointsLattice = useMemo(() => latticeFor(restedSpread), [restedSpread])
+  const accuracyOpen = shown && !planner && drawer === 'accuracy'
+  const fieldAsks = scenarios.map((each, i): FieldAsk | null => {
+    if (!shown || !(accuracyUsed || (accuracyOpen && i === active))) return null
+    const at = facts[i].site
+    // The heights the scenario's verdict is for: a custom point is worked out at 2 m only.
+    const heights = isCustomSite(at) ? DEFAULT_HEIGHTS : lit.applied
+    return { lat: at.lat, lon: at.lon, panelM: heights.panelM, antennaM: heights.antennaM, startIso: start, landing: each.landing, missionDays: mission.requirements.missionDays, clearanceDeg: mission.requirements.minEarthClearanceDeg, lattice: pointsLattice }
+  })
+  const fields = useLandingFields(fieldAsks)
+  // The verdict for each scenario's aim point itself, which its landing points are made to agree with.
+  const aimVerdicts = scenarios.map((each, i) => {
+    const known = facts[i].flags
+    return known ? landingMiss(known, each.landing, mission, facts[i].slopeDeg) : undefined
+  })
+  // One reading of each scenario's points: the panel, the line under the verdict and Compare all show it.
+  const readings = useFieldReadings(fields, mission, spread, aimVerdicts)
+  const odds = readings.map((reading) => reading?.odds.fit ?? null)
   // A layer of the ground near the south pole is seen close: switching one on from Orbit or Surface
   // goes to Site in the same move. Place names, which cover the whole Moon, change no view. While a
   // tour or guide is on, the view stays where its step put it.
@@ -1179,7 +1242,21 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                             }
                           },
                         }
-                      : null
+                      : steadier
+                        ? {
+                            when: shortWhen(clockTime(start, steadier.landing), landingAt.month.slice(0, 4)),
+                            margin: true,
+                            adds: scenarios.length < MAX_SCENARIOS,
+                            onTake: () => {
+                              // As the next landing that fits: another scenario while there is room; with four already, this landing moves there.
+                              if (scenarios.length < MAX_SCENARIOS) addScenario({ site: scenario.site, landing: steadier.landing })
+                              else {
+                                setScenario((current) => ({ ...current, landing: steadier.landing }))
+                                setHour(steadier.landing)
+                              }
+                            },
+                          }
+                        : null
                   }
                   elsewhere={
                     elsewhere
@@ -1207,6 +1284,26 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
                       {oddsWords(odds[active])} of landings fit
                     </button>{' '}
                     at {spreadWords(spread)} accuracy
+                  </p>
+                )}
+                {/* What a planner asks next when a date or a site slips: the Planner's months and its
+                    other landings near this one. One line that opens it,
+                    shown only when the verdict offers no other landing or site itself, so the column keeps its height. */}
+                {problems && !steadier && !elsewhere && !(better && problems.length > 0) && (
+                  <p className="sl-odds-line">
+                    <button
+                      type="button"
+                      className="sl-link"
+                      title="Opens the Planner at this site: every month with a landing that fits, and other landings near this one."
+                      onClick={() => {
+                        if (drawer !== 'scout') setDrawer(null)
+                        setNewPlanner(false)
+                        setPlannerTab('find')
+                        setFull(true)
+                      }}
+                    >
+                      If the plan has to move <span aria-hidden="true">›</span>
+                    </button>
                   </p>
                 )}
                 </>
@@ -1411,7 +1508,41 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         {!bare && !plan && !(scoutOpen && room === 'phone') && <PlayControl clock={clock} date={clockDate(start, hour)} span={monthSpan(start, hour)} minimised={pillMin} onMinimise={setPillMin} />}
       </main>
 
-      {planner && newPlanner && (
+      {planner && library && (
+        <LibraryPage
+          start={start}
+          hours={hours}
+          flagged={lit.flagged}
+          scenarios={scenarios}
+          mission={mission}
+          active={active}
+          onSelect={setActive}
+          onAdd={addScenario}
+          onBack={() => setFull(false)}
+          onCompare={() => {
+            setLibrary(false)
+            setNewPlanner(false)
+            setPlannerTab('compare')
+          }}
+          onResume={(id) => {
+            // The Library closes, and then the address becomes the plan's short link, which opens it.
+            setFull(false)
+            setResuming(id)
+          }}
+          onShow={(picked) => {
+            // In the plan already: choose it. Otherwise add it, which also puts it on show.
+            const at = scenarios.findIndex((one) => one.site === picked.site && one.landing === picked.landing)
+            if (at < 0) addScenario(picked)
+            else {
+              setActive(at)
+              setHour(picked.landing)
+            }
+            // Back to the main screen, where the plan column at the top left shows it.
+            setFull(false)
+          }}
+        />
+      )}
+      {planner && !library && newPlanner && (
         <NewPlanner
           start={start}
           hours={hours}
@@ -1436,8 +1567,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           banner={savedCard(true)}
         />
       )}
-      {planner && !newPlanner && (
+      {planner && !library && !newPlanner && (
         <FullPlanner
+          onLibrary={openLibrary}
           start={start}
           hours={hours}
           flagged={lit.flagged}
@@ -1517,6 +1649,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             openAtVideo={howAtVideo}
             why={why}
             openAtWhy={howAtWhy}
+            verdict={problems ? landingVerdict(problems, marginal) : null}
           />
         </div>
       )}
@@ -1563,7 +1696,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         }} />
       )}
       {shown && !planner && drawer === 'rover' && <RoverDrawer long={presetOf(mission)?.id === 'long'} onClose={() => setDrawer(null)} />}
-      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} grid={missionGrid} spread={spread} onSpread={setSpread} fits={problems ? problems.length === 0 : null} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
+      {shown && !planner && drawer === 'accuracy' && <AccuracyDrawer site={site} mission={mission} heights={siteHeights} start={start} landing={scenario.landing} verdict={aimVerdicts[active]} spread={spread} onSpread={setSpread} shade={fitShade} onShade={showFitShade} onAim={(lat, lon) => setScenario((current) => ({ ...current, site: `${lat},${lon}` }))} onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'hype' && <HypeDrawer onClose={() => setDrawer(null)} />}
       {shown && !planner && drawer === 'layers' && <LayersDrawer reach={layerReach.trek} lightKm={lightReachKm(gridMeta)} place={site.name} onShowHow={tourAt === null ? () => startTour('views') : null} odds={{ on: fitShade, here: fitHere, lander: closenessWords(spread) }} onOddsDetails={() => setDrawer('accuracy')} onOdds={shadeCloseUp} names={{ on: namesOn, state: placeNames.state }} onNames={setNamesOn} layer={layer} onLayer={(next) => {
             if (next !== null) closeUp()
@@ -1589,6 +1722,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             setNewPlanner(false)
             setFull(true)
           }}
+          onLibrary={openLibrary}
           onNewPlanner={() => {
             if (drawer !== 'scout') setDrawer(null)
             setNewPlanner(true)

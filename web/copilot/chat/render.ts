@@ -6,7 +6,6 @@ export type FactBook = Map<string, Fact[]>
 export type Rendered = { ok: true; text: string } | { ok: false; problem: string }
 
 const REFERENCE = /\{\{\s*(r\d+)\.([a-z0-9_]+)\s*\}\}/g
-const MAX_CHARS = 900
 
 /**
  * Ways to write a number that are not ASCII digits. The model is told never to write a number itself
@@ -32,6 +31,22 @@ function numberWritten(rest: string): string | null {
     return 'You wrote a number in words. Every number, date, time and share must be a {{reference}} to a tool result.'
   }
   return null
+}
+
+/**
+ * A listed site's name and the shorter forms of it a sentence uses: "Chandrayaan-3 (India)" is also
+ * "Chandrayaan-3", "Chang'e 4 (China, far side)" is also "Chang'e 4", "IM-2 Athena" is also "IM-2".
+ * Each is a name, not a number of the model's own, so each is taken out of a draft before it is
+ * searched for digits. Without the short forms a draft that says "the Chandrayaan-3 site" was refused,
+ * and the visitor got the raw list of facts in its place.
+ */
+export function nameForms(name: string): string[] {
+  const parts = name
+    .split(/ · |, | \(|\)/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 1 && /[A-Za-z]/.test(part))
+  const joined = name.match(/[A-Za-z][A-Za-z'’]*-\d+/g) ?? []
+  return [...new Set([name, ...parts, ...joined])]
 }
 
 /** The text with the allowed words (site names, data years) taken out, longest first so "Apollo 11" goes before a shorter name could split it. */
@@ -68,7 +83,6 @@ export function renderAnswer(draft: string, book: FactBook, allowedWords: string
   }
   const written = numberWritten(rest)
   if (written) return { ok: false, problem: written }
-  if (filled.length > MAX_CHARS) return { ok: false, problem: 'Too long. At most three sentences and about sixty words: say each figure once and leave the list of limits out.' }
   return { ok: true, text: filled }
 }
 

@@ -18,9 +18,9 @@ describe('scenarioScene', () => {
   it('names the scenario on show and makes it the view', async () => {
     const scene = await scenarioScene(TWO, viewFrom(TWO), data)
     const value = (key: string) => scene?.facts.find((item) => item.key === key)?.value
-    expect(value('scenario_on_screen')).toBe('B: Shackleton Rim, landing 6 May 2027, 13:00 UTC')
+    expect(value('scenario_on_screen')).toBe('B: a landing at Shackleton Rim on 6 May 2027, 13:00 UTC')
     expect(value('scenario_count')).toBe('2')
-    expect(value('scenario_a')).toBe('Connecting Ridge, landing 6 May 2027, 13:00 UTC')
+    expect(value('scenario_a')).toBe('a landing at Connecting Ridge on 6 May 2027, 13:00 UTC')
     expect(scene?.view.a).toEqual({ site: 'shackleton-rim', month: '2027-05' })
     expect(scene?.view.index).toBe(133)
     // The other scenario stays with the view, so a button can still open it.
@@ -44,7 +44,7 @@ describe('scenarioScene', () => {
   it('with one scenario still says which is on screen', async () => {
     const one = '#a=connecting-ridge@2027-05&t=133&limits=14_24_99999_1_1&mode=plan&sc=0'
     const scene = await scenarioScene(one, viewFrom(one), data)
-    expect(scene?.facts.find((item) => item.key === 'scenario_on_screen')?.value).toMatch(/^A: Connecting Ridge/)
+    expect(scene?.facts.find((item) => item.key === 'scenario_on_screen')?.value).toMatch(/^A: a landing at Connecting Ridge on /)
     expect(scene?.view.shortlist).toEqual([])
   })
 
@@ -57,7 +57,7 @@ describe('scenarioScene', () => {
     // On a date that fits at no ridge site it says so, and only for the scenario on show.
     const none = await scenarioScene(TWO, viewFrom(TWO), data)
     expect(none?.facts.find((item) => item.key === 'scenario_b_fits_at_another_site')).toBeUndefined()
-    expect(none?.facts.find((item) => item.key === 'scenario_b_no_other_site_fits')?.value).toMatch(/^no other (south pole|Apollo|CLPS) site fits on that date$/)
+    expect(none?.facts.find((item) => item.key === 'scenario_b_no_other_site_fits')?.value).toMatch(/^no other (south pole|Apollo|CLPS) site fits on 6 May 2027 either$/)
     expect(none?.facts.find((item) => item.key === 'scenario_a_fits_at_another_site')).toBeUndefined()
     expect(none?.facts.find((item) => item.key === 'scenario_a_no_other_site_fits')).toBeUndefined()
   })

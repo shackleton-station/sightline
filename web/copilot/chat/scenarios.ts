@@ -11,6 +11,8 @@ import type { SiteData } from '../../shared/tools/data'
 import { fact, type Fact, isoAt, reasonClause, whenLabel } from '../../shared/tools/facts'
 import { marginalReasons, skylineFigure } from '../../src/lib/sightlineSky'
 import { nextLandingOnScreen } from '../../shared/tools/nextLanding'
+import { listWords } from '../../shared/tools/ties'
+import { goodLandingFrom } from '../../src/lib/openingLanding'
 
 /** What the co-pilot is told when the visitor is on the Sightline screen, which holds up to four scenarios. */
 export interface ScenarioScene {
@@ -47,11 +49,15 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
   const link = readScenarioLink(hash, span.start, span.sun.length)
   if (!link) return null
   const { scenarios, active, mission } = link
-  const nameOf = (scenario: SightlineScenario) => sites.find((site) => site.id === scenario.site)?.name ?? 'a custom point'
-  const words = (scenario: SightlineScenario) => `${nameOf(scenario)}, landing ${whenLabel(isoAt(span.start, scenario.landing))}`
+  // Each scenario's site: a listed one, or a custom point worked out here by the page's own code
+  // (shared/tools/customPoints.ts). Null only for a custom point that cannot be worked out here.
+  const places = await Promise.all(scenarios.map((scenario) => data.site(scenario.site).catch(() => null)))
+  const nameOf = (scenario: SightlineScenario) => places[scenarios.indexOf(scenario)]?.name ?? 'a custom point'
+  // A scenario in words that sit in a sentence: "a landing at Connecting Ridge on 6 May 2027, 12:00 UTC".
+  const words = (scenario: SightlineScenario) => `a landing at ${nameOf(scenario)} on ${whenLabel(isoAt(span.start, scenario.landing))}`
 
   const facts: Fact[] = [
-    fact('scenario_on_screen', 'The scenario on screen (answer about this one unless asked about another)', `${SCENARIO_LETTERS[active]}: ${words(scenarios[active])}`),
+    fact('scenario_on_screen', 'The scenario on screen: its letter, then what it is (answer about this one unless asked about another; cite its site and its landing time from its own facts, whose keys end in _site and _landing)', `${SCENARIO_LETTERS[active]}: ${words(scenarios[active])}`),
     fact('scenario_count', 'How many scenarios the visitor has', String(scenarios.length)),
   ]
   // The heights the visitor chose for the solar panel and the antenna, when not the app's own 2 m.
@@ -71,17 +77,32 @@ export async function scenarioScene(hash: unknown, base: ViewState, data: SiteDa
       fact('antenna_height', 'How high above the ground the antenna stands (Earth is read from here)', `${mission.heights.antennaM} m`),
     )
   }
+  const states: { letter: string; state: 'fits' | 'marginal' | 'miss' }[] = []
   for (const [i, scenario] of scenarios.entries()) {
     const letter = SCENARIO_LETTERS[i]
     const key = `scenario_${letter.toLowerCase()}`
     facts.push(fact(key, `Scenario ${letter}`, words(scenario)))
-    const site = sites.find((candidate) => candidate.id === scenario.site)
-    if (site) facts.push(...(await figures(key, letter, scenario, site, mission, data)))
-    // For the scenario on show, when it does not fit: the other site the visitor's screen offers for the same date.
-    if (site && i === active) facts.push(...(await elsewhere(key, letter, scenario, site, sites, mission, data)))
-    // Only a custom point has no figures here. (A listed site that is not on show has its figures above, and nothing more to say.)
-    if (!site) facts.push(fact(`${key}_figures`, `Scenario ${letter}: its figures`, 'not available here (a custom point, not a listed site)'))
+    // Its site and its landing time as facts of their own, to cite in a sentence: "at {{…_site}} on {{…_landing}}".
+    facts.push(fact(`${key}_site`, `Scenario ${letter}: its site`, nameOf(scenario)))
+    facts.push(fact(`${key}_landing`, `Scenario ${letter}: its landing time`, whenLabel(isoAt(span.start, scenario.landing))))
+    const site = places[i]
+    if (site) {
+      const own = await figures(key, letter, scenario, site, mission, data)
+      facts.push(...own)
+      const state = own.find((item) => item.key === `${key}_verdict_words`)?.value
+      states.push({ letter, state: state === 'Fits the mission' ? 'fits' : state === 'Fits, marginal' ? 'marginal' : 'miss' })
+      // What to try, for every scenario and not only the one on show: when it does not fit, its next landing
+      // that does (and, for the one on show, the other site the screen offers for the same date); when it
+      // fits only marginally, the next landing with margin.
+      facts.push(...(await elsewhere(key, letter, scenario, site, sites, mission, data, i === active)))
+      if (state === 'Fits, marginal') facts.push(...(await withMargin(key, letter, scenario, site, mission, data)))
+    }
+    // Only a custom point that could not be worked out has no figures here.
+    if (!site) facts.push(fact(`${key}_figures`, `Scenario ${letter}: its figures`, 'not available here (a custom point that could not be worked out; the column on their screen has them)'))
   }
+
+  // With more than one scenario: which of them fit, in one clause, so "which would you fly" starts from the verdicts.
+  if (states.length > 1) facts.push(fact('scenarios_that_fit', "Which scenarios meet the mission limits, by the verdicts on the visitor's screen (start a comparison of scenarios from this)", fitWords(states)))
 
   const onShow = scenarios[active]
   const { month, index } = locateHour(span.start, onShow.landing)
@@ -101,30 +122,66 @@ const GROUP_SITE: Record<string, string> = {
   CLPS: 'CLPS site',
 }
 
-async function elsewhere(key: string, letter: string, scenario: SightlineScenario, site: SiteInfo, sites: SiteInfo[], mission: SightlineMission, data: SiteData): Promise<Fact[]> {
+async function elsewhere(key: string, letter: string, scenario: SightlineScenario, site: SiteInfo, sites: SiteInfo[], mission: SightlineMission, data: SiteData, onShow: boolean): Promise<Fact[]> {
   const atHeights = async (id: string) => (isBaseHeights(mission.heights) ? null : await data.flagsAt(id, mission.heights).catch(() => null))
   const flagsOf = async (id: string) => (await atHeights(id)) ?? (await data.flags(id))
-  const group = sites.filter((other) => other.group === site.group)
+  // Only the scenario on show is looked for at the group's other sites; the others need their own hours alone.
+  // A custom point has no group of listed sites: it stands alone, so only its own next landing is said.
+  const alone = !sites.some((other) => other.id === site.id)
+  const group = onShow && !alone ? sites.filter((other) => other.group === site.group) : [site]
   const listed = await Promise.all(group.map(async (other) => ({ site: other, flags: await flagsOf(other.id) })))
   const own = listed.find((entry) => entry.site.id === site.id)
   if (!own || measureScenario(scenario, site, own.flags, mission, site.slope?.deg ?? null).problems.length === 0) return []
   // The next landing that fits, as the screen's column offers it: judged on the same hours as the
   // figures (the visitor's heights where their files can be read), with the Sun's disc seen from the panel.
   const high = (await atHeights(site.id)) !== null
-  const next = await nextLandingOnScreen(data, site.id, own.flags, isoAt(own.flags.start, scenario.landing), mission.requirements, high ? mission.heights.panelM : undefined)
+  const next = await nextLandingOnScreen(data, site.id, own.flags, isoAt(own.flags.start, scenario.landing), mission.requirements, high ? mission.heights.panelM : undefined, mission.heights.antennaM)
   const nextFacts = next
     ? [
         fact(`${key}_next_landing`, `Scenario ${letter}: the next landing at its site that meets the mission limits, as the visitor's screen offers it`, whenLabel(next.t)),
         fact(`${key}_next_landing_wait`, `Scenario ${letter}: the wait until that landing`, formatDuration(next.waitH)),
       ]
     : [fact(`${key}_next_landing`, `Scenario ${letter}: the next landing at its site that meets the mission limits`, 'none in the data')]
+  if (!onShow) return nextFacts
   const found = nearestFittingSite(site, scenario.landing, mission, listed)
   // Two facts, one or the other, each made to sit inside a sentence: the place where the same date
   // fits ("it fits at {{…}}"), or a clause saying that none of the group's other sites does.
   const other = found
     ? fact(`${key}_fits_at_another_site`, `Scenario ${letter}: the nearest site of the same group (${site.group}) where the same landing date meets the mission limits`, `${found.site.name}, ${found.km < 10 ? found.km.toFixed(1) : Math.round(found.km)} km away`)
-    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on the same landing date, as a clause that stands in a sentence`, `no other ${GROUP_SITE[site.group] ?? 'site in its group'} fits on that date`)
-  return [...nextFacts, other]
+    : fact(`${key}_no_other_site_fits`, `Scenario ${letter}: the other sites of the same group (${site.group}) on this scenario's own landing date, not on its next landing's, as a clause that stands in a sentence`, `no other ${GROUP_SITE[site.group] ?? 'site in its group'} fits on ${whenLabel(isoAt(own.flags.start, scenario.landing)).split(',')[0]} either`)
+  return alone ? nextFacts : [...nextFacts, other]
+}
+
+/** Which scenarios meet the limits, as a clause: "neither scenario meets the mission limits", "only B meets the mission limits", "A meets the mission limits and C only marginally; B does not". */
+export function fitWords(states: { letter: string; state: 'fits' | 'marginal' | 'miss' }[]): string {
+  const of = (state: 'fits' | 'marginal' | 'miss') => states.filter((one) => one.state === state).map((one) => one.letter)
+  const [fits, marginal, miss] = [of('fits'), of('marginal'), of('miss')]
+  if (miss.length === states.length) return states.length === 2 ? 'neither scenario meets the mission limits' : 'none of the scenarios meets the mission limits'
+  const meet = (letters: string[]) => `${listWords(letters)} ${letters.length === 1 ? 'meets' : 'meet'} the mission limits`
+  const good = [fits.length > 0 ? meet(fits) : '', marginal.length > 0 ? `${fits.length > 0 ? listWords(marginal) : meet(marginal)}${fits.length > 0 ? '' : ', and'} only marginally` : ''].filter(Boolean).join(' and ')
+  if (miss.length === 0) return states.length === fits.length ? `${states.length === 2 ? 'both scenarios' : 'all the scenarios'} meet the mission limits` : good
+  return `${fits.length + marginal.length === 1 ? `only ${good}` : good}; ${listWords(miss)} ${miss.length === 1 ? 'does' : 'do'} not`
+}
+
+/**
+ * For a scenario that fits only marginally: the next landing at its site with margin, found as the
+ * screen finds the landing Plan opens on (at least half the Sun's disc in view and Earth's center
+ * above the skyline at landing). It is what to try in its place. Nothing at heights other than the
+ * app's own, whose skylines are not held here, or when no such landing is found.
+ */
+async function withMargin(key: string, letter: string, scenario: SightlineScenario, site: SiteInfo, mission: SightlineMission, data: SiteData): Promise<Fact[]> {
+  if (!isBaseHeights(mission.heights)) return []
+  try {
+    const flags = await data.flags(site.id)
+    const found = await goodLandingFrom(flags, scenario.landing + 1, mission, (month) => data.scenario(site.id, month))
+    if (!found || found.marginal) return []
+    return [
+      fact(`${key}_landing_with_margin`, `Scenario ${letter}: the next landing at its site that fits with margin, with at least half the Sun's disc in view and Earth's center above the skyline at landing (what to try instead)`, whenLabel(isoAt(flags.start, found.landing))),
+      fact(`${key}_landing_with_margin_wait`, `Scenario ${letter}: how much later that landing is`, formatDuration(found.landing - scenario.landing)),
+    ]
+  } catch {
+    return []
+  }
 }
 
 /** One scenario's Compare figures, written as the table writes them. */
@@ -151,14 +208,25 @@ async function figures(key: string, letter: string, scenario: SightlineScenario,
   )
   const onScreen = fact(`${key}_verdict_words`, `Scenario ${letter}: the verdict's own words on the screen`, state === 'does not fit' ? 'Does not fit the mission' : state === 'marginal' ? 'Fits, marginal' : 'Fits the mission')
   const reasons = measure.problems.map((problem, i) => fact(`${key}_reason_${i + 1}`, `Scenario ${letter}: why it does not meet the mission limits, as a clause that joins a sentence (it holds the limit: add none after it)`, reasonClause(problem)))
+  // The smallest change of limits under which this same landing would meet them: only where the limits it
+  // breaks are the two on time without the Sun or Earth, which a planner can trade. A landing with the Sun
+  // down or Earth out of view at touchdown, or on ground too steep, is not mended by a limit.
+  const gapOnly = !fits && measure.problems.every((problem) => / during the mission; your limit is \d+ h\.$/.test(problem))
+  const needs = gapOnly
+    ? [
+        measure.sunGapH !== null && measure.sunGapH > mission.requirements.maxSunGapH ? `at least ${formatDuration(measure.sunGapH)} without the Sun` : '',
+        measure.earthGapH !== null && measure.earthGapH > mission.requirements.maxEarthGapH ? `at least ${formatDuration(measure.earthGapH)} without Earth` : '',
+      ].filter(Boolean)
+    : []
+  const fitsIf = needs.length > 0 ? [fact(`${key}_fits_if`, `Scenario ${letter}: the smallest change of limits under which this same landing would meet them, as a clause ("it would fit if the lander could go …")`, needs.join(' and '))] : []
   const narrow = marginal.map((reason, i) => fact(`${key}_marginal_reason_${i + 1}`, `Scenario ${letter}: why the fit is only marginal (the screen's own line)`, reason))
   const landing = edge
     ? [
-        fact(`${key}_sun_at_landing`, `Scenario ${letter}: the Sun's centre at landing`, `${skylineFigure(edge.sunAboveDeg).figure} ${skylineFigure(edge.sunAboveDeg).side}`),
-        fact(`${key}_earth_at_landing`, `Scenario ${letter}: Earth's centre at landing`, `${skylineFigure(edge.earthAboveDeg).figure} ${skylineFigure(edge.earthAboveDeg).side}`),
+        fact(`${key}_sun_at_landing`, `Scenario ${letter}: the Sun's center at landing`, `${skylineFigure(edge.sunAboveDeg).figure} ${skylineFigure(edge.sunAboveDeg).side}`),
+        fact(`${key}_earth_at_landing`, `Scenario ${letter}: Earth's center at landing`, `${skylineFigure(edge.earthAboveDeg).figure} ${skylineFigure(edge.earthAboveDeg).side}`),
       ]
     : []
-  return [...rows, verdict, onScreen, ...reasons, ...narrow, ...landing]
+  return [...rows, verdict, onScreen, ...reasons, ...fitsIf, ...narrow, ...landing]
 }
 
 /**

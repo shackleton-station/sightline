@@ -7,6 +7,7 @@ import { decodeRuns, type SiteFlags } from '../../src/lib/flags'
 import { BASE_HEIGHT_M, isBaseHeights, type MissionHeights, mixFlags } from '../../src/lib/heights'
 import { joinOverviews, joinYears, yearsOf } from '../../src/lib/span'
 import type { Bucket } from '../bucket'
+import { customPoints } from './customPoints'
 import { bucketLight, type LightSource, noLight } from './light'
 
 export interface FlaggedSite {
@@ -19,6 +20,13 @@ export interface SiteData {
   /** What span of time the data covers. */
   range(): Promise<DataRange>
   sites(): Promise<SiteInfo[]>
+  /**
+   * One site by its id: a listed site, or a custom point by its coordinates ("lat,lon", as a link
+   * carries it), worked out here by the page's own code (customPoints.ts). Null for neither, and for
+   * a custom point that cannot be worked out here. Every method below that takes a site id takes a
+   * custom point's too; a custom point is always read at the app's own 2 m.
+   */
+  site(siteId: string): Promise<SiteInfo | null>
   /** Hour-by-hour Sun and Earth visibility for the whole span, for one listed site. */
   flags(siteId: string): Promise<SiteFlags>
   /**
@@ -74,6 +82,7 @@ export function siteData(dataDir: string, bucket?: Bucket | null): SiteData {
 
   const sites = () => once<SiteInfo[]>('sites.json')
   const range = () => once<DataRange>('range.json')
+  const custom = customPoints(dataDir, bucket, range)
   /** Every year of a file the pipeline writes once per calendar year, in order. */
   const everyYear = async <T>(path: (year: number) => string): Promise<T[]> => {
     const { first_year, last_year } = await range()
@@ -173,8 +182,16 @@ export function siteData(dataDir: string, bucket?: Bucket | null): SiteData {
     light: bucket ? bucketLight(bucket, dataDir) : noLight,
     range,
     sites,
-    flags: flagsOnce,
+    async site(siteId) {
+      return (await sites()).find((candidate) => candidate.id === siteId) ?? (await custom.get(siteId))?.site ?? null
+    },
+    async flags(siteId) {
+      return (await custom.get(siteId))?.flags ?? flagsOnce(siteId)
+    },
     async flagsAt(siteId, heights) {
+      // A custom point is worked out at 2 m only, on the page as here.
+      const point = await custom.get(siteId)
+      if (point) return point.flags
       await known(siteId)
       if (isBaseHeights(heights)) return flagsOnce(siteId)
       const [sun, earth] = await Promise.all([flagsAtHeight(siteId, heights.panelM), flagsAtHeight(siteId, heights.antennaM)])
@@ -184,12 +201,16 @@ export function siteData(dataDir: string, bucket?: Bucket | null): SiteData {
       return Promise.all((await sites()).map(async (site) => ({ site, flags: await flagsOnce(site.id) })))
     },
     async year(siteId) {
+      const point = await custom.get(siteId)
+      if (point) return point.year
       await known(siteId)
       return yearOnce(siteId)
     },
     async sunSharesAt(siteId, month, panelM) {
-      await known(siteId)
       if (!MONTH.test(month)) throw new Error(`Bad month: ${month}`)
+      const point = await custom.get(siteId)
+      if (point) return point.scenario(month).track.map((row) => row.sun_frac)
+      await known(siteId)
       if (panelM === BASE_HEIGHT_M) return (await track(`${siteId}/${month}/track.json`)).map((point) => point.sun_frac)
       if (!bucket) return null
       const object = await bucket.get(`tiles/light/heights/${panelM}m/${siteId}/${month}/track.json.gz`).catch(() => null)
@@ -198,14 +219,18 @@ export function siteData(dataDir: string, bucket?: Bucket | null): SiteData {
       return rows.map((point) => point.sun_frac)
     },
     async everyHourCheck(siteId) {
+      // Only the listed sites were compared with Horizons hour by hour.
+      if (await custom.get(siteId)) return null
       await known(siteId)
       const file = await once<{ sites: Record<string, { hours: number; max_deg: number }> }>('horizons.json').catch(() => null)
       const found = file?.sites[siteId]
       return found ? { hours: found.hours, maxDeg: found.max_deg } : null
     },
     async scenario(siteId, month) {
-      const site = await known(siteId)
       if (!MONTH.test(month)) throw new Error(`Bad month: ${month}`)
+      const point = await custom.get(siteId)
+      if (point) return point.scenario(month)
+      const site = await known(siteId)
       const [horizon, validation, year, hourly, summary] = await Promise.all([
         once<HorizonPoint[]>(`${siteId}/horizon.json`),
         once<Validation>(`${siteId}/validation.json`),

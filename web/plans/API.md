@@ -136,6 +136,37 @@ Newest first, one page at a time. Two plans saved in the same millisecond come i
 
 Added on 2026-11-12 (Phase 5): `query`, `next`, and the two `400` replies.
 
+## The library
+
+```json contract
+{
+  "operation": "library",
+  "method": "GET",
+  "path": "/api/plans/library",
+  "request": {},
+  "replies": {
+    "200": { "body": { "scenarios": [{ "plan": "id", "title": "string", "saved": "time", "site": "string", "landing": "time" }] } }
+  }
+}
+```
+
+Every scenario in the newest 200 plans, for anyone, signed in or not. A plan holds
+up to four scenarios (the place and hour its view opens on, and the others kept beside it); each is one
+entry here, the newest plan first and a plan's own scenarios in their order. `plan` and `title` are the
+plan it was saved in; a plan's note is not sent. `site` is a listed site's id, or `lat,lon` for a custom
+point. `landing` is the landing time, to the hour.
+
+- There are no parameters. The page searches and filters what it is sent: whether a scenario fits
+  depends on the visitor's own mission, which the service does not know.
+- A plan saved before the library existed is listed like any other.
+- The plans the deploy's own check saves (title `Deploy check (…)`) are left out. Their links still open them.
+- One copy of the service reads the database for this at most once in 30 seconds, so a plan saved or
+  deleted through another copy can take that long to appear or go.
+- A service from before the library answers `404 {"error":"not-found"}` here (the word is not a plan's
+  id). A page reads that as "no library yet".
+
+Added on 2026-11-15.
+
 ## Delete a plan
 
 ```json contract

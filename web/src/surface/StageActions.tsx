@@ -61,7 +61,8 @@ export function StageActions({ offerMotion, motion, onMotion, radii, obsHeightM 
           <li>The glow round the Sun is camera glare, to help find it. The stars are decoration, not a star map.</li>
           <li>
             The data is hourly. The dots are where the Sun and Earth are on the hour, from a day before to two days after (every few hours where they
-            would run together): filled where the model has them up.
+            would run together): filled where the model has them up. The orange and blue lines are each one’s path over the whole month, hour
+            to hour: solid where the model has it up, dashed where it is behind the land.
             Between two hours the disks slide in a straight line, and come to rest on the hour’s own position.
           </li>
         </ul>

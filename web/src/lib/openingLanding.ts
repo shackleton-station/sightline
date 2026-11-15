@@ -1,8 +1,8 @@
 import type { HorizonPoint, TrackPoint } from '../data/contract'
-import { horizonAt } from '../lib/customModel'
-import type { SiteFlags } from '../lib/flags'
-import { landingProblems, locateHour, missionEarth } from '../lib/mission'
-import { betterDate, marginalHour, type SightlineMission, steadierLanding } from '../lib/sightlineMission'
+import { horizonAt } from './customModel'
+import type { SiteFlags } from './flags'
+import { landingProblems, locateHour, missionEarth } from './mission'
+import { betterDate, marginalHour, type SightlineMission, steadierLanding } from './sightlineMission'
 
 /** One month at a site, as far as this needs it: the hourly track and the skylines the Sun and Earth are read against. */
 export interface MonthSky {

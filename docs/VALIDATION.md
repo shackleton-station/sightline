@@ -1214,3 +1214,47 @@ repository's, and its `tiles/light/2026-11.bin.gz` was last changed at 02:34 UTC
 
 Not checked: the odds between sites (there is no track to check against); a mission other than Short
 stay; heights other than 2 m and any Earth clearance, which the grid does not hold.
+
+## 18. Landing accuracy from landing points (2026-11-15)
+
+The Landing accuracy panel, the line under the verdict and Compare's row no longer read the light
+grid (§12, §17). They judge the mission at a lattice of landing points around the aim point, each
+worked out in the browser the way a custom point is (§7): the point's own skyline from the 20 m
+terrain, the Sun seen from the panel's height and Earth from the antenna's, hour by hour through the
+mission, with the mission's Earth clearance (`web/src/lib/pointHorizons.ts`, `landingField.ts`). The
+"Landings that fit" layer on the Moon and the Surface view's shading still read the 120 m grid.
+
+**Why.** At the default accuracy (100 m) nearly every landing falls inside one to four of the grid's
+120 m cells, so the odds were mostly a reading of which cell held the aim point, at 2 m and with any
+part of Earth counting whatever the mission asked. §12 records that the cell holding a ridge site
+differs from the site itself in 0.4 to 8.5% of hours.
+
+**The skyline.** A point's skyline took the browser model about 450 ms; a few hundred are needed.
+`pointHorizons` is the same rays, distances and terrain with shorter arithmetic, about 15 ms a point
+for two heights (Node 24, one core of an 8-core laptop), run on up to four workers in the page.
+`pointHorizons.test.ts` requires it to match `horizonMask` at Connecting Ridge and at four points up
+to 300 m from it, at 2 m and 10 m: the largest difference over the 720 bearings is under a millionth
+of a degree, and the ground's height and slope agree to 0.01°.
+
+**The verdict at a point.** The same test file judges a landing at Connecting Ridge every 29 hours of
+2027 to 2030 under three missions (the default; Earth 2° clear with at most 48 h of silence; 30 days
+with at most 6 h of dark), 3,581 landings in all, and requires the point's verdict and its reason to
+be the full browser model's (`computeSite`, `landingMiss`) every time. They are.
+
+**Between the points.** Points are 20 m apart at the tightest accuracy and farther apart as the
+spread widens (30 m at 100 m; at most about 400 points), and the slope is read every 20 m. Each point
+keeps how far it is from each limit, and the ground between is read off those margins, so the map has
+no cells. That filling-in is a way of drawing and counting between known points, not finer knowledge
+of the ground. At the aim point itself the verdict's own answer is used, so the panel and the verdict
+cannot disagree there.
+
+**One site by hand.** Peak near Shackleton, Short stay, 100 m accuracy (one-off script, 2026-11-15):
+landing 24 November 2026, the site fits and over 99% of landings do; 14 December 2026, the site fits
+and 80% do, the rest where Earth is out of view at landing; 16 November and 5 December, the site does
+not fit (Earth out of view) and under 1% do. Along the lattice's middle row the longest dark spell
+goes from 0 h within about 100 m of the summit to 90 h and more at 180 m, which is why the 120 m grid
+shades the ground round a green site red.
+
+Not checked: the other three ridge sites by test (their tiles are not committed for CI); a listed
+site's points against the pipeline's own track away from the site; the time to work the points out
+on a phone. The model’s own error (§7, §10) is not in the odds, as before.
