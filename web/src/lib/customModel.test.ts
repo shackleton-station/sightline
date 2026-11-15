@@ -296,5 +296,18 @@ describe('input limits', () => {
     expect(parseCoordinate('71', -70, 70)).toBeNull()
     expect(parseCoordinate('', -70, 70)).toBeNull()
     expect(parseCoordinate('abc', -70, 70)).toBeNull()
+    // The forms the app prints: a compass letter, a degree sign, a typographic minus.
+    expect(parseCoordinate('89.5 S', -90, 90)).toBe(-89.5)
+    expect(parseCoordinate('89.453°S', -90, 90)).toBe(-89.453)
+    expect(parseCoordinate('12n', -90, 90)).toBe(12)
+    expect(parseCoordinate('137.1 W', -180, 360)).toBe(-137.1)
+    expect(parseCoordinate('40°E', -180, 360)).toBe(40)
+    expect(parseCoordinate('\u221289.45', -90, 90)).toBe(-89.45)
+    expect(parseCoordinate('-89.45°', -90, 90)).toBe(-89.45)
+    // A latitude takes no E or W, a sign and a letter are not both read, and the limits still hold.
+    expect(parseCoordinate('40 W', -90, 90)).toBeNull()
+    expect(parseCoordinate('-89 S', -90, 90)).toBeNull()
+    expect(parseCoordinate('91 S', -90, 90)).toBeNull()
+    expect(parseCoordinate('S', -90, 90)).toBeNull()
   })
 })
