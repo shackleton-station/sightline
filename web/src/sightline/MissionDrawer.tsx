@@ -122,7 +122,7 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
       </div>
 
       <Slider id="sl-m-days" label="Mission length" value={requirements.missionDays} unit=" days" range={MISSION_RANGES.missionDays} onChange={(missionDays) => limit({ missionDays })} />
-      <Slider id="sl-m-dark" label="Longest darkness it survives" value={requirements.maxSunGapH} unit=" h" range={MISSION_RANGES.maxSunGapH} onChange={(maxSunGapH) => limit({ maxSunGapH })} />
+      <Slider id="sl-m-dark" label="Longest dark spell" value={requirements.maxSunGapH} unit=" h" range={MISSION_RANGES.maxSunGapH} onChange={(maxSunGapH) => limit({ maxSunGapH })} />
       <label className="sl-check sl-param">
         <input type="checkbox" checked={requirements.sunAtLanding} onChange={(event) => limit({ sunAtLanding: event.target.checked })} /> The Sun is in view at landing
       </label>
@@ -131,7 +131,7 @@ export function MissionControls({ mission, onMission }: Pick<Props, 'mission' | 
       </label>
       <Slider
         id="sl-m-silence"
-        label="Longest radio silence"
+        label="Radio silence"
         value={silenceStop(requirements.maxEarthGapH)}
         unit=" h"
         text={requirements.maxEarthGapH >= NO_LIMIT_H ? 'No limit' : `${requirements.maxEarthGapH} h`}
