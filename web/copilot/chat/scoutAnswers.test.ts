@@ -18,7 +18,7 @@ import { runChat, viewFacts } from './chat'
 import { asksAboutPresent, dateBasis, realHourIso } from './dates'
 import { systemPrompt } from './prompt'
 import { renderAnswer, visitorsAmounts } from './render'
-import { scenarioScene } from './scenarios'
+import { fitWords, scenarioScene } from './scenarios'
 
 // Nine things found by asking Scout 28 questions on the live site and setting each answer beside
 // the screen (notes: scout-answers.md). Everything here runs against the pipeline's real output.
@@ -220,10 +220,13 @@ describe('5. one fact for each limit', () => {
     expect(rules).toMatch(/Otherwise name at most one limit, the one that decides the answer, by its own fact: mission_length, dark_limit or silence_limit/)
   })
 
-  it('asks for short answers: three sentences and about sixty words, the answer first, a fourth only for a comparison or a proof', () => {
+  it('asks for an answer a planner can act on, with no cap on its words: the answer first, then the reason that decides it and what to try, at a length that follows the question', () => {
     const rules = systemPrompt({ first_year: 2026, last_year: 2049 })
-    expect(rules).toMatch(/At most three sentences and about sixty words in all\. The first sentence is the answer\./)
-    expect(rules).toMatch(/A fourth sentence is allowed only when the visitor asks to compare sites or scenarios, or asks how the numbers were checked\./)
+    expect(rules).toMatch(/The first sentence answers the question that was asked, in the visitor's own terms/)
+    expect(rules).toMatch(/Then give the one reason that decides it\. Then say what to try next: the nearest landing that fits, the limit that would change the verdict, or the site that does better\./)
+    expect(rules).toMatch(/Length follows the question: two sentences for a simple one, three or four for most, up to five for a comparison or for how the numbers were checked\./)
+    expect(rules).toMatch(/name the winner first, then say why it wins, with the figure that separates the two, and how close the runner-up is/)
+    expect(rules).not.toMatch(/sixty words|At most three sentences/)
     expect(rules).toMatch(/Say each figure, date and reason once\./)
     // The rule that every number is a filled reference stands exactly as it was.
     expect(rules).toMatch(/In your answer, every number, percentage, duration, date and time is a reference: write \{\{r2\.pct_sun\}\}, not the value\. The app fills in the value\. Never type a digit yourself, and never spell a number out in words\./)
@@ -347,7 +350,7 @@ describe('11. a link that carries the heights without the scenario mark', () => 
   it('is read as the screen\'s link is: the heights are used, with the first scenario on show', async () => {
     const scene = await scenarioScene(NO_MARK, viewFrom(NO_MARK), high)
     const value = (key: string) => scene?.facts.find((item) => item.key === key)?.value
-    expect(value('scenario_on_screen')).toBe('A: Connecting Ridge, landing 6 May 2027, 13:00 UTC')
+    expect(value('scenario_on_screen')).toBe('A: a landing at Connecting Ridge on 6 May 2027, 13:00 UTC')
     expect(value('panel_height')).toBe('10 m')
     expect(value('scenario_a_longest_time_without_sun')).toBe('72 h')
     expect(value('scenario_a_next_landing')).toBe('25 May 2027, 12:00 UTC')
@@ -622,6 +625,79 @@ describe('15. "which of the four south-pole sites is best in 2027, and when?" is
     expect(all.values.place_1_value).toMatch(/^\d+% of the year$/)
     expect((await runTool('best_sites_in_year', { year: 2027, measure: 'sun', group: 'mars' }, context)).ok).toBe(false)
     expect((await runTool('best_sites_in_year', { year: 1999, measure: 'sun' }, context)).ok).toBe(false)
+  })
+})
+
+describe('17. facts a better answer is made from: why, how close, and what to try', () => {
+  const of = async (hash: string) => Object.fromEntries(((await scenarioScene(hash, viewFrom(hash), data))?.facts ?? []).map((item) => [item.key, item.value]))
+
+  it('a marginal landing comes with the next landing that has margin, and how much later it is', async () => {
+    // Connecting Ridge, 5 February 2027, 17:00 UTC: only the edge of Earth is in view at landing.
+    const hash = '#a=connecting-ridge@2027-02&t=113&limits=14_24_99999_1_1&mode=plan&sc=0'
+    const values = await of(hash)
+    expect(values.scenario_a_verdict_words).toBe('Fits, marginal')
+    expect(values.scenario_a_landing_with_margin).toMatch(/^\d+ February 2027, \d\d:00 UTC$/)
+    expect(values.scenario_a_landing_with_margin_wait).toMatch(/^(\d+ h|\d+ d \d+ h)$/)
+    // That landing, as a scenario of its own, is a plain fit: nothing marginal about it.
+    const flags = await data.flags('connecting-ridge')
+    const later = hourOf(flags.start, new Date(`${values.scenario_a_landing_with_margin.replace(' UTC', '').replace(',', '')} UTC`).toISOString().slice(0, 13) + ':00:00Z')
+    const { month, index } = locateHour(flags.start, later)
+    expect((await of(`#a=connecting-ridge@${month}&t=${index}&limits=14_24_99999_1_1&mode=plan&sc=0`)).scenario_a_verdict_words).toBe('Fits the mission')
+    // A plain fit and a miss carry no such fact.
+    expect((await of('#a=connecting-ridge@2027-05&t=132&limits=14_24_99999_1_1&mode=plan&sc=0')).scenario_a_landing_with_margin).toBeUndefined()
+  })
+
+  it('every scenario that does not fit has its own next landing, not only the one on show; and one fact says which scenarios fit', async () => {
+    const two = '#a=connecting-ridge@2027-05&t=132&limits=14_24_99999_1_1&mode=plan&list=shackleton-rim@2027-06-21T17&sc=0'
+    const values = await of(two)
+    expect(values.scenarios_that_fit).toBe('neither scenario meets the mission limits')
+    expect(values.scenario_a_next_landing).toBe('21 June 2027, 17:00 UTC')
+    expect(values.scenario_b_next_landing).toMatch(/2027, \d\d:00 UTC$/)
+    expect(values.scenario_b_next_landing_wait).toMatch(/^(\d+ h|\d+ d \d+ h)$/)
+    // The other site of the group is said only for the scenario on show.
+    expect(Object.keys(values).filter((key) => /no_other_site_fits|fits_at_another_site/.test(key))).toEqual([expect.stringMatching(/^scenario_a_/)])
+    // A scenario is named in a sentence by its own site and landing time.
+    expect(values.scenario_b_site).toBe('Shackleton Rim')
+    expect(values.scenario_b_landing).toBe('21 June 2027, 17:00 UTC')
+    // One scenario alone has no such comparison.
+    expect((await of('#a=connecting-ridge@2027-05&t=132&limits=14_24_99999_1_1&mode=plan&sc=0')).scenarios_that_fit).toBeUndefined()
+  })
+
+  it('says which scenarios fit as a clause, in every mix of the three verdicts', () => {
+    const states = (text: string) => [...text].map((state, i) => ({ letter: 'ABCD'[i], state: ({ f: 'fits', m: 'marginal', x: 'miss' } as const)[state as 'f' | 'm' | 'x'] }))
+    expect(fitWords(states('xx'))).toBe('neither scenario meets the mission limits')
+    expect(fitWords(states('xxx'))).toBe('none of the scenarios meets the mission limits')
+    expect(fitWords(states('ff'))).toBe('both scenarios meet the mission limits')
+    expect(fitWords(states('fx'))).toBe('only A meets the mission limits; B does not')
+    expect(fitWords(states('xm'))).toBe('only B meets the mission limits, and only marginally; A does not')
+    expect(fitWords(states('fm'))).toBe('A meets the mission limits and B only marginally')
+    expect(fitWords(states('fmx'))).toBe('A meets the mission limits and B only marginally; C does not')
+    expect(fitWords(states('ffxx'))).toBe('A and B meet the mission limits; C and D do not')
+  })
+
+  const SOUTH: Record<string, string> = { 'Connecting Ridge': 'connecting-ridge', 'Peak near Shackleton': 'peak-near-shackleton', 'Shackleton Rim': 'shackleton-rim', 'de Gerlache Rim': 'de-gerlache-rim' }
+
+  it('the year\'s ranking says how far behind the runner-up is and gives each place what explains it: Sun, longest dark stretch, Earth', async () => {
+    const { values } = await facts('best_sites_in_year', { year: 2027, measure: 'landing', group: 'south_pole' })
+    expect(values.runner_up).toMatch(/^[A-Za-z ]+, \d+ days? behind$/)
+    expect(values.runner_up.startsWith(values.place_2_site)).toBe(true)
+    const lead = Number(values.place_1_value.split(' ')[0]) - Number(values.place_2_value.split(' ')[0])
+    expect(values.runner_up).toBe(`${values.place_2_site}, ${lead} ${lead === 1 ? 'day' : 'days'} behind`)
+    for (const i of [1, 2, 3, 4]) {
+      expect(values[`place_${i}_sun_share`]).toMatch(/^\d+%$/)
+      // The same figures as the site's own year file, which the Guide's "Why this site is hard" reads.
+      const year = (JSON.parse(readFileSync(`${dataDir}/${SOUTH[values[`place_${i}_site`]]}/year-2027.json`, 'utf8')) as { years: { year: number; pct_sun: number; pct_earth: number; max_sun_gap_h: number }[] }).years.find((one) => one.year === 2027)!
+      expect(values[`place_${i}_sun_share`]).toBe(`${Math.round(year.pct_sun)}%`)
+      expect(values[`place_${i}_earth_share`]).toBe(`${Math.round(year.pct_earth)}%`)
+      expect(values[`place_${i}_longest_dark`]).toBe(year.max_sun_gap_h < 48 ? `${year.max_sun_gap_h} h` : `${Math.floor(year.max_sun_gap_h / 24)} d ${year.max_sun_gap_h % 24} h`)
+      expect(values[`place_${i}_earth_share`]).toMatch(/^\d+%$/)
+      expect(values[`place_${i}_longest_dark`]).toMatch(/^(\d+ h|\d+ d \d+ h)$/)
+    }
+  })
+
+  it('a month\'s landing stretches are counted in words that sit in a sentence', async () => {
+    const { values } = await facts('landing_windows', { site: 'connecting-ridge', month: '2027-05', mission_days: 3 })
+    expect(values.window_count).toMatch(/^\d+ stretch(es)?$/)
   })
 })
 
