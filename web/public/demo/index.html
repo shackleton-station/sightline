@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sightline: the 30-second demo</title>
+    <meta name="description" content="Sightline in 30 seconds: where to land on the Moon, and when. Team Shackleton Station, NASA Space Apps 2026." />
+    <meta name="theme-color" content="#000000" />
+    <meta property="og:title" content="Sightline: the 30-second demo" />
+    <meta property="og:description" content="Where to land on the Moon, and when. Team Shackleton Station, NASA Space Apps 2026." />
+    <meta property="og:image" content="/media/sightline-demo-30s-poster.jpg" />
+    <meta property="og:video" content="/media/sightline-demo-30s.mp4" />
+    <style>
+      :root { color-scheme: dark; }
+      body { margin: 0; background: #05060b; color: #f6efe0; font: 1rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      main { max-width: 64rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+      h1 { margin: 1rem 0 0.15rem; font: 600 1.75rem/1.2 Georgia, "Times New Roman", serif; }
+      .lead { margin: 0 0 1rem; color: #cfc6b4; }
+      video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000; border: 1px solid #3b3346; border-radius: 10px; }
+      .open { display: inline-block; margin: 1.25rem 0.75rem 0 0; padding: 0.55rem 1rem; border-radius: 8px; background: #e9b44c; color: #17130a; font-weight: 600; text-decoration: none; }
+      .quiet { display: inline-block; margin-top: 1.25rem; color: #e9b44c; }
+      .note { margin-top: 1.5rem; color: #9a927f; font-size: 0.875rem; }
+      a:focus-visible, video:focus-visible { outline: 2px solid #e9b44c; outline-offset: 2px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Sightline: the 30-second demo</h1>
+      <p class="lead">Where to land on the Moon, and when. Team Shackleton Station's answer to the Lunar Landing Site Navigator challenge, NASA Space Apps 2026.</p>
+      <video controls playsinline preload="metadata" poster="/media/sightline-demo-30s-poster.jpg">
+        <source src="/media/sightline-demo-30s.mp4" type="video/mp4" />
+        <track kind="captions" src="/media/sightline-demo-30s.vtt" srclang="en" label="English" />
+        Your browser cannot play this video here. <a href="/media/sightline-demo-30s.mp4">Open the video file</a>.
+      </video>
+      <a class="open" href="/">Open Sightline</a>
+      <a class="quiet" href="/media/sightline-demo-30s.mp4">The video file</a>
+      <p class="note">29.5 seconds, recorded from the live site. English captions are in the picture. The narration is an AI-generated voice, made with Google Cloud Text-to-Speech.</p>
+    </main>
+  </body>
+</html>
