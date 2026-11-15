@@ -29,8 +29,6 @@ interface Props {
 // The flat chart (and the charting library under it) is fetched only where the picture can't be drawn.
 const HorizonPanorama = lazy(() => import('../components/HorizonPanorama').then((module) => ({ default: module.HorizonPanorama })))
 
-/** How many times taller heights are drawn when the visitor asks for the stretch. */
-export const STRETCH_BY = 5
 /** The path dots cover the day before the hour on screen and the two days after. */
 const HOURS_BEFORE = 24
 const HOURS_AFTER = 48
@@ -133,7 +131,6 @@ export function SurfaceStage({ site, month, horizon, groundTint = null, track, i
             opening={lens}
             keys={body === touched}
             showLens={at === VIEWS.length - 1}
-            stretchBy={STRETCH_BY}
             setLensAll={setLensAll}
             register={register}
             onActive={onActive}

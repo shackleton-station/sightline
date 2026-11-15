@@ -410,69 +410,6 @@
   text-shadow: 0 0 6px #000;
 }
 
-.sf-stretch {
-  min-height: 40px;
-  padding: 0 0.85rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--sf-glass);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.sf-stretch:hover {
-  border-color: var(--muted);
-}
-
-.sf-stretch[aria-pressed='true'] {
-  border-color: var(--warning);
-  background: var(--warning);
-  color: #1a0d05;
-}
-
-.sf-lens-says strong {
-  color: var(--warning);
-}
-
-/* Said on the picture whenever heights are stretched: impossible to miss, and one tap from true scale. */
-.sf-stretched {
-  position: absolute;
-  top: 84px;
-  left: 50%;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin: 0;
-  padding: 0.3rem 0.35rem 0.3rem 0.9rem;
-  border: 1px solid var(--warning);
-  border-radius: 999px;
-  background: rgb(38 17 6 / 92%);
-  color: var(--warning);
-  font: 700 14px var(--sf-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  transform: translateX(-50%);
-}
-
-.sf-stretched button {
-  min-height: 32px;
-  padding: 0 0.75rem;
-  border: 0;
-  border-radius: 999px;
-  background: var(--warning);
-  color: #1a0d05;
-  font: 700 13px var(--sans);
-  letter-spacing: 0;
-  text-transform: none;
-  cursor: pointer;
-}
-
-.sf-view.split .sf-stretched {
-  top: 178px;
-}
-
 /* ---------- The answer ---------- */
 .sf-answer {
   position: absolute;
@@ -790,10 +727,6 @@
     width: min(560px, calc(100% - 2rem));
   }
 
-  .sf-stretched {
-    top: 132px;
-  }
-
   .sf-view:not(.split) .sf-refollow {
     top: 134px;
   }
@@ -812,10 +745,6 @@
   .sf-view.split .sf-zoom input,
   .sf-view.split .sf-lens-says {
     display: none;
-  }
-
-  .sf-view:not(.split) .sf-refollow ~ .sf-stretched {
-    top: 178px;
   }
 }
 
@@ -894,26 +823,8 @@
     top: 54px;
   }
 
-  .sf-view.split .sf-stretched,
-  .sf-view:not(.split) .sf-refollow ~ .sf-stretched {
-    top: auto;
-    bottom: 8px;
-  }
-
   .sf-main:has(.sf-view.split) .sf-answer {
     max-width: none;
-  }
-
-  .sf-stretched {
-    top: 116px;
-    right: 8px;
-    left: 8px;
-    justify-content: space-between;
-    padding-left: 0.8rem;
-    font: 700 0.9375rem var(--sans);
-    letter-spacing: 0;
-    text-transform: none;
-    transform: none;
   }
 
   .sf-lens {
@@ -933,11 +844,6 @@
   .sf-lens-says {
     grid-column: 1 / -1;
     grid-row: 1;
-  }
-
-  .sf-stretch {
-    grid-column: 1;
-    grid-row: 2;
   }
 
   .sf-zoom {
@@ -1025,10 +931,6 @@
     display: none;
   }
 
-  .sf-stretched {
-    top: 72px;
-  }
-
   /* Two views in so short a window leave no room for a compass each: each body's azimuth is under its name. */
   .sf-view.split .sf-compass {
     display: none;
@@ -1044,12 +946,6 @@
     top: 52px;
   }
 
-  .sf-view.split .sf-stretched,
-  .sf-view:not(.split) .sf-refollow ~ .sf-stretched {
-    top: auto;
-    bottom: 8px;
-  }
-
   .sf-lens {
     top: 8px;
     right: 8px;
@@ -1060,8 +956,7 @@
     display: none;
   }
 
-  .sf-zoom button,
-  .sf-stretch {
+  .sf-zoom button {
     height: 36px;
     min-height: 36px;
   }

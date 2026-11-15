@@ -39,9 +39,8 @@ interface Props {
   opening: { fovDeg: number; stretch: number } | null
   /** Whether the arrow keys steer this view. */
   keys: boolean
-  /** Whether this view carries the zoom and stretch controls (one set, for every view up). */
+  /** Whether this view carries the zoom control (one set, for every view up). */
   showLens: boolean
-  stretchBy: number
   /** Changes the lens of every view up, so they stay at one scale. */
   setLensAll: (change: (look: Look) => Look) => void
   register: (body: Body, controls: PaneControls | null) => void
@@ -79,7 +78,7 @@ const coveredBottomPx = () => (window.innerWidth > NARROW_PX ? 140 : 8)
  * hand; a button then turns it back.
  */
 export function SurfacePane(props: Props) {
-  const { body, place, site, horizon, groundTint, now, sky, discs, hours, still, level, opening, keys, showLens, stretchBy, setLensAll, register, onActive, onLens, onLost } = props
+  const { body, place, site, horizon, groundTint, now, sky, discs, hours, still, level, opening, keys, showLens, setLensAll, register, onActive, onLens, onLost } = props
   const stage = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
 
@@ -153,15 +152,7 @@ export function SurfacePane(props: Props) {
           Follow {NAMES[body]} again
         </button>
       )}
-      {showLens && <LensControls look={look} acrossDeg={acrossDeg(lens)} stretchBy={stretchBy} setLens={setLensAll} />}
-      {stretch > 1 && place !== 1 && (
-        <p className="sf-stretched" role="status">
-          Heights drawn {stretch} times taller
-          <button type="button" onClick={() => setLensAll((current) => ({ ...current, stretch: 1 }))}>
-            Show true scale
-          </button>
-        </p>
-      )}
+      {showLens && <LensControls look={look} acrossDeg={acrossDeg(lens)} setLens={setLensAll} />}
     </div>
   )
 }
