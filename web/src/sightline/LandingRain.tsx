@@ -4,7 +4,7 @@ import { slopePartFor, slopePartNow } from '../data/loadMissionGrid'
 import {
   ACCURACY_RANGE,
   ACCURACY_SHARE,
-  bestAim,
+  bestCentredAim,
   cellAtM,
   cellCentreM,
   cellChances,
@@ -103,7 +103,8 @@ export function LandingRain({ site, mission, grid, spread, onSpread, onAim }: Pr
   const chances = useMemo(() => (map ? cellChances(map, spread) : null), [map, spread])
   const odds = useMemo(() => (map && chances ? landingOdds(map, chances) : null), [map, chances])
   const searchM = map ? Math.max(0, reachM(map) - 1.25 * spread.accuracyM * spread.stretch) : 0
-  const aim = useMemo(() => (map && chances && searchM > 0 ? bestAim(map, chances, searchM) : null), [map, chances, searchM])
+  // Aims are tried at the light grid's cell centres only, where its light is known, so the brief at the new target agrees.
+  const aim = useMemo(() => (map && meta && odds && searchM > 0 ? bestCentredAim(map, spread, meta.pixel_m, searchM, odds) : null), [map, meta, odds, spread, searchM])
   const viewM = map && meta ? Math.min(Math.max(1.6 * spread.accuracyM * spread.stretch, 2 * meta.pixel_m), reachM(map)) : 0
 
   // The slider: shown at once, applied when it rests, so the odds and the better aim are worked out once.
