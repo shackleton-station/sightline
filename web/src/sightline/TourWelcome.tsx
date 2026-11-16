@@ -12,8 +12,10 @@ interface Props {
   /** How long the tour takes to read, in words: "about two minutes". */
   reads: string
   onTake: (from: WelcomePlace | null) => void
-  /** "Skip", Escape, or a press anywhere outside the card: it does not come back in this browser; the chip stays. */
+  /** "Skip", Escape, or a press anywhere outside the card: it closes for this opening of the page; the chip stays. */
   onSkip: () => void
+  /** "Don't show this again": the one thing that keeps the card away in this browser. */
+  onNever: () => void
   /** What is in view at the site on show, for Scout's mark. */
   state: RiverState | null
 }
@@ -24,14 +26,15 @@ const PHONE_UNDER_PX = 761
 const EDGE_PX = 12
 
 /**
- * Scout's welcome, on a first visit to the front page: the first thing a visitor notices. One card,
+ * Scout's welcome, each time the front page is opened: the first thing a visitor notices. One card,
  * centered over the Moon, says what Sightline answers and what the tour costs to read, with two
  * buttons, "Take the tour" and "Skip". The page behind it is dimmed a little, far less than the
  * tour's own shade, so the Moon still reads as the Moon and nothing else competes; Scout's panel is
  * under that dim. It takes the keyboard without scrolling the page. Escape, "Skip" or a press
- * outside the card closes it for good in this browser.
+ * outside the card closes it until the page is opened again; "Don't show this again", small and
+ * quiet under the buttons, keeps it away in this browser for someone who comes often.
  */
-export function TourWelcome({ reads, onTake, onSkip, state }: Props) {
+export function TourWelcome({ reads, onTake, onSkip, onNever, state }: Props) {
   const card = useRef<HTMLElement>(null)
   const take = useRef<HTMLButtonElement>(null)
   // The Moon's center on screen, which moves when Scout's panel opens beside it or the window is resized: the card follows it.
@@ -93,10 +96,13 @@ export function TourWelcome({ reads, onTake, onSkip, state }: Props) {
             <button ref={take} type="button" className="sl-small sl-tour-next" onClick={() => onTake(placeNow())}>
               Take the tour
             </button>
-            <button type="button" className="sl-small sl-tour-skip" title="Closes this card for good in this browser. “Take the tour” stays on the front page." onClick={onSkip}>
+            <button type="button" className="sl-small sl-tour-skip" title="Closes this card. “Take the tour” stays on the front page, and the card is back the next time the page is opened." onClick={onSkip}>
               Skip
             </button>
           </span>
+          <button type="button" className="sl-link sl-tour-never" title="Closes this card and keeps it away in this browser. “Take the tour” stays on the front page." onClick={onNever}>
+            Don’t show this again
+          </button>
         </footer>
       </section>
     </>

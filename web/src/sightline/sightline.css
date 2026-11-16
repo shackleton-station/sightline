@@ -4561,6 +4561,18 @@ button.sl-moment-heights[aria-expanded='true'] {
   font-size: 1rem;
 }
 
+/* For someone who comes often: small and quiet, at the card's right edge. */
+.sl-tour .sl-tour-never {
+  margin-left: auto;
+  color: var(--soft);
+  font-size: 0.8125rem;
+}
+
+.sl-tour .sl-tour-never:hover,
+.sl-tour .sl-tour-never:focus-visible {
+  color: var(--ink);
+}
+
 .sl-tour .sl-tour-skip {
   border-color: transparent;
   background: transparent;

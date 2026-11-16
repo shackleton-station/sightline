@@ -5,7 +5,7 @@
     "disclosure": "AI-generated voice",
     "files": "/tour/voice5/<id>.mp3",
     "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\"",
-    "seconds": 390
+    "seconds": 411
   },
   "steps": [
     {
@@ -226,7 +226,7 @@
       "id": "compare",
       "chapter": "The plan changes",
       "title": "Another site, same date?",
-      "line": "Would another site save 6 May? Press Compare: C and D, two more sites near the pole on that date, do not fit either. A star marks the best in each row.",
+      "line": "Would another site save 6 May? Press Compare: C and D, two more sites near the pole on that date, do not fit either. A star marks each row's best.",
       "say": "Waiting is one answer. Would moving be another? Compare sets the scenarios side by side: A failed, B is the later date, and C and D are two other sites near the pole on the original date. Neither fits, though one is sunlit for two thirds of the mission and the other for a seventh. A star marks the best in each row; there is no blended score.",
       "state": {
         "view": "plan",
@@ -398,7 +398,7 @@
       "id": "ground",
       "chapter": "Trust it, and use it",
       "title": "NASA's maps and tools",
-      "line": "Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan also opens in Quickmap, Moon Trek and JPL Horizons.",
+      "line": "Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan opens in Quickmap, Moon Trek and JPL Horizons.",
       "say": "Now look at the ground itself. Three views show the same hour: the whole Moon from orbit, the site close up, and the surface. Layers puts NASA's own maps over the ground: photos, steep ground, permanent shadow, temperature. And every plan opens in Quickmap, Moon Trek and JPL Horizons, so anyone can check.",
       "state": {
         "view": "plan",
@@ -443,7 +443,7 @@
       "id": "trust",
       "chapter": "Trust it, and use it",
       "title": "Can it be trusted?",
-      "line": "Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It also says what Sightline cannot tell you.",
+      "line": "Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It says what Sightline cannot tell you.",
       "say": "Can it be trusted? Every number is computed from public NASA data by our own code, then checked against NASA three ways. The positions are compared with JPL Horizons at every hour. The long-run sunlight, with NASA's own map. And the model, with dated photos taken from orbit. The Guide tells that story for a first-time visitor, and says plainly what Sightline cannot tell you.",
       "state": {
         "view": "plan",
@@ -522,11 +522,54 @@
       "pressOn": "Scout takes"
     },
     {
+      "id": "share",
+      "chapter": "Trust it, and use it",
+      "title": "Share the plan",
+      "line": "Press Share: its link holds every scenario, landing hour and limit, so it opens as this same plan. Copy link copies it.",
+      "say": "Now send it to someone. Share opens a short list. The plan is already a link: the address holds every scenario, with its site and landing hour, and the mission's limits, so whoever opens it sees the same plan. Copy link puts that address on your clipboard. Save with a name keeps it under a short link, and lists it in the Library.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-05-06T13:00:00Z"
+          },
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-06-22T07:00:00Z"
+          },
+          {
+            "site": "shackleton-rim",
+            "landing": "2027-05-06T13:00:00Z"
+          },
+          {
+            "site": "de-gerlache-rim",
+            "landing": "2027-05-06T13:00:00Z"
+          }
+        ],
+        "active": 1
+      },
+      "targets": [
+        ".sl-icon[aria-label='Share']"
+      ],
+      "then": {
+        "open": "share"
+      },
+      "after": [
+        ".sl-share-sheet .sl-share-copy"
+      ],
+      "afterLit": [
+        ".sl-share-sheet"
+      ],
+      "pressOn": "Share opens"
+    },
+    {
       "id": "handon",
       "chapter": "Trust it, and use it",
       "title": "Hand it on",
-      "line": "Hand it on: Brief writes the scenario on show out in full, and Share makes a link or saves the plan to the Library. Every feature, Canada's rover too, has its own short guide, listed in the Guide.",
-      "say": "Last, hand it on. A plan is for a team: Brief writes the scenario on show out in full, to read or print, and Share makes a link that opens the same plan, or saves it by name to the Library. That was the story. Every feature has a short guide of its own, listed in the Guide, and some panels offer theirs as Show me how. Try the one on Canada's utility rover, a real mission, or start planning your own.",
+      "line": "Last, the Brief writes the scenario on show out in full, to read or print. That was the story: every feature, Canada's rover too, has its own short guide, listed in the Guide.",
+      "say": "Last, hand it on paper. Brief writes the scenario on show out in full, to read or print: the month's landing days, this landing, and what follows it. That was the story. Every feature has a short guide of its own, listed in the Guide, and some panels offer theirs as Show me how. Try the one on Canada's utility rover, a real mission, or start planning your own.",
       "state": {
         "view": "plan",
         "mission": "short",
@@ -552,7 +595,6 @@
       },
       "targets": [
         "[data-tour='brief']",
-        ".sl-icon[aria-label='Share']",
         "[data-tour='more']"
       ],
       "then": {

@@ -45,18 +45,19 @@ The Guide shows the same six, worked out from the data files as the page reads t
 
 ## Using the site
 
-Scout's tour follows one landing plan across the whole screen, step by step, in sixteen steps and
+Scout's tour follows one landing plan across the whole screen, step by step, in seventeen steps and
 four chapters: a landing that does not fit, why, what to do when the date slips, why to trust the
-answer and how to hand it on. It takes about two minutes to read and about six and a half to hear. On
-a first visit to the front page it is the first thing a visitor sees: one card centered over the Moon,
-on a page dimmed a little, with what Sightline answers, what the tour takes to read, "Take the tour"
-and "Skip". Skip, Escape or a press outside the card closes it for good in that browser; after that
-the chip "Take the tour" is in Watch on every visit, and the tour is always the first thing in the
-**Guide** (on a phone, also under **More**). A link that carries a plan never gets the welcome.
+answer and how to hand it on. It takes about two minutes to read and about seven to hear. Each time
+the front page is opened it is the first thing a visitor sees: one card centered over the Moon, on a
+page dimmed a little, with what Sightline answers, what the tour takes to read, "Take the tour" and
+"Skip". Skip, Escape or a press outside the card closes it until the page is opened again; "Don't
+show this again", small under the buttons, keeps it away in that browser. The chip "Take the tour" is
+in Watch on every visit, and the tour is always the first thing in the **Guide** (on a phone, also
+under **More**). A link that carries a plan never gets the welcome.
 
 It drives the real screen. Wherever the story moves to another part of the screen, the step first
 rings the control a visitor would press ("Plan a landing", the mission, Surface, Compare, Planner and
-its Compare tab, Landing accuracy, Site and Layers, Guide, Scout, Brief), and the first Next, which
+its Compare tab, Landing accuracy, Site and Layers, Guide, Scout, Share, Brief), and the first Next, which
 then reads "Show it", presses it for them; where it opened a page or another view, the way back is
 ringed for a moment as the reader moves on. So a reader who closes the tour knows which button led
 where. Each card explains its step in two sentences that stand by themselves, and the page is shaded
@@ -85,17 +86,18 @@ words on each card:
 
 7. **The date slips.** Launch dates slip, and this one has to. One press adds the next landing that fits beside the first: the same site, on 22 June.
 8. **Another option.** Now the plan holds two scenarios, A and B: each letter is a site and a landing hour. Press + for another, up to four; − on a letter drops it.
-9. **Another site, same date?** Would another site save 6 May? Press Compare: C and D, two more sites near the pole on that date, do not fit either. A star marks the best in each row.
+9. **Another site, same date?** Would another site save 6 May? Press Compare: C and D, two more sites near the pole on that date, do not fit either. A star marks each row's best.
 10. **Every site, every month.** Press Planner to see every listed site against every month. In May 2027 no site at the pole has a landing that fits; in June, Connecting Ridge has three days.
 11. **Compare in depth.** Press the Planner's Compare tab to weigh A to D in full: At a glance colors each figure by your limits, and only B fits. Export saves the table, or every hour, as a file.
 12. **What if it misses?** Press Landing accuracy: B fits on its aim point, but no lander comes down exactly there. Of the landings within reach, 38% fit; aim 44 m away, and 60% do.
 
 *Trust it, and use it*
 
-13. **NASA's maps and tools.** Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan also opens in Quickmap, Moon Trek and JPL Horizons.
-14. **Can it be trusted?** Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It also says what Sightline cannot tell you.
+13. **NASA's maps and tools.** Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan opens in Quickmap, Moon Trek and JPL Horizons.
+14. **Can it be trusted?** Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It says what Sightline cannot tell you.
 15. **Ask Scout.** Or just ask: press Scout. He answers in plain words from the same data, and never writes a number himself: the server fills in every figure.
-16. **Hand it on.** Hand it on: Brief writes the scenario on show out in full, and Share makes a link or saves the plan to the Library. Every feature, Canada's rover too, has its own short guide, listed in the Guide.
+16. **Share the plan.** Press Share: its link holds every scenario, landing hour and limit, so it opens as this same plan. Copy link copies it.
+17. **Hand it on.** Last, the Brief writes the scenario on show out in full, to read or print. That was the story: every feature, Canada's rover too, has its own short guide, listed in the Guide.
 
 The tour is the story; every control it does not stop at has a feature guide of its own, two to four
 cards in the tour's look, with no voice. There are eighteen, all listed in the Guide: Read the answer, The mission's limits, Compare scenarios, The Planner, Find a landing, Compare in full, Landing accuracy, Views and layers, On the surface, The time bar, A custom point, Share a plan, The written brief, The Library, Check it in NASA's tools, Ask Scout, A real mission: Canada's rover, The front page. Layers,

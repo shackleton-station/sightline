@@ -393,11 +393,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const tourPlanned = useRef(false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
   const [tourTaken, setTourTaken] = useStored('tourTaken', false)
-  // Scout's welcome: on a first visit to the front page, once it has settled, the tour's offer as a
-  // card of its own. Never for a link that carries a plan, a panel or a page; never again in this
-  // browser once it has been answered (taken, skipped, or passed by opening the plan).
-  const [greeted, setGreeted] = useStored('tourGreeted', false)
-  const [greeting, setGreeting] = useState(() => FRONT_PAGE_LINK && !greeted && !tourTaken)
+  // Scout's welcome: each time the front page is opened or reloaded, once it has settled, the tour's
+  // offer as a card of its own. Never for a link that carries a plan, a panel or a page. Skipping it
+  // (or taking the tour) answers it for this opening only; "Don't show this again" is the one thing
+  // that keeps it away in this browser.
+  const [welcomeOff, setWelcomeOff] = useStored('welcomeOff', false)
+  const [greeting, setGreeting] = useState(() => FRONT_PAGE_LINK && !welcomeOff)
   /** Where the welcome stood when the tour was taken from it: the tour's first card starts there and glides to its home. */
   const [tourFrom, setTourFrom] = useState<WelcomePlace | null>(null)
   const [settled, setSettled] = useState(false)
@@ -405,10 +406,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const timer = window.setTimeout(() => setSettled(true), WELCOME_AFTER_MS)
     return () => window.clearTimeout(timer)
   }, [])
-  const endGreeting = useCallback(() => {
-    setGreeting(false)
-    setGreeted(true)
-  }, [setGreeted])
+  const endGreeting = useCallback(() => setGreeting(false), [])
   // A visitor who goes straight to the plan or the Guide has passed the welcome by: it does not wait for them.
   useEffect(() => {
     if (greeting && (plan || how)) endGreeting()
@@ -1228,6 +1226,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             startTour()
           }}
           onSkip={endGreeting}
+          onNever={() => {
+            setGreeting(false)
+            setWelcomeOff(true)
+          }}
           state={now ? riverState(now) : (pointedState ?? null)}
         />
       )}

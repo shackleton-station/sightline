@@ -14,9 +14,9 @@ const at = (id: string) => tour.steps.findIndex((step) => step.id === id)
 const screens = (step: TourStep): TourState[] => (step.then ? [step.state, { ...step.state, ...step.then }] : [step.state])
 
 describe('the tour', () => {
-  it('has sixteen steps, each with its own id, a short title, something to ring, two sentences to read and a longer line to say', () => {
-    expect(tour.steps).toHaveLength(16)
-    expect(new Set(tour.steps.map((step) => step.id)).size).toBe(16)
+  it('has seventeen steps, each with its own id, a short title, something to ring, two sentences to read and a longer line to say', () => {
+    expect(tour.steps).toHaveLength(17)
+    expect(new Set(tour.steps.map((step) => step.id)).size).toBe(17)
     for (const step of tour.steps) {
       expect(step.title.length, step.id).toBeGreaterThan(3)
       // One line of the card's title type.
@@ -36,7 +36,7 @@ describe('the tour', () => {
       expect(words, step.id).toBeGreaterThanOrEqual(45)
       expect(words, step.id).toBeLessThanOrEqual(85)
     }
-    expect(tour.steps.reduce((sum, step) => sum + (step.line ?? '').split(/\s+/).length, 0)).toBeLessThanOrEqual(500)
+    expect(tour.steps.reduce((sum, step) => sum + (step.line ?? '').split(/\s+/).length, 0)).toBeLessThanOrEqual(520)
   })
 
   it('is told in four chapters, in order, each a run of steps', () => {
@@ -86,7 +86,7 @@ describe('the tour', () => {
       expect(step.state.stage, step.id).toBeUndefined()
     }
     const opening = tour.steps.filter((step) => step.then)
-    expect(opening.map((step) => step.id)).toEqual(['plan', 'mission', 'skyline', 'compare', 'planner', 'depth', 'accuracy', 'ground', 'trust', 'scout', 'handon'])
+    expect(opening.map((step) => step.id)).toEqual(['plan', 'mission', 'skyline', 'compare', 'planner', 'depth', 'accuracy', 'ground', 'trust', 'scout', 'share', 'handon'])
     for (const step of opening) {
       expect(step.press, step.id).toBeUndefined()
       expect(step.after?.length, step.id).toBeGreaterThan(0)
@@ -97,7 +97,7 @@ describe('the tour', () => {
       expect(step.line, step.id).toMatch(/\b[Pp]ress\b|Brief/)
     }
     // Between them the presses open every part of the screen the story visits.
-    expect(opening.map((step) => step.then?.open ?? step.then?.stage ?? step.then?.view)).toEqual(['plan', 'mission', 'surface', 'compare', 'planner-find', 'planner-compare', 'accuracy', 'layers', 'proof', 'scout', 'brief'])
+    expect(opening.map((step) => step.then?.open ?? step.then?.stage ?? step.then?.view)).toEqual(['plan', 'mission', 'surface', 'compare', 'planner-find', 'planner-compare', 'accuracy', 'layers', 'proof', 'scout', 'share', 'brief'])
     // Both of the Planner's tabs, in order, and the rail's order: Compare, then the Planner, then what a miss does.
     expect(at('planner')).toBe(at('compare') + 1)
     expect(at('depth')).toBe(at('planner') + 1)
@@ -121,13 +121,28 @@ describe('the tour', () => {
     expect(pressing[1].press).toContain(pressing[1].targets[0])
   })
 
-  it('ends by saying where the rest is: the last card names the Guide, where every feature has its own short guide', () => {
+  it('shows a link being made: Share is rung and pressed, the card says what the link carries, and nothing is copied for the reader', () => {
+    const share = tour.steps[at('share')]
+    expect(share.targets).toEqual([".sl-icon[aria-label='Share']"])
+    expect(share.then?.open).toBe('share')
+    // What the link carries: every scenario, its landing hour, and the mission's limits.
+    expect(share.line).toMatch(/link holds every scenario, landing hour and limit/)
+    expect(share.line).toMatch(/opens as this same plan/)
+    expect(share.say).toMatch(/every scenario, with its site and landing hour, and the mission's limits, so whoever opens it sees the same plan/)
+    // The step opens the list; it never presses "Copy link", so the reader's clipboard is theirs. The card says which button copies.
+    expect(share.press).toBeUndefined()
+    expect(share.after).toEqual(['.sl-share-sheet .sl-share-copy'])
+    expect(share.line).toMatch(/Copy link copies it/)
+    expect(share.say).toMatch(/Library/)
+  })
+
+  it('ends on the written brief, and by saying where the rest is: every feature has its own short guide, listed in the Guide', () => {
     const last = tour.steps[tour.steps.length - 1]
     expect(last.id).toBe('handon')
-    expect(last.line).toMatch(/short guide, listed in the Guide/)
+    expect(at('share')).toBe(at('handon') - 1)
+    expect(last.then?.open).toBe('brief')
     expect(last.line).toMatch(/Brief/)
-    expect(last.line).toMatch(/Share/)
-    expect(last.line).toMatch(/Library/)
+    expect(last.line).toMatch(/short guide, listed in the Guide/)
     expect(last.say).toMatch(/Show me how/)
   })
 
@@ -158,7 +173,7 @@ describe('the tour', () => {
     }
     // Played through, with about a second a step for stepping: long enough to tell the story, short enough to finish.
     expect(tour.voice.seconds).toBeGreaterThanOrEqual(350)
-    expect(tour.voice.seconds).toBeLessThanOrEqual(420)
+    expect(tour.voice.seconds).toBeLessThanOrEqual(425)
     expect(tour.voice.seconds - total).toBeGreaterThanOrEqual(10)
     expect(tour.voice.seconds - total).toBeLessThanOrEqual(30)
   })
@@ -171,9 +186,9 @@ describe('the tour', () => {
     expect(minutesWords(331)).toBe('five and a half minutes')
     // The reading time comes first: most visitors read and few listen.
     expect(tourReads(tour)).toBe('about two minutes')
-    expect(tourTakes(tour)).toMatch(/^16 steps: about two minutes to read, about (six|six and a half) minutes to hear$/)
+    expect(tourTakes(tour)).toMatch(/^17 steps: about two minutes to read, about (six and a half|seven) minutes to hear$/)
     // A hover text: two sentences, and not only the control's own label.
-    expect(tourMeans(tour)).toMatch(/^Scout follows one landing plan across the real screen, in 16 steps\. About two minutes to read, about .+ to hear\.$/)
+    expect(tourMeans(tour)).toMatch(/^Scout follows one landing plan across the real screen, in 17 steps\. About two minutes to read, about .+ to hear\.$/)
   })
 
   it('asks ahead only for files this build has, each once, and for every site and month its plan lands in', () => {
