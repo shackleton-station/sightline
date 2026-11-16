@@ -10,16 +10,16 @@ import type { Plan } from './store'
  * hour, and the others in its shortlist (src/lib/sightlineMission.ts). The library takes each plan
  * apart into those scenarios, so one card is one place and one landing time.
  *
- * It sends the plan's title but not its note: anyone can save a plan without signing in, and a
- * title is the least a card needs. The note is still shown to whoever opens the plan itself.
+ * It sends only what the service worked out from the plan's view: the place, the landing, and when
+ * the plan was saved. Anyone can save a plan without signing in, and the library is open to
+ * everyone, so nothing a visitor typed is in it: not the plan's title, not its note. The plan's id
+ * is left out too, because the id is the link that opens the title and the note, and those are for
+ * whoever was given that link.
  */
 
 /** One scenario of one saved plan, as the library sends it (API.md, "The library"). */
 export interface LibraryScenario {
-  /** The plan it was saved in, and that plan's name. */
-  plan: string
-  title: string
-  /** When the plan was saved. */
+  /** When the plan it is in was saved. */
   saved: string
   /** A listed site's id, or "lat,lon" for a custom point. */
   site: string
@@ -51,7 +51,7 @@ export function scenariosOf(plan: Plan): LibraryScenario[] {
   const first = Date.parse(`${view.a.month}-01T00:00:00Z`) + view.index * HOUR_MS
   if (!Number.isFinite(first)) return []
   const places = [{ site: view.a.site, landing: hourIso(first) }, ...view.shortlist.map((entry) => ({ site: entry.site, landing: toIso(entry.at) }))]
-  return places.slice(0, PER_PLAN).map((place) => ({ plan: plan.id, title: plan.title, saved: plan.created, ...place }))
+  return places.slice(0, PER_PLAN).map((place) => ({ saved: plan.created, ...place }))
 }
 
 /** The library made from the newest plans: expired ones and the deploy's own checks left out, the rest taken apart, newest plan first. */

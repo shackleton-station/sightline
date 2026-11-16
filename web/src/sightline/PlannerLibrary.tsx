@@ -27,8 +27,6 @@ interface Props {
   /** Whether the plan has room for one more scenario. */
   room: boolean
   onReload: () => void
-  /** Open the saved plan a landing came from, as its link would. */
-  onOpenPlan: (id: string) => void
 }
 
 /** How much of a month must have a day that fits: the stops of the last filter, in percent. */
@@ -40,7 +38,7 @@ const MONTH_STOPS = [0, 10, 25, 50, 75]
  * Compare and the letters at the top all show it; pressed again, it takes it out. Whether a card fits is
  * judged against the mission on screen, not the one it was saved with.
  */
-export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMonth, onAdd, onRemove, canRemove, onShow, letterOf, room, onReload, onOpenPlan }: Props) {
+export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMonth, onAdd, onRemove, canRemove, onShow, letterOf, room, onReload }: Props) {
   const [filters, setFilters] = useState<LibraryFilters>(NO_FILTERS)
   const set = (change: Partial<LibraryFilters>) => setFilters((before) => ({ ...before, ...change }))
   const shown = useMemo(() => filterCards(cards, filters), [cards, filters])
@@ -64,7 +62,7 @@ export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMon
       <form className="lib-filters" role="search" aria-label="Search the library" onSubmit={(event) => event.preventDefault()}>
         <label className="lib-words">
           <span>Search</span>
-          <input type="search" value={filters.words} placeholder="A plan’s name or a place" onChange={(event) => set({ words: event.target.value })} />
+          <input type="search" value={filters.words} placeholder="A place’s name" onChange={(event) => set({ words: event.target.value })} />
         </label>
         <label>
           <span>Place</span>
@@ -140,9 +138,6 @@ export function PlannerLibrary({ start, state, cards, sites, firstMonth, lastMon
                   onClick={() => onShow(card)}
                 >
                   Show in plan
-                </button>
-                <button type="button" className="lib-open" title="Opens the whole saved plan this landing came from" onClick={() => onOpenPlan(card.entry.plan)}>
-                  Open plan
                 </button>
               </LibraryCardView>
             </li>
