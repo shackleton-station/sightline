@@ -53,7 +53,7 @@ describe("Scout's tour: the steps", () => {
     const section = readme.slice(readme.indexOf('## Using the site'))
     expect(readme).toContain('## Using the site')
     const onScreen = (longTourFile as LongTourFile).steps
-    expect(onScreen).toHaveLength(15)
+    expect(onScreen).toHaveLength(16)
     for (const step of onScreen) expect(section, step.id).toContain(`**${/[?]$/.test(step.title) ? step.title : `${step.title}.`}** ${step.line}`)
     // Under its four chapters, in order.
     const chapters = [...new Set(onScreen.map((step) => step.chapter))]
@@ -65,8 +65,27 @@ describe("Scout's tour: the steps", () => {
 describe('the feature guides', () => {
   const guides = (guidesFile as GuidesFile).guides
 
-  it('are the eight short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
-    expect(guides.map((guide) => guide.name)).toEqual(['Read the answer', 'Compare scenarios', 'The Planner', 'Views and layers', 'A custom point', 'Share a plan', "Check it in NASA's tools", "A real mission: Canada's rover"])
+  it('are the eighteen short tours the Guide lists, each of two to four steps in the main tour\'s format', () => {
+    expect(guides.map((guide) => guide.name)).toEqual([
+      'Read the answer',
+      "The mission's limits",
+      'Compare scenarios',
+      'The Planner',
+      'Find a landing',
+      'Compare in full',
+      'Landing accuracy',
+      'Views and layers',
+      'On the surface',
+      'The time bar',
+      'A custom point',
+      'Share a plan',
+      'The written brief',
+      'The Library',
+      "Check it in NASA's tools",
+      'Ask Scout',
+      "A real mission: Canada's rover",
+      'The front page',
+    ])
     for (const guide of guides) {
       expect(guide.steps.length, guide.id).toBeGreaterThanOrEqual(2)
       expect(guide.steps.length, guide.id).toBeLessThanOrEqual(4)
@@ -78,7 +97,10 @@ describe('the feature guides', () => {
         expect(step.say.length, step.id).toBeLessThanOrEqual(140)
         expect(step.title.length, step.id).toBeLessThanOrEqual(24)
         expect(step.targets.length, step.id).toBeGreaterThan(0)
-        expect(step.state.view, step.id).toBe('plan')
+        // Every guide is about the plan's screen, except the one about the front page.
+        expect(step.state.view, step.id).toBe(guide.id === 'front' ? 'watch' : 'plan')
+        // A guide's card is all words: nothing is pressed for the reader, and nothing is spoken.
+        expect(step.press ?? step.then ?? step.line, step.id).toBeUndefined()
       }
     }
   })
@@ -92,8 +114,8 @@ describe('the feature guides', () => {
 
   it('open only what a step can open, and ask for the two nearby sites only where a step is about several scenarios', () => {
     const steps = guides.flatMap((guide) => guide.steps)
-    for (const step of steps) if (step.state.open) expect(['compare', 'layers', 'custom', 'share', 'planner-find', 'planner-compare'], step.id).toContain(step.state.open)
-    expect(steps.filter((step) => step.state.pair).map((step) => step.id)).toEqual(['compare-table', 'compare-rows', 'planner-compare', 'planner-back'])
+    for (const step of steps) if (step.state.open) expect(['compare', 'layers', 'custom', 'share', 'planner-find', 'planner-compare', 'mission', 'accuracy', 'scout', 'brief', 'library'], step.id).toContain(step.state.open)
+    expect(steps.filter((step) => step.state.pair).map((step) => step.id)).toEqual(['compare-table', 'compare-rows', 'compare-more', 'planner-compare', 'planner-back', 'full-edit', 'full-play', 'full-charts'])
     // Two steps are about controls a phone does not have (the zoom buttons, the rail's Planner button): they are marked, and their guides still have two steps without them.
     expect(steps.filter((step) => step.wide).map((step) => step.id)).toEqual(['views-zoom', 'rover-next'])
     for (const guide of guides) expect(guide.steps.filter((step) => !step.wide).length, guide.id).toBeGreaterThanOrEqual(2)

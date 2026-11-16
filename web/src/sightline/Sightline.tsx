@@ -75,7 +75,7 @@ import { usePlanLink } from './usePlanLink'
 import { HypeDrawer } from './HypeDrawer'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
-import { TourWelcome } from './TourWelcome'
+import { TourWelcome, type WelcomePlace } from './TourWelcome'
 import { prepareFiles } from '../lib/prepare'
 import { type GuidesFile, type LongTourFile, type TourFile, tourMeans, tourReads } from '../lib/tour'
 import guidesFile from './guides.json'
@@ -216,7 +216,7 @@ const NEW_PLANNER_LINK = typeof window !== 'undefined' && new URLSearchParams(wi
 /** The page was opened at its front, with nothing carried by the link: no plan, panel or page after the "#", not the demo's page, not the New Planner. */
 const FRONT_PAGE_LINK = typeof window !== 'undefined' && window.location.hash.replace(/^#/, '') === '' && !NEW_PLANNER_LINK && !/\/demo\//.test(window.location.pathname)
 /** How long the front page is left alone before Scout's welcome is shown, in milliseconds: the Moon first. */
-const WELCOME_AFTER_MS = 1800
+const WELCOME_AFTER_MS = 1200
 
 export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Props) {
   // Every site's flags share one start and length: the years on hand. Clock hours count from that
@@ -388,7 +388,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const [tourPressed, setTourPressed] = useState<string | null>(null)
   /** Which steps are on show: a feature guide's, by its id, or the main tour's (null). */
   const [tourGuide, setTourGuide] = useState<string | null>(null)
-  const beforeTour = useRef<{ mission: SightlineMission; plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; skyInSurface: boolean; hour: number; playing: boolean } | null>(null)
+  const beforeTour = useRef<{ library: boolean; mission: SightlineMission; plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; skyInSurface: boolean; hour: number; playing: boolean } | null>(null)
   /** Whether the tour has put its own landing in Plan yet: once, so what the visitor tries on the way is kept. */
   const tourPlanned = useRef(false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
@@ -398,6 +398,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // browser once it has been answered (taken, skipped, or passed by opening the plan).
   const [greeted, setGreeted] = useStored('tourGreeted', false)
   const [greeting, setGreeting] = useState(() => FRONT_PAGE_LINK && !greeted && !tourTaken)
+  /** Where the welcome stood when the tour was taken from it: the tour's first card starts there and glides to its home. */
+  const [tourFrom, setTourFrom] = useState<WelcomePlace | null>(null)
   const [settled, setSettled] = useState(false)
   useEffect(() => {
     const timer = window.setTimeout(() => setSettled(true), WELCOME_AFTER_MS)
@@ -891,7 +893,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
 
   /** Start the main tour, or a feature guide by its id. Either way the screen as it is now is kept, to put back at the end. */
   const startTour = (guide: string | null = null) => {
-    beforeTour.current = { mission, plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, skyInSurface, hour: clock.hour, playing }
+    beforeTour.current = { library, mission, plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, skyInSurface, hour: clock.hour, playing }
     tourPlanned.current = false
     if (guide === null) setTourTaken(true)
     endGreeting()
@@ -911,6 +913,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     beforeTour.current = null
     setTourAt(null)
     setTourPressed(null)
+    setTourFrom(null)
     // The Guide, if a step had it open at its proof; and the mission's limits, if a step had them open.
     setHow(false)
     setHowAtProof(false)
@@ -922,6 +925,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setActive(was.chosen)
     setDrawer(was.drawer)
     setFull(was.full)
+    setLibrary(was.library)
     setPlannerTab(was.plannerTab)
     setBrief(was.brief)
     setScoutOpen(was.scoutOpen)
@@ -946,6 +950,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     beforeTour.current = null
     setTourAt(null)
     setTourPressed(null)
+    setTourFrom(null)
     ownPlan.current = true
     setOpenedFrom(null)
     setPlan(true)
@@ -985,7 +990,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     // (On a phone Scout is a panel like the others.)
     setDrawer(open === 'compare' || open === 'layers' || open === 'accuracy' ? open : open === 'scout' && room === 'phone' ? 'scout' : null)
     // Or the Planner, on the tab it is about.
-    setFull(open === 'planner-find' || open === 'planner-compare')
+    setFull(open === 'planner-find' || open === 'planner-compare' || open === 'library')
+    // Or the Library, which takes the Planner's place in the full view.
+    setLibrary(open === 'library')
     if (open === 'planner-find' || open === 'planner-compare') setPlannerTab(open === 'planner-find' ? 'find' : 'compare')
     // Or the written brief, or the mission's limits in the plan's column.
     setBrief(open === 'brief')
@@ -1211,9 +1218,19 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', scoutPanel && drawer !== null && drawer !== 'scout' && !planner ? 'has-both-panels' : '', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', docked ? 'has-dock' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
-    <div className={classes} data-welcome={welcome || undefined} data-touring={tourState?.open === 'planner-find' || tourState?.open === 'planner-compare' ? 'planner' : tourState?.open === 'brief' ? 'brief' : undefined}>
+    <div className={classes} data-welcome={welcome || undefined} data-touring={tourState?.open === 'planner-find' || tourState?.open === 'planner-compare' ? 'planner' : tourState?.open === 'brief' ? 'brief' : tourState?.open === 'library' ? 'library' : undefined}>
       <Tips />
-      {welcome && <TourWelcome reads={tourReads(LONG_TOUR)} onTake={() => startTour()} onSkip={endGreeting} state={now ? riverState(now) : (pointedState ?? null)} />}
+      {welcome && (
+        <TourWelcome
+          reads={tourReads(LONG_TOUR)}
+          onTake={(from) => {
+            setTourFrom(from)
+            startTour()
+          }}
+          onSkip={endGreeting}
+          state={now ? riverState(now) : (pointedState ?? null)}
+        />
+      )}
       {tourAt !== null && (
         <Tour
           name={tourGuide === null ? "Scout's tour" : (GUIDES.find((guide) => guide.id === tourGuide)?.name ?? "Scout's tour")}
@@ -1221,6 +1238,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           voice={tourGuide === null ? LONG_TOUR : null}
           finish={tourGuide === null ? 'Start planning' : 'Done'}
           at={tourAt}
+          enterFrom={tourFrom}
           onStep={tourTo}
           pressed={tourStep !== null && tourPressed === tourStep.id}
           onPress={() => setTourPressed(tourStep?.id ?? null)}
@@ -1405,6 +1423,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           />
           {/* One time bar, in Orbit, Site and Surface alike: in Surface its hour is the hour stood in. */}
           <River
+            onShowHow={tourAt === null ? () => startTour('time') : null}
             start={start}
             hours={hours}
             clock={clock}
@@ -1646,6 +1665,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       )}
       {planner && !library && !newPlanner && (
         <FullPlanner
+          onShowHow={tourAt === null ? (onTab) => startTour(onTab === 'find' ? 'find' : 'full') : null}
           start={start}
           hours={hours}
           flagged={lit.flagged}
@@ -1690,6 +1710,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       {brief && (
         <Suspense fallback={null}>
           <BriefSheet
+            onShowHow={tourAt === null ? () => startTour('brief') : null}
             start={start}
             scenario={scenario}
             site={site}
@@ -1764,7 +1785,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         />
       )}
       {shown && !planner && drawer === 'compare' && (
-        <CompareDrawer start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} adds={addWords} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} onFull={() => {
+        <CompareDrawer onShowHow={tourAt === null ? () => startTour('compare') : null} start={start} scenarios={scenarios} facts={facts} mission={mission} active={active} onSelect={setActive} onAdd={() => addScenario({ site: scenario.site, landing: hour })} adds={addWords} odds={accuracyUsed ? odds : undefined} oddsFor={spreadWords(spread)} onClose={() => setDrawer(null)} marginal={scenarios.map((_, i) => marginalAt(i))} landings={shares} sunlightWm2={sunlightWm2} onFull={() => {
           // The full comparison is the Planner's Compare tab; in the Planner the only panel is Scout's.
           setDrawer(null)
           setNewPlanner(false)

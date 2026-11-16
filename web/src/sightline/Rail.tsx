@@ -97,17 +97,18 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
       {layerOn && <small className="sl-rail-credit">Moon Trek</small>}
     </button>
   )
+  // Compare and the Planner are two halves of one question (which option, and when), so they stand together; then what a miss does to the one chosen.
   const tools = (
     <>
       <button type="button" data-tour="compare" aria-pressed={compareOpen} title="Opens the scenarios side by side, row by row." onClick={onCompare}>
         Compare
       </button>
+      <button type="button" data-tour="planner" title="Opens the Planner: every site by month, and your scenarios side by side." onClick={onPlanner}>
+        Planner
+      </button>
       <button type="button" data-tour="accuracy" aria-pressed={accuracyOpen} title="Shows how likely a lander that misses its target still comes down where the mission fits." onClick={onAccuracy}>
         Landing <br />
         accuracy
-      </button>
-      <button type="button" data-tour="planner" title="Opens the Planner: every site by month, and your scenarios side by side." onClick={onPlanner}>
-        Planner
       </button>
       <button type="button" title="Opens the Library: your saved plans to pick up again, and landings other people saved, to search and add to your plan." onClick={onLibrary}>
         Library

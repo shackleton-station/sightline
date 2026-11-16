@@ -185,6 +185,32 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
         </ol>
       </section>
 
+      {/* The keys the screen answers to, in one place: no control's hover text lists them all. */}
+      <details className="how-more how-keys">
+        <summary>Keys</summary>
+        <ul>
+          <li>
+            <kbd>P</kbd> opens the plan, and closes it.
+          </li>
+          <li>
+            <kbd>Space</kbd> plays time, and holds it.
+          </li>
+          <li>
+            <kbd>←</kbd> and <kbd>→</kbd> move the time bar one hour; with <kbd>Shift</kbd>, one day.
+          </li>
+          <li>
+            <kbd>H</kbd> hides everything but the Moon, and shows it again.
+          </li>
+          <li>
+            <kbd>Esc</kbd> closes whatever is on top: a menu, a panel, the Planner, this Guide.
+          </li>
+          <li>With the Moon in focus, the arrows turn it, and plus and minus zoom.</li>
+          <li>
+            In a tour or a guide, <kbd>→</kbd> or <kbd>Page Down</kbd> is Next, <kbd>←</kbd> or <kbd>Page Up</kbd> is Back, and <kbd>Esc</kbd> closes it.
+          </li>
+        </ul>
+      </details>
+
       <details className="how-more">
         <summary>The whole pole, not only the listed sites</summary>
         <p>

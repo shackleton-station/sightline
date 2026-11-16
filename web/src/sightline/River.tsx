@@ -27,6 +27,8 @@ interface Props {
   missionHours: number
   folded: boolean
   onFold: (folded: boolean) => void
+  /** Starts the short guide to the time bar, offered in its "More" menu; null while a tour or guide is on. */
+  onShowHow?: (() => void) | null
   onSelect: (key: string) => void
   /** The skyline strip above this bar ("What the lander sees"): whether it is open, and its door, which is this bar's readout of the Sun's and Earth's heights. */
   /** Make and save the hour-by-hour file of the scenario on show, offered under "More"; rejects when it cannot be made. */
@@ -82,7 +84,7 @@ const KEY_ROOM_REM = 32
  * handle at its top and its date under it. Drag anywhere on the rows to move time, or press a flag
  * to choose that scenario.
  */
-export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onSelect, onHourly }: Props) {
+export function River({ start, hours, clock, hour, moment, rows, missionHours, folded, onFold, onShowHow = null, onSelect, onHourly }: Props) {
   const [zoom, setZoom] = useState<RiverZoom>('month')
   const [earthRow, setEarthRow] = useState(false)
   const { from, to } = riverWindow(start, hour, zoom, hours)
@@ -286,6 +288,18 @@ export function River({ start, hours, clock, hour, moment, rows, missionHours, f
         {menu === 'more' && (
           <div ref={menuBox} className="sl-menu" role="group" aria-label="More for the time bar">
             {keyInMenu && !folded && key}
+            {onShowHow && (
+              <button
+                type="button"
+                className="sl-link sl-show-how"
+                onClick={() => {
+                  setMenu(null)
+                  onShowHow()
+                }}
+              >
+                Show me how
+              </button>
+            )}
             {earthDayOffered && (
               <label className="sl-check">
                 <input type="checkbox" checked={earthRow} onChange={(event) => setEarthRow(event.target.checked)} /> A day on Earth

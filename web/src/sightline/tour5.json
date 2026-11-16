@@ -5,7 +5,7 @@
     "disclosure": "AI-generated voice",
     "files": "/tour/voice5/<id>.mp3",
     "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\"",
-    "seconds": 356
+    "seconds": 390
   },
   "steps": [
     {
@@ -305,8 +305,53 @@
       "afterLit": [
         ".pl-future"
       ],
-      "leave": ".sl-full .pl-back",
       "pressOn": "The Planner steps"
+    },
+    {
+      "id": "depth",
+      "chapter": "The plan changes",
+      "title": "Compare in depth",
+      "line": "Press the Planner's Compare tab to weigh A to D in full: At a glance colors each figure by your limits, and only B fits. Export saves the table, or every hour, as a file.",
+      "say": "Four scenarios, one decision. The Planner's Compare tab sets them against each other in full. At a glance is one row a scenario, each figure colored by your limits: within them, close to one, or past it. Under it is the whole table: the angles at landing, power, radio and the ground. Only B fits, so B goes forward. And Export saves that table, or every hour of the mission, as a file for your own tools.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-05-06T13:00:00Z"
+          },
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-06-22T07:00:00Z"
+          },
+          {
+            "site": "shackleton-rim",
+            "landing": "2027-05-06T13:00:00Z"
+          },
+          {
+            "site": "de-gerlache-rim",
+            "landing": "2027-05-06T13:00:00Z"
+          }
+        ],
+        "active": 1,
+        "open": "planner-find"
+      },
+      "targets": [
+        ".pl-tabs [role='tab']:nth-of-type(2)"
+      ],
+      "then": {
+        "open": "planner-compare"
+      },
+      "after": [
+        ".sl-np.is-glance"
+      ],
+      "afterLit": [
+        ".pl-compare",
+        ".sl-export"
+      ],
+      "leave": ".sl-full .pl-back",
+      "pressOn": "The Planner's Compare tab sets"
     },
     {
       "id": "accuracy",
@@ -480,8 +525,8 @@
       "id": "handon",
       "chapter": "Trust it, and use it",
       "title": "Hand it on",
-      "line": "Hand it to your team: Brief writes the scenario on show out in full, to print, and Share makes a link to the same plan. Then try Canada's rover mission, or start your own.",
-      "say": "Last, hand it on. A plan is for a team: Brief writes the scenario on show out in full, to read or print, and Share makes a link that opens the same plan for whoever gets it. Planners get every hour as a table and NASA's links; a class gets the Guide. Try a real mission, Canada's utility rover, or start planning your own.",
+      "line": "Hand it on: Brief writes the scenario on show out in full, and Share makes a link or saves the plan to the Library. Every feature, Canada's rover too, has its own short guide, listed in the Guide.",
+      "say": "Last, hand it on. A plan is for a team: Brief writes the scenario on show out in full, to read or print, and Share makes a link that opens the same plan, or saves it by name to the Library. That was the story. Every feature has a short guide of its own, listed in the Guide, and some panels offer theirs as Show me how. Try the one on Canada's utility rover, a real mission, or start planning your own.",
       "state": {
         "view": "plan",
         "mission": "short",

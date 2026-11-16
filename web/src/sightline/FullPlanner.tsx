@@ -51,6 +51,8 @@ interface Props {
   onTab: (tab: PlannerTab) => void
   /** Open the written brief for the scenario on show, as the main screen does. */
   onBrief: () => void
+  /** Starts the short guide to the tab on show, offered in the header; null while a tour or guide is on. */
+  onShowHow?: ((tab: PlannerTab) => void) | null
   /** Scout's panel opens beside the table, on the right. */
   scoutOpen: boolean
   onScout: () => void
@@ -92,7 +94,7 @@ const ROOM_FOR_BOTH_PX = 1000
  * scenarios side by side. The Moon stays as a small live view in the corner (drawn by the screen,
  * not here), and is itself a way back.
  */
-export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, dataYears, onYear, landingBounds, onFarLanding, banner = null }: Props) {
+export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, onMission, active, onSelect, onAdd, onChange, onAddShown, onRemove, onBack, tab, onTab, onBrief, onShowHow = null, scoutOpen, onScout, site, month, year, summary, landings, sunlightWm2, dataYears, onYear, landingBounds, onFarLanding, banner = null }: Props) {
   const measures = scenarios.map((scenario, i) => {
     const { site: at, flags, slopeDeg } = facts[i]
     return flags ? measureScenario(scenario, at, flags, mission, slopeDeg) : null
@@ -159,6 +161,11 @@ export function FullPlanner({ start, hours, flagged, scenarios, facts, mission, 
         </div>
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
         <span className="pl-tools">
+          {onShowHow && (
+            <button type="button" className="sl-link sl-show-how" onClick={() => onShowHow(tab)}>
+              Show me how
+            </button>
+          )}
           <button type="button" className="sl-small" title="Opens a written summary of the scenario on show." onClick={onBrief}>
             Brief
           </button>

@@ -27,6 +27,8 @@ interface Props {
   onLanding: (landing: number, site?: string) => void
   onKeep: (scenario: SightlineScenario) => void
   onClose: () => void
+  /** Starts the short guide to the brief, offered in its bar; null while a tour or guide is on. */
+  onShowHow?: (() => void) | null
   /** Where closing leads: the screen the brief was opened from. The button says so. */
   backTo?: 'the Moon' | 'the Planner'
   /** A saved plan's own brief, shown first when the screen was opened from its short link. */
@@ -41,7 +43,7 @@ const FIRST_SLIP_DAYS = SLIPS[0].days ?? 7
  * brief (the Planner page's), worked out by the same functions, for this site, month and landing.
  * Its buttons move the scenario on show. It is written for listed sites only.
  */
-export default function BriefSheet({ start, scenario, site, mission, room, onLanding, onKeep, onClose, backTo = 'the Moon', saved = null }: Props) {
+export default function BriefSheet({ start, scenario, site, mission, room, onLanding, onKeep, onClose, onShowHow = null, backTo = 'the Moon', saved = null }: Props) {
   const data = usePlannerData()
   const [slipDays, setSlipDays] = useState(FIRST_SLIP_DAYS)
   const [kept, setKept] = useState(false)
@@ -59,6 +61,11 @@ export default function BriefSheet({ start, scenario, site, mission, room, onLan
   return (
     <div className="sl-how sl-brief-sheet planner" role="dialog" aria-modal="true" aria-label="Landing brief">
       <div className="sl-brief-bar">
+        {onShowHow && (
+          <button type="button" className="sl-link sl-show-how" onClick={onShowHow}>
+            Show me how
+          </button>
+        )}
         <button type="button" className="sl-small" onClick={() => window.print()}>
           Print the brief
         </button>

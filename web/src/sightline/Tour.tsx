@@ -14,6 +14,8 @@ interface Props {
   finish: string
   /** Which step is on show, counted from 0. */
   at: number
+  /** Where the tour's first card starts from, when the tour was taken from the welcome: it glides from there to its home. */
+  enterFrom?: { left: number; bottom: number } | null
   onStep: (index: number) => void
   /** Whether the step on show has made its press: the control it rang has been pressed for the reader. */
   pressed: boolean
@@ -113,7 +115,7 @@ function moonDisc(): Disc | null {
  * is never sound without a click; "Play through" moves on when a line ends. Dimming the page round
  * what a step is about was Misha's idea (sightline#231).
  */
-export function Tour({ name, steps, voice, finish, at, onStep, pressed, onPress, onClose, onDone, onVideo, tryIt, state }: Props) {
+export function Tour({ name, steps, voice, finish, at, enterFrom = null, onStep, pressed, onPress, onClose, onDone, onVideo, tryIt, state }: Props) {
   const step = steps[at]
   const last = at === steps.length - 1
   // A step may press a control on the first "Next", to show a before and an after: the control it
@@ -219,19 +221,23 @@ export function Tour({ name, steps, voice, finish, at, onStep, pressed, onPress,
       const at = placeBubble({ width: el.offsetWidth, height: el.offsetHeight }, { width: window.innerWidth, height: window.innerHeight }, phone ? boxes : [...boxes, ...also], phone || moonLit ? moonDisc() : null, phone)
       setPlace((before) => (before && before.left === at.left && before.top === at.top ? before : at))
     }
-    lay()
+    // A card that starts where the welcome stood is drawn there once before it is placed, so it is seen to glide home.
+    if (!(enterFrom && place === null)) lay()
     const timer = window.setInterval(lay, PLACE_EVERY_MS)
     return () => window.clearInterval(timer)
     // The step, whether it has pressed its control and whether it is on its way out decide what is ringed.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [step, pressed, leaving])
 
-  // On a phone what a step is about may be further down whatever holds it (the sheet, a panel, the
-  // Planner's page): bring it to the top of the nearest thing that scrolls, clear of the bubble at the foot.
+  // What a step is about may be further down whatever holds it (on a phone the sheet, a panel, the
+  // Planner's page; on a laptop a long page): bring it to the top of the nearest thing that scrolls, clear of the card at the foot.
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const target = targets.flatMap((selector) => [...document.querySelectorAll(selector)]).find((el) => !el.closest('[hidden]'))
-      if (!target || window.innerWidth >= PHONE_UNDER_PX) return
+      if (!target) return
+      // On a laptop only what is out of sight is brought up: further down a page that scrolls (the Planner's Compare tab, the brief).
+      const box = target.getBoundingClientRect()
+      if (window.innerWidth >= PHONE_UNDER_PX && box.top >= 0 && box.top < window.innerHeight - 120) return
       let holder = target.parentElement
       while (holder && !(holder.scrollHeight > holder.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(holder).overflowY))) holder = holder.parentElement
       if (!holder) return
@@ -351,7 +357,7 @@ export function Tour({ name, steps, voice, finish, at, onStep, pressed, onPress,
         data-pressed={step.press || step.then ? String(pressed) : undefined}
         data-leaving={leaving || undefined}
         // On a laptop the card is held by its foot, so Back and Next are at one height on every step; it glides when it changes side.
-        style={place ? (window.innerWidth < PHONE_UNDER_PX ? { left: place.left, top: place.top } : { left: place.left, bottom: FOOT_PX }) : { visibility: 'hidden' }}
+        style={place ? (window.innerWidth < PHONE_UNDER_PX ? { left: place.left, top: place.top } : { left: place.left, bottom: FOOT_PX }) : enterFrom ? { left: enterFrom.left, bottom: enterFrom.bottom } : { visibility: 'hidden' }}
       >
         <header className="sl-tour-head">
           {/* Over the title: the chapter of the story this step is in (a feature guide's own name, for a guide), and the way out. */}
