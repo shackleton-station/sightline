@@ -53,7 +53,7 @@ describe("Scout's tour: the steps", () => {
     const section = readme.slice(readme.indexOf('## Using the site'))
     expect(readme).toContain('## Using the site')
     const onScreen = (longTourFile as LongTourFile).steps
-    expect(onScreen).toHaveLength(14)
+    expect(onScreen).toHaveLength(15)
     for (const step of onScreen) expect(section, step.id).toContain(`**${/[?]$/.test(step.title) ? step.title : `${step.title}.`}** ${step.line}`)
     // Under its four chapters, in order.
     const chapters = [...new Set(onScreen.map((step) => step.chapter))]

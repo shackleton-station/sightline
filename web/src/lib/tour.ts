@@ -16,9 +16,10 @@ export interface TourState {
   /**
    * Something the step opens to talk about it: the Compare or Layers panel, the form for a custom
    * point, the Share list, or the Planner on one of its tabs. The tour also opens the
-   * Landing accuracy panel, Scout's panel, and the Guide at its proof.
+   * Landing accuracy panel, Scout's panel, the Guide at its proof, the mission's limits in the
+   * plan's column, and the written brief.
    */
-  open?: GuidePanel | 'planner-find' | 'planner-compare' | 'accuracy' | 'scout' | 'proof'
+  open?: GuidePanel | 'planner-find' | 'planner-compare' | 'accuracy' | 'scout' | 'proof' | 'mission' | 'brief'
   /** The step is about more than one scenario: the app's two nearby sites on one date are put in, once, for it. */
   pair?: boolean
   /** The step is about the Long stay example: the mission is set to it for the guide, and put back on leaving. The tour sets the Short stay, so it says the same on every screen. */
@@ -78,6 +79,17 @@ export interface TourStep {
   after?: string[]
   /** The words of `say` at which that press belongs, when the tour plays through by itself: it is made as the voice reaches them. */
   pressOn?: string
+  /**
+   * Where the step goes on its first "Next", for a step that moves to another part of the screen:
+   * it arrives with the control a visitor would press ringed (`targets`), the first "Next" presses
+   * it for them by putting the screen in `state` with these changes, and `after` is ringed there.
+   * So a reader who closes the tour knows which button led where.
+   */
+  then?: Partial<TourState>
+  /** What is lit beside the rings once the step has made its press, when that differs from `lit`. */
+  afterLit?: string[]
+  /** The way back from a page the step opened (a CSS selector): ringed for a moment as the reader moves on, so they see it too. */
+  leave?: string
 }
 
 export interface TourFile {
@@ -114,13 +126,18 @@ export function minutesWords(seconds: number): string {
   return `${NUMBER_WORDS[whole] ?? whole}${half ? ' and a half' : ''} minutes`
 }
 
-/** How fast a card is read, in words a minute: slower than plain reading, since each step is also looked at. */
-const READ_WORDS_A_MINUTE = 200
+/** How fast a card is read, in words a minute: about an adult's usual silent pace for plain prose. */
+const READ_WORDS_A_MINUTE = 230
 
-/** What the tour takes, from its own steps and voice: "14 steps: about two minutes to read, about five and a half minutes to hear". */
-export function tourTakes(tour: LongTourFile): string {
+/** How long the tour's cards take to read, since most visitors read and few listen: "about two minutes". */
+export function tourReads(tour: LongTourFile): string {
   const words = tour.steps.reduce((sum, step) => sum + (step.line ?? step.say).split(/\s+/).length, 0)
-  return `${tour.steps.length} steps: about ${minutesWords((words / READ_WORDS_A_MINUTE) * 60)} to read, about ${minutesWords(tour.voice.seconds)} to hear`
+  return `about ${minutesWords((words / READ_WORDS_A_MINUTE) * 60)}`
+}
+
+/** What the tour takes, from its own steps and voice, the reading time first: "15 steps: about two minutes to read, about six minutes to hear". */
+export function tourTakes(tour: LongTourFile): string {
+  return `${tour.steps.length} steps: ${tourReads(tour)} to read, about ${minutesWords(tour.voice.seconds)} to hear`
 }
 
 /** The hover text of every way into the tour: what it is, and what it takes. */
