@@ -59,14 +59,18 @@ service_cpu_always_on = true
 # chat_all_day was 400 until 2026-11-14: a night of deploys and checks used the day up (every call to
 # /api/chat counts, refused and malformed ones too) and Scout refused every visitor. To undo: 400.
 copilot_limits = {
-  chat_each     = 15
-  chat_each_day = 250 # was 100 until 2026-11-15. One network address gets four visitors' allowance (limits.ts), so 100 meant 400 a day for a whole room: the team's own checks used it up and Scout answered "busy" to everyone on that Wi-Fi. 250 lets one address use the whole day's 1,000 (chat_all_day), so the most a day can cost is unchanged. To undo: 100.
-  chat_all      = 60
-  chat_all_day  = 1000
-  ask_each      = 20
-  ask_each_day  = 150
-  ask_all       = 60
-  ask_all_day   = 600
+  # Lowered on 2026-11-16, the day after the event, so that no one visitor or script can run up the
+  # model bill: 40 questions a day for a visitor (one network address gets four visitors' allowance,
+  # so 160), 300 a day for everyone together. During the event these were 15, 250, 60, 1000 and
+  # 20, 150, 60, 600. To undo: put those back.
+  chat_each     = 6
+  chat_each_day = 40
+  chat_all      = 20
+  chat_all_day  = 300
+  ask_each      = 10
+  ask_each_day  = 40
+  ask_all       = 20
+  ask_all_day   = 200
 }
 
 # Sign-in with Google. The id is public: every visitor's browser receives it.
