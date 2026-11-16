@@ -88,6 +88,11 @@ export interface TourStep {
    * So a reader who closes the tour knows which button led where.
    */
   then?: Partial<TourState>
+  /**
+   * Fields the step fills in as its press, the way a visitor would type them, and the button it then
+   * presses: the real controls, on the form the step's `then` has opened.
+   */
+  typed?: { fields: { into: string; text: string }[]; submit: string }
   /** What is lit beside the rings once the step has made its press, when that differs from `lit`. */
   afterLit?: string[]
   /** The way back from a page the step opened (a CSS selector): ringed for a moment as the reader moves on, so they see it too. */

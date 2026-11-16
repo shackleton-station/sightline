@@ -49,6 +49,9 @@ const MOVE_MS = 280
 const HOLD_MS = 900
 /** With this much of the window lit, the step is about the whole screen: nothing is shaded. */
 const WHOLE_SCREEN = 0.6
+/** How long after its press a step starts typing into the form it opened, and how long between one field and the next. */
+const TYPE_AFTER_MS = 450
+const TYPE_EVERY_MS = 450
 /** How long the way back from a page stays ringed as the reader moves on. */
 const LEAVE_MS = 900
 /** How far the card keeps from the window's foot on a laptop, where it is held by its foot so "Back" and "Next" never move up or down. */
@@ -133,9 +136,31 @@ export function Tour({ name, steps, voice, finish, at, enterFrom = null, onStep,
     if (waiting) {
       if (step.press) document.querySelector<HTMLElement>(step.press)?.click()
       onPress()
+      if (step.typed) typeIt(step.id, step.typed)
     } else if (last) onDone()
     else if (step.leave && pressed && !leaving && [...document.querySelectorAll(step.leave)].some(onScreen)) setLeaving(true)
     else go(at + 1)
+  }
+  // A step may type into a form for the reader: each field in turn, then its button, in the form the
+  // press has just opened. If the reader has moved on meanwhile, nothing more is typed.
+  const onStepId = useRef(step.id)
+  useEffect(() => {
+    onStepId.current = step.id
+  }, [step.id])
+  const typeIt = (id: string, typed: NonNullable<TourStep['typed']>) => {
+    const here = () => onStepId.current === id
+    typed.fields.forEach((field, i) => {
+      window.setTimeout(() => {
+        const input = here() ? document.querySelector<HTMLInputElement>(field.into) : null
+        if (!input) return
+        // The page's own handler hears the change, as it hears a key press.
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, field.text)
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }, TYPE_AFTER_MS + i * TYPE_EVERY_MS)
+    })
+    window.setTimeout(() => {
+      if (here()) document.querySelector<HTMLElement>(typed.submit)?.click()
+    }, TYPE_AFTER_MS + typed.fields.length * TYPE_EVERY_MS)
   }
   useEffect(() => {
     if (!leaving) return

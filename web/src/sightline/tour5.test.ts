@@ -14,9 +14,9 @@ const at = (id: string) => tour.steps.findIndex((step) => step.id === id)
 const screens = (step: TourStep): TourState[] => (step.then ? [step.state, { ...step.state, ...step.then }] : [step.state])
 
 describe('the tour', () => {
-  it('has eighteen steps, each with its own id, a short title, something to ring, two sentences to read and a longer line to say', () => {
-    expect(tour.steps).toHaveLength(18)
-    expect(new Set(tour.steps.map((step) => step.id)).size).toBe(18)
+  it('has nineteen steps, each with its own id, a short title, something to ring, two sentences to read and a longer line to say', () => {
+    expect(tour.steps).toHaveLength(19)
+    expect(new Set(tour.steps.map((step) => step.id)).size).toBe(19)
     for (const step of tour.steps) {
       expect(step.title.length, step.id).toBeGreaterThan(3)
       // One line of the card's title type.
@@ -36,7 +36,7 @@ describe('the tour', () => {
       expect(words, step.id).toBeGreaterThanOrEqual(45)
       expect(words, step.id).toBeLessThanOrEqual(85)
     }
-    expect(tour.steps.reduce((sum, step) => sum + (step.line ?? '').split(/\s+/).length, 0)).toBeLessThanOrEqual(560)
+    expect(tour.steps.reduce((sum, step) => sum + (step.line ?? '').split(/\s+/).length, 0)).toBeLessThanOrEqual(600)
   })
 
   it('is told in four chapters, in order, each a run of steps', () => {
@@ -67,7 +67,7 @@ describe('the tour', () => {
     // The front page until "Plan a landing" is pressed; the first landing alone until the date slips; then the later date beside it, on show; then two other sites on the first date.
     expect(tour.steps.slice(0, at('plan') + 1).map((step) => step.state.view)).toEqual(['watch', 'watch'])
     expect(tour.steps[at('plan')].then?.scenarios).toEqual([A])
-    for (const step of tour.steps.slice(at('point'), at('slipped') + 1)) expect(step.state.scenarios, step.id).toEqual([A])
+    for (const step of tour.steps.slice(at('typed'), at('slipped') + 1)) expect(step.state.scenarios, step.id).toEqual([A])
     expect(tour.steps[at('scenarios')].state.scenarios).toEqual([A, B])
     for (const step of tour.steps.slice(at('compare'))) {
       expect(step.state.scenarios?.slice(0, 2), step.id).toEqual([A, B])
@@ -86,7 +86,7 @@ describe('the tour', () => {
       expect(step.state.stage, step.id).toBeUndefined()
     }
     const opening = tour.steps.filter((step) => step.then)
-    expect(opening.map((step) => step.id)).toEqual(['plan', 'point', 'mission', 'skyline', 'compare', 'planner', 'depth', 'accuracy', 'ground', 'trust', 'scout', 'share', 'handon'])
+    expect(opening.map((step) => step.id)).toEqual(['plan', 'typed', 'point', 'mission', 'skyline', 'compare', 'planner', 'depth', 'accuracy', 'ground', 'trust', 'scout', 'share', 'handon'])
     for (const step of opening) {
       expect(step.press, step.id).toBeUndefined()
       expect(step.after?.length, step.id).toBeGreaterThan(0)
@@ -97,7 +97,7 @@ describe('the tour', () => {
       expect(step.line, step.id).toMatch(/\b[Pp]ress\b|Brief/)
     }
     // Between them the presses open every part of the screen the story visits.
-    expect(opening.map((step) => step.then?.open ?? step.then?.stage ?? step.then?.view ?? (step.then?.point ? 'point' : undefined))).toEqual(['plan', 'point', 'mission', 'surface', 'compare', 'planner-find', 'planner-compare', 'accuracy', 'layers', 'proof', 'scout', 'share', 'brief'])
+    expect(opening.map((step) => step.then?.open ?? step.then?.stage ?? step.then?.view ?? (step.then?.point ? 'point' : undefined))).toEqual(['plan', 'custom', 'point', 'mission', 'surface', 'compare', 'planner-find', 'planner-compare', 'accuracy', 'layers', 'proof', 'scout', 'share', 'brief'])
     // Both of the Planner's tabs, in order, and the rail's order: Compare, then the Planner, then what a miss does.
     expect(at('planner')).toBe(at('compare') + 1)
     expect(at('depth')).toBe(at('planner') + 1)
@@ -123,7 +123,8 @@ describe('the tour', () => {
 
   it('shows a point of the reader\'s own: the Moon is lit and the site control rung, the press sets a point no list holds as a click on the Moon does, and the next step is the story\'s plan again', () => {
     const point = tour.steps[at('point')]
-    expect(at('point')).toBe(at('plan') + 1)
+    expect(at('typed')).toBe(at('plan') + 1)
+    expect(at('point')).toBe(at('typed') + 1)
     expect(at('mission')).toBe(at('point') + 1)
     expect(point.chapter).toBe('The problem')
     expect(point.lit).toContain('moon')
@@ -131,8 +132,19 @@ describe('the tour', () => {
     expect(point.then?.point?.lat).toBeLessThan(-88)
     expect(point.state.scenarios).toEqual([A])
     expect(point.after).toContain('.sl-verdict')
-    expect(point.line).toMatch(/press anywhere on the Moon, or type coordinates/)
-    expect(point.line).toMatch(/works out that point's own skyline/)
+    expect(point.line).toMatch(/press the Moon: wherever you press becomes the plan's site/)
+    // The step before it shows the other way: the site list's "Custom point", a latitude and a longitude typed into the real fields, and Go.
+    const typed = tour.steps[at('typed')]
+    expect(typed.then?.open).toBe('custom')
+    expect(typed.typed?.fields.map((field) => field.into)).toEqual(['#sl-latitude', '#sl-longitude'])
+    expect(typed.typed?.fields.every((field) => /^-?\d+(\.\d+)?$/.test(field.text))).toBe(true)
+    expect(Number(typed.typed?.fields[0].text)).toBeLessThan(-88)
+    expect(typed.typed?.submit).toMatch(/submit/)
+    expect(typed.after).toContain('.sl-verdict')
+    expect(typed.line).toMatch(/Choose Custom point in the site list, type a latitude and a longitude, and press Go/)
+    expect(typed.line).toMatch(/works out that point's own skyline/)
+    // Two different points.
+    expect(`${point.then?.point?.lat},${point.then?.point?.lon}`).not.toBe(`${typed.typed?.fields[0].text},${typed.typed?.fields[1].text}`)
     // No other step carries the point: each sets its own plan.
     expect(tour.steps.filter((step) => step.state.point ?? step.then?.point).map((step) => step.id)).toEqual(['point'])
   })
@@ -189,7 +201,7 @@ describe('the tour', () => {
     }
     // Played through, with about a second a step for stepping: long enough to tell the story, short enough to finish.
     expect(tour.voice.seconds).toBeGreaterThanOrEqual(350)
-    expect(tour.voice.seconds).toBeLessThanOrEqual(445)
+    expect(tour.voice.seconds).toBeLessThanOrEqual(470)
     expect(tour.voice.seconds - total).toBeGreaterThanOrEqual(10)
     expect(tour.voice.seconds - total).toBeLessThanOrEqual(30)
   })
@@ -202,9 +214,9 @@ describe('the tour', () => {
     expect(minutesWords(331)).toBe('five and a half minutes')
     // The reading time comes first: most visitors read and few listen.
     expect(tourReads(tour)).toBe('about two and a half minutes')
-    expect(tourTakes(tour)).toMatch(/^18 steps: about two and a half minutes to read, about (seven|seven and a half) minutes to hear$/)
+    expect(tourTakes(tour)).toMatch(/^19 steps: about two and a half minutes to read, about (seven and a half|eight) minutes to hear$/)
     // A hover text: two sentences, and not only the control's own label.
-    expect(tourMeans(tour)).toMatch(/^Scout follows one landing plan across the real screen, in 18 steps\. About two and a half minutes to read, about .+ to hear\.$/)
+    expect(tourMeans(tour)).toMatch(/^Scout follows one landing plan across the real screen, in 19 steps\. About two and a half minutes to read, about .+ to hear\.$/)
   })
 
   it('asks ahead only for files this build has, each once, and for every site and month its plan lands in', () => {
