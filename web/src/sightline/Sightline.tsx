@@ -75,8 +75,9 @@ import { usePlanLink } from './usePlanLink'
 import { HypeDrawer } from './HypeDrawer'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
+import { TourWelcome } from './TourWelcome'
 import { prepareFiles } from '../lib/prepare'
-import { type GuidesFile, type LongTourFile, type TourFile, tourMeans } from '../lib/tour'
+import { type GuidesFile, type LongTourFile, type TourFile, tourMeans, tourReads } from '../lib/tour'
 import guidesFile from './guides.json'
 import tourFile from './tour.json'
 import longTourFile from './tour5.json'
@@ -212,6 +213,10 @@ interface Props {
  * its own address, the site with "?new-planner" before any "#", which nothing in the app links to.
  */
 const NEW_PLANNER_LINK = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('new-planner')
+/** The page was opened at its front, with nothing carried by the link: no plan, panel or page after the "#", not the demo's page, not the New Planner. */
+const FRONT_PAGE_LINK = typeof window !== 'undefined' && window.location.hash.replace(/^#/, '') === '' && !NEW_PLANNER_LINK && !/\/demo\//.test(window.location.pathname)
+/** How long the front page is left alone before Scout's welcome is shown, in milliseconds: the Moon first. */
+const WELCOME_AFTER_MS = 1800
 
 export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Props) {
   // Every site's flags share one start and length: the years on hand. Clock hours count from that
@@ -379,6 +384,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // Scout's tour: which step is on show (null when it is not running), and the screen as the
   // visitor had it, to put back when the tour is closed at any step. It never starts by itself.
   const [tourAt, setTourAt] = useState<number | null>(null)
+  /** The step that has made its press (its id): the control it rang has been pressed for the reader. A step starts unpressed each time it is reached. */
+  const [tourPressed, setTourPressed] = useState<string | null>(null)
   /** Which steps are on show: a feature guide's, by its id, or the main tour's (null). */
   const [tourGuide, setTourGuide] = useState<string | null>(null)
   const beforeTour = useRef<{ mission: SightlineMission; plan: boolean; scenarios: SightlineScenario[]; chosen: number; drawer: typeof drawer; full: boolean; plannerTab: PlannerTab; brief: boolean; scoutOpen: boolean; mode: StageMode; sheet: number; bare: boolean; pillMin: boolean; riverMin: boolean; skyMin: boolean; skyInSurface: boolean; hour: number; playing: boolean } | null>(null)
@@ -386,6 +393,24 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const tourPlanned = useRef(false)
   /** Whether the visitor has taken the tour: How it works then offers it "again". */
   const [tourTaken, setTourTaken] = useStored('tourTaken', false)
+  // Scout's welcome: on a first visit to the front page, once it has settled, the tour's offer as a
+  // card of its own. Never for a link that carries a plan, a panel or a page; never again in this
+  // browser once it has been answered (taken, skipped, or passed by opening the plan).
+  const [greeted, setGreeted] = useStored('tourGreeted', false)
+  const [greeting, setGreeting] = useState(() => FRONT_PAGE_LINK && !greeted && !tourTaken)
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettled(true), WELCOME_AFTER_MS)
+    return () => window.clearTimeout(timer)
+  }, [])
+  const endGreeting = useCallback(() => {
+    setGreeting(false)
+    setGreeted(true)
+  }, [setGreeted])
+  // A visitor who goes straight to the plan or the Guide has passed the welcome by: it does not wait for them.
+  useEffect(() => {
+    if (greeting && (plan || how)) endGreeting()
+  }, [greeting, plan, how, endGreeting])
   const guideVideos = useGuideVideos(TOUR, tourAt !== null || how)
   /** How it works opens at its video when the tour's last step asks for it. */
   const [howAtVideo, setHowAtVideo] = useState(false)
@@ -869,18 +894,27 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     beforeTour.current = { mission, plan, scenarios, chosen, drawer, full, plannerTab, brief, scoutOpen, mode, sheet, bare, pillMin, riverMin, skyMin, skyInSurface, hour: clock.hour, playing }
     tourPlanned.current = false
     if (guide === null) setTourTaken(true)
+    endGreeting()
     setHow(false)
     setTourGuide(guide)
+    setTourPressed(null)
     setTourAt(0)
   }
+  /** Show a step of the tour: it starts as it was written, with its control not yet pressed. */
+  const tourTo = useCallback((index: number) => {
+    setTourPressed(null)
+    setTourAt(index)
+  }, [])
   /** Leave the tour at any step: the screen goes back to how the visitor had it. */
   const endTour = useCallback(() => {
     const was = beforeTour.current
     beforeTour.current = null
     setTourAt(null)
-    // The Guide, if a step had it open at its proof.
+    setTourPressed(null)
+    // The Guide, if a step had it open at its proof; and the mission's limits, if a step had them open.
     setHow(false)
     setHowAtProof(false)
+    setMissionHere(false)
     if (!was) return
     setMission(was.mission)
     setPlan(was.plan)
@@ -911,10 +945,14 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     const was = beforeTour.current
     beforeTour.current = null
     setTourAt(null)
+    setTourPressed(null)
     ownPlan.current = true
     setOpenedFrom(null)
     setPlan(true)
     setDrawer(null)
+    // The last step had the brief open: the plan itself is what is left on screen.
+    setBrief(false)
+    setMissionHere(false)
     setPlaying(false)
     setHour(scenario.landing)
     if (was) {
@@ -928,17 +966,20 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // A step about a control only a wide window has is left out on a phone.
   const tourSteps = useMemo(() => (tourGuide === null ? LONG_TOUR.steps : (GUIDES.find((guide) => guide.id === tourGuide)?.steps ?? LONG_TOUR.steps)).filter((step) => !step.wide || room !== 'phone'), [tourGuide, room])
   const tourStep = tourAt === null ? null : (tourSteps[tourAt] ?? null)
+  // The state the step asks for: as written, or, once it has pressed the control it rings, where that press leads.
+  const tourThen = tourStep?.then && tourPressed === tourStep.id ? tourStep.then : null
+  const tourState = useMemo(() => (tourStep ? (tourThen ? { ...tourStep.state, ...tourThen } : tourStep.state) : null), [tourStep, tourThen])
   // While the tour runs, what its later steps read is asked for ahead, so each step is ready when a
   // visitor or a presenter arrives at it: nothing loads in front of a room.
   const touring = tourAt !== null && tourGuide === null
   useEffect(() => (touring ? prepareFiles(LONG_TOUR.prepare?.files ?? []) : undefined), [touring])
   useEffect(() => {
-    if (!tourStep) return
-    const { view, show, open, pair, stage, play } = tourStep.state
+    if (!tourStep || !tourState) return
+    const { view, show, open, pair, stage, play } = tourState
     // The rover's guide is about the Long stay example: it is the mission while its steps are on.
-    if (tourStep.state.mission === 'long') setMission((current) => ({ ...ROVER_PRESET.mission, heights: current.heights }))
+    if (tourState.mission === 'long') setMission((current) => ({ ...ROVER_PRESET.mission, heights: current.heights }))
     // The tour is told on the Short stay, whatever mission the visitor had: leaving it puts theirs back.
-    if (tourStep.state.mission === 'short') setMission(DEFAULT_MISSION)
+    if (tourState.mission === 'short') setMission(DEFAULT_MISSION)
     setBare(false)
     // A step may open the panel it is about; every other panel is shut.
     // (On a phone Scout is a panel like the others.)
@@ -946,7 +987,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     // Or the Planner, on the tab it is about.
     setFull(open === 'planner-find' || open === 'planner-compare')
     if (open === 'planner-find' || open === 'planner-compare') setPlannerTab(open === 'planner-find' ? 'find' : 'compare')
-    setBrief(false)
+    // Or the written brief, or the mission's limits in the plan's column.
+    setBrief(open === 'brief')
+    setMissionHere(open === 'mission')
     // Or the Guide at its proof, or Scout's panel.
     setHow(open === 'proof')
     setHowAtProof(open === 'proof')
@@ -966,10 +1009,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     // A step that names none carries on from the plan as the step before left it, with the time bar on its landing.
     // A feature guide keeps the visitor's own plan, except for a step about several scenarios, which
     // gets the app's two nearby sites on one date, once.
-    const named = (tourStep.state.scenarios ?? []).map((one) => ({ site: one.site, landing: hourOf(start, one.landing) })).filter((one) => sites.some((listed) => listed.id === one.site) && Number.isInteger(one.landing) && one.landing >= 0 && one.landing < hours)
+    const named = (tourState.scenarios ?? []).map((one) => ({ site: one.site, landing: hourOf(start, one.landing) })).filter((one) => sites.some((listed) => listed.id === one.site) && Number.isInteger(one.landing) && one.landing >= 0 && one.landing < hours)
     if (named.length > 0) {
       // The scenario on show is the step's own choice: the first, unless it says another.
-      const onShow = Math.min(tourStep.state.active ?? 0, named.length - 1)
+      const onShow = Math.min(tourState.active ?? 0, named.length - 1)
       // A step that carries the plan on names it again, so the plan is the story's wherever the reader has jumped from; the same plan is left as it is.
       setScenarios((current) => (current.length === named.length && current.every((one, i) => one.site === named[i].site && one.landing === named[i].landing) ? current : named))
       setActive(onShow)
@@ -991,10 +1034,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     setSkyMin(show !== 'skyline')
     if (show === 'time') setRiverMin(false)
     // On a phone the strips are down the sheet: it opens to its full height for them, and for a step that rings more than half a screen holds; to half for the rest.
-    setSheet(show || tourStep.state.tall ? SHEET_HEIGHTS : 2)
-    // The step alone decides when this runs: the setters and the data it reads do not change while a tour is on.
+    setSheet(show || tourState.tall ? SHEET_HEIGHTS : 2)
+    // The step, and whether it has made its press, alone decide when this runs: the setters and the data it reads do not change while a tour is on.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [tourStep])
+  }, [tourState])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1161,13 +1204,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   // Scout's place down the far right edge, on anything wider than a phone. In Watch it is his open
   // card; in Plan his panel, there unless he was shut, the tour is on, or another panel is open on a
   // window with no room for both beside the Moon.
-  const scoutPanel = room === 'phone' ? drawer === 'scout' : tourStep?.state.open === 'scout' ? true : !scoutShut && tourAt === null && (planner || drawer === null || drawer === 'scout' || window.innerWidth >= BOTH_PANELS_FROM_PX)
+  const scoutPanel = room === 'phone' ? drawer === 'scout' : tourState?.open === 'scout' ? true : !scoutShut && tourAt === null && (planner || drawer === null || drawer === 'scout' || window.innerWidth >= BOTH_PANELS_FROM_PX)
   const docked = room !== 'phone' && !bare && (plan ? false : scoutOpen && tourAt === null)
+  // Scout's welcome is on show: the front page as it opened, settled, with nothing else asked for yet.
+  const welcome = greeting && settled && !plan && !bare && tourAt === null && !how && !brief && !(scoutOpen && room === 'phone')
   const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', scoutPanel && drawer !== null && drawer !== 'scout' && !planner ? 'has-both-panels' : '', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', docked ? 'has-dock' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
-    <div className={classes} data-touring={tourStep?.state.open === 'planner-find' || tourStep?.state.open === 'planner-compare' ? 'planner' : undefined}>
+    <div className={classes} data-welcome={welcome || undefined} data-touring={tourState?.open === 'planner-find' || tourState?.open === 'planner-compare' ? 'planner' : tourState?.open === 'brief' ? 'brief' : undefined}>
       <Tips />
+      {welcome && <TourWelcome reads={tourReads(LONG_TOUR)} onTake={() => startTour()} onSkip={endGreeting} state={now ? riverState(now) : (pointedState ?? null)} />}
       {tourAt !== null && (
         <Tour
           name={tourGuide === null ? "Scout's tour" : (GUIDES.find((guide) => guide.id === tourGuide)?.name ?? "Scout's tour")}
@@ -1175,7 +1221,9 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           voice={tourGuide === null ? LONG_TOUR : null}
           finish={tourGuide === null ? 'Start planning' : 'Done'}
           at={tourAt}
-          onStep={setTourAt}
+          onStep={tourTo}
+          pressed={tourStep !== null && tourPressed === tourStep.id}
+          onPress={() => setTourPressed(tourStep?.id ?? null)}
           onClose={endTour}
           onDone={finishTour}
           onVideo={
@@ -1200,7 +1248,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             <div className="sl-col-head">
               {/* The undo notice takes the title's place for a few seconds: nothing moves, and nothing is over the Moon. */}
               <h1 className="sl-title">Sightline</h1>
-              <HeaderTools onBrief={() => setBrief(true)} held={tourStep?.state.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} panel={drawer} />
+              <HeaderTools onBrief={() => setBrief(true)} held={tourState?.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} panel={drawer} />
             </div>
             {/* The scenarios, on a row of their own; the undo notice sits at the row's end for a few seconds, so nothing moves and nothing is over the Moon. */}
             <div className="sl-tabs-row">
@@ -1222,7 +1270,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               limitsOpen={missionHere}
               plan={
                 <Fields
-                  held={tourStep?.state.open === 'custom'}
+                  held={tourState?.open === 'custom'}
                   onShowHow={tourAt === null ? () => startTour('custom') : null}
                   sites={sites}
                   site={site}
@@ -1405,7 +1453,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           earth={earth}
           bare={bare || planner}
           reserveBottom={!plan && !bare ? Math.max(PLAY_CONTROL_ROOM_PX, scoutOpen && room === 'phone' && scoutHeight > 0 ? scoutHeight + SHEET_AIR_PX : 0) : shown && !planner ? NOTE_ROOM_PX : 0}
-          selectedId={shown ? site.id : (tourStep?.state.ring ?? null)}
+          selectedId={shown ? site.id : (tourState?.ring ?? null)}
           ringIds={shown || tourStep ? NO_SITES : ringed}
           onRingedHidden={setRingedHidden}
           turnTo={turnTo}
@@ -1532,7 +1580,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           </ul>
         )}
         {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
-        {!bare && !plan && tourAt === null && !(scoutOpen && room === 'phone') && (
+        {!bare && !plan && tourAt === null && !welcome && !(scoutOpen && room === 'phone') && (
           <button type="button" className={tourTaken ? 'sl-tour-chip' : 'sl-tour-chip is-new'} title={tourMeans(LONG_TOUR)} onClick={() => startTour()}>
             <span aria-hidden="true">▶</span> Take the tour
           </button>
@@ -1659,7 +1707,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         </Suspense>
       )}
       {how && (
-        <div className={tourStep?.state.open === 'proof' ? 'sl-how is-toured' : 'sl-how'} role="dialog" aria-modal="true" aria-label="Guide">
+        <div className={tourState?.open === 'proof' ? 'sl-how is-toured' : 'sl-how'} role="dialog" aria-modal="true" aria-label="Guide">
           <HowItWorks
             data={here}
             siteCount={sites.length}

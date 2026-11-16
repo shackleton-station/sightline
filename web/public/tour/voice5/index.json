@@ -9,10 +9,10 @@
       "say": "This is the Moon, seen from above its south pole. A lander there needs two things from the sky: the Sun, for power, and Earth, for a direct radio link. It is nothing like Earth: the Moon turns once a month, and near its pole the Sun and Earth never climb. They skim the horizon, so the hills decide when each is in view."
     },
     "plan": {
-      "hash": "a29c38158ca65064",
-      "bytes": 104352,
-      "seconds": 26.1,
-      "say": "Every answer starts from a plan: three choices. Where: a site from the list, the Apollo landings, NASA's commercial landers, other countries' landers and future targets, or any point on the Moon, by its coordinates. When: a landing date and hour, in UTC. And what the mission needs. Ours lands on Connecting Ridge on the sixth of May 2027, for a short stay of fourteen days."
+      "hash": "c77bec8461937e4d",
+      "bytes": 102432,
+      "seconds": 25.6,
+      "say": "The front page is the Moon to watch. Plan a landing starts a plan, and a plan begins with two choices. Where: a listed site, from Apollo to NASA's commercial landers, other countries' landers and future targets, or any point on the Moon, by its coordinates. And when: a date and hour, in UTC. Ours is Connecting Ridge, on the sixth of May 2027."
     },
     "verdict": {
       "hash": "bfba134a85265414",
@@ -39,10 +39,10 @@
       "say": "Now run the mission forward. Gold is the Sun, blue is Earth, green is both. The frame marks the fourteen days, and the gaps inside it are the verdict's reasons: the Sun gone for four days, Earth gone for the whole second week. Play it, or step back to a day, a month or a year. Over a year the pattern shifts: the Moon has seasons too."
     },
     "ground": {
-      "hash": "b786cde7de8f74c3",
-      "bytes": 88704,
-      "seconds": 22.2,
-      "say": "Now look at the ground itself. Three views show the same hour: the whole Moon from orbit, the site close up, and the view standing on the surface. Layers puts NASA's own maps over the ground: photos, steep ground, permanent shadow, temperature. And every plan opens the same place in Quickmap, Moon Trek and JPL Horizons, so anyone can check our answer."
+      "hash": "491105496dd57ec3",
+      "bytes": 83904,
+      "seconds": 21,
+      "say": "Now look at the ground itself. Three views show the same hour: the whole Moon from orbit, the site close up, and the surface. Layers puts NASA's own maps over the ground: photos, steep ground, permanent shadow, temperature. And every plan opens in Quickmap, Moon Trek and JPL Horizons, so anyone can check."
     },
     "compare": {
       "hash": "93ad5dcc7deb4f09",
@@ -51,10 +51,10 @@
       "say": "Waiting is one answer. Would moving be another? Compare sets the scenarios side by side: A failed, B is the later date, and C and D are two other sites near the pole on the original date. Neither fits, though one is sunlit for two thirds of the mission and the other for a seventh. A star marks the best in each row; there is no blended score."
     },
     "planner": {
-      "hash": "f67b557ef8cf8990",
-      "bytes": 98112,
-      "seconds": 24.5,
-      "say": "So was May ever possible? The Planner steps back to every listed site against every month of the year, counting the days with a landing that fits. In May 2027, none of the four ridge sites at the pole has one. In June, Connecting Ridge has three. A site that never fits says which limit blocks it, and NASA's future landing targets can be added as rows."
+      "hash": "2b4eb39cc3ba8732",
+      "bytes": 81792,
+      "seconds": 20.4,
+      "say": "So was May ever possible? The Planner steps back to every listed site against every month, counting the days with a landing that fits. In May 2027, none of the four ridge sites at the pole has one. In June, Connecting Ridge has three. A site that never fits says which limit blocks it."
     },
     "accuracy": {
       "hash": "f45e27fed90e29c2",
@@ -80,11 +80,17 @@
       "seconds": 27.3,
       "say": "The plan now holds two options, each with a letter: A, the first landing, and B, the later one. A letter is one scenario: a site and a landing hour. The plus adds another, up to four. There: scenario C. Change its site or date, and the whole screen answers for it. The minus on a letter drops it, and Undo brings it back."
     },
-    "yours": {
-      "hash": "2bddb399e88a9c56",
-      "bytes": 84864,
-      "seconds": 21.2,
-      "say": "That is Sightline: one plan, asked, answered, changed and checked. It is yours to use. A planner gets every hour as a table to download, and the links to NASA's own tools. A class gets the Guide. Anyone can ask Scout. Try a real mission, Canada's utility rover, or share any plan as a link."
+    "mission": {
+      "hash": "260b0ffde2850309",
+      "bytes": 97824,
+      "seconds": 24.5,
+      "say": "The third choice is the mission: what it must survive. A short stay is fourteen days, with at most a day of darkness, at most a day of radio silence, the Sun and Earth in view at landing, and ground no steeper than ten degrees. In view means any part of the disc above the skyline. That is generous for a radio link, so Advanced can ask for Earth's center to stand two or five degrees clear."
+    },
+    "handon": {
+      "hash": "74f9648310cc296b",
+      "bytes": 93024,
+      "seconds": 23.3,
+      "say": "Last, hand it on. A plan is for a team: Brief writes the scenario on show out in full, to read or print, and Share makes a link that opens the same plan for whoever gets it. Planners get every hour as a table and NASA's links; a class gets the Guide. Try a real mission, Canada's utility rover, or start planning your own."
     }
   }
 }

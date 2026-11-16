@@ -15,6 +15,10 @@ interface Props {
   /** Which step is on show, counted from 0. */
   at: number
   onStep: (index: number) => void
+  /** Whether the step on show has made its press: the control it rang has been pressed for the reader. */
+  pressed: boolean
+  /** The step makes its press; the screen then goes where the step's `then` says, if it has one. */
+  onPress: () => void
   /** Leave the tour: the screen goes back to how the visitor had it. */
   onClose: () => void
   /** "Done" on the last step: the tour has been taken to its end. */
@@ -43,6 +47,8 @@ const MOVE_MS = 280
 const HOLD_MS = 900
 /** With this much of the window lit, the step is about the whole screen: nothing is shaded. */
 const WHOLE_SCREEN = 0.6
+/** How long the way back from a page stays ringed as the reader moves on. */
+const LEAVE_MS = 900
 /** How far the card keeps from the window's foot on a laptop, where it is held by its foot so "Back" and "Next" never move up or down. */
 const FOOT_PX = 12
 
@@ -107,27 +113,39 @@ function moonDisc(): Disc | null {
  * is never sound without a click; "Play through" moves on when a line ends. Dimming the page round
  * what a step is about was Misha's idea (sightline#231).
  */
-export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, onVideo, tryIt, state }: Props) {
+export function Tour({ name, steps, voice, finish, at, onStep, pressed, onPress, onClose, onDone, onVideo, tryIt, state }: Props) {
   const step = steps[at]
   const last = at === steps.length - 1
-  // A step may press a control itself on the first "Next", to show a before and an after: which step has done so.
-  const [pressedAt, setPressedAt] = useState<string | null>(null)
-  const pressed = pressedAt === step.id
-  const waiting = Boolean(step.press) && !pressed
-  /** Go to a step: it starts as it was written, with nothing pressed yet. */
+  // A step may press a control on the first "Next", to show a before and an after: the control it
+  // rings is pressed for the reader (a real press of it, or the screen put where that press leads).
+  const waiting = Boolean(step.press || step.then) && !pressed
+  // Moving on from a page the step opened, its way back is ringed for a moment first.
+  const [leaving, setLeaving] = useState(false)
+  /** Go to a step: it starts as it was written, with nothing pressed yet (the screen sees to that). */
   const go = (index: number) => {
-    setPressedAt(null)
+    setLeaving(false)
     onStep(index)
   }
   /** "Next": the step's own press first, if it has one to do; then the next step, or the end. */
   const forward = () => {
-    if (waiting && step.press) {
-      document.querySelector<HTMLElement>(step.press)?.click()
-      setPressedAt(step.id)
+    if (waiting) {
+      if (step.press) document.querySelector<HTMLElement>(step.press)?.click()
+      onPress()
     } else if (last) onDone()
+    else if (step.leave && pressed && !leaving && [...document.querySelectorAll(step.leave)].some(onScreen)) setLeaving(true)
     else go(at + 1)
   }
-  const targets = pressed && step.after ? step.after : step.targets
+  useEffect(() => {
+    if (!leaving) return
+    const timer = window.setTimeout(() => go(at + 1), LEAVE_MS)
+    return () => window.clearTimeout(timer)
+    // `go` is made anew each render from the values listed here.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaving, at])
+  const targets = leaving && step.leave ? [step.leave] : pressed && step.after ? step.after : step.targets
+  /** What is lit beside the rings, with no ring of its own: nothing while the way back is ringed. */
+  const litNow = leaving ? [] : pressed && step.afterLit ? step.afterLit : (step.lit ?? [])
+  const moonLit = litNow.includes('moon')
   const bubble = useRef<HTMLElement>(null)
   const next = useRef<HTMLButtonElement>(null)
   const [rings, setRings] = useState<Box[]>([])
@@ -187,40 +205,43 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
       if (boxes.length === 0 && performance.now() - arrived < HOLD_MS) return
       setRings((before) => (JSON.stringify(before) === JSON.stringify(boxes) ? before : boxes))
       // Lit as well, with no ring: what the step names beside its subject, and the Moon when the step is about the Moon.
-      const also = (step.lit ?? [])
+      const also = litNow
         .filter((selector) => selector !== 'moon')
         .flatMap((selector) => [...document.querySelectorAll(selector)])
         .filter(onScreen)
         .map(boxOf)
-      light({ boxes: [...boxes, ...also], moon: step.lit?.includes('moon') ? moonDisc() : null })
+      light({ boxes: [...boxes, ...also], moon: moonLit ? moonDisc() : null })
       const el = bubble.current
       if (!el) return
       // On a laptop the card keeps clear of everything the step lights, ringed or not, and of the Moon's
       // disc only on a step about the Moon itself. A phone has room to clear only what is ringed, and the Moon.
       const phone = window.innerWidth < PHONE_UNDER_PX
-      const at = placeBubble({ width: el.offsetWidth, height: el.offsetHeight }, { width: window.innerWidth, height: window.innerHeight }, phone ? boxes : [...boxes, ...also], phone || step.lit?.includes('moon') ? moonDisc() : null, phone)
+      const at = placeBubble({ width: el.offsetWidth, height: el.offsetHeight }, { width: window.innerWidth, height: window.innerHeight }, phone ? boxes : [...boxes, ...also], phone || moonLit ? moonDisc() : null, phone)
       setPlace((before) => (before && before.left === at.left && before.top === at.top ? before : at))
     }
     lay()
     const timer = window.setInterval(lay, PLACE_EVERY_MS)
     return () => window.clearInterval(timer)
-    // The step and whether it has pressed its control decide what is ringed.
+    // The step, whether it has pressed its control and whether it is on its way out decide what is ringed.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, pressed])
+  }, [step, pressed, leaving])
 
   // On a phone what a step is about may be further down whatever holds it (the sheet, a panel, the
   // Planner's page): bring it to the top of the nearest thing that scrolls, clear of the bubble at the foot.
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const target = step.targets.flatMap((selector) => [...document.querySelectorAll(selector)]).find((el) => !el.closest('[hidden]'))
+      const target = targets.flatMap((selector) => [...document.querySelectorAll(selector)]).find((el) => !el.closest('[hidden]'))
       if (!target || window.innerWidth >= PHONE_UNDER_PX) return
       let holder = target.parentElement
       while (holder && !(holder.scrollHeight > holder.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(holder).overflowY))) holder = holder.parentElement
       if (!holder) return
       holder.scrollTop += target.getBoundingClientRect().top - Math.max(holder.getBoundingClientRect().top, 0) - 12
-    }, 80)
+      // (After a press the page it opens takes a moment to be there.)
+    }, pressed ? 450 : 80)
     return () => window.clearTimeout(timer)
-  }, [step])
+    // What is ringed follows from the step and whether it has made its press.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, pressed])
 
   // Arrow keys step and Escape closes; a presenter's clicker sends Page Down and Page Up. Heard first,
   // and marked as handled, so the screen's own keys (the arrows step time) stay out of it.
@@ -241,7 +262,7 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
     return () => window.removeEventListener('keydown', onKey, true)
     // `forward` and `go` are made anew each render from the same values listed here.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [at, last, waiting, onStep, onClose])
+  }, [at, last, waiting, leaving, pressed, onStep, onClose])
 
   // Each step hands the keyboard to "Next", so Enter carries on and a screen reader starts at the step.
   // (Once the bubble has its place: until then it is not shown, and a hidden button cannot take the focus.)
@@ -261,7 +282,7 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
     const audio = new Audio(voiceFile(voice, step))
     speaking.current = audio
     let timer = 0
-    const pressAt = step.press && step.pressOn && step.say.includes(step.pressOn) ? step.say.indexOf(step.pressOn) / step.say.length : null
+    const pressAt = (step.press || step.then) && step.pressOn && step.say.includes(step.pressOn) ? step.say.indexOf(step.pressOn) / step.say.length : null
     const onTime = () => {
       if (auto.current.through && auto.current.waiting && pressAt !== null && audio.duration > 0 && audio.currentTime >= audio.duration * pressAt) auto.current.forward()
     }
@@ -326,8 +347,9 @@ export function Tour({ name, steps, voice, finish, at, onStep, onClose, onDone, 
         data-step={step.id}
         data-side={place?.side}
         // A step about the Moon itself has the Moon at full size beside the card: the card is narrower, to stand clear of it.
-        data-beside-moon={step.lit?.includes('moon') || undefined}
-        data-pressed={step.press ? String(pressed) : undefined}
+        data-beside-moon={moonLit || undefined}
+        data-pressed={step.press || step.then ? String(pressed) : undefined}
+        data-leaving={leaving || undefined}
         // On a laptop the card is held by its foot, so Back and Next are at one height on every step; it glides when it changes side.
         style={place ? (window.innerWidth < PHONE_UNDER_PX ? { left: place.left, top: place.top } : { left: place.left, bottom: FOOT_PX }) : { visibility: 'hidden' }}
       >

@@ -45,46 +45,55 @@ The Guide shows the same six, worked out from the data files as the page reads t
 
 ## Using the site
 
-Scout's tour follows one landing plan across the whole screen, in fourteen steps and four chapters: a
-landing that does not fit, why, what to do when the date slips, and why to trust the answer. It takes
-about two minutes to read and about five and a half to hear. Its chip, "Take the tour", is in Watch on
-every visit, and it is always the first thing in the **Guide** (on a phone, also under **More**). It
-drives the real screen: each step puts the app in a prepared state, shades the page a little except
-what the step is about, rings that, and explains it in two sentences that stand by themselves. Two
-steps press a control for the reader ("Show it"): the next landing that fits, and "+" for another
-scenario. The card keeps one home, the lower left corner, with Back and Next always in the same place;
-it moves to the lower right only where it would cover what the step is about. The arrow keys (or a
-clicker's Page Down and Page Up) step it and Escape closes it; a dot for each step, grouped by chapter,
-goes straight to it; closing at any step puts the screen back as it was, and "Start planning" on the
-last step leaves the story's plan on screen. **Listen** plays each step's longer spoken line in
-Scout's voice (AI-generated; off until pressed), and **Play through** moves on by itself when a line
-ends. The steps, with the words on each card:
+Scout's tour follows one landing plan across the whole screen, step by step, in fifteen steps and
+four chapters: a landing that does not fit, why, what to do when the date slips, why to trust the
+answer and how to hand it on. It takes about two minutes to read and about six to hear. On a first
+visit to the front page Scout offers it in a welcome card ("Take the tour" or "Skip", which closes the
+card for good in that browser); after that its chip, "Take the tour", is in Watch on every visit, and
+it is always the first thing in the **Guide** (on a phone, also under **More**). A link that carries a
+plan never gets the welcome.
+
+It drives the real screen. Wherever the story moves to another part of the screen, the step first
+rings the control a visitor would press ("Plan a landing", the mission, Surface, Compare, Planner,
+Landing accuracy, Site and Layers, Guide, Scout, Brief), and the first Next, which then reads "Show
+it", presses it for them; where it opened a page or another view, the way back is ringed for a moment
+as the reader moves on. So a reader who closes the tour knows which button led where. Each card
+explains its step in two sentences that stand by themselves, and the page is shaded a little except
+what the step is about. The card keeps one home, the lower left corner, with Back and Next always in
+the same place; it moves to the lower right only where it would cover what the step is about. The
+arrow keys (or a clicker's Page Down and Page Up) step it and Escape closes it; a dot for each step,
+grouped by chapter, goes straight to it; closing at any step puts the screen back as it was, and
+"Start planning" on the last step leaves the story's plan on screen. **Listen** plays each step's
+longer spoken line in Scout's voice (AI-generated; off until pressed), and **Play through** moves on
+by itself when a line ends, making each press as the voice reaches it. The steps, with the words on
+each card:
 
 *The problem*
 
 1. **A hard place to land.** A lander needs the Sun for power and Earth for a direct radio link. At the Moon's south pole both only skim the horizon, so the hills decide when each is in view.
-2. **Plan a landing.** Every answer starts from a plan: where, when, and what the mission needs. Pick a site from the list or type any coordinates, then a landing date and hour, in UTC.
+2. **Plan a landing.** Press Plan a landing: the front page is the Moon to watch, and this button starts a plan. Choose where, a listed site or any coordinates, and when, in UTC.
+3. **What it must survive.** Press the mission to see what it must survive: 14 days, at most 24 h dark or 24 h of radio silence. Advanced can ask that Earth's center clear the skyline by 2° or 5°.
 
 *One landing, answered*
 
-3. **Does it fit?** The answer comes first: fits, fits with little margin, or does not fit, and why. Under it are the Sun's elevation and its share of the mission, the same for Earth, and the slope.
-4. **What the lander sees.** So why does it not fit? Stand at the site: the Sun and Earth stand low over the real skyline, each with the time until it sets. Under them, the whole horizon at once.
-5. **Hour by hour.** Now run the 14 days forward. Gold is the Sun, blue is Earth, green is both: the gaps are why this landing fails. Play it, or step out to a month or a year.
+4. **Does it fit?** Does it fit those limits? The answer comes first, fits, fits with little margin or does not fit, and why. Under it: the Sun's elevation, each body's share of the mission, the slope.
+5. **What the lander sees.** So why does it not fit? Press Surface to stand at the site: the Sun and Earth are low over the real skyline, each with the time until it sets.
+6. **Hour by hour.** Now run the 14 days forward. Gold is the Sun, blue is Earth, green is both: the gaps are why this landing fails. Play it, or step out to a year.
 
 *The plan changes*
 
-6. **The date slips.** Launch dates slip, and this one has to. One press adds the next landing that fits beside the first: the same site, on 22 June.
-7. **Another option.** Now the plan holds two scenarios, A and B: each letter is a site and a landing hour. Press + for another, up to four; − on a letter drops it, and Undo brings it back.
-8. **Another site, same date?** Would another site save 6 May? C and D are two more sites near the pole on that date, and neither fits. A star marks the best in each row; there is no blended score.
-9. **Every site, every month.** Step back to every listed site against every month. In May 2027 no site at the pole has a landing that fits; in June, Connecting Ridge has three days with one.
-10. **What if it misses?** B fits on its aim point, but no lander comes down exactly there. Of the landings within reach, 38% fit; aim 44 m away, and 60% do.
+7. **The date slips.** Launch dates slip, and this one has to. One press adds the next landing that fits beside the first: the same site, on 22 June.
+8. **Another option.** Now the plan holds two scenarios, A and B: each letter is a site and a landing hour. Press + for another, up to four; − on a letter drops it.
+9. **Another site, same date?** Would another site save 6 May? Press Compare: C and D, two more sites near the pole on that date, do not fit either. A star marks the best in each row.
+10. **Every site, every month.** Press Planner to see every listed site against every month. In May 2027 no site at the pole has a landing that fits; in June, Connecting Ridge has three days.
+11. **What if it misses?** Press Landing accuracy: B fits on its aim point, but no lander comes down exactly there. Of the landings within reach, 38% fit; aim 44 m away, and 60% do.
 
 *Trust it, and use it*
 
-11. **NASA's maps and tools.** Look at the ground itself, three ways: orbit, site, surface. NASA's own maps lie over it, and every plan opens in Quickmap, Moon Trek and JPL Horizons.
-12. **Can it be trusted?** Every number is checked against NASA three ways: JPL Horizons, NASA's own sunlight map, and dated photos from orbit. The Guide also says what Sightline cannot tell you.
-13. **Ask Scout.** Or just ask. Scout answers in plain words from the same data, and he never writes a number himself: the server fills in every figure.
-14. **Yours to use.** A planner gets every hour as a table and the links to NASA's tools; a class gets the Guide; anyone can ask Scout. Share any plan as a link, or try Canada's rover mission.
+12. **NASA's maps and tools.** Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan also opens in Quickmap, Moon Trek and JPL Horizons.
+13. **Can it be trusted?** Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It also says what Sightline cannot tell you.
+14. **Ask Scout.** Or just ask: press Scout. He answers in plain words from the same data, and never writes a number himself: the server fills in every figure.
+15. **Hand it on.** Hand it to your team: Brief writes the scenario on show out in full, to print, and Share makes a link to the same plan. Then try Canada's rover mission, or start your own.
 
 The steps, their words and what each one rings are in one file, `web/src/sightline/tour5.json`, which
 the tour, the Guide and the voice files (`web/public/tour/voice5/`, made by

@@ -102,7 +102,7 @@ export function Rail({ mode, onMode, onSurfaceNear, scoutOpen, scoutState, onSco
       <button type="button" data-tour="compare" aria-pressed={compareOpen} title="Opens the scenarios side by side, row by row." onClick={onCompare}>
         Compare
       </button>
-      <button type="button" aria-pressed={accuracyOpen} title="Shows how likely a lander that misses its target still comes down where the mission fits." onClick={onAccuracy}>
+      <button type="button" data-tour="accuracy" aria-pressed={accuracyOpen} title="Shows how likely a lander that misses its target still comes down where the mission fits." onClick={onAccuracy}>
         Landing <br />
         accuracy
       </button>

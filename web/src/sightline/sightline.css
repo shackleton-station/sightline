@@ -4513,6 +4513,42 @@ button.sl-moment-heights[aria-expanded='true'] {
   }
 }
 
+/* Scout's welcome, on a first visit: the tour's card by itself, in the tour's home corner, with no
+   shade. While Scout's panel stands at the right of the front page the Moon is moved left, into
+   that corner, so the card stands on the panel's empty middle instead, above its question box. */
+.sl-tour-welcome {
+  left: 12px;
+  bottom: 12px;
+}
+
+.sightline.has-dock .sl-tour-welcome {
+  right: 12px;
+  bottom: 4.75rem;
+  left: auto;
+}
+
+.sl-tour-welcome .sl-tour-say {
+  margin-bottom: 0.8rem;
+}
+
+.sl-tour .sl-tour-skip {
+  border-color: transparent;
+  background: transparent;
+  color: var(--soft);
+}
+
+.sl-tour .sl-tour-skip:hover,
+.sl-tour .sl-tour-skip:focus-visible {
+  color: var(--ink);
+}
+
+/* The written brief, while the tour's last step has it open: like the Guide, it makes room for the card. */
+@media (min-width: 761px) {
+  .sightline[data-touring='brief'] .sl-brief-sheet {
+    padding-left: 24rem;
+  }
+}
+
 /* On a step about the Moon itself the Moon fills the window's height, and its edge comes close to
    the card's corner: the card is narrower there, so it stands clear of the disc. */
 .sl-tour[data-beside-moon] {
@@ -4772,6 +4808,14 @@ button.sl-moment-heights[aria-expanded='true'] {
   .sl-tour .sl-tour-title,
   .sl-tour[data-beside-moon] .sl-tour-title {
     font-size: 1.0625rem;
+  }
+
+  /* The welcome stands above the play control, under the Moon. */
+  .sl-tour-welcome,
+  .sightline.has-dock .sl-tour-welcome {
+    right: auto;
+    bottom: 4.9rem;
+    left: 12px;
   }
 
   /* Scout's mark, smaller, so the title's row is one line of type high. */
