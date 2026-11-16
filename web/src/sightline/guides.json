@@ -515,7 +515,7 @@
         {
           "id": "custom-list",
           "title": "Any point on the Moon",
-          "say": "The site list ends with \"Custom point\". Choose it to plan a landing anywhere.",
+          "say": "The site list ends with \"Custom point\". Choose it, or press the Moon, to plan a landing anywhere.",
           "state": {
             "view": "plan"
           },

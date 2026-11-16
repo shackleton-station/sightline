@@ -352,8 +352,8 @@ export function Tour({ name, steps, voice, finish, at, enterFrom = null, onStep,
         aria-label={name}
         data-step={step.id}
         data-side={place?.side}
-        // A step about the Moon itself has the Moon at full size beside the card: the card is narrower, to stand clear of it.
-        data-beside-moon={moonLit || undefined}
+        // A step about the Moon on the front page has the Moon at full size beside the card: the card is narrower, to stand clear of it.
+        data-beside-moon={(moonLit && (pressed && step.then?.view ? step.then.view : step.state.view) === 'watch') || undefined}
         data-pressed={step.press || step.then ? String(pressed) : undefined}
         data-leaving={leaving || undefined}
         // On a laptop the card is held by its foot, so Back and Next are at one height on every step; it glides when it changes side.

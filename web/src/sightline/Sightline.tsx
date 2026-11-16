@@ -772,6 +772,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     },
     [setScenario, setHour],
   )
+  /** A click on the Moon away from any marker, in Plan: the scenario on show moves to that point, a custom one. */
+  const pickPoint = useCallback((lat: number, lon: number) => setScenario((current) => ({ ...current, site: `${Number(lat.toFixed(6))},${Number(lon.toFixed(6))}` })), [setScenario])
   const addScenario = useCallback(
     (added: SightlineScenario) => {
       if (scenarios.length >= MAX_SCENARIOS) return
@@ -1033,6 +1035,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
       setHour(pairLanding)
       tourPlanned.current = true
     }
+    // A step about a point of the reader's own puts the scenario on show there, as a click on the Moon does.
+    if (tourState.point) pickPoint(tourState.point.lat, tourState.point.lon)
     setPlan(true)
     // The step about the skyline opens it; on every other step it rests as its bar, so each step has
     // the Moon's full room. Leaving the tour puts it back as the visitor had it.
@@ -1497,7 +1501,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           // controls hidden, where the Moon is only looked at, or in Watch while a tour holds the screen.
           onPick={
             shown
-              ? (lat, lon) => setScenario((current) => ({ ...current, site: `${Number(lat.toFixed(6))},${Number(lon.toFixed(6))}` }))
+              ? pickPoint
               : !plan && !bare && tourAt === null
                 ? (lat, lon) => openPlan(customSiteInfo(lat, lon))
                 : undefined

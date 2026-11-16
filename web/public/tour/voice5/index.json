@@ -103,6 +103,12 @@
       "bytes": 91584,
       "seconds": 22.9,
       "say": "Now send it to someone. Share opens a short list. The plan is already a link: the address holds every scenario, with its site and landing hour, and the mission's limits, so whoever opens it sees the same plan. Copy link puts that address on your clipboard. Save with a name keeps it under a short link, and lists it in the Library."
+    },
+    "point": {
+      "hash": "339b3e86927c696f",
+      "bytes": 92352,
+      "seconds": 23.1,
+      "say": "A landing does not have to be at a listed site. Press anywhere on the Moon, or type a latitude and a longitude, and that point becomes the plan's site. There: a point no list holds, close to Connecting Ridge. Sightline works out its own skyline from the same terrain, and answers for it like any other: here the Sun is in view for only about a third of the mission."
     }
   }
 }

@@ -5,7 +5,7 @@
     "disclosure": "AI-generated voice",
     "files": "/tour/voice5/<id>.mp3",
     "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\"",
-    "seconds": 411
+    "seconds": 436
   },
   "steps": [
     {
@@ -59,6 +59,43 @@
       ],
       "afterLit": [],
       "pressOn": "Plan a landing starts"
+    },
+    {
+      "id": "point",
+      "chapter": "The problem",
+      "title": "Or any point at all",
+      "line": "A landing need not be at a listed site: press anywhere on the Moon, or type coordinates. Sightline works out that point's own skyline and answers for it; this one, close to Connecting Ridge, is sunlit 35% of the mission.",
+      "say": "A landing does not have to be at a listed site. Press anywhere on the Moon, or type a latitude and a longitude, and that point becomes the plan's site. There: a point no list holds, close to Connecting Ridge. Sightline works out its own skyline from the same terrain, and answers for it like any other: here the Sun is in view for only about a third of the mission.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-05-06T13:00:00Z"
+          }
+        ]
+      },
+      "targets": [
+        ".sl-plan-row:has(#sl-site)"
+      ],
+      "lit": [
+        "moon"
+      ],
+      "then": {
+        "point": {
+          "lat": -89.5,
+          "lon": -140.0
+        }
+      },
+      "after": [
+        ".sl-plan-row:has(#sl-site)",
+        ".sl-verdict"
+      ],
+      "afterLit": [
+        "moon"
+      ],
+      "pressOn": "There: a point"
     },
     {
       "id": "mission",
