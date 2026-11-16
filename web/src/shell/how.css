@@ -1133,6 +1133,26 @@
   margin: 0.3rem 0;
 }
 
+/* The keys, as a short list with each key set as a key. */
+.how-keys ul {
+  max-width: 46rem;
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.how-keys li {
+  margin: 0.25rem 0;
+}
+
+.how-keys kbd {
+  padding: 0.05rem 0.35rem;
+  border: 1px solid currentcolor;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 0.875em;
+  opacity: 0.9;
+}
+
 /* The chapter of the tour's story, over the first step of each. */
 .how-use-chapter {
   display: block;

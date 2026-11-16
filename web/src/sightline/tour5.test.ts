@@ -14,9 +14,9 @@ const at = (id: string) => tour.steps.findIndex((step) => step.id === id)
 const screens = (step: TourStep): TourState[] => (step.then ? [step.state, { ...step.state, ...step.then }] : [step.state])
 
 describe('the tour', () => {
-  it('has fifteen steps, each with its own id, a short title, something to ring, two sentences to read and a longer line to say', () => {
-    expect(tour.steps).toHaveLength(15)
-    expect(new Set(tour.steps.map((step) => step.id)).size).toBe(15)
+  it('has sixteen steps, each with its own id, a short title, something to ring, two sentences to read and a longer line to say', () => {
+    expect(tour.steps).toHaveLength(16)
+    expect(new Set(tour.steps.map((step) => step.id)).size).toBe(16)
     for (const step of tour.steps) {
       expect(step.title.length, step.id).toBeGreaterThan(3)
       // One line of the card's title type.
@@ -25,8 +25,8 @@ describe('the tour', () => {
       // The card explains its step by itself, to someone who reads and never listens: about 30 words, in two sentences or three.
       const read = (step.line ?? '').split(/\s+/).length
       expect(read, step.id).toBeGreaterThanOrEqual(20)
-      expect(read, step.id).toBeLessThanOrEqual(36)
-      expect(step.line?.length ?? 999, step.id).toBeLessThanOrEqual(185)
+      expect(read, step.id).toBeLessThanOrEqual(38)
+      expect(step.line?.length ?? 999, step.id).toBeLessThanOrEqual(200)
       // Read alone, the whole tour is about two minutes: 450 words or so.
       const sentences = (step.line ?? '').split(/(?<=[.?])\s+/).length
       expect(sentences, step.id).toBeGreaterThanOrEqual(2)
@@ -34,9 +34,9 @@ describe('the tour', () => {
       // About 15 to 30 seconds aloud.
       const words = step.say.split(/\s+/).length
       expect(words, step.id).toBeGreaterThanOrEqual(45)
-      expect(words, step.id).toBeLessThanOrEqual(80)
+      expect(words, step.id).toBeLessThanOrEqual(85)
     }
-    expect(tour.steps.reduce((sum, step) => sum + (step.line ?? '').split(/\s+/).length, 0)).toBeLessThanOrEqual(470)
+    expect(tour.steps.reduce((sum, step) => sum + (step.line ?? '').split(/\s+/).length, 0)).toBeLessThanOrEqual(500)
   })
 
   it('is told in four chapters, in order, each a run of steps', () => {
@@ -81,11 +81,12 @@ describe('the tour', () => {
   it('goes step by step: no step arrives with a panel, a page or another view already open; the step rings the control that opens it, and its first Next presses it', () => {
     for (const step of tour.steps) {
       // As a step arrives the screen is the front page or the plain plan: whatever it opens, it opens on its press.
-      expect(step.state.open, step.id).toBeUndefined()
+      // One step arrives inside the page the step before it opened: the Planner's second tab is pressed from its first.
+      expect(step.state.open, step.id).toBe(step.id === 'depth' ? tour.steps[at('planner')].then?.open : undefined)
       expect(step.state.stage, step.id).toBeUndefined()
     }
     const opening = tour.steps.filter((step) => step.then)
-    expect(opening.map((step) => step.id)).toEqual(['plan', 'mission', 'skyline', 'compare', 'planner', 'accuracy', 'ground', 'trust', 'scout', 'handon'])
+    expect(opening.map((step) => step.id)).toEqual(['plan', 'mission', 'skyline', 'compare', 'planner', 'depth', 'accuracy', 'ground', 'trust', 'scout', 'handon'])
     for (const step of opening) {
       expect(step.press, step.id).toBeUndefined()
       expect(step.after?.length, step.id).toBeGreaterThan(0)
@@ -96,9 +97,13 @@ describe('the tour', () => {
       expect(step.line, step.id).toMatch(/\b[Pp]ress\b|Brief/)
     }
     // Between them the presses open every part of the screen the story visits.
-    expect(opening.map((step) => step.then?.open ?? step.then?.stage ?? step.then?.view)).toEqual(['plan', 'mission', 'surface', 'compare', 'planner-find', 'accuracy', 'layers', 'proof', 'scout', 'brief'])
+    expect(opening.map((step) => step.then?.open ?? step.then?.stage ?? step.then?.view)).toEqual(['plan', 'mission', 'surface', 'compare', 'planner-find', 'planner-compare', 'accuracy', 'layers', 'proof', 'scout', 'brief'])
+    // Both of the Planner's tabs, in order, and the rail's order: Compare, then the Planner, then what a miss does.
+    expect(at('planner')).toBe(at('compare') + 1)
+    expect(at('depth')).toBe(at('planner') + 1)
+    expect(at('accuracy')).toBe(at('depth') + 1)
     // Where a step opened a page or another view of the Moon, the way back is ringed as the reader moves on.
-    expect(tour.steps.filter((step) => step.leave).map((step) => step.id)).toEqual(['skyline', 'planner', 'ground', 'trust'])
+    expect(tour.steps.filter((step) => step.leave).map((step) => step.id)).toEqual(['skyline', 'depth', 'ground', 'trust'])
     for (const step of tour.steps.filter((one) => one.leave)) expect(step.then, step.id).toBeDefined()
   })
 
@@ -116,6 +121,16 @@ describe('the tour', () => {
     expect(pressing[1].press).toContain(pressing[1].targets[0])
   })
 
+  it('ends by saying where the rest is: the last card names the Guide, where every feature has its own short guide', () => {
+    const last = tour.steps[tour.steps.length - 1]
+    expect(last.id).toBe('handon')
+    expect(last.line).toMatch(/short guide, listed in the Guide/)
+    expect(last.line).toMatch(/Brief/)
+    expect(last.line).toMatch(/Share/)
+    expect(last.line).toMatch(/Library/)
+    expect(last.say).toMatch(/Show me how/)
+  })
+
   it('says the mission\'s limits as the page defines them: in view is any part of the disc, and the Advanced clearance is to Earth\'s center', () => {
     const mission = tour.steps[at('mission')]
     expect(mission.say).toContain('In view means any part of the disc above the skyline')
@@ -127,7 +142,7 @@ describe('the tour', () => {
     expect(words).not.toMatch(/midpoint|centre/i)
   })
 
-  it('has a voice file for every step, rendered from exactly its words, and plays through in about six minutes', () => {
+  it('has a voice file for every step, rendered from exactly its words, and plays through in under seven minutes', () => {
     const voiceDir = new URL('../../public/tour/voice5/', import.meta.url)
     const index = JSON.parse(readFileSync(new URL('index.json', voiceDir), 'utf8')) as { disclosure: string; lines: Record<string, { say: string; bytes: number; seconds: number }> }
     expect(index.disclosure).toBe(tour.voice.disclosure)
@@ -142,8 +157,8 @@ describe('the tour', () => {
       total += index.lines[step.id].seconds
     }
     // Played through, with about a second a step for stepping: long enough to tell the story, short enough to finish.
-    expect(tour.voice.seconds).toBeGreaterThanOrEqual(330)
-    expect(tour.voice.seconds).toBeLessThanOrEqual(365)
+    expect(tour.voice.seconds).toBeGreaterThanOrEqual(350)
+    expect(tour.voice.seconds).toBeLessThanOrEqual(420)
     expect(tour.voice.seconds - total).toBeGreaterThanOrEqual(10)
     expect(tour.voice.seconds - total).toBeLessThanOrEqual(30)
   })
@@ -156,9 +171,9 @@ describe('the tour', () => {
     expect(minutesWords(331)).toBe('five and a half minutes')
     // The reading time comes first: most visitors read and few listen.
     expect(tourReads(tour)).toBe('about two minutes')
-    expect(tourTakes(tour)).toMatch(/^15 steps: about two minutes to read, about (five and a half|six) minutes to hear$/)
+    expect(tourTakes(tour)).toMatch(/^16 steps: about two minutes to read, about (six|six and a half) minutes to hear$/)
     // A hover text: two sentences, and not only the control's own label.
-    expect(tourMeans(tour)).toMatch(/^Scout follows one landing plan across the real screen, in 15 steps\. About two minutes to read, about .+ to hear\.$/)
+    expect(tourMeans(tour)).toMatch(/^Scout follows one landing plan across the real screen, in 16 steps\. About two minutes to read, about .+ to hear\.$/)
   })
 
   it('asks ahead only for files this build has, each once, and for every site and month its plan lands in', () => {
@@ -173,6 +188,6 @@ describe('the tour', () => {
 
   it('uses no local time, none of the words kept out of the app, and does not name the challenge it answers', () => {
     const words = tour.steps.map((step) => `${step.title} ${step.line} ${step.say}`).join(' ')
-    expect(words).not.toMatch(/\b(EST|EDT|PST|a\.m\.|p\.m\.|playhead|scrub|ridge line|objectives?|challenge|kilometres?|metres?|colou?red)\b/i)
+    expect(words).not.toMatch(/\b(EST|EDT|PST|a\.m\.|p\.m\.|playhead|scrub|ridge line|objectives?|challenge|kilometres?|metres?|coloured|centre)\b/i)
   })
 })

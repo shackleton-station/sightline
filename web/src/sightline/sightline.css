@@ -4504,7 +4504,10 @@ button.sl-moment-heights[aria-expanded='true'] {
   /* Opaque: on a phone it lies over the sheet, and nothing under it may show through its words. */
   background: #15121c;
   box-shadow: 0 10px 26px rgb(0 0 0 / 55%);
-  transition: left 0.28s ease-out;
+  /* Its foot is fixed on a laptop, so only its side moves; the first card of a tour taken from the welcome also comes down from where the welcome stood. */
+  transition:
+    left 0.28s ease-out,
+    bottom 0.28s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4513,22 +4516,49 @@ button.sl-moment-heights[aria-expanded='true'] {
   }
 }
 
-/* Scout's welcome, on a first visit: the tour's card by itself, in the tour's home corner, with no
-   shade. While Scout's panel stands at the right of the front page the Moon is moved left, into
-   that corner, so the card stands on the panel's empty middle instead, above its question box. */
-.sl-tour-welcome {
-  left: 12px;
-  bottom: 12px;
+/* Scout's welcome, on a first visit: one card centered over the Moon, the first thing a visitor
+   notices, on a page dimmed a little (far less than the tour's own shade, so the Moon still reads
+   as the Moon). The dim lies over everything else, Scout's panel included, and a press on it is a
+   press outside the card. The card's center is set from the Moon's place on screen. */
+.sl-welcome-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: rgb(4 3 8 / 30%);
 }
 
-.sightline.has-dock .sl-tour-welcome {
-  right: 12px;
-  bottom: 4.75rem;
-  left: auto;
+.sl-tour.sl-tour-welcome {
+  top: 50%;
+  left: 50%;
+  width: 27rem;
+  padding: 1.1rem 1.4rem 1.2rem;
+  transform: translate(-50%, -50%);
+  transition: none;
+  box-shadow: 0 16px 44px rgb(0 0 0 / 65%);
 }
 
-.sl-tour-welcome .sl-tour-say {
-  margin-bottom: 0.8rem;
+.sl-tour-welcome .sl-tour-title {
+  font-size: 1.75rem;
+}
+
+.sl-tour-welcome .sl-tour-say.is-long {
+  margin: 0.8rem 0 1.1rem;
+  font-size: 1.1875rem;
+  line-height: 1.45;
+}
+
+.sl-tour-welcome .sl-tour-nav {
+  gap: 0.7rem;
+}
+
+.sl-tour-welcome .sl-tour-next {
+  padding: 0.6rem 1.2rem;
+  font-size: 1.125rem;
+}
+
+.sl-tour-welcome .sl-tour-skip {
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
 }
 
 .sl-tour .sl-tour-skip {
@@ -4545,6 +4575,10 @@ button.sl-moment-heights[aria-expanded='true'] {
 /* The written brief, while the tour's last step has it open: like the Guide, it makes room for the card. */
 @media (min-width: 761px) {
   .sightline[data-touring='brief'] .sl-brief-sheet {
+    padding-left: 24rem;
+  }
+
+  .sightline[data-touring='library'] .sl-full.lib-page {
     padding-left: 24rem;
   }
 }
@@ -4810,12 +4844,30 @@ button.sl-moment-heights[aria-expanded='true'] {
     font-size: 1.0625rem;
   }
 
-  /* The welcome stands above the play control, under the Moon. */
-  .sl-tour-welcome,
-  .sightline.has-dock .sl-tour-welcome {
-    right: auto;
+  /* The welcome spans the screen near its foot, above the play control. */
+  .sl-tour.sl-tour-welcome {
+    top: auto;
     bottom: 4.9rem;
     left: 12px;
+    width: calc(100vw - 24px);
+    padding: 0.8rem 0.9rem 0.9rem;
+    transform: none;
+  }
+
+  .sl-tour-welcome .sl-tour-title,
+  .sl-tour.sl-tour-welcome .sl-tour-title {
+    font-size: 1.25rem;
+  }
+
+  .sl-tour-welcome .sl-tour-say.is-long {
+    margin: 0.5rem 0 0.8rem;
+    font-size: 1rem;
+  }
+
+  .sl-tour.sl-tour-welcome .sl-tour-next,
+  .sl-tour.sl-tour-welcome .sl-tour-skip {
+    padding: 0.45rem 0.9rem;
+    font-size: 1rem;
   }
 
   /* Scout's mark, smaller, so the title's row is one line of type high. */

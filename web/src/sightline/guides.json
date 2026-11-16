@@ -1,5 +1,5 @@
 {
-  "about": "The feature guides: short tours of one feature each, run by the same engine as Scout's main tour (src/sightline/Tour.tsx) and written in the same format as its steps (src/sightline/tour.json). Each is reached from the Guide and from the panel it is about (\"Show me how\"). They have no voice files: their words are on screen only.",
+  "about": "The feature guides: short tours of one feature each, run by the same engine as Scout's tour (src/sightline/Tour.tsx) and written in the same format as its steps (src/sightline/tour5.json). The tour tells the story; these cover every control it does not stop at, two to four cards each. All are listed in the Guide, and the panels that have room offer theirs as \"Show me how\" (Layers, Compare, the Share list, a custom point's form, the time bar's menu, the brief, and the Planner for the tab on show). They have no voice files: the words are on the card.",
   "guides": [
     {
       "id": "answer",
@@ -10,22 +10,91 @@
           "id": "answer-verdict",
           "title": "The verdict",
           "say": "Green means the landing fits the mission, orange that it fits with little margin, red that it does not. The lines under it say why.",
-          "state": { "view": "plan" },
-          "targets": [".sl-verdict"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-verdict"
+          ]
         },
         {
           "id": "answer-row",
           "title": "A row",
           "say": "A row leads with its share of the mission in view. A tick or cross marks the longest time out of view against your limit, over its chart.",
-          "state": { "view": "plan" },
-          "targets": [".sl-fact.is-sun"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-fact.is-sun"
+          ]
         },
         {
           "id": "answer-both",
           "title": "Sun and Earth together",
           "say": "This row is the share of the mission with power and a radio link at once: the Sun and Earth both in view.",
-          "state": { "view": "plan" },
-          "targets": [".sl-fact.is-both"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-fact.is-both"
+          ]
+        },
+        {
+          "id": "answer-next",
+          "title": "What to do next",
+          "say": "“Why?” asks Scout for the reason. The line under it offers the next landing that fits, a nearby site that does, or the Planner.",
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-verdict"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mission",
+      "name": "The mission's limits",
+      "about": "Examples, what each limit means, and Advanced.",
+      "steps": [
+        {
+          "id": "mission-presets",
+          "title": "Start from an example",
+          "say": "Short stay and Long stay are examples to start from. Move any slider and the mission is your own: Custom lights up.",
+          "state": {
+            "view": "plan",
+            "open": "mission",
+            "tall": true
+          },
+          "targets": [
+            ".sl-mission-inline .sl-presets"
+          ]
+        },
+        {
+          "id": "mission-means",
+          "title": "What each limit means",
+          "say": "This link explains every limit in a line: what it is, and why a mission would care.",
+          "state": {
+            "view": "plan",
+            "open": "mission",
+            "tall": true
+          },
+          "targets": [
+            ".sl-mission-inline .sl-means-link"
+          ]
+        },
+        {
+          "id": "mission-advanced",
+          "title": "Advanced",
+          "say": "Advanced asks Earth's center to clear the skyline by 2° or 5°. It also reads the Sun at a panel's height and Earth at an antenna's.",
+          "state": {
+            "view": "plan",
+            "open": "mission",
+            "tall": true
+          },
+          "targets": [
+            ".sl-mission-inline .sl-advanced-link"
+          ]
         }
       ]
     },
@@ -38,24 +107,55 @@
           "id": "compare-add",
           "title": "Add a scenario",
           "say": "Press the plus to keep this plan and start another beside it: another site, or another date.",
-          "state": { "view": "plan" },
-          "targets": [".sl-tabs"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-tabs"
+          ]
         },
         {
           "id": "compare-table",
           "title": "Side by side",
           "say": "Compare sets the scenarios in one table. A star marks the best value in each row.",
-          "state": { "view": "plan", "open": "compare", "pair": true },
-          "targets": [".sl-compare table"]
+          "state": {
+            "view": "plan",
+            "open": "compare",
+            "pair": true
+          },
+          "targets": [
+            ".sl-compare table"
+          ]
         },
         {
           "id": "compare-rows",
           "title": "On the time bar",
           "say": "Each scenario has a row: a lettered flag at its landing, a box for its mission. Press a flag to show that scenario and go to its landing.",
-          "state": { "view": "plan", "show": "time", "pair": true },
-          "targets": [".sl-river .sl-flag"]
+          "state": {
+            "view": "plan",
+            "show": "time",
+            "pair": true
+          },
+          "targets": [
+            ".sl-river .sl-flag"
+          ]
+        },
+        {
+          "id": "compare-more",
+          "title": "More rows",
+          "say": "More, At landing and Science open further rows. Full comparison opens the same scenarios in the Planner.",
+          "state": {
+            "view": "plan",
+            "open": "compare",
+            "pair": true
+          },
+          "targets": [
+            ".sl-compare .sl-compare-fold",
+            ".sl-compare .sl-compare-full"
+          ]
         }
-      ]
+      ],
+      "panel": "compare"
     },
     {
       "id": "planner",
@@ -66,29 +166,188 @@
           "id": "planner-tabs",
           "title": "The whole window",
           "say": "The Planner gives your plans the whole window. It has two tabs: Find and Compare.",
-          "state": { "view": "plan", "open": "planner-find" },
-          "targets": [".pl-tabs"]
+          "state": {
+            "view": "plan",
+            "open": "planner-find"
+          },
+          "targets": [
+            ".pl-tabs"
+          ]
         },
         {
           "id": "planner-find",
           "title": "Find",
           "say": "Find shows, for every site and month, on how many days a landing fits your mission. Press a cell to open that month.",
-          "state": { "view": "plan", "open": "planner-find" },
-          "targets": [".pl-measures", ".pl-legend"]
+          "state": {
+            "view": "plan",
+            "open": "planner-find"
+          },
+          "targets": [
+            ".pl-measures",
+            ".pl-find-legend"
+          ]
         },
         {
           "id": "planner-compare",
           "title": "Compare",
           "say": "Compare sets your scenarios in one table, a column each. Export saves it as a file.",
-          "state": { "view": "plan", "open": "planner-compare", "pair": true },
-          "targets": [".sl-full-table thead"]
+          "state": {
+            "view": "plan",
+            "open": "planner-compare",
+            "pair": true
+          },
+          "targets": [
+            ".sl-full-table thead"
+          ]
         },
         {
           "id": "planner-back",
           "title": "Back to the Moon",
           "say": "\"‹ Moon\" takes you back, with your scenarios as you left them.",
-          "state": { "view": "plan", "open": "planner-compare", "pair": true },
-          "targets": [".pl-back"]
+          "state": {
+            "view": "plan",
+            "open": "planner-compare",
+            "pair": true
+          },
+          "targets": [
+            ".pl-back"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "find",
+      "name": "Find a landing",
+      "about": "Other years, other places, and a month opened.",
+      "steps": [
+        {
+          "id": "find-year",
+          "title": "Another year",
+          "say": "The grid shows one year. Choose another here; the list holds a few years at a time.",
+          "state": {
+            "view": "plan",
+            "open": "planner-find"
+          },
+          "targets": [
+            ".pl-find-year"
+          ]
+        },
+        {
+          "id": "find-places",
+          "title": "Other places",
+          "say": "Add one of NASA's future targets, or a point of your own, as a scenario. The example sets the long stay Canada's rover faces.",
+          "state": {
+            "view": "plan",
+            "open": "planner-find"
+          },
+          "targets": [
+            ".pl-future",
+            ".pl-own",
+            ".pl-example"
+          ]
+        },
+        {
+          "id": "find-month",
+          "title": "Open a month",
+          "say": "Press a cell to open its month: the first landing that fits and the one with most Sun, each ready to add as a scenario.",
+          "state": {
+            "view": "plan",
+            "open": "planner-find"
+          },
+          "targets": [
+            ".pl-months"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "full",
+      "name": "Compare in full",
+      "about": "Change scenarios in place, and play the missions.",
+      "steps": [
+        {
+          "id": "full-edit",
+          "title": "Change it here",
+          "say": "Each column is a scenario: change its site or date in place, or remove it. The last column adds another.",
+          "state": {
+            "view": "plan",
+            "open": "planner-compare",
+            "pair": true
+          },
+          "targets": [
+            ".pl-compare thead"
+          ]
+        },
+        {
+          "id": "full-play",
+          "title": "Watch the missions",
+          "say": "Play runs each mission from its own landing, side by side, with the Sun and Earth over each skyline.",
+          "state": {
+            "view": "plan",
+            "open": "planner-compare",
+            "pair": true
+          },
+          "targets": [
+            ".np-play .np-play-head"
+          ]
+        },
+        {
+          "id": "full-charts",
+          "title": "Side by side",
+          "say": "The charts set the Sun's height, the battery and the windows of each mission together. The battery's figures are examples to change.",
+          "state": {
+            "view": "plan",
+            "open": "planner-compare",
+            "pair": true
+          },
+          "targets": [
+            ".np-mc .np-mc-head"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accuracy",
+      "name": "Landing accuracy",
+      "about": "What a miss changes, and where to aim.",
+      "steps": [
+        {
+          "id": "accuracy-share",
+          "title": "The share that fits",
+          "say": "A lander comes down near its aim, not on it. The share is the landings within reach of the aim that still fit the mission.",
+          "state": {
+            "view": "plan",
+            "open": "accuracy"
+          },
+          "targets": [
+            ".sl-accuracy .np-rain-ask",
+            ".sl-accuracy .np-lead"
+          ]
+        },
+        {
+          "id": "accuracy-close",
+          "title": "How close it lands",
+          "say": "The slider sets how close the lander gets to its aim. Drop landers shows where they come down, colored by what goes wrong.",
+          "state": {
+            "view": "plan",
+            "open": "accuracy"
+          },
+          "targets": [
+            ".sl-accuracy .np-rain-acc",
+            ".sl-accuracy .np-rain-actions"
+          ]
+        },
+        {
+          "id": "accuracy-aim",
+          "title": "Aim somewhere else",
+          "say": "This line names a better place to aim when one is within reach, and its button moves the aim there. Pressing the map moves it too.",
+          "state": {
+            "view": "plan",
+            "open": "accuracy"
+          },
+          "targets": [
+            ".sl-accuracy .np-act"
+          ]
         }
       ]
     },
@@ -102,23 +361,148 @@
           "id": "views-three",
           "title": "Three views",
           "say": "Orbit shows the whole Moon and Site comes in close. Surface stands you at the landing site, or at a point of your own.",
-          "state": { "view": "plan" },
-          "targets": [".sl-heights"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-heights"
+          ]
         },
         {
           "id": "views-layers",
           "title": "Layers",
           "say": "Layers lays NASA's maps over the ground near the south pole, one at a time. They read best close in, with Site.",
-          "state": { "view": "plan", "open": "layers" },
-          "targets": [".sl-layers .sl-layer-list"]
+          "state": {
+            "view": "plan",
+            "open": "layers"
+          },
+          "targets": [
+            ".sl-layers .sl-layer-list"
+          ]
+        },
+        {
+          "id": "views-own",
+          "title": "Our own map",
+          "say": "Light and shadow is Sightline's own map: the ground as it is lit at the hour on the time bar. Place names labels the whole Moon.",
+          "state": {
+            "view": "plan",
+            "open": "layers"
+          },
+          "targets": [
+            ".sl-layers .sl-layer-own"
+          ]
         },
         {
           "id": "views-zoom",
           "title": "Turn and zoom",
-          "say": "Drag the Moon to turn it, and press plus or minus to zoom.",
-          "state": { "view": "plan" },
-          "targets": [".sl-view-tools"],
+          "say": "Drag the Moon to turn it, and press plus or minus to zoom. The compass brings the south pole back.",
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-view-tools"
+          ],
           "wide": true
+        }
+      ]
+    },
+    {
+      "id": "surface",
+      "name": "On the surface",
+      "about": "Stand at the site and look around.",
+      "steps": [
+        {
+          "id": "surface-look",
+          "title": "Two windows",
+          "say": "One window follows the Sun, the other Earth. Drag to look around; “Follow the Sun again” brings a window back.",
+          "state": {
+            "view": "plan",
+            "stage": "surface"
+          },
+          "targets": [
+            ".sl-surface"
+          ]
+        },
+        {
+          "id": "surface-closer",
+          "title": "Closer",
+          "say": "Plus and minus zoom the view. “What this picture is” says how the skyline and the ground are drawn.",
+          "state": {
+            "view": "plan",
+            "stage": "surface"
+          },
+          "targets": [
+            ".sl-surface"
+          ]
+        },
+        {
+          "id": "surface-strip",
+          "title": "The whole horizon",
+          "say": "The strip under the view is the whole skyline, north round to north. Fold shuts it, and its bar opens it again.",
+          "state": {
+            "view": "plan",
+            "stage": "surface",
+            "show": "skyline"
+          },
+          "targets": [
+            ".sl-sky"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "time",
+      "name": "The time bar",
+      "about": "Move through time, and see more of it.",
+      "steps": [
+        {
+          "id": "time-move",
+          "title": "Any hour",
+          "say": "Drag along the bands to any hour, or press play; the arrow beside it sets the speed. Everything on screen follows.",
+          "state": {
+            "view": "plan",
+            "show": "time"
+          },
+          "targets": [
+            ".sl-river .sl-rows"
+          ]
+        },
+        {
+          "id": "time-zoom",
+          "title": "A day, a month, a year",
+          "say": "Day, Month and Year set how much time the bar holds. A year shows the Moon's seasons.",
+          "state": {
+            "view": "plan",
+            "show": "time"
+          },
+          "targets": [
+            ".sl-river .sl-zooms"
+          ]
+        },
+        {
+          "id": "time-more",
+          "title": "More",
+          "say": "The three dots hold the hourly file, one row an hour, and “A day on Earth”, which sets a day at home beside a day here.",
+          "state": {
+            "view": "plan",
+            "show": "time"
+          },
+          "targets": [
+            ".sl-river .sl-more",
+            ".sl-river .sl-river-tools > .sl-hourly"
+          ]
+        },
+        {
+          "id": "time-fold",
+          "title": "Fold it away",
+          "say": "Fold shuts the bar to one line. When the bar is off the landing hour, “Back to landing” under the Moon returns to it.",
+          "state": {
+            "view": "plan",
+            "show": "time"
+          },
+          "targets": [
+            ".sl-river .sl-fold"
+          ]
         }
       ]
     },
@@ -132,15 +516,24 @@
           "id": "custom-list",
           "title": "Any point on the Moon",
           "say": "The site list ends with \"Custom point\". Choose it to plan a landing anywhere.",
-          "state": { "view": "plan" },
-          "targets": ["#sl-site"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            "#sl-site"
+          ]
         },
         {
           "id": "custom-form",
           "title": "Type where",
           "say": "Type a latitude and a longitude, then press Go. Sightline works out that point's skyline in your browser.",
-          "state": { "view": "plan", "open": "custom" },
-          "targets": [".sl-plan-more"]
+          "state": {
+            "view": "plan",
+            "open": "custom"
+          },
+          "targets": [
+            ".sl-plan-more"
+          ]
         }
       ]
     },
@@ -154,22 +547,111 @@
           "id": "share-link",
           "title": "A plan is a link",
           "say": "The address always holds the plan on screen: every scenario, and the mission. Share copies it.",
-          "state": { "view": "plan" },
-          "targets": [".sl-head-tools"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-head-tools"
+          ]
         },
         {
           "id": "share-save",
           "title": "Save with a name",
           "say": "Give the plan a name and a note, then save. The short link opens with both on show, and is kept 180 days.",
-          "state": { "view": "plan", "open": "share" },
-          "targets": [".sl-share-sheet .sl-share-save .sl-share-head"]
+          "state": {
+            "view": "plan",
+            "open": "share"
+          },
+          "targets": [
+            ".sl-share-sheet .sl-share-save .sl-share-head"
+          ]
         },
         {
           "id": "share-brief",
           "title": "The written brief",
           "say": "Share also opens the brief: the scenario on show, written out in full.",
-          "state": { "view": "plan", "open": "share" },
-          "targets": [".sl-share-sheet .sl-share-brief"]
+          "state": {
+            "view": "plan",
+            "open": "share"
+          },
+          "targets": [
+            ".sl-share-sheet .sl-share-brief"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "brief",
+      "name": "The written brief",
+      "about": "One scenario, written out to read or print.",
+      "steps": [
+        {
+          "id": "brief-print",
+          "title": "Read it, or print it",
+          "say": "The brief writes the scenario on show out in full. Print the brief makes a page for paper or a PDF; the way back is beside it.",
+          "state": {
+            "view": "plan",
+            "open": "brief"
+          },
+          "targets": [
+            ".sl-brief-sheet .sl-brief-bar"
+          ]
+        },
+        {
+          "id": "brief-days",
+          "title": "Another day",
+          "say": "Each bar is a day of the month, tall where a landing fits. Press one to read the brief for that day.",
+          "state": {
+            "view": "plan",
+            "open": "brief"
+          },
+          "targets": [
+            ".sl-brief-sheet .pl-days"
+          ]
+        },
+        {
+          "id": "brief-landing",
+          "title": "This landing",
+          "say": "Under the days is this landing in words and figures. “Use the best landing” moves to the month's best hour.",
+          "state": {
+            "view": "plan",
+            "open": "brief"
+          },
+          "targets": [
+            ".sl-brief-sheet .pl-landing-row"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "library",
+      "name": "The Library",
+      "about": "Your saved plans, and everyone's landings.",
+      "steps": [
+        {
+          "id": "library-mine",
+          "title": "Your plans",
+          "say": "Plans you saved with a name from Share wait here. Resume opens one as you left it.",
+          "state": {
+            "view": "plan",
+            "open": "library"
+          },
+          "targets": [
+            ".lib-mine"
+          ]
+        },
+        {
+          "id": "library-all",
+          "title": "Everyone's landings",
+          "say": "These are landings other people saved, to search by place, month or fit. Add to plan puts one beside your own as a scenario.",
+          "state": {
+            "view": "plan",
+            "open": "library"
+          },
+          "targets": [
+            ".lib-all",
+            ".lib-filters"
+          ]
         }
       ]
     },
@@ -182,15 +664,66 @@
           "id": "nasa-open",
           "title": "NASA's own tools",
           "say": "These links open the site in NASA's own tools, at the same place and hour.",
-          "state": { "view": "plan" },
-          "targets": [".sl-open-in"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-open-in"
+          ]
         },
         {
           "id": "nasa-horizons",
           "title": "Checked against Horizons",
           "say": "This line says how closely our Sun and Earth directions match JPL Horizons. Press it to see what was compared and to reproduce this hour.",
-          "state": { "view": "plan" },
-          "targets": [".sl-horizons"]
+          "state": {
+            "view": "plan"
+          },
+          "targets": [
+            ".sl-horizons"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scout",
+      "name": "Ask Scout",
+      "about": "Ask in plain words, or start from an idea.",
+      "steps": [
+        {
+          "id": "scout-ideas",
+          "title": "Start from an idea",
+          "say": "These lines are questions about the landing on show. Press one and Scout answers it.",
+          "state": {
+            "view": "plan",
+            "open": "scout"
+          },
+          "targets": [
+            ".sl-scout-panel .sl-idea"
+          ]
+        },
+        {
+          "id": "scout-ask",
+          "title": "Your own words",
+          "say": "Type any question about sites, dates or the mission. Scout looks the answer up in the same data; the server fills in every figure.",
+          "state": {
+            "view": "plan",
+            "open": "scout"
+          },
+          "targets": [
+            "#sl-question"
+          ]
+        },
+        {
+          "id": "scout-sound",
+          "title": "Hear the answer",
+          "say": "Sound on reads each new answer aloud in an AI-generated voice. It is off until you press it.",
+          "state": {
+            "view": "plan",
+            "open": "scout"
+          },
+          "targets": [
+            ".sl-scout-panel .sl-sound"
+          ]
         }
       ]
     },
@@ -203,23 +736,79 @@
           "id": "rover-mission",
           "title": "A long stay",
           "say": "The mission is now Long stay, an example and not the rover's own figures: 60 days, at most 14 days without the Sun.",
-          "state": { "view": "plan", "mission": "long" },
-          "targets": [".sl-mission-open"]
+          "state": {
+            "view": "plan",
+            "mission": "long"
+          },
+          "targets": [
+            ".sl-mission-open"
+          ]
         },
         {
           "id": "rover-verdict",
           "title": "Why the pole is hard",
           "say": "Near the pole the skyline can hide the Sun for days. The verdict says whether this landing gets through the longest dark spell.",
-          "state": { "view": "plan", "mission": "long" },
-          "targets": [".sl-verdict"]
+          "state": {
+            "view": "plan",
+            "mission": "long"
+          },
+          "targets": [
+            ".sl-verdict"
+          ]
         },
         {
           "id": "rover-next",
           "title": "Where it could land",
           "say": "Press the next landing that fits to move there. The Planner's rover example shows every site, month by month.",
-          "state": { "view": "plan", "mission": "long" },
-          "targets": [".sl-next", "[data-tour=\"planner\"]"],
+          "state": {
+            "view": "plan",
+            "mission": "long"
+          },
+          "targets": [
+            ".sl-next",
+            "[data-tour=\"planner\"]"
+          ],
           "wide": true
+        }
+      ]
+    },
+    {
+      "id": "front",
+      "name": "The front page",
+      "about": "Watch the Moon, and find your way in.",
+      "steps": [
+        {
+          "id": "front-time",
+          "title": "Time, running",
+          "say": "The Moon is lit as it is on the date shown. Play or hold it, set how fast it runs, or drag the slider through the month.",
+          "state": {
+            "view": "watch"
+          },
+          "targets": [
+            ".sl-pill"
+          ]
+        },
+        {
+          "id": "front-dots",
+          "title": "The markers",
+          "say": "Each marker is a site, colored by what it has in view now. Press one to plan a landing there, or press the Moon for a point of your own.",
+          "state": {
+            "view": "watch"
+          },
+          "targets": [
+            ".sl-watch-key"
+          ]
+        },
+        {
+          "id": "front-hide",
+          "title": "Only the Moon",
+          "say": "Hide all leaves only the Moon, and Show controls brings everything back. From the plan, the house on the rail returns here.",
+          "state": {
+            "view": "watch"
+          },
+          "targets": [
+            ".sl-top button:nth-of-type(2)"
+          ]
         }
       ]
     }

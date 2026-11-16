@@ -45,28 +45,29 @@ The Guide shows the same six, worked out from the data files as the page reads t
 
 ## Using the site
 
-Scout's tour follows one landing plan across the whole screen, step by step, in fifteen steps and
+Scout's tour follows one landing plan across the whole screen, step by step, in sixteen steps and
 four chapters: a landing that does not fit, why, what to do when the date slips, why to trust the
-answer and how to hand it on. It takes about two minutes to read and about six to hear. On a first
-visit to the front page Scout offers it in a welcome card ("Take the tour" or "Skip", which closes the
-card for good in that browser); after that its chip, "Take the tour", is in Watch on every visit, and
-it is always the first thing in the **Guide** (on a phone, also under **More**). A link that carries a
-plan never gets the welcome.
+answer and how to hand it on. It takes about two minutes to read and about six and a half to hear. On
+a first visit to the front page it is the first thing a visitor sees: one card centered over the Moon,
+on a page dimmed a little, with what Sightline answers, what the tour takes to read, "Take the tour"
+and "Skip". Skip, Escape or a press outside the card closes it for good in that browser; after that
+the chip "Take the tour" is in Watch on every visit, and the tour is always the first thing in the
+**Guide** (on a phone, also under **More**). A link that carries a plan never gets the welcome.
 
 It drives the real screen. Wherever the story moves to another part of the screen, the step first
-rings the control a visitor would press ("Plan a landing", the mission, Surface, Compare, Planner,
-Landing accuracy, Site and Layers, Guide, Scout, Brief), and the first Next, which then reads "Show
-it", presses it for them; where it opened a page or another view, the way back is ringed for a moment
-as the reader moves on. So a reader who closes the tour knows which button led where. Each card
-explains its step in two sentences that stand by themselves, and the page is shaded a little except
-what the step is about. The card keeps one home, the lower left corner, with Back and Next always in
-the same place; it moves to the lower right only where it would cover what the step is about. The
-arrow keys (or a clicker's Page Down and Page Up) step it and Escape closes it; a dot for each step,
-grouped by chapter, goes straight to it; closing at any step puts the screen back as it was, and
-"Start planning" on the last step leaves the story's plan on screen. **Listen** plays each step's
-longer spoken line in Scout's voice (AI-generated; off until pressed), and **Play through** moves on
-by itself when a line ends, making each press as the voice reaches it. The steps, with the words on
-each card:
+rings the control a visitor would press ("Plan a landing", the mission, Surface, Compare, Planner and
+its Compare tab, Landing accuracy, Site and Layers, Guide, Scout, Brief), and the first Next, which
+then reads "Show it", presses it for them; where it opened a page or another view, the way back is
+ringed for a moment as the reader moves on. So a reader who closes the tour knows which button led
+where. Each card explains its step in two sentences that stand by themselves, and the page is shaded
+a little except what the step is about. The card keeps one home, the lower left corner, with Back and
+Next always in the same place; it moves to the lower right only where it would cover what the step is
+about. The arrow keys (or a clicker's Page Down and Page Up) step it and Escape closes it; a dot for
+each step, grouped by chapter, goes straight to it; closing at any step puts the screen back as it
+was, and "Start planning" on the last step leaves the story's plan on screen. **Listen** plays each
+step's longer spoken line in Scout's voice (AI-generated; off until pressed), and **Play through**
+moves on by itself when a line ends, making each press as the voice reaches it. The steps, with the
+words on each card:
 
 *The problem*
 
@@ -86,14 +87,21 @@ each card:
 8. **Another option.** Now the plan holds two scenarios, A and B: each letter is a site and a landing hour. Press + for another, up to four; − on a letter drops it.
 9. **Another site, same date?** Would another site save 6 May? Press Compare: C and D, two more sites near the pole on that date, do not fit either. A star marks the best in each row.
 10. **Every site, every month.** Press Planner to see every listed site against every month. In May 2027 no site at the pole has a landing that fits; in June, Connecting Ridge has three days.
-11. **What if it misses?** Press Landing accuracy: B fits on its aim point, but no lander comes down exactly there. Of the landings within reach, 38% fit; aim 44 m away, and 60% do.
+11. **Compare in depth.** Press the Planner's Compare tab to weigh A to D in full: At a glance colors each figure by your limits, and only B fits. Export saves the table, or every hour, as a file.
+12. **What if it misses?** Press Landing accuracy: B fits on its aim point, but no lander comes down exactly there. Of the landings within reach, 38% fit; aim 44 m away, and 60% do.
 
 *Trust it, and use it*
 
-12. **NASA's maps and tools.** Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan also opens in Quickmap, Moon Trek and JPL Horizons.
-13. **Can it be trusted?** Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It also says what Sightline cannot tell you.
-14. **Ask Scout.** Or just ask: press Scout. He answers in plain words from the same data, and never writes a number himself: the server fills in every figure.
-15. **Hand it on.** Hand it to your team: Brief writes the scenario on show out in full, to print, and Share makes a link to the same plan. Then try Canada's rover mission, or start your own.
+13. **NASA's maps and tools.** Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan also opens in Quickmap, Moon Trek and JPL Horizons.
+14. **Can it be trusted?** Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It also says what Sightline cannot tell you.
+15. **Ask Scout.** Or just ask: press Scout. He answers in plain words from the same data, and never writes a number himself: the server fills in every figure.
+16. **Hand it on.** Hand it on: Brief writes the scenario on show out in full, and Share makes a link or saves the plan to the Library. Every feature, Canada's rover too, has its own short guide, listed in the Guide.
+
+The tour is the story; every control it does not stop at has a feature guide of its own, two to four
+cards in the tour's look, with no voice. There are eighteen, all listed in the Guide: Read the answer, The mission's limits, Compare scenarios, The Planner, Find a landing, Compare in full, Landing accuracy, Views and layers, On the surface, The time bar, A custom point, Share a plan, The written brief, The Library, Check it in NASA's tools, Ask Scout, A real mission: Canada's rover, The front page. Layers,
+Compare, the Share list, a custom point's form, the time bar's menu, the written brief and the Planner
+(for the tab on show) also offer theirs as "Show me how". The keys are listed in the Guide, under
+"Keys".
 
 The steps, their words and what each one rings are in one file, `web/src/sightline/tour5.json`, which
 the tour, the Guide and the voice files (`web/public/tour/voice5/`, made by

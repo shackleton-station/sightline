@@ -17,9 +17,9 @@ export interface TourState {
    * Something the step opens to talk about it: the Compare or Layers panel, the form for a custom
    * point, the Share list, or the Planner on one of its tabs. The tour also opens the
    * Landing accuracy panel, Scout's panel, the Guide at its proof, the mission's limits in the
-   * plan's column, and the written brief.
+   * plan's column, and the written brief. A feature guide may also open the Library.
    */
-  open?: GuidePanel | 'planner-find' | 'planner-compare' | 'accuracy' | 'scout' | 'proof' | 'mission' | 'brief'
+  open?: GuidePanel | 'planner-find' | 'planner-compare' | 'accuracy' | 'scout' | 'proof' | 'mission' | 'brief' | 'library'
   /** The step is about more than one scenario: the app's two nearby sites on one date are put in, once, for it. */
   pair?: boolean
   /** The step is about the Long stay example: the mission is set to it for the guide, and put back on leaving. The tour sets the Short stay, so it says the same on every screen. */

@@ -13,6 +13,8 @@ import { landingRows, type PlannerRow, plannerRows } from './plannerTable'
 import type { LandingShares, ScenarioFacts } from './useScenarioFacts'
 
 interface Props {
+  /** Starts the short guide to comparing, offered in the header; null while a tour or guide is on. */
+  onShowHow?: (() => void) | null
   start: string
   scenarios: SightlineScenario[]
   facts: ScenarioFacts[]
@@ -89,7 +91,7 @@ function Row({ row, hoursPrinted }: { row: PlannerRow; hoursPrinted: boolean }) 
  * shadowed ground, in NASA's maps: not part of the verdict). The best value in a row is marked; there
  * is no blended score, because its weights would be invented.
  */
-export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, adds, onClose, marginal: marginalOf, odds, oddsFor, landings, sunlightWm2, onFull }: Props) {
+export function CompareDrawer({ start, scenarios, facts, mission, active, onSelect, onAdd, adds, onClose, onShowHow = null, marginal: marginalOf, odds, oddsFor, landings, sunlightWm2, onFull }: Props) {
   const [more, setMore] = useState(false)
   const [atLanding, setAtLanding] = useState(false)
   // The third fold, "Science": what a science team asks of a site, beside the engineering rows. One row for
@@ -139,6 +141,11 @@ export function CompareDrawer({ start, scenarios, facts, mission, active, onSele
     <aside className="sl-drawer sl-compare" aria-label="Compare scenarios">
       <header className="sl-drawer-head">
         <h2>Compare</h2>
+        {onShowHow && (
+          <button type="button" className="sl-link sl-show-how" onClick={onShowHow}>
+            Show me how
+          </button>
+        )}
         <button type="button" className="sl-small" onClick={onClose}>
           Close
         </button>
