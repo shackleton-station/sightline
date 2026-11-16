@@ -5,7 +5,7 @@
     "disclosure": "AI-generated voice",
     "files": "/tour/voice5/<id>.mp3",
     "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\"",
-    "seconds": 436
+    "seconds": 453
   },
   "steps": [
     {
@@ -61,11 +61,52 @@
       "pressOn": "Plan a landing starts"
     },
     {
-      "id": "point",
+      "id": "typed",
       "chapter": "The problem",
       "title": "Or any point at all",
-      "line": "A landing need not be at a listed site: press anywhere on the Moon, or type coordinates. Sightline works out that point's own skyline and answers for it; this one, close to Connecting Ridge, is sunlit 35% of the mission.",
-      "say": "A landing does not have to be at a listed site. Press anywhere on the Moon, or type a latitude and a longitude, and that point becomes the plan's site. There: a point no list holds, close to Connecting Ridge. Sightline works out its own skyline from the same terrain, and answers for it like any other: here the Sun is in view for only about a third of the mission.",
+      "line": "A landing need not be at a listed site. Choose Custom point in the site list, type a latitude and a longitude, and press Go: Sightline works out that point's own skyline and answers for it.",
+      "say": "A landing does not have to be at a listed site. The site list ends with Custom point. Choose it, type a latitude and a longitude, and press Go. There: a point no list holds, near the south pole. Sightline works out its own skyline from the same terrain, and answers for it like any other.",
+      "state": {
+        "view": "plan",
+        "mission": "short",
+        "scenarios": [
+          {
+            "site": "connecting-ridge",
+            "landing": "2027-05-06T13:00:00Z"
+          }
+        ]
+      },
+      "targets": [
+        ".sl-plan-row:has(#sl-site)"
+      ],
+      "then": {
+        "open": "custom"
+      },
+      "typed": {
+        "fields": [
+          {
+            "into": "#sl-latitude",
+            "text": "-88.8"
+          },
+          {
+            "into": "#sl-longitude",
+            "text": "124.5"
+          }
+        ],
+        "submit": ".sl-coords button[type='submit']"
+      },
+      "after": [
+        ".sl-plan-more",
+        ".sl-verdict"
+      ],
+      "pressOn": "There: a point"
+    },
+    {
+      "id": "point",
+      "chapter": "The problem",
+      "title": "Or press the Moon",
+      "line": "Or just press the Moon: wherever you press becomes the plan's site, with its own skyline and its own answer. This point, close to Connecting Ridge, is sunlit 35% of the mission.",
+      "say": "Or skip the typing, and press the Moon itself. Wherever you press becomes the plan's site. There: another point no list holds, close to Connecting Ridge, with its own skyline and its own answer. Here the Sun is in view for only about a third of the mission.",
       "state": {
         "view": "plan",
         "mission": "short",
@@ -95,7 +136,7 @@
       "afterLit": [
         "moon"
       ],
-      "pressOn": "There: a point"
+      "pressOn": "There: another point"
     },
     {
       "id": "mission",
