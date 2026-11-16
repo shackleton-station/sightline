@@ -4606,12 +4606,16 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-tour[data-beside-moon] .sl-tour-dots {
-  gap: 0.2rem;
+  gap: 0.15rem;
+}
+
+.sl-tour[data-beside-moon] .sl-tour-dots li.is-new-chapter {
+  margin-left: 0.4rem;
 }
 
 .sl-tour[data-beside-moon] .sl-tour-dots button {
-  width: 0.7rem;
-  height: 0.7rem;
+  width: 0.6rem;
+  height: 0.6rem;
 }
 
 /* Over the title: the chapter of the story, and the way out, which says what it does and is the quietest thing in the card. */
@@ -4684,7 +4688,7 @@ button.sl-moment-heights[aria-expanded='true'] {
 .sl-tour .sl-tour-dots {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.25rem;
   margin: 0 0 0.7rem;
   padding: 0;
   list-style: none;
@@ -4699,8 +4703,8 @@ button.sl-moment-heights[aria-expanded='true'] {
 }
 
 .sl-tour .sl-tour-dots button {
-  width: 0.8rem;
-  height: 0.8rem;
+  width: 0.7rem;
+  height: 0.7rem;
   padding: 0;
   border: 1.5px solid var(--line);
   border-radius: 50%;

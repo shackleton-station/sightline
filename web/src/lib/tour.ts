@@ -28,6 +28,8 @@ export interface TourState {
   scenarios?: { site: string; landing: string }[]
   /** Which of those scenarios is on show, counted from 0, when it is not the first. */
   active?: number
+  /** A point of the reader's own for the scenario on show, in degrees: set as a click on the Moon sets it, so the step shows a landing no list holds. */
+  point?: { lat: number; lon: number }
   /** The view of the Moon for the step: Orbit unless it says the Site view, or Surface (standing at the site), which opens the skyline strip under it when the step shows the skyline. */
   stage?: 'site' | 'surface'
   /** Time plays while the step is on. */
