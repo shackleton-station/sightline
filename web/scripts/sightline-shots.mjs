@@ -183,6 +183,26 @@ const REMOVE_SCENARIO = (letter) => `(document.querySelector('.sl-tabs .sl-tab-r
  * plan to answer with when none has been saved on this page (a short link opened in a new tab).
  * `others` are more plans to answer with, by id: { title, note, view } each.
  */
+/**
+ * The Library's service, standing in before the page's own code runs. It answers as a service from
+ * before 16 November 2026 did, with each plan's id and title, and with a note no service ever sent:
+ * none of that may reach the page. One plan of the visitor's own is noted in the browser, as a save notes it.
+ */
+const STRANGER_TITLE = 'TYPED BY A STRANGER'
+const STAND_IN_LIBRARY = `(() => {
+  try { window.localStorage.setItem('sightline.myPlans', JSON.stringify([{ id: 'abcd2345', title: 'My own ridge plan', saved: '2026-11-14T09:00:00.000Z' }])) } catch {}
+  const scenarios = [
+    { plan: 'wxyz6789', title: ${JSON.stringify(STRANGER_TITLE)}, note: 'A NOTE NOBODY ASKED FOR', saved: '2026-11-15T10:00:00.000Z', site: 'connecting-ridge', landing: '2027-05-06T13:00:00Z' },
+    { plan: 'mnpq2345', title: 'ANOTHER ${STRANGER_TITLE}', saved: '2026-11-13T08:00:00.000Z', site: 'connecting-ridge', landing: '2027-05-06T13:00:00Z' },
+    { plan: 'mnpq2345', title: 'ANOTHER ${STRANGER_TITLE}', saved: '2026-11-13T08:00:00.000Z', site: 'shackleton-rim', landing: '2027-06-01T22:00:00Z' },
+  ]
+  const real = window.fetch
+  window.fetch = async (url, init) => (String(url).includes('/api/plans/library') ? new Response(JSON.stringify({ scenarios }), { status: 200, headers: { 'content-type': 'application/json' } }) : real(url, init))
+  return true
+})()`
+/** Opens the Library from the rail: on a phone it is in "More". */
+const OPEN_LIBRARY = `(window.innerWidth > 760 ? (${click('Library')}, true) : (${click('More')}, new Promise((done) => setTimeout(() => { ${click('Library')}; done(true) }, 400))))`
+
 const STAND_IN_PLANS = (kept = null, others = {}) => `(() => {
   if (window.__plans) return true
   window.__plans = { saved: [], kept: ${JSON.stringify(kept)} }
@@ -2390,6 +2410,22 @@ const SCENES = [
       ['the plain link\'s button is under it, quiet, and says how it differs', "(() => { const plain = document.querySelector('.sl-share-sheet .sl-share-plain'); const saved = document.querySelector('.sl-share-saved'); return (plain.textContent.trim() === 'Copy link without the name or note' && getComputedStyle(plain).backgroundColor === 'rgba(0, 0, 0, 0)' && plain.getBoundingClientRect().top >= saved.getBoundingClientRect().bottom - 1 && /^It opens with the name and note on show\\. Kept 180 days, for anyone with the link\\.$/.test(saved.querySelector('.sl-share-kept').textContent.trim())) || plain.textContent + ' on ' + getComputedStyle(plain).backgroundColor })()"],
       ['the sheet still fits with the link shown', SHARE_PLACED],
       ['Escape closes it and gives the keyboard back to the Share button', `(window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && ${after(300, "document.querySelector('.sl-share-sheet') === null && document.activeElement?.getAttribute('aria-label') === 'Share'")}`],
+    ],
+  },
+  {
+    // The Library is open to everyone, so a card carries only what Sightline worked out: the place, the
+    // landing, the dial, the verdict, the shares and the day the plan was saved. Nothing a visitor typed
+    // (a plan's title or note) is shown, and no card opens somebody else's plan.
+    name: 'library-no-visitor-text',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_24_1_1&mode=plan',
+    beforeLoad: STAND_IN_LIBRARY,
+    checks: [
+      ['the Library lists the saved landings, one card each, and says when each was saved and how many plans hold it', `Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(2500, `(() => { const from = [...document.querySelectorAll('.lib-grid .lib-from')].map((line) => line.textContent.trim()); const places = [...document.querySelectorAll('.lib-grid h4')].map((name) => name.textContent); return (from.join(' | ') === 'Saved 15 Nov 2026 · in 2 plans | Saved 13 Nov 2026' && places.join(' | ') === 'Connecting Ridge | Shackleton Rim') || places.join(' | ') + ' ; ' + from.join(' | ') })()`)})`],
+      ['no title, note or plan id that the service sent is anywhere on the page, in its text or in its markup', `(() => { const html = document.body.innerHTML; const found = [${JSON.stringify(STRANGER_TITLE)}, 'NOBODY ASKED', 'wxyz6789', 'mnpq2345'].filter((typed) => html.includes(typed)); return found.length === 0 || 'on the page: ' + found.join(', ') })()`],
+      ['no card opens the plan a landing came from, and the search says it looks for a place', `(() => { const buttons = [...document.querySelectorAll('.lib-grid button')].map((button) => button.textContent.trim()); const search = document.querySelector('.lib-words input'); return (!buttons.some((label) => /open plan/i.test(label)) && buttons.filter((label) => label === 'Show in plan').length === 2 && search.placeholder === 'A place’s name') || buttons.join(', ') + ' ; ' + search.placeholder })()`],
+      ['typing a stranger\'s title finds nothing; a place\'s name finds its card', `(async () => { const wait = (ms) => new Promise((done) => setTimeout(done, ms)); const input = document.querySelector('.lib-words input'); const type = (value) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })) }; type('stranger'); await wait(300); const none = document.querySelectorAll('.lib-grid .lib-card').length; type('shackleton'); await wait(300); const one = [...document.querySelectorAll('.lib-grid h4')].map((name) => name.textContent).join(); type(''); await wait(300); return (none === 0 && one === 'Shackleton Rim' && document.querySelectorAll('.lib-grid .lib-card').length === 2) || none + ' ; ' + one })()`],
+      ['"Your plans" still names the visitor\'s own plan, from what this browser kept, with the day it was saved and Resume', `(() => { const mine = [...document.querySelectorAll('.lib-mine li')].map((line) => line.textContent.replace(/\\s+/g, ' ').trim()); return (mine.length === 1 && /^My own ridge plan ?Saved 14 Nov 2026 ?Resume$/.test(mine[0])) || mine.join(' | ') })()`],
+      ['the page is no wider than the window', `(() => { const page = document.querySelector('.lib-page'); return page.scrollWidth <= page.clientWidth + 1 || page.scrollWidth + ' in ' + page.clientWidth })()`],
     ],
   },
   {

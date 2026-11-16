@@ -49,7 +49,7 @@ export function LibraryPage({ start, hours, flagged, scenarios, mission, active,
         {/* The plan, as in the Planner's header: its scenarios by letter, to choose, remove or add to. */}
         <ScenarioTabs count={scenarios.length} active={active} onSelect={onSelect} onAdd={onAddShown} onRemove={onRemove} />
       </header>
-      <MyPlans cards={library.cards} onResume={onResume} />
+      <MyPlans onResume={onResume} />
       <h3 className="lib-all">Everyone’s landings</h3>
       <p className="lib-page-lead">
         Landings from the plans people have saved here. Each is judged against your mission ({missionWords(mission)}), not the one it was saved for. “Add to plan” makes one the next scenario of your plan (C after A and B) and keeps you here to add more; “Show in plan” also goes to the main screen with it on show. The letters at the top are your plan.
@@ -77,7 +77,6 @@ export function LibraryPage({ start, hours, flagged, scenarios, mission, active,
         letterOf={library.letterOf}
         room={scenarios.length < MAX_SCENARIOS}
         onReload={library.reload}
-        onOpenPlan={onResume}
       />
     </section>
   )

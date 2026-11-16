@@ -136,8 +136,8 @@ export async function loadLibrary(): Promise<PlanResult<LibraryEntry[] | null>> 
     const body = (await response.json().catch(() => null)) as { scenarios?: unknown } | null
     if (response.ok && Array.isArray(body?.scenarios)) {
       const text = (value: unknown): value is string => typeof value === 'string'
-      // Only entries of the described shape are kept, and only their described fields: a newer service may send more.
-      const entries = (body.scenarios as Partial<LibraryEntry>[]).flatMap(({ plan, title, saved, site, landing }) => (text(plan) && text(title) && text(saved) && text(site) && text(landing) ? [{ plan, title, saved, site, landing }] : []))
+      // Only entries of the described shape are kept, and only their described fields: whatever else a service sends (an older one sent each plan's id and title) never reaches the page.
+      const entries = (body.scenarios as Partial<LibraryEntry>[]).flatMap(({ saved, site, landing }) => (text(saved) && text(site) && text(landing) ? [{ saved, site, landing }] : []))
       return { ok: true, value: entries }
     }
     if (response.status === 404 || response.status === 503) return { ok: true, value: null }

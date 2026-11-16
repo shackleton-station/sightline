@@ -7,16 +7,16 @@ import { parseCustomSite } from './urlState'
 /**
  * The library: scenarios other people saved, to search, filter and add to the plan on screen.
  *
- * The plans service sends every listed scenario as a place and a landing time (web/plans/API.md,
- * "The library"). Everything else on a card is worked out here, from the same hourly flags the
+ * The plans service sends every listed scenario as a place, a landing time and the day its plan was
+ * saved (web/plans/API.md, "The library"): nothing a visitor typed, and no link to the plan.
+ * Everything else on a card is worked out here, from the same hourly flags the
  * rest of the screen uses and against the visitor's own mission: a scenario saved for a short stay
  * is judged for a long one if that is the mission on screen.
  */
 
 /** One scenario of one saved plan, as the service sends it. */
 export interface LibraryEntry {
-  plan: string
-  title: string
+  /** When the plan it is in was saved, as an ISO time. */
   saved: string
   site: string
   landing: string
@@ -34,7 +34,7 @@ export interface Band {
 
 /** A scenario from the library, measured against the mission on screen. */
 export interface LibraryCard {
-  /** Names this card: the plan and the scenario's place in it. */
+  /** Names this card: its place in the library as it was read. */
   key: string
   entry: LibraryEntry
   /** How many listed plans hold this same landing, the place and the hour: 1 when only this one does. Counted by `filterCards`. */
@@ -89,6 +89,13 @@ export function shareOf(bands: Band[], states: BandState[]): number {
   return bands.filter((band) => states.includes(band.state)).reduce((sum, band) => sum + band.to - band.from, 0)
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** The day a plan was saved, as the Library writes one: "15 Nov 2026" (UTC). */
+export function savedDay(iso: string): string {
+  return `${Number(iso.slice(8, 10))} ${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(0, 4)}`
+}
+
 /** A custom point's coordinates in words, as the brief writes them: "89.50° S, 120.00° E". */
 function pointWords(lat: number, lon: number): string {
   return `${Math.abs(lat).toFixed(2)}° ${lat < 0 ? 'S' : 'N'}, ${Math.abs(lon).toFixed(2)}° ${lon < 0 ? 'W' : 'E'}`
@@ -96,17 +103,14 @@ function pointWords(lat: number, lon: number): string {
 
 /** Every entry as a card, measured against the mission. Entries the app could never open (an unknown site) are left out. */
 export function cardsOf(entries: LibraryEntry[], start: string, hours: number, sites: Flagged[], mission: SightlineMission, monthShare: MonthShares): LibraryCard[] {
-  const seen = new Map<string, number>()
-  return entries.flatMap((entry): LibraryCard[] => {
-    const nth = seen.get(entry.plan) ?? 0
-    seen.set(entry.plan, nth + 1)
+  return entries.flatMap((entry, nth): LibraryCard[] => {
     const point = parseCustomSite(entry.site)
     const listed = sites.find((one) => one.site.id === entry.site) ?? null
     if (!point && !listed) return []
     const landing = hourOf(start, entry.landing)
     const inData = Number.isInteger(landing) && landing >= 0 && landing < hours
     const month = inData ? locateHour(start, landing).month : entry.landing.slice(0, 7)
-    const base = { key: `${entry.plan}.${nth}`, entry, copies: 1, scenario: inData ? { site: entry.site, landing } : null, month }
+    const base = { key: String(nth), entry, copies: 1, scenario: inData ? { site: entry.site, landing } : null, month }
     if (!listed || !inData) {
       return [{ ...base, place: listed ? listed.site.name : point ? `Custom point, ${pointWords(point.lat, point.lon)}` : entry.site, site: listed?.site ?? null, fits: null, problems: [], monthShare: null, bands: null, sunShare: null, earthShare: null }]
     }
@@ -119,7 +123,7 @@ export function cardsOf(entries: LibraryEntry[], start: string, hours: number, s
 
 /** What the visitor has asked the library to show. */
 export interface LibraryFilters {
-  /** Words to find in a plan's name or a place's name. */
+  /** Words to find in a place's name. */
   words: string
   /** A listed site's id, or '' for every place. */
   site: string
@@ -141,11 +145,11 @@ export function filtering(filters: LibraryFilters): boolean {
   return (Object.keys(NO_FILTERS) as (keyof LibraryFilters)[]).some((name) => filters[name] !== NO_FILTERS[name])
 }
 
-/** The cards the filters let through, in the order given. Every word typed must be in the plan's name or the place's. */
+/** The cards the filters let through, in the order given. Every word typed must be in the place's name. */
 export function filterCards(cards: LibraryCard[], filters: LibraryFilters): LibraryCard[] {
   const words = filters.words.toLowerCase().split(/\s+/).filter(Boolean)
   const passed = cards.filter((card) => {
-    const text = `${card.entry.title} ${card.place}`.toLowerCase()
+    const text = card.place.toLowerCase()
     if (!words.every((word) => text.includes(word))) return false
     if (filters.site && card.entry.site !== filters.site) return false
     if (filters.from && card.month < filters.from) return false

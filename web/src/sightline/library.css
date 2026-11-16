@@ -88,11 +88,6 @@
   font-size: 0.78rem;
 }
 
-.lib-card .lib-from q {
-  font-style: italic;
-  overflow-wrap: anywhere;
-}
-
 .lib-card .lib-fit.fits {
   color: var(--both);
   font-weight: 600;
@@ -115,7 +110,6 @@
   color: var(--gold);
 }
 
-.lib-open,
 .lib-link,
 .lib-reload {
   padding: 0;
@@ -129,7 +123,6 @@
   cursor: pointer;
 }
 
-.lib-open:hover,
 .lib-link:hover,
 .lib-reload:hover {
   color: var(--text);

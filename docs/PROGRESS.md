@@ -479,3 +479,14 @@ Pat: the Library is a different thing from the Planner's tabs, and its point is 
 - [x] The tray is the plan: its scenarios as cards, A to D, in the Library's header (`LibraryTray.tsx`, `planEntries` in `web/src/lib/library.ts`). The separate tray kept in the browser (`sightline.library.tray`) is no longer read or written
 - [x] The Planner's header: a Library button in place of its tray
 - [ ] Not done: a Library card says "Fits your mission" where the plan column says "Fits, marginal" (the card has no marginal state); the tray's unused styles for its empty state are still in `library.css`; no scene for the Library in `sightline-shots.mjs`; not looked at on a phone
+
+## The Library shows nothing a visitor typed (2026-11-16)
+
+Anyone can save a plan without signing in, and the Library is open to everyone, so a plan's title was public text written by a stranger. No word filter was added: not showing the text is the fix.
+
+- [x] The plans service's list (`GET /api/plans/library`, `web/plans/library.ts`) sends `saved`, `site` and `landing` only. `title` is gone, and so is `plan`: the id is the link that opens a plan's title and note, and those are for whoever was given the link. The note was never sent. Written into `web/plans/API.md`.
+- [x] A card says "Saved 15 Nov 2026" (and "in 3 plans" when several hold the landing) where it said from "<title>" (`LibraryCard.tsx`). "Open plan" is gone from the cards, and the search looks in places' names only. The page keeps only those three fields of whatever a service sends (`loadLibrary`, `web/src/lib/plans.ts`).
+- [x] "Your plans" still shows the visitor's own titles, from what their browser kept (`lib/myPlans.ts`), with "Resume". It no longer lists the places each of them holds: that was read from the public list by plan id.
+- [x] A plan opened by its link shows its title and note as before, as text (`PlanNote.tsx`; nothing in the app renders HTML from a string). The service refuses a title over 80 characters or a note over 400, and a body over 4,000 (`web/plans/handler.ts`, tested in `plans.test.ts`).
+- [x] Checks: `tsc -b`, `vitest run`, and a scene, `library-no-visitor-text` (`web/scripts/sightline-shots.mjs`), at laptop and phone, with a stand-in service that still sends ids, titles and a note: none of it is on the page.
+- [ ] A page loaded before the change needs `plan` and `title` in each entry, so it shows an empty Library until it is reloaded.

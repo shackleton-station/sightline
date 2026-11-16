@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Band, LibraryCard } from '../lib/library'
+import { type Band, type LibraryCard, savedDay } from '../lib/library'
 import { clockTime } from '../lib/sightline'
 import { shortReason } from '../lib/sightlineSky'
 
@@ -50,7 +50,11 @@ interface Props {
   small?: boolean
 }
 
-/** One scenario from the library: the mission dial, where and when, the plan it came from, and how it does against the mission on screen. */
+/**
+ * One scenario from the library: the mission dial, where and when, the day its plan was saved, and
+ * how it does against the mission on screen. Every word on it is Sightline's own: the library is
+ * open to everyone, so a card never shows what a visitor typed (a plan's title or note).
+ */
 export function LibraryCardView({ card, start, children, small = false }: Props) {
   return (
     <article className={`lib-card ${small ? 'small' : ''} ${card.fits === null ? 'unknown' : card.fits ? 'fits' : 'misses'}`} aria-label={`${card.place}, ${landingWords(card, start)}`}>
@@ -59,13 +63,8 @@ export function LibraryCardView({ card, start, children, small = false }: Props)
         <h4>{card.place}</h4>
         <p className="lib-when">{landingWords(card, start)}</p>
         <p className="lib-from">
-          from <q>{card.entry.title}</q>
-          {card.copies > 1 && (
-            <>
-              {' '}
-              and {card.copies - 1} other {card.copies === 2 ? 'plan' : 'plans'}
-            </>
-          )}
+          Saved {savedDay(card.entry.saved)}
+          {card.copies > 1 && <> · in {card.copies} plans</>}
         </p>
         {!small && (
           <>
