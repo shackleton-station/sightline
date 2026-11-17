@@ -528,3 +528,14 @@ Rodrigo, after the event: a first-time visitor is not told that the Moon can be 
 - [ ] Not followed: Scout's tour and its cards (the screens behind it are), Scout's conversation, the mission's limits opened in the column, "Hide all", the Moon as the presenter turned or zoomed it, "Landings that fit" as a layer, place names
 - [ ] "Present" is in Share, which is on the plan: from the opening screen it is "Plan a landing", then Share, then Present
 - [ ] Not from this change: the scene `plan-link` in `sightline-shots.mjs` fails "in Plan at Orbit no marker or name prints over another" at laptop size, the same on `main` before today's changes. Not looked into
+
+## Sign-in with Google, on the front page (2026-11-17)
+
+Optional sign-in existed only in the older pages' share dialog (`components/AccountBox.tsx`). It is now in the Sightline screen's own save-and-share flow, with the same token handling (`lib/account.ts`), the same plans service and the same sign-in client. Nothing in `infra/`, the client or the consent screen changed.
+
+- [x] Share, under "Save with a name": one quiet line, "Sign in to list and delete the plans you save. Optional." Pressing "Sign in" shows Google's own button there, with what is kept and links to Privacy and Terms; Google's script is fetched only then. Signed in, the line says who is signed in and that saved plans are theirs to delete, with "Your plans" and "Sign out" (`ShareSheet.tsx`, `sightline/account.tsx`). A plan saved while signed in carries the proof, so it has an owner
+- [x] The Library's "Your plans" (`MyPlans.tsx`): signed in, the visitor's own plans come from the plans service, newest first, each with Resume and Delete (asked once more: "Delete for good" or "Keep"), then "Show more"; after them the plans this browser saved signed out, with Resume only. Signed out, the list is what this browser kept, as before, and sign-in is offered under it as optional. "Sign out" is beside the heading. A deleted plan is also forgotten by the browser (`forgetPlan`)
+- [x] Everything else works signed out, and where Google's script cannot load one line says so. Where the site has sign-in switched off (`/api/status` has no `signIn`), none of this is drawn
+- [x] Checks: `tsc -b`, `vitest run`, lint; scenes `account-signed-out` and `account-signed-in` in `sightline-shots.mjs` at laptop, small laptop and phone, with the plans service and the site's status stood in for inside the browser and a token made up for the check (it reaches neither Google nor the plans service): the line in Share, a save with and without proof, the list, Delete with "Keep" and "Delete for good", Resume, Sign out
+- [ ] Not checked: a real sign-in with a Google account, which only a person can do (on the live site: Share, "Sign in", Google's button; then save a plan, open the Library, and delete it there)
+- [ ] The older share dialog's list still opens plans on the older page; left as it is

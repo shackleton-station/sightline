@@ -53,3 +53,12 @@ export function rememberPlan(id: string, title: string, now = new Date()): void 
     // A private window may refuse storage: the plan is saved all the same, and its link opens it.
   }
 }
+
+/** Forgets a plan, once its owner has deleted it. Does nothing where the browser refuses storage. */
+export function forgetPlan(id: string): void {
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(myPlans().filter((one) => one.id !== id)))
+  } catch {
+    // Nothing was kept, so there is nothing to forget.
+  }
+}
