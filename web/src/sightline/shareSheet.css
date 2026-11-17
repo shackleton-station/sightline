@@ -196,3 +196,43 @@
   color: var(--soft);
   font-size: 0.75rem;
 }
+
+/* Optional sign-in, under the form that saves: one quiet line; Google's own button when asked for. */
+.sl-share-account {
+  margin: 0.15rem 0 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.sl-share-account[data-signed-in] {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.2rem 0.6rem;
+}
+
+.sl-share-account-acts {
+  display: inline-flex;
+  gap: 0.7rem;
+}
+
+.sl-share-account-means {
+  margin: 0.3rem 0 0;
+}
+
+.sl-share-account a {
+  color: inherit;
+}
+
+/* Google draws its own button, on its own background: the page's dark scheme is kept off it. */
+.sl-google {
+  min-height: 44px;
+  color-scheme: light;
+}
+
+.sl-google-blocked {
+  margin: 0.2rem 0 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+}

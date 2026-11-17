@@ -1409,7 +1409,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             <div className="sl-col-head">
               {/* The undo notice takes the title's place for a few seconds: nothing moves, and nothing is over the Moon. */}
               <h1 className="sl-title">Sightline</h1>
-              <HeaderTools onBrief={() => setBrief(true)} held={tourState?.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} panel={drawer} present={follow.role === 'follower' ? null : { on: presenting, onPress: () => void present() }} />
+              <HeaderTools onBrief={() => setBrief(true)} held={tourState?.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} panel={drawer} present={follow.role === 'follower' ? null : { on: presenting, onPress: () => void present() }} onPlans={openLibrary} />
             </div>
             {/* The scenarios, on a row of their own; the undo notice sits at the row's end for a few seconds, so nothing moves and nothing is over the Moon. */}
             <div className="sl-tabs-row">

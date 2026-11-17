@@ -12,6 +12,8 @@ interface Props {
   panel?: string | null
   /** "Present": others' screens follow this one. Whether this tab is presenting, and the press that starts it or shows its code again; null where it is not offered (a tab that is following). */
   present?: { on: boolean; onPress: () => void } | null
+  /** Open "Your plans" in the Library, offered in the sheet to a signed-in visitor; null where there is no way there. */
+  onPlans?: (() => void) | null
 }
 
 /**
@@ -19,7 +21,7 @@ interface Props {
  * small sheet (ShareSheet): copy the link for what is on screen, save it with a name, read the
  * written brief for the scenario on show, or present the screen to a room that follows it.
  */
-export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = null, present = null }: Props) {
+export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = null, present = null, onPlans = null }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const box = useRef<HTMLSpanElement>(null)
@@ -89,6 +91,13 @@ export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = n
                 present.onPress()
               },
             }
+          }
+          onPlans={
+            onPlans &&
+            (() => {
+              setOpen(false)
+              onPlans()
+            })
           }
           view={() => withPanel(window.location.hash, panel)}
         />

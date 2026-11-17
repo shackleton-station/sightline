@@ -13,6 +13,7 @@
 //   node scripts/sightline-shots.mjs --poster=poster.png         a picture of the Moon as the page first shows it
 //   node scripts/sightline-shots.mjs --base=https://lunarsightline.com   against a site already running
 //   node scripts/sightline-shots.mjs --ask --only=scout-reply    also ask Scout one real question (calls the model)
+//   node scripts/sightline-shots.mjs --live --only=account-live --base=https://lunarsightline.com   sign-in as the live site offers it (nobody signs in)
 //
 // Without --ask no question reaches the chat, on a laptop or against a live site: whatever a page
 // sends to /api/chat or /api/ask is answered inside the browser with a stand-in reply. The chat
@@ -40,7 +41,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['library-resume', 'gestures', 'gestures-zoom', 'gestures-tour', 'why-hard', 'mission-fits', 'two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'tour-welcome', 'watch-scout-long', 'heights', 'heights-link', 'place-names', 'planner-moon', 'planner-find', 'planner-find-more', 'planner-compare', 'planner-compare-detail', 'planner-narrow-find', 'planner-narrow-compare', 'rows-panels', 'limit-means', 'guide-limits', 'guide-numbers', 'front-scale', 'plan-link', 'accuracy', 'plan-open', 'plan-open-planner', 'plan-kinds', 'plan-gone', 'share-sheet', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly', 'surface-bar', 'surface-own-point', 'skyline-link', 'skyline-link-old', 'time-bar-one-span', 'add-says-what', 'view-switch'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['library-resume', 'account-live', 'account-signed-out', 'account-signed-in', 'gestures', 'gestures-zoom', 'gestures-tour', 'why-hard', 'mission-fits', 'two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'tour-welcome', 'watch-scout-long', 'heights', 'heights-link', 'place-names', 'planner-moon', 'planner-find', 'planner-find-more', 'planner-compare', 'planner-compare-detail', 'planner-narrow-find', 'planner-narrow-compare', 'rows-panels', 'limit-means', 'guide-limits', 'guide-numbers', 'front-scale', 'plan-link', 'accuracy', 'plan-open', 'plan-open-planner', 'plan-kinds', 'plan-gone', 'share-sheet', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly', 'surface-bar', 'surface-own-point', 'skyline-link', 'skyline-link-old', 'time-bar-one-span', 'add-says-what', 'view-switch'] },
   // A window with little room, as a tablet held sideways or a narrow laptop window has: the Planner's two tabs with Scout's panel open beside them.
   { name: 'narrow-laptop', width: 1024, height: 768, scale: 1, mobile: false, onlyScenes: ['planner-narrow-find', 'planner-narrow-compare', 'planner-find', 'planner-compare'] },
 ]
@@ -564,6 +565,99 @@ const MAIN_STEP = (i, pressed = false) => {
 const GESTURES_LINE = `(() => { const hint = document.querySelector('.sl-gestures'); if (!hint) return 'no line'; const words = hint.textContent.trim(); const finger = matchMedia('(pointer: coarse)').matches; if (words !== (finger ? 'Drag to turn · Pinch to zoom · Tap the Moon to check any point' : 'Drag to turn · Scroll to zoom · Click the Moon to check any point')) return words; const range = document.createRange(); range.selectNodeContents(hint); const box = range.getBoundingClientRect(); if (box.left < 0 || box.top < 0 || box.right > innerWidth || box.bottom > innerHeight) return 'outside the window'; if (innerWidth >= 761 && box.height > 22) return 'on ' + Math.round(box.height / 16) + ' lines'; const globe = document.querySelector('.scout-globe'); const g = globe.getBoundingClientRect(); const r = Number(globe.dataset.discPx) / 2; const cx = (g.left + g.right) / 2; const cy = (g.top + g.bottom) / 2; if (Math.hypot(Math.min(Math.max(cx, box.left), box.right) - cx, Math.min(Math.max(cy, box.top), box.bottom) - cy) < r) return 'over the Moon'; const over = [...document.querySelectorAll('.sl-pill, .sl-brand, .sl-top, .sl-scout, .sl-card, .sl-watch-key, .sl-tour-chip, .sl-view-tools button, .sl-tour')].find((el) => { const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0 && !(box.bottom <= b.top || box.top >= b.bottom || box.right <= b.left || box.left >= b.right) }); if (over) return 'over ' + over.className; const style = getComputedStyle(hint); return (style.pointerEvents === 'none' && parseFloat(style.fontSize) >= 12 && parseFloat(style.fontSize) <= 13) || 'its style' })()`
 /** Whether the line is gone, and this browser has kept that it is. */
 const GESTURES_LEARNED = `(document.querySelector('.sl-gestures') === null && localStorage.getItem('sightline.gesturesKnown') === '1') || 'line ' + (document.querySelector('.sl-gestures') ? 'still there' : 'gone') + ', kept ' + localStorage.getItem('sightline.gesturesKnown')`
+/**
+ * Optional sign-in with Google, standing in before the page's own code runs. Nothing here reaches
+ * Google or the plans service: the site's status says sign-in is on (a made-up client id), and the
+ * plans service is answered in the browser. With `signedIn` the tab holds a token made up for this
+ * check (unsigned, for a visitor called Tester): the page only reads its name and expiry, and the
+ * stand-in only looks at whether a request carries it. The signed-in visitor owns two plans; the
+ * browser also remembers one saved without an owner. Every request to the plans service is noted
+ * in window.__account.calls, with whether it carried the token.
+ */
+const TEST_TOKEN = `${Buffer.from('{"alg":"none"}').toString('base64url')}.${Buffer.from(JSON.stringify({ given_name: 'Tester', exp: 4102444800 })).toString('base64url')}.made-up-for-the-check`
+const STAND_IN_ACCOUNT = (signedIn) => `(() => {
+  if (window.__account) return true
+  try { if (${signedIn} && sessionStorage.getItem('clps.account.checked') === null) { sessionStorage.setItem('clps.account', ${JSON.stringify(TEST_TOKEN)}); sessionStorage.setItem('clps.account.checked', '1') } } catch {}
+  try { if (localStorage.getItem('sightline.myPlans') === null) localStorage.setItem('sightline.myPlans', JSON.stringify([{ id: 'abcd2345', title: 'My own ridge plan', saved: '2026-11-14T09:00:00.000Z' }])) } catch {}
+  const view = '#a=shackleton-rim@2027-06&t=22&limits=14_24_24_1_1&mode=plan&sl=1'
+  window.__account = { calls: [], mine: [{ id: 'qrst2345', title: 'Shackleton Rim in June', created: '2026-11-16T10:00:00.000Z', expires: '2027-05-15T10:00:00.000Z' }, { id: 'uvwx6789', title: 'Ridge, short stay', created: '2026-11-15T08:00:00.000Z', expires: '2027-05-14T08:00:00.000Z' }] }
+  const real = window.fetch
+  const answer = (body, status) => new Response(body === null ? null : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+  window.fetch = async (url, init) => {
+    const at = new URL(String(url), location.href)
+    const method = init?.method ?? 'GET'
+    const proof = Object.entries(init?.headers ?? {}).some(([name, value]) => name.toLowerCase() === 'authorization' && value === 'Bearer ' + ${JSON.stringify(TEST_TOKEN)})
+    if (at.pathname === '/api/status') { const status = await (await real(url, init)).json().catch(() => ({})); return answer({ ...status, signIn: 'made-up-for-the-check.apps.googleusercontent.com' }, 200) }
+    if (!at.pathname.startsWith('/api/plans')) return real(url, init)
+    window.__account.calls.push({ method, path: at.pathname, proof })
+    if (at.pathname === '/api/plans/library') return answer({ scenarios: [] }, 200)
+    if (at.pathname === '/api/plans' && method === 'GET') return proof ? answer({ plans: window.__account.mine, next: null }, 200) : answer({ error: 'sign-in' }, 401)
+    if (at.pathname === '/api/plans' && method === 'POST') { const plan = JSON.parse(init.body); if (proof) window.__account.mine.unshift({ id: 'savd2345', title: plan.title, created: '2026-11-17T12:00:00.000Z', expires: '2027-05-16T12:00:00.000Z' }); return answer({ id: 'savd2345' }, 201) }
+    const id = at.pathname.split('/').pop()
+    if (method === 'DELETE') { if (!proof) return answer({ error: 'sign-in' }, 401); window.__account.mine = window.__account.mine.filter((plan) => plan.id !== id); return answer(null, 204) }
+    const plan = window.__account.mine.find((one) => one.id === id)
+    return plan ? answer({ plan: { ...plan, note: '', view }, mine: proof }, 200) : answer({ error: 'not-found' }, 404)
+  }
+  return true
+})()`
+/** The Share sheet's line about signing in, as text; and the sheet opened from its icon. */
+const ACCOUNT_LINE = `(document.querySelector('.sl-share-sheet .sl-share-account')?.textContent.replace(/\\s+/g, ' ').trim() ?? 'no line')`
+const OPEN_SHARE = `(document.querySelector('.sl-share-sheet') !== null || (document.querySelector('.sl-icon[aria-label="Share"]').click(), true))`
+/** The lines of "Your plans" in the Library, as text, one a plan, with its buttons' words. */
+const MY_PLANS = `[...document.querySelectorAll('.lib-mine li')].map((line) => line.textContent.replace(/\\s+/g, ' ').trim()).join(' | ')`
+/** Types a name into the Share sheet's form and saves it. */
+const SAVE_AS = (name) => `(() => { const input = document.querySelector('.sl-share-save input[name="plan-name"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(name)}); input.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('.sl-share-save button[type="submit"]').click(); return true })()`
+/** The scenes about optional sign-in with Google on the Sightline screen: signed out, and signed in (list, open, delete, sign out). */
+function accountScenes() {
+  const plan = '#a=connecting-ridge@2027-05&t=133&limits=14_24_24_1_1&mode=plan'
+  const calls = (method, path) => `window.__account.calls.filter((call) => call.method === '${method}' && ${path})`
+  return [
+    {
+      // Signed out, with Google's script unreachable: sign-in is offered and never needed.
+      name: 'account-signed-out',
+      hash: plan,
+      beforeLoad: STAND_IN_ACCOUNT(false),
+      block: 'accounts.google.com',
+      checks: [
+        ['Share has one quiet line under the save form: "Sign in to list and delete the plans you save. Optional."; no Google script has been asked for', `${OPEN_SHARE} && ${after(700, `(${ACCOUNT_LINE} === 'Sign in to list and delete the plans you save. Optional.' && document.querySelector('script[src*="accounts.google.com"]') === null && parseFloat(getComputedStyle(document.querySelector('.sl-share-account')).fontSize) === 12) || ${ACCOUNT_LINE}`)}`],
+        ['"Sign in" shows where Google\'s own button goes, what is kept, and links to Privacy and Terms; where Google cannot be reached one line says so; the sheet stays inside the window and, on a laptop, inside the plan\'s column', `(document.querySelector('.sl-share-account button').click(), true) && ${after(2500, `(() => { const box = document.querySelector('.sl-share-sheet .sl-share-account'); const links = [...box.querySelectorAll('a')].map((a) => a.getAttribute('href')).join(); const sheet = document.querySelector('.sl-share-sheet').getBoundingClientRect(); const column = document.querySelector('.sl-col').getBoundingClientRect(); const inside = sheet.top >= 0 && sheet.bottom <= innerHeight + 1 && sheet.left >= 0 && sheet.right <= innerWidth && (innerWidth < 761 || sheet.right <= column.right + 1); return (box.querySelector('.sl-google') !== null && /Google’s sign-in could not load here\\. Everything else works without it\\./.test(box.textContent) && /We keep no name or email/.test(box.textContent) && links === '/privacy/,/terms/' && inside) || box.textContent + ' // ' + links + ' // inside ' + inside })()`)}`],
+        ['a plan is saved all the same, with no proof of who saved it', `${SAVE_AS('Signed-out plan')} && ${after(2500, `(() => { const saves = ${calls('POST', "call.path === '/api/plans'")}; return (saves.length === 1 && saves[0].proof === false && /Saved/.test(document.querySelector('.sl-share-saved')?.textContent ?? '')) || JSON.stringify(window.__account.calls) })()`)}`],
+        ['in the Library, "Your plans" lists what this browser saved, each with Resume and none with Delete; under it sign-in is offered, as optional; the service was not asked for a list', `(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(2500, `(() => { const mine = ${MY_PLANS}; const offer = document.querySelector('.lib-account')?.textContent.replace(/\\s+/g, ' ').trim() ?? ''; return (/^Signed-out plan ?Saved \\d+ Nov 2026 ?Resume \\| My own ridge plan ?Saved 14 Nov 2026 ?Resume$/.test(mine) && /^Optional: sign in with Google to list the plans you save on any device, and to delete them\\./.test(offer) && document.querySelector('.lib-mine-who') === null && ${calls('GET', "call.path === '/api/plans'")}.length === 0) || mine + ' // ' + offer })()`)})`],
+        ['the Library is no wider than the window', `(() => { const page = document.querySelector('.lib-page'); return page.scrollWidth <= page.clientWidth + 1 || page.scrollWidth + ' in ' + page.clientWidth })()`],
+      ],
+    },
+    {
+      // The site as it is, with nothing stood in for (run with --live, against a site that has sign-in on):
+      // the line is offered from the site's own status, and Google's own button arrives when asked for.
+      // Nobody signs in: that takes a person and their Google account.
+      name: 'account-live',
+      needs: 'live',
+      hash: plan,
+      checks: [
+        ['Share offers sign-in, as optional, from the site\'s own status', `${OPEN_SHARE} && ${after(1500, `(${ACCOUNT_LINE} === 'Sign in to list and delete the plans you save. Optional.') || ${ACCOUNT_LINE}`)}`],
+        ['"Sign in" brings Google\'s own button into the sheet, which stays inside the window', `(document.querySelector('.sl-share-account button').click(), true) && ${after(5000, `(() => { const box = document.querySelector('.sl-share-sheet .sl-google'); const sheet = document.querySelector('.sl-share-sheet').getBoundingClientRect(); const button = box?.querySelector('iframe, [role="button"]'); return (Boolean(button) && button.getBoundingClientRect().height >= 30 && document.querySelector('script[src^="https://accounts.google.com/"]') !== null && document.querySelector('.sl-google-blocked') === null && sheet.bottom <= innerHeight + 1 && sheet.right <= innerWidth) || 'no button from Google: ' + (box?.innerHTML.slice(0, 160) ?? 'no place for it') })()`)}`],
+        ['nobody is signed in, and the Library\'s "Your plans" offers sign-in under its list', `(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(4000, `(sessionStorage.getItem('clps.account') === null && document.querySelector('.lib-mine-who') === null && /^Optional: sign in with Google/.test(document.querySelector('.lib-account')?.textContent.trim() ?? '') && document.querySelector('.lib-account .sl-google :is(iframe, [role="button"])') !== null) || (document.querySelector('.lib-account')?.textContent ?? 'no offer')`)})`],
+      ],
+    },
+    {
+      // Signed in (a token made up for the check): the plans the visitor owns, opened, deleted, and signing out.
+      name: 'account-signed-in',
+      hash: plan,
+      beforeLoad: STAND_IN_ACCOUNT(true),
+      block: 'accounts.google.com',
+      checks: [
+        ['Share says who is signed in and that saved plans are theirs to delete, with "Your plans" and "Sign out"', `${OPEN_SHARE} && ${after(700, `(${ACCOUNT_LINE} === 'Signed in as Tester: plans you save are yours to delete.Your plansSign out') || ${ACCOUNT_LINE}`)}`],
+        ['a plan saved now carries the proof of who saved it', `${SAVE_AS('Signed-in plan')} && ${after(2500, `(() => { const saves = ${calls('POST', "call.path === '/api/plans'")}; return (saves.length === 1 && saves[0].proof === true) || JSON.stringify(window.__account.calls) })()`)}`],
+        ['"Your plans" in the Library lists the visitor\'s own plans from the service, newest first, each with Delete and Resume, then the one this browser saved signed out, with Resume only; it says who is signed in', `(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(2500, `(() => { const mine = ${MY_PLANS}; const who = document.querySelector('.lib-mine-who')?.textContent.replace(/\\s+/g, ' ').trim(); return (mine === 'Signed-in planSaved 17 Nov 2026DeleteResume | Shackleton Rim in JuneSaved 16 Nov 2026DeleteResume | Ridge, short staySaved 15 Nov 2026DeleteResume | My own ridge planSaved 14 Nov 2026 · from this browser, signed outResume' && who === 'Signed in as TesterSign out' && document.querySelector('.lib-account') === null) || mine + ' // ' + who })()`)})`],
+        ['Delete asks once more, and "Keep" leaves the plan', `(async () => { const wait = (ms) => new Promise((done) => setTimeout(done, ms)); const line = () => [...document.querySelectorAll('.lib-mine li')].find((one) => /Ridge, short stay/.test(one.textContent)); line().querySelector('button[aria-label="Delete the plan Ridge, short stay"]').click(); await wait(300); const asked = [...line().querySelectorAll('button')].map((button) => button.textContent.trim()).join('|'); [...line().querySelectorAll('button')].find((button) => button.textContent.trim() === 'Keep').click(); await wait(300); return (asked === 'Delete for good|Keep' && /DeleteResume$/.test(line().textContent.replace(/\\s+/g, '')) && ${calls('DELETE', 'true')}.length === 0) || asked })()`],
+        ['"Delete for good" deletes it with the proof, and the line goes', `(async () => { const wait = (ms) => new Promise((done) => setTimeout(done, ms)); const line = () => [...document.querySelectorAll('.lib-mine li')].find((one) => /Ridge, short stay/.test(one.textContent)); line().querySelector('button[aria-label="Delete the plan Ridge, short stay"]').click(); await wait(300); [...line().querySelectorAll('button')].find((button) => button.textContent.trim() === 'Delete for good').click(); await wait(800); const deletes = ${calls('DELETE', 'true')}; return (line() === undefined && deletes.length === 1 && deletes[0].path === '/api/plans/uvwx6789' && deletes[0].proof === true && document.querySelectorAll('.lib-mine li').length === 3) || JSON.stringify(deletes) })()`],
+        ['on a phone and a laptop alike the list is no wider than the window, and its buttons are big enough to press', `(() => { const page = document.querySelector('.lib-page'); const small = [...document.querySelectorAll('.lib-mine li button')].filter((button) => button.getBoundingClientRect().height < 22); return (page.scrollWidth <= page.clientWidth + 1 && small.length === 0) || page.scrollWidth + ' in ' + page.clientWidth + ', ' + small.length + ' small buttons' })()`],
+        ['Resume opens one of them: the plan it holds is on the screen, Shackleton Rim on 1 June 2027', `([...document.querySelectorAll('.lib-mine li')].find((one) => /Shackleton Rim in June/.test(one.textContent)).querySelector('.lib-resume').click(), true) && ${after(3500, `(document.querySelector('.sl-full') === null && document.querySelector('#sl-site').value === 'shackleton-rim' && ${LANDING} === '1 June 2027 · 22:00 UTC') || document.querySelector('#sl-site')?.value + ' ' + ${LANDING}`)}`],
+        ['"Sign out", in the Library, takes the service\'s list away, leaves what this browser saved (with Resume, without Delete) and offers sign-in again; the tab keeps no token', `Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(2000, `(document.querySelector('.lib-mine-who button').click(), true)`)}).then(() => ${after(800, `(() => { const mine = ${MY_PLANS}; return (mine === 'Signed-in planSaved 17 Nov 2026Resume | My own ridge planSaved 14 Nov 2026Resume' && document.querySelector('.lib-account') !== null && document.querySelector('.lib-mine-who') === null && sessionStorage.getItem('clps.account') === null) || mine + ' // ' + sessionStorage.getItem('clps.account') })()`)})`],
+      ],
+    },
+  ]
+}
 /** The scenes about how the Moon is moved: the line on the opening screen, each of the three ways it goes for good, and the tour's step that has the Moon show a turn and a zoom. */
 function gestureScenes() {
   const at = MAIN.steps.findIndex((step) => step.id === 'gestures')
@@ -3163,6 +3257,7 @@ const SCENES = [
   },
   ...tourScenes(),
   ...gestureScenes(),
+  ...accountScenes(),
   ...guideScenes(),
 ]
 

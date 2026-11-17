@@ -102,6 +102,8 @@ declare global {
 }
 
 let script: Promise<GoogleId | null> | null = null
+/** The client id Google's script has been set up with on this page; null until it has. */
+let initializedFor: string | null = null
 
 /** Loads Google's sign-in script, only when someone is about to be offered the button. */
 function googleId(): Promise<GoogleId | null> {
@@ -120,7 +122,11 @@ function googleId(): Promise<GoogleId | null> {
 export async function showGoogleButton(parent: HTMLElement, clientId: string): Promise<boolean> {
   const google = await googleId()
   if (!google) return false
-  google.initialize({ client_id: clientId, callback: (response) => void (response.credential && signIn(response.credential)), use_fedcm_for_button: true })
+  // Once a page: the button may be offered in more than one place, and Google's script wants one setup.
+  if (initializedFor !== clientId) {
+    google.initialize({ client_id: clientId, callback: (response) => void (response.credential && signIn(response.credential)), use_fedcm_for_button: true })
+    initializedFor = clientId
+  }
   google.renderButton(parent, { type: 'standard', theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with' })
   return true
 }

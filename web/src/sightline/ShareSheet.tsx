@@ -1,10 +1,12 @@
 import { type FormEvent, type KeyboardEvent, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { currentAccount, signOut } from '../lib/account'
 import { copyWhenKnown } from '../lib/copyText'
 import { planLink } from '../lib/planLink'
 import { rememberPlan } from '../lib/myPlans'
 import { markSightline } from '../lib/planView'
 import { attemptFor, MAX_NOTE, MAX_TITLE, type SaveAttempt, savePlan } from '../lib/plans'
+import { GoogleSignIn, SignInMeans, useAccount } from './account'
 import './shareSheet.css'
 
 interface Props {
@@ -20,6 +22,8 @@ interface Props {
   view: () => string
   /** "Present": start a room whose screens follow this one, or show its code again; null where it is not offered. */
   present?: { on: boolean; onPress: () => void } | null
+  /** Open "Your plans" in the Library, for a signed-in visitor; null where there is no way there (the Planner's own header). */
+  onPlans?: (() => void) | null
 }
 
 /** Under this width the window is a phone's: the sheet spans it. */
@@ -48,7 +52,9 @@ function saveFailure(status: number | undefined): string {
  * 1. "Copy link", first and already in focus: one press copies the link for what is on screen and
  *    closes the sheet, as Share always did. It needs no service, so it works when saving does not.
  * 2. "Save with a name": a name and an optional note, kept by the plans service for 180 days under
- *    a short link that opens with them on show. No sign-in is needed.
+ *    a short link that opens with them on show. No sign-in is needed. Under the form, where the
+ *    site has it, one line offers sign-in with Google: a plan saved while signed in has an owner,
+ *    who finds it under "Your plans" in the Library and can delete it there.
  * 3. "Brief": the written brief for the scenario on show.
  * 4. "Present": others open a link or scan a code, and their screens follow this one (Follow.tsx).
  *
@@ -66,7 +72,7 @@ function saveFailure(status: number | undefined): string {
  * the Moon; across the window on a phone, above the icon when there is no room below. The keyboard
  * stays inside it while it is open, and goes back to the icon when it closes.
  */
-export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, view, present = null }: Props) {
+export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, view, present = null, onPlans = null }: Props) {
   const sheet = useRef<HTMLDivElement>(null)
   const first = useRef<HTMLButtonElement>(null)
   // Where the sheet would have been, in the page: its icon is beside it.
@@ -77,6 +83,10 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
   const [state, setState] = useState<{ kind: 'idle' } | { kind: 'saving' } | { kind: 'saved'; link: string; copied: boolean } | { kind: 'failed'; message: string }>({ kind: 'idle' })
   // The saved link's own button was pressed: it says so.
   const [copied, setCopied] = useState(false)
+  // Optional sign-in with Google: a plan saved while signed in has an owner, who can list and delete it.
+  const account = useAccount()
+  /** "Sign in" was pressed: Google's own button is on show under the line. */
+  const [signing, setSigning] = useState(false)
   // Pressing Save again after a failure, with nothing changed, is the same attempt: the service then saves it once.
   const attempt = useRef<SaveAttempt | null>(null)
 
@@ -120,7 +130,13 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
     }
     place()
     window.addEventListener('resize', place)
-    return () => window.removeEventListener('resize', place)
+    // Google's button arrives a moment after it is asked for, and makes the sheet taller.
+    const watcher = new ResizeObserver(place)
+    if (sheet.current) watcher.observe(sheet.current)
+    return () => {
+      window.removeEventListener('resize', place)
+      watcher.disconnect()
+    }
   }, [state.kind])
 
   /** Tab goes round inside the sheet while it is open. */
@@ -144,7 +160,7 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
     if (name === '' || state.kind === 'saving') return
     // The stored view says it was saved from this screen, so its short link opens here wherever it is opened.
     const plan = { title: name, note: note.replace(/\s+/g, ' ').trim(), view: markSightline(view()) }
-    attempt.current = attemptFor(attempt.current, plan, false)
+    attempt.current = attemptFor(attempt.current, plan, currentAccount() !== null)
     setState({ kind: 'saving' })
     const saving = savePlan(plan, attempt.current.key)
     // The copy is asked for now, while this press still counts, with the link as a promise: the browser waits for the save.
@@ -227,6 +243,37 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
                     {state.message}
                   </p>
                 )}
+                {/* Optional sign-in, where the plan is saved: drawn only where the site has it switched on. */}
+                {account.clientId &&
+                  (account.signedIn ? (
+                    <p className="sl-share-account" data-signed-in="true">
+                      <span>Signed in{account.name ? ` as ${account.name}` : ''}: plans you save are yours to delete.</span>
+                      <span className="sl-share-account-acts">
+                        {onPlans && (
+                          <button type="button" className="sl-link" title="Opens the Library at your plans: each can be opened again or deleted." onClick={onPlans}>
+                            Your plans
+                          </button>
+                        )}
+                        <button type="button" className="sl-link" title="Signs this tab out. Your saved plans stay saved, and their links still open them." onClick={signOut}>
+                          Sign out
+                        </button>
+                      </span>
+                    </p>
+                  ) : signing ? (
+                    <div className="sl-share-account">
+                      <GoogleSignIn clientId={account.clientId} />
+                      <p className="sl-share-account-means">
+                        <SignInMeans />
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="sl-share-account">
+                      <button type="button" className="sl-link" title="Shows Google’s sign-in button. Signing in is optional: a plan saved while signed in is yours to list and delete." onClick={() => setSigning(true)}>
+                        Sign in
+                      </button>{' '}
+                      to list and delete the plans you save. Optional.
+                    </p>
+                  ))}
               </form>
             </>
           )}
