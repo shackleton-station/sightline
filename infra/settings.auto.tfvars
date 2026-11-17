@@ -38,20 +38,20 @@ github_repositories = [
   { name = "shackleton-station/sightline", id = "1457831519" },
 ]
 
-# Hackathon settings (Rodrigo, 2026-11-13). Two warm
-# copies of each visitor-facing service, so no visitor waits for a cold start and losing one copy loses
-# nothing; up to ten each for a spike; one vCPU and 1 GiB each, with CPU kept on between requests.
-# At list price about $10.40 a day for the six warm copies (instance-based billing), against about $1 a
-# day for three throttled ones. 0, 3, "512Mi" and false are the cheap defaults.
-min_instances         = 2
-plans_min_instances   = 2
-copilot_min_instances = 2
-max_instances         = 10
-plans_max_instances   = 10
-copilot_max_instances = 10
+# After the event (Rodrigo, 2026-11-17): one warm copy of each visitor-facing service, so no visitor
+# waits for a cold start; at most three each; one vCPU and 1 GiB each, with CPU only while a request is
+# being answered. At list price about $1.30 a day for the three warm copies (request-based billing).
+# During the event (2026-11-13 to 2026-11-17) these were 2, 2, 2, 10, 10, 10 and CPU always on, about
+# $10.40 a day: docs/DEPLOY.md, "Settings after the event". 0, 3, "512Mi" and false are the defaults.
+min_instances         = 1
+plans_min_instances   = 1
+copilot_min_instances = 1
+max_instances         = 3
+plans_max_instances   = 3
+copilot_max_instances = 3
 service_cpu           = "1"
 service_memory        = "1Gi"
-service_cpu_always_on = true
+service_cpu_always_on = false
 
 # The co-pilot's question ceilings for the event: a whole room shares one address at the venue, so the
 # per-visitor numbers are a room's. Together at most about $113.00 a day of Anthropic credits
@@ -122,14 +122,15 @@ trek_route = true
 # copilot_fault_delay_seconds = 8
 # copilot_model_faults        = "503@100"
 
-# Redis on the Standard tier with a read replica, kept on (Rodrigo, 2026-11-13: hackathon settings). A zone
-# failure or maintenance costs about 12 s of reconnecting instead of losing every limit, kept answer and
-# room (the Phase 4 failover drill, docs/ARCHITECTURE_PHASE_4.md, section 9), and kept answers are read
-# from the replica. 5 GB is the smallest size that allows read replicas. About $0.27 an hour at list
-# price, $5.30 a day more than Basic 1 GB.
-redis_tier          = "STANDARD_HA"
-redis_memory_gb     = 5
-redis_read_replicas = true
+# Redis back on the Basic tier, 1 GB, no read replica (Rodrigo, 2026-11-17: after the event). These are
+# the defaults, written out so the next change is one line. A zone failure or maintenance now loses the
+# limits, kept answers and rooms until the instance is back, and the services fall back to memory
+# meanwhile. During the event it was STANDARD_HA, 5 GB, with a read replica: about $0.27 an hour at list
+# price, $5.30 a day more than this. Changing the tier replaces the instance (name the old one in
+# infra/expected-removals.txt): docs/ARCHITECTURE_PHASE_4.md.
+redis_tier          = "BASIC"
+redis_memory_gb     = 1
+redis_read_replicas = false
 
 # Phase 8, a second region (docs/ARCHITECTURE_PHASE_8.md, section 4), for Friday 2026-11-13 only. Each step
 # takes the "# " off its lines. Switching off puts it back on the last three lines (section 8); the first
