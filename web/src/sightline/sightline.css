@@ -24,6 +24,35 @@
 
 /* Watch: the stage alone. Plan: a frame round it. Column | stage | rail, and under the stage the
    skyline and the river. Nothing in the frame lies over the Moon. */
+/* Presenting or following: one line across the top of the window (Follow.tsx's own, as on the older
+   pages). The screen starts under it, so the line is over nothing: not the Moon, not the plan's
+   column. Its height is measured (`--sl-bar`), since its words can take two lines on a phone; the
+   sheets fixed to the window's top start under it too. */
+.sl-follow-top {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 50;
+}
+
+.sl-follow-top .follow-bar {
+  border-top: 0;
+  border-bottom: 1px solid #1f3a30;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.scout.sightline.has-follow-bar {
+  top: var(--sl-bar, 0px);
+}
+
+/* The presenter's panel keeps its own look (follow.css); its main button takes this screen's gold. */
+.sightline .follow-panel .primary {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1405;
+}
+
 .scout.sightline {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -80,7 +109,7 @@
 
   .sl-scout.is-open .sl-card {
     position: fixed;
-    top: 0;
+    top: var(--sl-bar, 0px);
     right: 0;
     bottom: 0;
     z-index: 5;
@@ -529,6 +558,8 @@
     bottom: calc(var(--sl-edge-bottom) + 8.2rem);
     width: calc(100% - 2rem);
     white-space: normal;
+    /* Where it takes two lines, they are of a length: no word left alone on the second. */
+    text-wrap: balance;
   }
 }
 
@@ -2836,7 +2867,7 @@ button.sl-moment-heights[aria-expanded='true'] {
   /* On a phone Scout's panel is a full sheet; the input stays at its foot, above the keyboard where the browser allows. */
   .sl-drawer.sl-scout-panel {
     width: auto;
-    height: 100dvh;
+    height: calc(100dvh - var(--sl-bar, 0px));
   }
 
   /* On a phone a row that has a date is named by its letter and that date; one without is named by its site. */
@@ -2861,7 +2892,7 @@ button.sl-moment-heights[aria-expanded='true'] {
   /* A drawer opens as a full sheet. */
   .sl-drawer {
     position: fixed;
-    inset: 0;
+    inset: var(--sl-bar, 0px) 0 0;
     z-index: 20;
     width: auto;
     padding: 1rem var(--sl-edge-right) 1.2rem var(--sl-edge);
@@ -3053,7 +3084,7 @@ button.sl-moment-heights[aria-expanded='true'] {
 /* ---------- How it works, as a sheet over the scene ---------- */
 .sl-how {
   position: fixed;
-  inset: 0;
+  inset: var(--sl-bar, 0px) 0 0;
   z-index: 40;
   overflow-y: auto;
   background: var(--panel-bottom, #0f0d14);
@@ -3411,7 +3442,7 @@ button.sl-moment-heights[aria-expanded='true'] {
   /* On a phone the Planner is one column that scrolls, and the small Moon is smaller. */
   .scout.sightline.is-plan.is-full {
     display: block;
-    height: 100dvh;
+    height: calc(100dvh - var(--sl-bar, 0px));
     overflow-y: auto;
   }
 

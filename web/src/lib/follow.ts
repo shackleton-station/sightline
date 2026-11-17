@@ -1,4 +1,3 @@
-import { OLD_HOME } from './siteTabs'
 import { SITE_PATHS } from './siteTabs'
 
 /**
@@ -56,7 +55,10 @@ export function roomFrom(search: string): string | null {
   return room !== null && ROOM_ID.test(room) ? room : null
 }
 
-/** The link an audience opens to follow a room. */
+/**
+ * The link an audience opens to follow a room: the site's front page, which is the shortest address
+ * to read out or type. From there a follower's page goes to wherever the presenter is.
+ */
 export function followLink(origin: string, room: string): string {
-  return `${origin}${OLD_HOME}?${FOLLOW_PARAM}=${room}`
+  return `${origin}/?${FOLLOW_PARAM}=${room}`
 }

@@ -37,7 +37,7 @@ describe('the address a presenter shares', () => {
   })
 
   it('reads the room from a link, and only a well-formed one', () => {
-    expect(followLink('https://lunarsightline.com', 'abc234')).toBe('https://lunarsightline.com/classic/?follow=abc234')
+    expect(followLink('https://lunarsightline.com', 'abc234')).toBe('https://lunarsightline.com/?follow=abc234')
     expect(roomFrom('?follow=abc234')).toBe('abc234')
     expect(roomFrom('?ui=next&follow=abc234')).toBe('abc234')
     for (const search of ['', '?follow=', '?follow=ABC234', '?follow=abc23', '?follow=abc2345', '?follow=abc10l', '?follow=../x']) expect(roomFrom(search), search).toBeNull()

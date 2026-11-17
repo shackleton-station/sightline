@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type CSSProperties, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DataRange, SiteInfo } from '../data/contract'
 import { customSiteInfo, isCustomSite } from '../data/customSite'
 import type { ScenarioData } from '../data/scenarioData'
@@ -73,6 +73,10 @@ import { SavedBrief, SavedPlanCard } from './PlanNote'
 import { planTabTitle } from '../lib/planLink'
 import { usePlanLink } from './usePlanLink'
 import { HypeDrawer } from './HypeDrawer'
+import { FollowBanner, PresentPanel } from '../components/Follow'
+import { useFollow } from '../components/useFollow'
+import { followStore, startPresenting } from '../lib/followClient'
+import { isWatchHash, presenterHash, readFollowed, shouldSetHour } from '../lib/followView'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
 import { TourWelcome, type WelcomePlace } from './TourWelcome'
@@ -93,7 +97,7 @@ import { DEFAULT_SPREAD, oddsWords, readSpreadLink, type Spread, spreadLink, spr
 import { defaultScenarios } from '../lib/defaultPair'
 import { NEARBY_PAIR, nearbyPairKm } from '../lib/nearbyPair'
 import { CompareDrawer } from './CompareDrawer'
-import { nowIso, useClock, useCompact, useIdle, useStored, useYearPositions } from './hooks'
+import { nowIso, useClock, useCompact, useIdle, useSlowed, useStored, useYearPositions } from './hooks'
 import { useLightGrid } from '../atlas/useLightGrid'
 import { cellAt, upSeries } from '../lib/lightGrid'
 import { useFinePhoto } from '../data/finePhoto'
@@ -213,8 +217,8 @@ interface Props {
  * its own address, the site with "?new-planner" before any "#", which nothing in the app links to.
  */
 const NEW_PLANNER_LINK = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('new-planner')
-/** The page was opened at its front, with nothing carried by the link: no plan, panel or page after the "#", not the demo's page, not the New Planner. */
-const FRONT_PAGE_LINK = typeof window !== 'undefined' && window.location.hash.replace(/^#/, '') === '' && !NEW_PLANNER_LINK && !/\/demo\//.test(window.location.pathname)
+/** The page was opened at its front, with nothing carried by the link: no plan, panel or page after the "#", not the demo's page, not the New Planner, not a presenter's link to follow. */
+const FRONT_PAGE_LINK = typeof window !== 'undefined' && window.location.hash.replace(/^#/, '') === '' && !NEW_PLANNER_LINK && !/\/demo\//.test(window.location.pathname) && !new URLSearchParams(window.location.search).has('follow')
 /** How long the front page is left alone before Scout's welcome is shown, in milliseconds: the Moon first. */
 const WELCOME_AFTER_MS = 1200
 
@@ -235,6 +239,32 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const clock = useClock(hours, linked?.scenarios[linked.active].landing ?? opening, !still && !linked, DEFAULT_SPEED)
   const hour = wholeHour(clock.hour, hours)
   const { setPlaying, setHour, playing } = clock
+  // "Follow the presenter": this tab presents, follows, or neither. A presenter's screen adds what a
+  // room also sees to its address (lib/followView.ts); a follower's screen goes where that address says.
+  const follow = useFollow()
+  const presenting = follow.role === 'presenter'
+  /** The presenter's panel with the code to scan and the link. */
+  const [code, setCode] = useState(false)
+  const present = useCallback(async () => {
+    if (followStore.get().role === 'presenter' || (await startPresenting())) setCode(true)
+  }, [])
+  // The line across the top while this tab presents or follows. The screen starts under it, so it is
+  // over nothing: its height is measured, since on a phone its words can take two lines.
+  const [followBarPx, setFollowBarPx] = useState(0)
+  const followBar = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return setFollowBarPx(0)
+    const watcher = new ResizeObserver(() => setFollowBarPx(Math.ceil(el.getBoundingClientRect().height)))
+    watcher.observe(el)
+    return () => watcher.disconnect()
+  }, [])
+  /** The clock as it is now, for a follower's page to compare the presenter's hour with. */
+  const clockNow = useRef(clock)
+  useEffect(() => {
+    clockNow.current = clock
+  })
+  // The hour a presenter's address names: at most a few times a second while the time bar is dragged,
+  // and every few seconds while time plays (a follower's clock plays by itself between them).
+  const barHour = useSlowed(presenting ? hour : 0, playing ? 5000 : 400)
 
   // The easter egg: the word typed here, or on another page (which opens this one at "#hype"),
   // or sent to Scout as a message of its own, puts a Hype button in the rail and opens its panel.
@@ -631,9 +661,25 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   useEffect(() => {
     // With the Planner open the address also says which of its tabs is on show.
     // The link says when the skyline strip is open, so a shared link opens as its sender saw it.
-    const withSky = (link: string) => (skyMin === skyStartsFolded ? link : `${link}&sky=${skyMin ? 0 : 1}`)
-    setAddressBar(plan ? withSky(full ? withPlannerTab(view, plannerTab) : view) : window.location.pathname)
-  }, [plan, view, full, plannerTab, skyMin, skyStartsFolded])
+    // A presenter's link always says how the strip stands: a follower's screen may open it another way.
+    const withSky = (link: string) => (skyMin === skyStartsFolded && !presenting ? link : `${link}&sky=${skyMin ? 0 : 1}`)
+    const own = plan ? withSky(full ? withPlannerTab(view, plannerTab) : view) : null
+    if (!presenting) return setAddressBar(own ?? window.location.pathname)
+    // While presenting the address also says what a room sees together: the hour on the time bar and
+    // whether time plays, how close the Moon is seen, the panel, the map over the ground, an open sheet.
+    setAddressBar(
+      presenterHash(own, {
+        barIso: new Date(Date.parse(start) + barHour * 3_600_000).toISOString(),
+        play: playing ? clock.hoursPerSecond : null,
+        stage: plan ? mode : 'orbit',
+        panel: plan && !full && (drawer === 'compare' || drawer === 'layers' || drawer === 'rover' || drawer === 'accuracy') ? drawer : null,
+        library: plan && full && library,
+        sheet: how ? 'guide' : brief ? 'brief' : null,
+        layer: plan ? layer : null,
+        light: plan && shade,
+      }),
+    )
+  }, [plan, view, full, plannerTab, skyMin, skyStartsFolded, presenting, start, barHour, playing, clock.hoursPerSecond, mode, drawer, library, how, brief, layer, shade])
   // A saved plan asked for from the Library. The Library closes first; this effect comes after the one
   // above on purpose, so the plan's short link goes into the address after the screen has written its
   // own, not before, and is still there to be read and opened (usePlanLink).
@@ -716,12 +762,64 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     awaited.current = null
     openLink(hash)
   }, [hours, openLink])
-  // A link pasted into the open tab: go where it points. The page's own address rewrites don't fire this.
+  /**
+   * A follower's screen goes where the presenter's address says: Watch or the plan with its
+   * scenarios and mission, and then what a room sees together (lib/followView.ts). Each address is
+   * acted on once, so a follower who has looked around since stays there until the presenter moves.
+   * A follower who is taking the tour is left to it.
+   */
+  const followTo = useCallback(
+    (hash: string) => {
+      if (beforeTour.current !== null) return
+      const shown = readFollowed(hash)
+      if (isWatchHash(hash)) {
+        setPlan(false)
+        setFull(false)
+        setDrawer(null)
+        setBrief(false)
+      } else {
+        // A plan in years this page does not hold yet is fetched and then opened, as any link is.
+        if (!readScenarioLink(hash, start, hours)) return reach(hash)
+        openLink(hash)
+        const said = new URLSearchParams(hash.replace(/^#/, '')).get('sky')
+        if (said === '1') setSkyMin(false)
+        if (said === '0') setSkyMin(true)
+        const tab = plannerTabIn(hash)
+        if (tab) {
+          setNewPlanner(false)
+          setPlannerTab(tab)
+        }
+        setLibrary(shown.library)
+        setFull(tab !== null || shown.library)
+        setDrawer(shown.panel)
+        setBrief(shown.sheet === 'brief')
+        setMode(shown.stage)
+        setLayer(shown.layer)
+        if (shown.layer !== null) setFitShade(false)
+        setShade(shown.light)
+      }
+      setHow(shown.sheet === 'guide')
+      setBare(false)
+      // The hour on the presenter's time bar, and whether their time is playing.
+      const mine = clockNow.current
+      const theirs = shown.barIso ? hourOf(start, shown.barIso) : null
+      if (theirs !== null && theirs >= 0 && theirs < hours && shouldSetHour(mine.hour, theirs, shown.play, mine.playing)) setHour(theirs)
+      if (shown.play !== null) mine.setSpeed(shown.play)
+      setPlaying(shown.play !== null)
+    },
+    [start, hours, reach, openLink, setSkyMin, setBare, setHour, setPlaying],
+  )
+  // A follower is not offered the tour's welcome over the presenter's screen.
   useEffect(() => {
-    const onHashChange = () => openLink(window.location.hash)
+    if (greeting && follow.role === 'follower') endGreeting()
+  }, [greeting, follow.role, endGreeting])
+  // A link pasted into the open tab: go where it points. The page's own address rewrites don't fire
+  // this; a presenter's move does, on a follower's page (lib/followClient.ts).
+  useEffect(() => {
+    const onHashChange = () => (followStore.get().role === 'follower' ? followTo(window.location.hash) : openLink(window.location.hash))
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [openLink])
+  }, [openLink, followTo])
 
   /**
    * Open Plan from Watch, at a site if one was chosen. The first time, the landing is not whatever
@@ -1229,11 +1327,18 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const docked = room !== 'phone' && !bare && (plan ? false : scoutOpen && tourAt === null)
   // Scout's welcome is on show: the front page as it opened, settled, with nothing else asked for yet.
   const welcome = greeting && settled && !plan && !bare && tourAt === null && !how && !brief && !(scoutOpen && room === 'phone')
-  const classes = ['scout', 'sightline', shown ? 'is-plan' : 'is-watch', scoutPanel && drawer !== null && drawer !== 'scout' && !planner ? 'has-both-panels' : '', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', docked ? 'has-dock' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
+  const classes = ['scout', 'sightline', follow.role !== 'none' ? 'has-follow-bar' : '', shown ? 'is-plan' : 'is-watch', scoutPanel && drawer !== null && drawer !== 'scout' && !planner ? 'has-both-panels' : '', planner ? 'is-full' : '', planner && newPlanner ? 'is-new-planner' : '', gliding && !plan ? 'is-gliding' : '', docked ? 'has-dock' : '', `sheet-${sheet}`, idle ? 'is-idle' : '', bare ? 'is-bare' : ''].filter(Boolean).join(' ')
 
   return (
-    <div className={classes} data-welcome={welcome || undefined} data-touring={tourState?.open === 'planner-find' || tourState?.open === 'planner-compare' ? 'planner' : tourState?.open === 'brief' ? 'brief' : tourState?.open === 'library' ? 'library' : undefined}>
+    <div className={classes} style={follow.role !== 'none' ? ({ '--sl-bar': `${followBarPx}px` } as CSSProperties) : undefined} data-welcome={welcome || undefined} data-touring={tourState?.open === 'planner-find' || tourState?.open === 'planner-compare' ? 'planner' : tourState?.open === 'brief' ? 'brief' : tourState?.open === 'library' ? 'library' : undefined}>
       <Tips />
+      {/* Presenting or following, said in one line across the top, with the way out of it. */}
+      {follow.role !== 'none' && (
+        <div ref={followBar} className="sl-follow-top">
+          <FollowBanner state={follow} onOpen={() => setCode(true)} />
+        </div>
+      )}
+      {code && follow.role === 'presenter' && <PresentPanel room={follow.room} followers={follow.followers} onClose={() => setCode(false)} />}
       {welcome && (
         <TourWelcome
           reads={tourReads(LONG_TOUR)}
@@ -1284,7 +1389,7 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
             <div className="sl-col-head">
               {/* The undo notice takes the title's place for a few seconds: nothing moves, and nothing is over the Moon. */}
               <h1 className="sl-title">Sightline</h1>
-              <HeaderTools onBrief={() => setBrief(true)} held={tourState?.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} panel={drawer} />
+              <HeaderTools onBrief={() => setBrief(true)} held={tourState?.open === 'share'} onShowHow={tourAt === null ? () => startTour('share') : null} panel={drawer} present={follow.role === 'follower' ? null : { on: presenting, onPress: () => void present() }} />
             </div>
             {/* The scenarios, on a row of their own; the undo notice sits at the row's end for a few seconds, so nothing moves and nothing is over the Moon. */}
             <div className="sl-tabs-row">
