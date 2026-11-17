@@ -13,6 +13,7 @@
 //   node scripts/sightline-shots.mjs --poster=poster.png         a picture of the Moon as the page first shows it
 //   node scripts/sightline-shots.mjs --base=https://lunarsightline.com   against a site already running
 //   node scripts/sightline-shots.mjs --ask --only=scout-reply    also ask Scout one real question (calls the model)
+//   node scripts/sightline-shots.mjs --live --only=account-live --base=https://lunarsightline.com   sign-in as the live site offers it (nobody signs in)
 //
 // Without --ask no question reaches the chat, on a laptop or against a live site: whatever a page
 // sends to /api/chat or /api/ask is answered inside the browser with a stand-in reply. The chat
@@ -40,7 +41,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['library-resume', 'account-signed-out', 'account-signed-in', 'gestures', 'gestures-zoom', 'gestures-tour', 'why-hard', 'mission-fits', 'two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'tour-welcome', 'watch-scout-long', 'heights', 'heights-link', 'place-names', 'planner-moon', 'planner-find', 'planner-find-more', 'planner-compare', 'planner-compare-detail', 'planner-narrow-find', 'planner-narrow-compare', 'rows-panels', 'limit-means', 'guide-limits', 'guide-numbers', 'front-scale', 'plan-link', 'accuracy', 'plan-open', 'plan-open-planner', 'plan-kinds', 'plan-gone', 'share-sheet', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly', 'surface-bar', 'surface-own-point', 'skyline-link', 'skyline-link-old', 'time-bar-one-span', 'add-says-what', 'view-switch'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['library-resume', 'account-live', 'account-signed-out', 'account-signed-in', 'gestures', 'gestures-zoom', 'gestures-tour', 'why-hard', 'mission-fits', 'two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'tour-welcome', 'watch-scout-long', 'heights', 'heights-link', 'place-names', 'planner-moon', 'planner-find', 'planner-find-more', 'planner-compare', 'planner-compare-detail', 'planner-narrow-find', 'planner-narrow-compare', 'rows-panels', 'limit-means', 'guide-limits', 'guide-numbers', 'front-scale', 'plan-link', 'accuracy', 'plan-open', 'plan-open-planner', 'plan-kinds', 'plan-gone', 'share-sheet', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly', 'surface-bar', 'surface-own-point', 'skyline-link', 'skyline-link-old', 'time-bar-one-span', 'add-says-what', 'view-switch'] },
   // A window with little room, as a tablet held sideways or a narrow laptop window has: the Planner's two tabs with Scout's panel open beside them.
   { name: 'narrow-laptop', width: 1024, height: 768, scale: 1, mobile: false, onlyScenes: ['planner-narrow-find', 'planner-narrow-compare', 'planner-find', 'planner-compare'] },
 ]
@@ -623,6 +624,19 @@ function accountScenes() {
         ['a plan is saved all the same, with no proof of who saved it', `${SAVE_AS('Signed-out plan')} && ${after(2500, `(() => { const saves = ${calls('POST', "call.path === '/api/plans'")}; return (saves.length === 1 && saves[0].proof === false && /Saved/.test(document.querySelector('.sl-share-saved')?.textContent ?? '')) || JSON.stringify(window.__account.calls) })()`)}`],
         ['in the Library, "Your plans" lists what this browser saved, each with Resume and none with Delete; under it sign-in is offered, as optional; the service was not asked for a list', `(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(2500, `(() => { const mine = ${MY_PLANS}; const offer = document.querySelector('.lib-account')?.textContent.replace(/\\s+/g, ' ').trim() ?? ''; return (/^Signed-out plan ?Saved \\d+ Nov 2026 ?Resume \\| My own ridge plan ?Saved 14 Nov 2026 ?Resume$/.test(mine) && /^Optional: sign in with Google to list the plans you save on any device, and to delete them\\./.test(offer) && document.querySelector('.lib-mine-who') === null && ${calls('GET', "call.path === '/api/plans'")}.length === 0) || mine + ' // ' + offer })()`)})`],
         ['the Library is no wider than the window', `(() => { const page = document.querySelector('.lib-page'); return page.scrollWidth <= page.clientWidth + 1 || page.scrollWidth + ' in ' + page.clientWidth })()`],
+      ],
+    },
+    {
+      // The site as it is, with nothing stood in for (run with --live, against a site that has sign-in on):
+      // the line is offered from the site's own status, and Google's own button arrives when asked for.
+      // Nobody signs in: that takes a person and their Google account.
+      name: 'account-live',
+      needs: 'live',
+      hash: plan,
+      checks: [
+        ['Share offers sign-in, as optional, from the site\'s own status', `${OPEN_SHARE} && ${after(1500, `(${ACCOUNT_LINE} === 'Sign in to list and delete the plans you save. Optional.') || ${ACCOUNT_LINE}`)}`],
+        ['"Sign in" brings Google\'s own button into the sheet, which stays inside the window', `(document.querySelector('.sl-share-account button').click(), true) && ${after(5000, `(() => { const box = document.querySelector('.sl-share-sheet .sl-google'); const sheet = document.querySelector('.sl-share-sheet').getBoundingClientRect(); const button = box?.querySelector('iframe, [role="button"]'); return (Boolean(button) && button.getBoundingClientRect().height >= 30 && document.querySelector('script[src^="https://accounts.google.com/"]') !== null && document.querySelector('.sl-google-blocked') === null && sheet.bottom <= innerHeight + 1 && sheet.right <= innerWidth) || 'no button from Google: ' + (box?.innerHTML.slice(0, 160) ?? 'no place for it') })()`)}`],
+        ['nobody is signed in, and the Library\'s "Your plans" offers sign-in under its list', `(document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(4000, `(sessionStorage.getItem('clps.account') === null && document.querySelector('.lib-mine-who') === null && /^Optional: sign in with Google/.test(document.querySelector('.lib-account')?.textContent.trim() ?? '') && document.querySelector('.lib-account .sl-google :is(iframe, [role="button"])') !== null) || (document.querySelector('.lib-account')?.textContent ?? 'no offer')`)})`],
       ],
     },
     {
