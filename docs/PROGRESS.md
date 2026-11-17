@@ -528,6 +528,8 @@ Rodrigo, after the event: a first-time visitor is not told that the Moon can be 
 - [ ] Not followed: Scout's tour and its cards (the screens behind it are), Scout's conversation, the mission's limits opened in the column, "Hide all", the Moon as the presenter turned or zoomed it, "Landings that fit" as a layer, place names
 - [ ] "Present" is in Share, which is on the plan: from the opening screen it is "Plan a landing", then Share, then Present
 - [ ] Not from this change: the scene `plan-link` in `sightline-shots.mjs` fails "in Plan at Orbit no marker or name prints over another" at laptop size, the same on `main` before today's changes. Not looked into
+- [x] Fixed the same day (pull request after 253): "Resume" in the Library stopped opening its plan at some window sizes (1366 by 768 among them). Closing the Library changed one of the values the address is now written from, so the address was written once more and took the plan's short link away before it was read. A tab that is not presenting now writes its address from the screen's own link alone, as before; and the short link is left in the address until it has been read (`linkWaiting` in `Sightline.tsx`), which also holds for a presenter. Scene `library-resume` in `sightline-shots.mjs`, at laptop, small laptop and phone
+- [ ] Not checked in a browser: a presenter pressing Resume in the Library (the same code path, with the wait)
 
 ## Sign-in with Google, on the front page (2026-11-17)
 

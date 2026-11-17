@@ -54,9 +54,9 @@ export function followedPart(shown: Followed): string {
   ].join('')
 }
 
-/** A presenter's address: the plan's own link (null in Watch) and then what a room also sees. */
-export function presenterHash(planLink: string | null, shown: Followed): string {
-  return `${planLink ?? WATCH}${followedPart(shown)}`
+/** A presenter's address: the plan's own link (null in Watch) and then what a room also sees, as `followedPart` wrote it. */
+export function presenterHash(planLink: string | null, part: string): string {
+  return `${planLink ?? WATCH}${part}`
 }
 
 /** Whether an address is a presenter's Watch: the Moon alone, with no plan. */

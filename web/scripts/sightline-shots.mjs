@@ -40,7 +40,7 @@ const SIZES = [
   { name: 'laptop', width: 1440, height: 900, scale: 1, mobile: false },
   { name: 'phone', width: 390, height: 844, scale: 2, mobile: true },
   // A smaller laptop, for the scenes that ask whether the side panels fit without scrolling.
-  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['account-signed-out', 'account-signed-in', 'gestures', 'gestures-zoom', 'gestures-tour', 'why-hard', 'mission-fits', 'two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'tour-welcome', 'watch-scout-long', 'heights', 'heights-link', 'place-names', 'planner-moon', 'planner-find', 'planner-find-more', 'planner-compare', 'planner-compare-detail', 'planner-narrow-find', 'planner-narrow-compare', 'rows-panels', 'limit-means', 'guide-limits', 'guide-numbers', 'front-scale', 'plan-link', 'accuracy', 'plan-open', 'plan-open-planner', 'plan-kinds', 'plan-gone', 'share-sheet', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly', 'surface-bar', 'surface-own-point', 'skyline-link', 'skyline-link-old', 'time-bar-one-span', 'add-says-what', 'view-switch'] },
+  { name: 'small-laptop', width: 1366, height: 768, scale: 1, mobile: false, onlyScenes: ['library-resume', 'account-signed-out', 'account-signed-in', 'gestures', 'gestures-zoom', 'gestures-tour', 'why-hard', 'mission-fits', 'two-by-default', 'two-by-default-pick', 'skyline-fold', 'skyline-four', 'compass-below', 'compass-below-watch', 'tour-video', 'hype-egg', 'other-site', 'tour', 'tour-restore', 'tour-welcome', 'watch-scout-long', 'heights', 'heights-link', 'place-names', 'planner-moon', 'planner-find', 'planner-find-more', 'planner-compare', 'planner-compare-detail', 'planner-narrow-find', 'planner-narrow-compare', 'rows-panels', 'limit-means', 'guide-limits', 'guide-numbers', 'front-scale', 'plan-link', 'accuracy', 'plan-open', 'plan-open-planner', 'plan-kinds', 'plan-gone', 'share-sheet', 'mission', 'compare-four', 'compare-fits', 'steady', 'horizons', 'layers', 'rover', 'site-light', 'layouts', 'scout-panel', 'marginal', 'planner', 'planner-four', 'near-side', 'brief', 'why', 'earth-partly', 'surface-bar', 'surface-own-point', 'skyline-link', 'skyline-link-old', 'time-bar-one-span', 'add-says-what', 'view-switch'] },
   // A window with little room, as a tablet held sideways or a narrow laptop window has: the Planner's two tabs with Scout's panel open beside them.
   { name: 'narrow-laptop', width: 1024, height: 768, scale: 1, mobile: false, onlyScenes: ['planner-narrow-find', 'planner-narrow-compare', 'planner-find', 'planner-compare'] },
 ]
@@ -2590,6 +2590,19 @@ const SCENES = [
       ['the plain link\'s button is under it, quiet, and says how it differs', "(() => { const plain = document.querySelector('.sl-share-sheet .sl-share-plain'); const saved = document.querySelector('.sl-share-saved'); return (plain.textContent.trim() === 'Copy link without the name or note' && getComputedStyle(plain).backgroundColor === 'rgba(0, 0, 0, 0)' && plain.getBoundingClientRect().top >= saved.getBoundingClientRect().bottom - 1 && /^It opens with the name and note on show\\. Kept 180 days, for anyone with the link\\.$/.test(saved.querySelector('.sl-share-kept').textContent.trim())) || plain.textContent + ' on ' + getComputedStyle(plain).backgroundColor })()"],
       ['the sheet still fits with the link shown', SHARE_PLACED],
       ['Escape closes it and gives the keyboard back to the Share button', `(window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && ${after(300, "document.querySelector('.sl-share-sheet') === null && document.activeElement?.getAttribute('aria-label') === 'Share'")}`],
+    ],
+  },
+  {
+    // "Resume", under "Your plans" in the Library, opens the plan again at every size: the Library closes,
+    // the plan's short link is read, and its scenarios are on the screen. (On 2026-11-17 a write of the
+    // address as the Library closed took the link away unread at 1366 by 768.)
+    name: 'library-resume',
+    hash: '#a=connecting-ridge@2027-05&t=133&limits=14_24_24_1_1&mode=plan',
+    beforeLoad: `(${STAND_IN_LIBRARY}, ${STAND_IN_PLANS({ title: 'My own ridge plan', note: '', view: '#a=shackleton-rim@2027-06&t=22&limits=14_24_24_1_1&mode=plan&sl=1' })})`,
+    checks: [
+      ['"Your plans" has the plan this browser saved, with Resume', `Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(2000, `(document.querySelector('.lib-mine .lib-resume') !== null && /My own ridge plan/.test(document.querySelector('.lib-mine li').textContent)) || 'no plan to resume'`)})`],
+      ['Resume closes the Library and opens that plan: its site and landing are on the screen, with its name on the saved plan\'s card', `(document.querySelector('.lib-mine .lib-resume').click(), true) && ${after(3500, `(document.querySelector('.sl-full') === null && document.querySelector('#sl-site').value === 'shackleton-rim' && ${LANDING} === '1 June 2027 · 22:00 UTC' && /My own ridge plan/.test(document.querySelector('.sl-saved-card')?.textContent ?? '')) || document.querySelector('#sl-site')?.value + ' ' + ${LANDING} + ' // ' + location.hash`)}`],
+      ['and the address is the plan\'s own link again, which reopens what is on screen', `/^#a=shackleton-rim@2027-06&t=22&/.test(location.hash) || location.hash`, 1500],
     ],
   },
   {
