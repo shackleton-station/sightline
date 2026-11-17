@@ -502,5 +502,5 @@ Rodrigo asked for the Google Cloud bill to come down while the site stays good f
 - [x] Applied from the Mac on 2026-11-17 from a saved plan read line by line, then put on `main` by this pull request, whose plan is "No changes".
 - [x] Checked on the live site after the apply: the smoke test with a saved plan and two co-pilot answers, every status on the new Redis, response times, the first load in headless Chrome.
 - [ ] `web/scripts/follow-check.mjs` fails four checks on the Atlas page's time controls. It looks older than that page; not fixed here.
-- [ ] `CLAUDE.md` section 2 still says the live instance is Standard with the hackathon settings. That section is a rule section, so it waits for Rodrigo's word.
+- [x] `CLAUDE.md` no longer carries the event's rules (Rodrigo, 2026-11-17: treat this as an ordinary project from now on). The event's integrity rules became "Publishing and credit"; `AI_USAGE.md` is a short statement kept true, not a line per task; section 2 gives the site's address and the settings it runs now; section 5 (the one-time GitHub setup) and section 10 (the friction report) were cut down to what still applies. Section numbers are unchanged, because other documents point at them.
 - [ ] Scout's question ceilings are still the loose ones of 2026-11-16. They spend Anthropic credits, not Google Cloud.
