@@ -63,6 +63,11 @@
   flex: 1;
 }
 
+/* "Present" beside the brief: green once this tab is presenting, as its line across the top is. */
+.sl-share-foot .sl-share-present[aria-pressed='true'] {
+  color: #3fd99a;
+}
+
 .sl-share-foot .sl-show-how {
   margin-right: 0.5rem;
   font-size: 0.8125rem;

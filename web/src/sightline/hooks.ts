@@ -189,3 +189,25 @@ export function useCompact(): boolean {
   }, [])
   return compact
 }
+
+/**
+ * A value that changes at most every `ms`: a change after a quiet spell is taken at once, and during a
+ * run of changes the newest is taken each time `ms` is up, so the last one is never lost. For
+ * something written from a value that moves many times a second (a presenter's address from the
+ * time bar's hour).
+ */
+export function useSlowed<T>(value: T, ms: number): T {
+  const [shown, setShown] = useState(value)
+  const last = useRef(0)
+  useEffect(() => {
+    const take = () => {
+      last.current = performance.now()
+      setShown(value)
+    }
+    const wait = last.current + ms - performance.now()
+    if (wait <= 0) return take()
+    const timer = window.setTimeout(take, wait)
+    return () => window.clearTimeout(timer)
+  }, [value, ms])
+  return shown
+}

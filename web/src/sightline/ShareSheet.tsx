@@ -18,6 +18,8 @@ interface Props {
   held?: boolean
   /** The view to save: the address for what is on screen, with the open side panel. */
   view: () => string
+  /** "Present": start a room whose screens follow this one, or show its code again; null where it is not offered. */
+  present?: { on: boolean; onPress: () => void } | null
 }
 
 /** Under this width the window is a phone's: the sheet spans it. */
@@ -41,13 +43,14 @@ function saveFailure(status: number | undefined): string {
 }
 
 /**
- * Share's sheet, under its icon: three things, in the order they are wanted.
+ * Share's sheet, under its icon: four things, in the order they are wanted.
  *
  * 1. "Copy link", first and already in focus: one press copies the link for what is on screen and
  *    closes the sheet, as Share always did. It needs no service, so it works when saving does not.
  * 2. "Save with a name": a name and an optional note, kept by the plans service for 180 days under
  *    a short link that opens with them on show. No sign-in is needed.
  * 3. "Brief": the written brief for the scenario on show.
+ * 4. "Present": others open a link or scan a code, and their screens follow this one (Follow.tsx).
  *
  * Once a plan is saved, its short link is the sheet's main thing and takes the first place: the
  * link, and a gold "Copy saved link" that already has the keyboard. The link is copied at the
@@ -63,7 +66,7 @@ function saveFailure(status: number | undefined): string {
  * the Moon; across the window on a phone, above the icon when there is no room below. The keyboard
  * stays inside it while it is open, and goes back to the icon when it closes.
  */
-export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, view }: Props) {
+export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, view, present = null }: Props) {
   const sheet = useRef<HTMLDivElement>(null)
   const first = useRef<HTMLButtonElement>(null)
   // Where the sheet would have been, in the page: its icon is beside it.
@@ -232,6 +235,17 @@ export function ShareSheet({ onCopy, onBrief, onShowHow = null, held = false, vi
             <button type="button" className="sl-share-brief" onClick={onBrief}>
               Brief
             </button>
+            {present && (
+              <button
+                type="button"
+                className="sl-share-brief sl-share-present"
+                aria-pressed={present.on}
+                title={present.on ? 'Shows the code and the link again. People who open it see their screen follow yours.' : 'Starts presenting: people who scan your code or open your link see their screen follow yours.'}
+                onClick={present.onPress}
+              >
+                {present.on ? 'Presenting' : 'Present'}
+              </button>
+            )}
             {onShowHow && (
               <button type="button" className="sl-link sl-show-how" onClick={onShowHow}>
                 Show me how

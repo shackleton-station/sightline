@@ -10,14 +10,16 @@ interface Props {
   onShowHow?: (() => void) | null
   /** The side panel that is open, so a saved plan can reopen it; none in the Planner. */
   panel?: string | null
+  /** "Present": others' screens follow this one. Whether this tab is presenting, and the press that starts it or shows its code again; null where it is not offered (a tab that is following). */
+  present?: { on: boolean; onPress: () => void } | null
 }
 
 /**
  * Share, a small icon button beside the name, with a name for readers that cannot see it. It opens a
- * small sheet (ShareSheet): copy the link for what is on screen, save it with a name, or read the
- * written brief for the scenario on show.
+ * small sheet (ShareSheet): copy the link for what is on screen, save it with a name, read the
+ * written brief for the scenario on show, or present the screen to a room that follows it.
  */
-export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = null }: Props) {
+export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = null, present = null }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const box = useRef<HTMLSpanElement>(null)
@@ -52,7 +54,7 @@ export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = n
 
   return (
     <span ref={box} className="sl-head-tools">
-      <button type="button" className="sl-icon" aria-label="Share" aria-haspopup="true" aria-expanded={open} title={copied ? 'Link copied.' : 'Opens the ways to share: copy the link, save the plan with a name, or open the written brief.'} onClick={() => setOpen(!open)}>
+      <button type="button" className="sl-icon" aria-label="Share" aria-haspopup="true" aria-expanded={open} title={copied ? 'Link copied.' : present ? 'Opens the ways to share: copy the link, save the plan with a name, open the written brief, or present to a room.' : 'Opens the ways to share: copy the link, save the plan with a name, or open the written brief.'} onClick={() => setOpen(!open)}>
         {copied ? (
           <span aria-hidden="true">✓</span>
         ) : (
@@ -79,6 +81,15 @@ export function HeaderTools({ onBrief, held = false, onShowHow = null, panel = n
             })
           }
           held={held && !open}
+          present={
+            present && {
+              on: present.on,
+              onPress: () => {
+                setOpen(false)
+                present.onPress()
+              },
+            }
+          }
           view={() => withPanel(window.location.hash, panel)}
         />
       )}

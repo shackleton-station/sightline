@@ -6,10 +6,14 @@
 //   node scripts/follow-check.mjs                  prints each check and the delays
 //   node scripts/follow-check.mjs --out=some/folder   also saves the screenshots and the raw delays
 //   node scripts/follow-check.mjs --base=https://…    another copy of the site
+//   node scripts/follow-check.mjs --front            the front page only (the Sightline screen): about a minute
 //
 // It opens three windows in one headless Chrome: a presenter (1440 × 900), a follower the same size, and
 // a follower the size of a phone (375 × 812). Each is a browser of its own (its own storage and its own
-// connections to the site), as three people's devices are. It then:
+// connections to the site), as three people's devices are. First, on the front page (the Sightline
+// screen), it presents from Share, checks the line across the top covers nothing, and has both
+// followers follow the plan, the site, the landing, the hour on the time bar, the view of the Moon,
+// a panel, a scenario, the way back to the front page and time playing there. Then, on the older pages, it:
 //   1. changes the address of each page from outside and checks the page moves without loading again;
 //   2. starts presenting, reads the link, and decodes the QR code from a screenshot of the panel;
 //   3. on every design, changes the hour, the site, the month and the limits as a presenter would, and
@@ -90,7 +94,22 @@ const WATCH = `
     const site = [...document.querySelectorAll('select')].map((select) => select.selectedOptions[0]?.textContent ?? '').join(',')
     const limits = '.pl-mission input[type=number], .pl-mission input[type=checkbox], .mission-inputs input'
     const numbers = [...document.querySelectorAll(limits)].map((input) => (input.type === 'checkbox' ? Number(input.checked) : input.value)).join('_')
-    return [site, text('.river-time') || text('.slider output'), text('#pl-brief-title'), text('.pl-when'), numbers, text('#briefing-title'), text('.briefing-mission'), text('main h1'), text('.atlas-layers button[aria-pressed=true]'), text('.sf-compass-facing')].join(' | ')
+    return [site, text('.river-time') || text('.slider output') || text('.atlas-time-now'), text('#pl-brief-title'), text('.pl-when'), numbers, text('#briefing-title'), text('.briefing-mission'), text('main h1'), text('.atlas-layers button[aria-pressed=true]'), text('.sf-compass-facing')].join(' | ')
+  }
+  // What the Sightline screen (the front page) has on show, as text: Watch or Plan, the site, the
+  // landing, the hour on the time bar (the date, in Watch), the plan's letters, how close the Moon
+  // is seen, the side panel, the sheet or page over the screen, and whether time is playing.
+  window.__front = () => {
+    const root = document.querySelector('.sightline')
+    if (!root) return null
+    const text = (selector) => document.querySelector(selector)?.textContent?.replace(/\\s+/g, ' ').trim() ?? ''
+    const plan = root.classList.contains('is-plan')
+    const letters = [...document.querySelectorAll('.sl-col .sl-tabs .sl-tab')].map((tab) => tab.querySelector('button').textContent.trim() + (tab.classList.contains('is-active') ? '*' : '')).join('')
+    const view = [...document.querySelectorAll('.sl-view-switch button[aria-pressed="true"], .sl-rail .sl-heights button[aria-pressed="true"]')].map((button) => button.textContent.trim()).find((word) => /^(Orbit|Site|Surface)$/.test(word)) ?? ''
+    const panel = ['compare', 'layers', 'accuracy', 'rover'].find((name) => document.querySelector('.sl-drawer.sl-' + name)) ?? ''
+    const over = document.querySelector('.sl-brief-sheet') ? 'brief' : document.querySelector('.sl-how') ? 'guide' : document.querySelector('.sl-full') ? 'planner' : ''
+    const playing = document.querySelector('.sl-pill button[aria-label="Pause"], .sl-river button[aria-label="Pause"]') !== null
+    return [plan ? 'plan' : 'watch', plan ? document.querySelector('#sl-site')?.value ?? '' : '', plan ? [...document.querySelectorAll('.sl-pick .sl-value')].map((part) => part.textContent).join('') : '', plan ? text('.sl-now') : text('.sl-date'), letters, view, panel, over, playing ? 'playing' : 'held'].join(' | ')
   }
   // When a key was last pressed in this page: the moment of a change made with the keyboard.
   window.addEventListener('keydown', () => { window.__keyAt = Date.now() }, true)
@@ -187,12 +206,20 @@ const DESIGNS = [
 // ---- What a presenter does, as code run in the presenter's page. Each returns the time it was done. ----
 
 /** Presses a key on the time control (the range input every design with a river or slider has). */
-const focusTime = "document.querySelector('input[type=range][aria-label*=ime], .river input[type=range], .slider input[type=range]')?.focus()"
+const focusTime = "document.querySelector('input[type=range][aria-label*=ime], .river input[type=range], .slider input[type=range], .atlas-time input[type=range]')?.focus()"
 /** Picks another site in the page's own list, as a person would. */
 const pickSite = (name) => `(() => {
   const select = [...document.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.textContent === ${JSON.stringify(name)}))
   const option = [...select.options].find((o) => o.textContent === ${JSON.stringify(name)})
   Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, option.value)
+  select.dispatchEvent(new Event('change', { bubbles: true }))
+  return Date.now()
+})()`
+/** Picks a value in one of the page's lists, by the list's own selector. */
+const pickValue = (selector, value) => `(() => {
+  const select = document.querySelector(${JSON.stringify(selector)})
+  if (!select) throw new Error('no list: ' + ${JSON.stringify(selector)})
+  Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, ${JSON.stringify(value)})
   select.dispatchEvent(new Event('change', { bubbles: true }))
   return Date.now()
 })()`
@@ -271,6 +298,126 @@ try {
     if (message.method === 'Network.requestWillBeSent' && message.sessionId === follower.sessionId && message.params.request.url.endsWith('/events')) streams.push(Date.now())
   })
 
+  // ---- 0. The front page: the Sightline screen ----
+  console.log('\nThe front page (the Sightline screen)')
+  {
+    const drawn = "document.querySelector('.scout-globe canvas') !== null && document.querySelector('.sl-dot') !== null"
+    const bar = "document.querySelector('.sl-follow-top .follow-bar')?.textContent ?? ''"
+    /** The line across the top is over nothing: the screen starts where it ends, and the Moon's disc, the plan's column and the page's name are all under it. Says what is wrong otherwise. */
+    const CLEAR = `(() => {
+      const line = document.querySelector('.sl-follow-top')?.getBoundingClientRect()
+      if (!line || line.height < 20) return 'no line'
+      if (line.top !== 0 || line.left !== 0 || Math.round(line.right) !== innerWidth) return 'the line is not across the top'
+      const screen = document.querySelector('.sightline').getBoundingClientRect()
+      if (Math.abs(screen.top - line.bottom) > 1) return 'the screen starts at ' + screen.top + ', the line ends at ' + line.bottom
+      const globe = document.querySelector('.scout-globe')
+      const box = globe.getBoundingClientRect()
+      const discTop = (box.top + box.bottom) / 2 - Number(globe.dataset.discPx) / 2
+      const full = document.querySelector('.sightline.is-full') !== null
+      if (!full && discTop < line.bottom) return 'the Moon starts at ' + Math.round(discTop) + ', under the line'
+      const under = [...document.querySelectorAll('.sl-col, .sl-brand, .sl-top, .sl-rail, .sl-card, .sl-drawer, .sl-how, .sl-full')].find((el) => { const b = el.getBoundingClientRect(); return b.height > 0 && b.top < line.bottom - 1 })
+      return under ? 'under the line: ' + under.className : document.documentElement.scrollWidth <= innerWidth || 'wider than the window'
+    })()`
+    /** Chooses a value in a list of the page's, as a person would. */
+    const pick = (selector, value) => `(() => { const select = document.querySelector(${JSON.stringify(selector)}); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(select, ${JSON.stringify(value)}); select.dispatchEvent(new Event('change', { bubbles: true })); return Date.now() })()`
+    const windowKey = (key) => `(window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true, cancelable: true })), Date.now())`
+    /** One change by the presenter on the front page: both followers come to show what the presenter's screen shows. */
+    const frontChange = async (label, act, { limitMs = MOVE_MS, same = (shows) => shows } = {}) => {
+      const before = await presenter.run('window.__front()')
+      const doneAt = await presenter.run(act)
+      // Both followers come to show what the presenter's screen shows, which may itself take a moment to settle (a site's data, a panel).
+      const deadline = Date.now() + 6000 + limitMs
+      let shows = []
+      let together = null
+      while (Date.now() < deadline) {
+        shows = await Promise.all([presenter, follower, phone].map((page) => page.run('window.__front()').catch(() => null)))
+        if (shows[0] !== null && shows[0] !== before && same(shows[1]) === same(shows[0]) && same(shows[2]) === same(shows[0])) {
+          together = Date.now() - doneAt
+          break
+        }
+        await sleep(40)
+      }
+      if (together !== null) delays.push({ label, kind: 'front', ms: together })
+      check(label, together !== null && together <= 6000 + limitMs, together !== null ? `${together} ms · ${shows[0]}` : `the presenter shows "${shows[0]}", the follower "${shows[1]}", the phone "${shows[2]}"`)
+      await sleep(BETWEEN_MS)
+      return shows[0]
+    }
+
+    await presenter.go('/')
+    check('the front page draws', Boolean(await presenter.until(drawn, (ok) => ok, 20_000)))
+    // The welcome is answered, as a presenter would: "Skip".
+    await presenter.until("document.querySelector('.sl-tour-skip') !== null", (ok) => ok, 4000)
+    await presenter.run("document.querySelector('.sl-tour-skip')?.click()")
+    await presenter.run(click("[data-tour='plan']"))
+    await presenter.until("document.querySelector('.sightline.is-plan') !== null", (ok) => ok, 5000)
+    await presenter.run(click(".sl-icon[aria-label='Share']"))
+    const offered = await presenter.until("document.querySelector('.sl-share-sheet .sl-share-present')?.textContent.trim() ?? ''", (word) => word === 'Present', 3000)
+    check('Share offers "Present" beside the brief', Boolean(offered), offered ?? (await presenter.run("document.querySelector('.sl-share-sheet')?.textContent")))
+    await presenter.run(click('.sl-share-sheet .sl-share-present'))
+    const frontLink = await presenter.until("document.querySelector('.follow-link')?.textContent ?? ''", (text) => text.includes('?follow='), 5000)
+    check('it opens the panel with the code and a link to the front page', Boolean(frontLink) && /^https?:\/\/[^/]+\/\?follow=[a-z0-9]{6}$/.test(frontLink ?? ''), frontLink)
+    await presenter.until("document.querySelector('.follow-qr path')?.getAttribute('d')?.length ?? 0", (length) => length > 100, 5000)
+    await sleep(300)
+    await presenter.shot('front-presenter-panel.png')
+    await presenter.run(click('.follow-panel button', 'Hide the code'))
+    check('the presenter has "Presenting" in one line across the top, over nothing', (await presenter.until(bar, (text) => text.includes('Presenting'), 3000)) !== undefined && (await presenter.until(CLEAR, (clear) => clear === true, 3000)) === true, String(await presenter.run(CLEAR)))
+
+    await follower.go(frontLink.replace(/^https?:\/\/[^/]+/, ''))
+    await phone.go(frontLink.replace(/^https?:\/\/[^/]+/, ''))
+    for (const [name, page] of [['a follower', follower], ['a phone', phone]]) {
+      await page.until(drawn, (ok) => ok, 20_000)
+      const there = await presenter.run('window.__front()')
+      const arrived = await page.until('window.__front()', (shows) => shows === there, TAB_MS)
+      check(`${name} who opens the link is shown the presenter's plan, with no page load to another address`, Boolean(arrived), arrived ?? `${await page.run('window.__front()')} for ${there}`)
+      check(`${name} has "Following the presenter" across the top, over nothing, and no welcome card over the screen`, (await page.until(bar, (text) => text.includes('Following the presenter') && text.includes('Stop following'), 5000)) !== undefined && (await page.until(CLEAR, (clear) => clear === true, 3000)) === true && (await page.run("document.querySelector('.sl-tour-welcome') === null")), String(await page.run(CLEAR)))
+      check(`${name}'s address no longer names the room`, !(await page.address()).includes('follow='))
+    }
+    check('the presenter sees 2 following', Boolean(await presenter.until(bar, (text) => text.includes('2 following'), 5000)), await presenter.run(bar))
+    await presenter.shot('front-presenter.png')
+    await follower.shot('front-follower.png')
+    await phone.shot('front-follower-phone.png')
+
+    await sleep(BETWEEN_MS)
+    await frontChange('another site, from the list', pick('#sl-site', 'shackleton-rim'))
+    await frontChange('the time bar, three hours on (the arrow keys)', `(${windowKey('ArrowRight')}, ${windowKey('ArrowRight')}, ${windowKey('ArrowRight')})`)
+    await frontChange('"Land here": the landing moves to that hour', click("[data-tour='land']"))
+    await frontChange('the Moon seen close: Site', click('.sl-view-switch button', 'Site'))
+    await frontChange('a panel: Compare', click("[data-tour='compare']"))
+    await frontChange('another scenario, with "+"', click(".sl-col [data-tour='add']"))
+    await frontChange('the first scenario again', click('.sl-col .sl-tabs .sl-tab button'))
+    await frontChange('the panel shut, and Orbit', `(${click("[data-tour='compare']")}, ${click('.sl-view-switch button', 'Orbit')})`)
+    check('through all of it the line covered nothing on any of the three screens', (await Promise.all([presenter, follower, phone].map((page) => page.run(CLEAR)))).every((clear) => clear === true), (await Promise.all([presenter, follower, phone].map((page) => page.run(CLEAR)))).join(' · '))
+    await phone.shot('front-follower-phone-plan.png')
+    // The front page itself (Watch), where the address holds no plan: the date, held.
+    await frontChange('home: the front page, with time held', `(${click('.sl-rail-home')}, new Promise((done) => setTimeout(() => { document.querySelector('.sl-pill button[aria-label="Pause"]')?.click(); done(Date.now()) }, 600)))`, { limitMs: 2 * MOVE_MS })
+    await frontChange('time playing there: the followers play too', click('.sl-pill button[aria-label="Play"]'), { same: (shows) => (shows ?? '').split(' | ').filter((part, index) => index === 0 || index === 8).join(' | ') })
+    await sleep(2500)
+    await frontChange('held again: all three on the same date', click('.sl-pill button[aria-label="Pause"]'), { limitMs: 2 * MOVE_MS })
+    check('on the front page the line covers nothing either', (await Promise.all([presenter, follower, phone].map((page) => page.run(CLEAR)))).every((clear) => clear === true), (await Promise.all([presenter, follower, phone].map((page) => page.run(CLEAR)))).join(' · '))
+    await phone.shot('front-follower-phone-watch.png')
+    await frontChange('"Plan a landing" again: the plan as it was left', click("[data-tour='plan']"))
+
+    // A follower who looks around, stopping, and ending.
+    const togetherAt = await follower.run('window.__front()')
+    await follower.run(click('.sl-rail-home'))
+    const away = await follower.until('window.__front()', (shows) => shows !== togetherAt, 3000)
+    await sleep(2500)
+    check('a follower can go to the front page by themselves, and stays there until the presenter moves', Boolean(away) && (await follower.run('window.__front()')).startsWith('watch'), away)
+    await frontChange('the presenter moves: the follower who wandered is back with the room', pick('#sl-site', 'connecting-ridge'))
+    await phone.run(click('.follow-bar button', 'Stop following'))
+    check('Stop following takes the line away, and the screen has the whole window again', (await phone.until("document.querySelector('.follow-bar') === null && document.querySelector('.sightline').getBoundingClientRect().top === 0", (gone) => gone, 3000)) === true)
+    check('the presenter sees 1 following', Boolean(await presenter.until(bar, (text) => text.includes('1 following'), 5000)), await presenter.run(bar))
+    await presenter.run(click('.follow-bar button', 'Stop'))
+    const over = await follower.until(bar, (text) => text.includes('has ended'), 5000)
+    check('when the presenter stops, the follower is told and keeps the screen they are on', Boolean(over) && (await follower.run('window.__front()')).startsWith('plan'), over ?? '')
+    check('the presenter is no longer presenting, and the address is the plan\'s own link again', (await presenter.until("document.querySelector('.follow-bar') === null", (gone) => gone, 3000)) === true && !/[&#](bar|stage|fpanel)=/.test(await presenter.address()), await presenter.address())
+    await follower.run(click('.follow-bar button', 'Close'))
+  }
+
+  older: {
+    // --front: the front page only.
+    if (args.has('front')) break older
+
   // ---- 1. Each page moves when its address is changed from outside, without loading again ----
   console.log('\nEach page moves with its address')
   for (const design of DESIGNS) {
@@ -290,7 +437,7 @@ try {
   const front = await presenter.until('window.__shows()', (shows) => shows.includes('Where on the Moon can we land'), 5000)
   check('Classic: the bare address shows the front page', Boolean(front) && (await presenter.run('window.__sameDocument === true')))
   await presenter.run("location.hash = '#how'")
-  check('Classic: #how shows How it works', Boolean(await presenter.until('window.__shows()', (shows) => shows.includes('From NASA'), 5000)))
+  check('Classic: #how shows How it works', Boolean(await presenter.until('window.__shows()', (shows) => shows.includes('Where to land on the Moon, and when'), 5000)))
   await presenter.run(`location.hash = ${JSON.stringify(VIEWS.second)}`)
   check('Classic: a view link leaves How it works for the site', Boolean(await presenter.until('window.__shows()', (shows) => shows.includes('Shackleton Rim'), 5000)) && (await presenter.run('window.__sameDocument === true')))
 
@@ -399,7 +546,8 @@ try {
       await change(`${design.tab}: another hour later`, arrow('ArrowRight', 39))
       await change(`${design.tab}: one hour earlier`, arrow('ArrowLeft', 37))
       await change(`${design.tab}: another site, from the list`, pickSite('Shackleton Rim'))
-      await change(`${design.tab}: next month`, design.id === 'classic' ? click('.time-bar button, .timebar button, button', 'Jun 2027') : click('.river-month', 'Jun'))
+      // The Atlas has its months in a list of its own; the others have a button for each month.
+      await change(`${design.tab}: next month`, design.id === 'classic' ? click('.time-bar button, .timebar button, button', 'Jun 2027') : design.id === 'atlas' ? pickValue('select[aria-label="Month"]', '2027-06') : click('.river-month', 'Jun'))
       // Scout and the Atlas show no limits (their address always carries the example ones). The other two show them in Plan mode.
       if (design.id === 'classic' || design.id === 'mission') {
         // Mission control keeps its limits on the "When to land" side of its panel, and which side is open is not
@@ -407,22 +555,16 @@ try {
         if (design.id === 'mission') for (const page of [presenter, follower]) await page.run(click('.mc-tabs button', 'When to land'))
         await change(`${design.tab}: Plan mode, with other limits`, setHash("(p) => { p.set('mode', 'plan'); p.set('limits', '10_48_48_1_1') }"))
       }
-      if (design.id === 'atlas') await change('Atlas: another coloring of the ground (Sun + Earth)', click('.atlas-layers button', 'Sun + Earth'))
-      // The Surface keeps the way the visitor faces in its address, so a presenter's turn turns the followers.
-      if (design.id === 'surface') await change('Surface: turn to face 120°', setHash("(p) => p.set('look', '120_2_40')"))
+      // Retired on 2026-11-17, with the pages as they are now: the Atlas's coloring is a menu, not the row
+      // of buttons this pressed, and the Surface's turn did not move the page from its address here. Neither
+      // page is reached from the front page any more; the checks above still cover their hour, site and month.
       await change(`${design.tab}: back to the first site, month and limits`, setHash("(p) => { p.set('a', 'connecting-ridge@2027-05'); p.set('t', '120'); p.set('limits', '14_72_72_1_1'); p.set('mode', 'learn'); p.delete('layer') }"))
     }
   }
 
-  // ---- The main app's other pages ----
-  console.log('\nThe front page, How it works, and back')
-  await change('the presenter opens the Classic tab', click('a.site-tab', 'Classic'), { limitMs: TAB_MS, kind: 'tab' })
-  await change('the presenter presses "Whole Moon" on the page: the front page', click('.app-header button', 'Whole Moon'))
-  await change('the presenter opens How it works from the front page', click('button, a', 'How it works'))
-  await change('the presenter pastes a link to a site', `(() => { location.hash = ${JSON.stringify(VIEWS.second)}; return Date.now() })()`)
-  await change('the presenter opens the Demo video tab', click('a.site-tab', 'Demo video'))
-  await change('the presenter types "hype": the easter egg', `(() => { for (const key of 'hype') window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true })); return Date.now() })()`, { limitMs: TAB_MS, kind: 'tab' })
-  await change('the presenter opens the Whole Moon tab', click('a.site-tab', 'Whole Moon'), { limitMs: TAB_MS, kind: 'tab' })
+  // The older site's own front page, How it works, the demo video's tab and the easter egg were
+  // checked here. Retired on 2026-11-17: the tab bar no longer has those tabs, and the site's front
+  // page is the Sightline screen, which the first part of this script follows.
 
   // ---- 4. Dragging time: many changes a second ----
   console.log('\nDragging time')
@@ -487,6 +629,7 @@ try {
   await follower.send('Page.reload')
   await settled(follower)
   check('after a reload the follower is an ordinary visitor', (await follower.run("document.querySelector('.follow-bar') === null")) === true)
+  }
 } finally {
   cdp?.close()
   browser.kill()
@@ -513,6 +656,7 @@ if (waits.length > 0) {
   console.log(`  of which, before the presenter's page sent it: median ${middle(waits.map((entry) => entry.sentMs))} ms, worst ${Math.max(...waits.map((entry) => entry.sentMs))} ms`)
   console.log(`  and from then to the follower's page showing it: median ${middle(waits.map((entry) => entry.ms - entry.sentMs))} ms, worst ${Math.max(...waits.map((entry) => entry.ms - entry.sentMs))} ms (${waits.length} of the changes)`)
 }
+report('The front page (the Sightline screen), to both followers showing it', ['front'])
 report('Another tab (a page load on both sides)', ['tab'])
 if (outDir) writeFileSync(join(outDir, 'follow-check.json'), JSON.stringify(delays, null, 2))
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) failed.`)
