@@ -16,23 +16,23 @@ describe('what a presenter adds to the Sightline address', () => {
 
   it('comes back as it was written, after the plan or after the mark for Watch', () => {
     const shown: Followed = { barIso: '2027-05-06T13:00:00Z', play: 24, stage: 'surface', panel: 'accuracy', library: false, sheet: 'guide', layer: 'photo', light: true }
-    expect(readFollowed(presenterHash(PLAN, shown))).toEqual(shown)
-    expect(readFollowed(presenterHash(null, { ...REST, barIso: '2026-11-17T09:00:00Z', play: 24 }))).toEqual({ ...REST, barIso: '2026-11-17T09:00:00Z', play: 24 })
+    expect(readFollowed(presenterHash(PLAN, followedPart(shown)))).toEqual(shown)
+    expect(readFollowed(presenterHash(null, followedPart({ ...REST, barIso: '2026-11-17T09:00:00Z', play: 24 })))).toEqual({ ...REST, barIso: '2026-11-17T09:00:00Z', play: 24 })
     expect(readFollowed(PLAN)).toEqual(REST)
   })
 
   it('says which address is Watch: the mark, alone or with values after it, and never a plan', () => {
-    expect(isWatchHash(presenterHash(null, REST))).toBe(true)
-    expect(isWatchHash(presenterHash(null, { ...REST, play: 24 }))).toBe(true)
-    expect(isWatchHash(presenterHash(PLAN, REST))).toBe(false)
+    expect(isWatchHash(presenterHash(null, followedPart(REST)))).toBe(true)
+    expect(isWatchHash(presenterHash(null, followedPart({ ...REST, play: 24 })))).toBe(true)
+    expect(isWatchHash(presenterHash(PLAN, followedPart(REST)))).toBe(false)
     expect(isWatchHash('')).toBe(false)
     expect(isWatchHash('#watch=10')).toBe(false)
   })
 
   it('is an address the server lets a presenter publish', () => {
-    const hash = presenterHash(PLAN, { barIso: '2027-05-06T13:00:00Z', play: 24, stage: 'site', panel: 'compare', library: true, sheet: 'brief', layer: 'temperature', light: true })
+    const hash = presenterHash(PLAN, followedPart({ barIso: '2027-05-06T13:00:00Z', play: 24, stage: 'site', panel: 'compare', library: true, sheet: 'brief', layer: 'temperature', light: true }))
     expect(readAddress({ path: '/', query: '', hash })).toEqual({ path: '/', query: '', hash })
-    expect(readAddress({ path: '/', query: '', hash: presenterHash(null, REST) })).not.toBeNull()
+    expect(readAddress({ path: '/', query: '', hash: presenterHash(null, followedPart(REST)) })).not.toBeNull()
   })
 
   it('reads past anything it does not know, since the values come from a stranger', () => {

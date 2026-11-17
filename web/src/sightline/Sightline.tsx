@@ -76,7 +76,7 @@ import { HypeDrawer } from './HypeDrawer'
 import { FollowBanner, PresentPanel } from '../components/Follow'
 import { useFollow } from '../components/useFollow'
 import { followStore, startPresenting } from '../lib/followClient'
-import { isWatchHash, presenterHash, readFollowed, shouldSetHour } from '../lib/followView'
+import { followedPart, isWatchHash, presenterHash, readFollowed, shouldSetHour } from '../lib/followView'
 import { Tips } from './Tips'
 import { Tour } from './Tour'
 import { TourWelcome, type WelcomePlace } from './TourWelcome'
@@ -658,17 +658,12 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   const compact = useCompact()
   // For Scout the link always says which scenario is on show, so the co-pilot reads it as this screen's.
   const scoutView = active > 0 ? view : `${view}&sc=0`
-  useEffect(() => {
-    // With the Planner open the address also says which of its tabs is on show.
-    // The link says when the skyline strip is open, so a shared link opens as its sender saw it.
-    // A presenter's link always says how the strip stands: a follower's screen may open it another way.
-    const withSky = (link: string) => (skyMin === skyStartsFolded && !presenting ? link : `${link}&sky=${skyMin ? 0 : 1}`)
-    const own = plan ? withSky(full ? withPlannerTab(view, plannerTab) : view) : null
-    if (!presenting) return setAddressBar(own ?? window.location.pathname)
-    // While presenting the address also says what a room sees together: the hour on the time bar and
-    // whether time plays, how close the Moon is seen, the panel, the map over the ground, an open sheet.
-    setAddressBar(
-      presenterHash(own, {
+  // What a presenter's address says beside the plan (lib/followView.ts): the hour on the time bar and
+  // whether time plays, how close the Moon is seen, the panel, the map over the ground, an open sheet.
+  // Null for a tab that is not presenting, whose address then moves with the screen's own link and
+  // nothing else: opening a panel or closing the Library does not write it again.
+  const roomPart = presenting
+    ? followedPart({
         barIso: new Date(Date.parse(start) + barHour * 3_600_000).toISOString(),
         play: playing ? clock.hoursPerSecond : null,
         stage: plan ? mode : 'orbit',
@@ -677,17 +672,42 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
         sheet: how ? 'guide' : brief ? 'brief' : null,
         layer: plan ? layer : null,
         light: plan && shade,
-      }),
-    )
-  }, [plan, view, full, plannerTab, skyMin, skyStartsFolded, presenting, start, barHour, playing, clock.hoursPerSecond, mode, drawer, library, how, brief, layer, shade])
+      })
+    : null
+  /** A saved plan's short link has just been put in the address, and is waiting there to be read (below). */
+  const [linkWaiting, setLinkWaiting] = useState(false)
+  useEffect(() => {
+    // The short link of a plan being opened from the Library is left alone until it has been read.
+    if (linkWaiting) return
+    // With the Planner open the address also says which of its tabs is on show.
+    // The link says when the skyline strip is open, so a shared link opens as its sender saw it.
+    // A presenter's link always says how the strip stands: a follower's screen may open it another way.
+    const withSky = (link: string) => (skyMin === skyStartsFolded && !presenting ? link : `${link}&sky=${skyMin ? 0 : 1}`)
+    const own = plan ? withSky(full ? withPlannerTab(view, plannerTab) : view) : null
+    setAddressBar(roomPart === null ? (own ?? window.location.pathname) : presenterHash(own, roomPart))
+  }, [plan, view, full, plannerTab, skyMin, skyStartsFolded, presenting, roomPart, linkWaiting])
   // A saved plan asked for from the Library. The Library closes first; this effect comes after the one
   // above on purpose, so the plan's short link goes into the address after the screen has written its
-  // own, not before, and is still there to be read and opened (usePlanLink).
+  // own, not before. The screen then leaves the address alone until the link has been read and its
+  // plan asked for (usePlanLink hears the same "hashchange", first): closing the Library changes what
+  // a presenter's address says, and that write would otherwise take the link away unread.
   useEffect(() => {
     if (resuming === null || full) return
     window.location.hash = planHash(resuming)
     setResuming(null)
+    setLinkWaiting(true)
   }, [resuming, full])
+  useEffect(() => {
+    if (!linkWaiting) return
+    const read = () => setLinkWaiting(false)
+    window.addEventListener('hashchange', read, { once: true })
+    // An address that already was that link changes nothing, and nothing is heard: the wait still ends.
+    const timer = window.setTimeout(read, 1000)
+    return () => {
+      window.removeEventListener('hashchange', read)
+      window.clearTimeout(timer)
+    }
+  }, [linkWaiting])
 
   // A date the data covers but in a year not on hand: ask for the years, and go there once they
   // are here. A date far from the years on hand starts the screen again around it, on this link.
