@@ -631,10 +631,42 @@ for example from a VM on the default network. There is none for this, and none i
 The way back to open addresses is one line (`service_ingress` in `infra/settings.auto.tfvars`;
 `docs/ARCHITECTURE_PHASE_6.md`, section 4).
 
+## Settings after the event
+
+Since 2026-11-17 the site runs smaller (Rodrigo: keep it good for visitors, stop paying for a venue's
+worth of headroom). All in `infra/settings.auto.tfvars`.
+
+| Setting | Now | During the event | What changes for a visitor |
+| --- | --- | --- | --- |
+| `min_instances`, `plans_min_instances`, `copilot_min_instances` | 1 | 2 | Still no cold start. Losing the one copy means a cold start for the next visitor |
+| `max_instances`, `plans_max_instances`, `copilot_max_instances` | 3 | 10 | Nothing at ordinary traffic; a crowd of hundreds at once would queue |
+| `service_cpu_always_on` | false | true | CPU only while a request is open. A follower's stream is an open request, so following still works |
+| `service_memory`, `service_cpu` | 1Gi, 1 | 1Gi, 1 | Unchanged |
+| `redis_tier`, `redis_memory_gb`, `redis_read_replicas` | BASIC, 1, false | STANDARD_HA, 5, true | A zone failure or maintenance loses limits, kept answers and rooms until the instance is back; the services use memory meanwhile |
+| `copilot_limits` | unchanged | unchanged | Scout's ceilings are still the loose ones set on 2026-11-16 |
+
+**How the switch went, 2026-11-17:** applied from the Mac first (a saved plan, read line by line: three
+services changed in place, one Redis instance replaced, no access changes), then put on `main` by the pull
+request that added this section, whose plan was "No changes". The new Basic instance was made before the
+Standard one was deleted. Checked on the live site afterwards: `web/scripts/smoke.mjs` with a saved plan
+and two co-pilot answers (39 checks passed), every status on the new Redis, pages and status in 115 to
+190 ms, the first load in headless Chrome with all 75 requests answered, and `web/scripts/follow-check.mjs`
+with 54 checks passed and 4 failed, all on the Atlas page's time controls (the script looks older than that
+page; it was not run before the change, so that is not proven).
+
+**What it costs, at list price (not re-checked, no billing data read):** three warm copies with CPU only
+during requests, about $1.30 a day; Redis Basic 1 GB, about $1.18 a day. About $2.50 a day for these two,
+against about $17 during the event. The load balancer, the edge firewall, the CDN, storage and DNS are as
+they were.
+
+**To go back** to the event's settings: the values in the table's third column, in a pull request. Redis to
+Standard replaces the instance again.
+
 ## Hackathon settings
 
-Since 2026-11-13 the demo runs as the hackathon project should (Rodrigo: this demo is the reference the new
-project is built from). All in `infra/settings.auto.tfvars`, applied through the pipeline (pull requests 171
+From 2026-11-13 to 2026-11-17 the demo ran as the hackathon project should (Rodrigo: this demo is the
+reference the new project is built from). What follows is the record of those settings; what runs now is
+in "Settings after the event" above. All in `infra/settings.auto.tfvars`, applied through the pipeline (pull requests 171
 and 172). The variables' defaults are the cheap ones, so taking a line out goes back to them.
 
 | Setting | Value | Default | Why |
@@ -661,8 +693,7 @@ for these two on Google's credits, plus the model on Anthropic's.
 `ARCHITECTURE_PHASE_4.md`). Both work and were drilled, and both add ways to fail: the second region's drill
 caused a 20-minute outage. For a 36-hour build, fewer moving parts and more headroom run smoother.
 
-**To go back to cheap** after the event: remove the lines in a pull request. Redis back to Basic replaces the
-instance again (name it in `infra/expected-removals.txt`).
+**Going back to cheap** was done on 2026-11-17: "Settings after the event" above.
 
 ## Follow the presenter, in the pitch
 
