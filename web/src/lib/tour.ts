@@ -11,8 +11,8 @@ export interface TourState {
   view: 'watch' | 'plan'
   /** A site whose marker is ringed on the Moon, the way a reply of Scout's rings one. */
   ring?: string
-  /** A strip that must be open for the step: the skyline, or the time bar. */
-  show?: 'skyline' | 'time'
+  /** A strip that must be open for the step: the skyline, or the time bar. On the front page, the line that says how the Moon is turned, zoomed and pressed, which a visitor who has done so no longer has. */
+  show?: 'skyline' | 'time' | 'gestures'
   /**
    * Something the step opens to talk about it: the Compare or Layers panel, the form for a custom
    * point, the Share list, or the Planner on one of its tabs. The tour also opens the
@@ -34,6 +34,8 @@ export interface TourState {
   stage?: 'site' | 'surface'
   /** Time plays while the step is on. */
   play?: boolean
+  /** The Moon shows what a drag and a zoom do: it turns aside, goes closer, and comes back to where it was. */
+  demo?: 'gestures'
   /** On a phone the sheet opens to its full height for the step, as it does for a step that shows a strip: what it rings is too long for half a screen. */
   tall?: boolean
 }

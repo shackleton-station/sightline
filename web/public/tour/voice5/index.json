@@ -115,6 +115,12 @@
       "bytes": 79104,
       "seconds": 19.8,
       "say": "A landing does not have to be at a listed site. The site list ends with Custom point. Choose it, type a latitude and a longitude, and press Go. There: a point no list holds, near the south pole. Sightline works out its own skyline from the same terrain, and answers for it like any other."
+    },
+    "gestures": {
+      "hash": "1c483e20fff059d5",
+      "bytes": 73632,
+      "seconds": 18.4,
+      "say": "This Moon is not a picture: it is a globe, and yours to move. Drag it, and it turns. Scroll, or pinch on a phone, and it zooms. Watch: a turn, a zoom, and back. And a press on any point checks a landing there, as you will soon see."
     }
   }
 }

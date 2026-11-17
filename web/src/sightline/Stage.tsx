@@ -33,6 +33,10 @@ interface Props {
   bare: boolean
   /** Pixels at the bottom of the stage to keep clear of the Moon (Watch's play control sits there). */
   reserveBottom: number
+  /** The visitor has turned, zoomed or pressed the Moon themselves (a drag, the wheel, a pinch, a zoom button, a key). Never told for a flight the page makes. */
+  onGesture?: () => void
+  /** Counts up each time the Moon is to show what a drag and a zoom do: it turns aside, goes closer, and comes back to where it was. */
+  demo?: number
   /**
    * Sites ringed besides: the ones a reply of Scout's leads with, in Watch. They are outlined like
    * the selected site, where they are. An answer never moves the view: when none of them can be seen
@@ -106,6 +110,12 @@ const NONE_RINGED: string[] = []
 const TURN_FLIGHT_MS = 900
 const RECENTRE_FLIGHT_MS = 400
 const FLIGHT_SETTLE_MS = 250
+/** The tour's showing of a drag and a zoom: how far the Moon turns aside, how much closer it goes, and how long each of its three flights takes. */
+const DEMO_TURN_DEG = 32
+const DEMO_ZOOM = 1.7
+const DEMO_FLIGHT_MS = 1100
+/** The keys that turn or zoom the Moon while it has the keyboard. */
+const MOON_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '+', '=', '-'])
 
 /**
  * The Moon, and only the Moon: one globe seen from over the south pole, lit as the ephemeris has it
@@ -135,7 +145,7 @@ const ZOOM_SLACK = 1e-6
 /** The listed sites' group that holds the candidate landing sites near the south pole. */
 const CANDIDATES_GROUP = 'South pole ridges'
 
-export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, onRingedHidden, turnTo = null, recentreWords = null, focus, onChoose, onPoint, onPick, onRecentre, corner, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
+export function Stage({ sites, states, sun, earth, bare, reserveBottom, selectedId, ringIds = NONE_RINGED, onRingedHidden, turnTo = null, recentreWords = null, focus, onChoose, onPoint, onPick, onRecentre, onGesture, demo = 0, corner, overlay = null, shade = null, layer = null, fine = null, grid, names = null }: Props) {
   const stage = useRef<HTMLDivElement>(null)
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [box, setBox] = useState({ width: 0, height: 0 })
@@ -313,6 +323,28 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
 
   // Whether the view has been moved from the default one, and which way: for the recentre compass.
   const moved = placed && viewMoved({ center, up, zoom }, { ...DEFAULT_POSE, zoom: fit.wholeZoom })
+
+  // The tour shows what a drag and a zoom do, on the Moon itself: it turns aside, goes closer, and
+  // comes back to where it was. The visitor's own touch stops it where it is, as it stops any flight;
+  // a change of the stage's size on the way sends it home (the same flight the compass makes).
+  useEffect(() => {
+    if (demo === 0 || !placed || focusLat !== undefined) return
+    const home = { lat: view.lat, lon: view.lon }
+    const homeZoom = zoom
+    const atRest = !moved
+    const aside = { lat: home.lat + (home.lat > 0 ? -DEMO_TURN_DEG : DEMO_TURN_DEG), lon: home.lon }
+    // With motion reduced each flight is a single change of picture: it is held a little longer, so it can be seen.
+    const hold = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 250
+    const pause = () => new Promise<void>((resolve) => window.setTimeout(resolve, hold))
+    flight.current = atRest ? { kind: 'whole', until: performance.now() + 3 * DEMO_FLIGHT_MS + 3 * hold + FLIGHT_SETTLE_MS } : { kind: 'turn', goal: home, until: performance.now() + 3 * DEMO_FLIGHT_MS + 3 * hold + FLIGHT_SETTLE_MS }
+    void flyTo(aside, homeZoom, DEMO_FLIGHT_MS)
+      .then(pause)
+      .then(() => flyTo(aside, homeZoom * DEMO_ZOOM, DEMO_FLIGHT_MS))
+      .then(pause)
+      .then(() => (atRest ? flyTo(OVER_THE_POLE, wholeZoom, DEMO_FLIGHT_MS) : flyTo(home, homeZoom, DEMO_FLIGHT_MS)))
+    // Only a new asking starts this, from the view as it is at that moment.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo])
   const needle = needleDeg({ center, up }, DEFAULT_POSE.up)
 
   const markers = useMemo((): Marker[] => {
@@ -474,6 +506,10 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
         aria-label="The Moon, seen from over its south pole. Drag or use the arrow keys to turn it, plus and minus to zoom, and choose a site."
         tabIndex={0}
         {...handlers}
+        // A press on the Moon itself (a drag or a click starts with one), the wheel, or one of the keys that turn or zoom it.
+        onPointerDownCapture={(event) => event.target instanceof HTMLCanvasElement && onGesture?.()}
+        onWheelCapture={() => onGesture?.()}
+        onKeyDownCapture={(event) => MOON_KEYS.has(event.key) && onGesture?.()}
       >
         {!drawn && !lost && side > 0 && (
           <img className="sl-poster" src={POSTER_URL} alt="" width={Math.round(wholeZoom * side)} height={Math.round(wholeZoom * side)} decoding="async" />
@@ -492,7 +528,15 @@ export function Stage({ sites, states, sun, earth, bare, reserveBottom, selected
       {!bare && (
         <div ref={tools} className="sl-view-tools">
           {/* The camera stops a rounding error short of its limit at some stage sizes: "at the limit" allows for it. */}
-          <ZoomButtons zoom={zoom} onZoom={zoomTo} min={farZoom * (1 + ZOOM_SLACK)} max={closestAt(center) * (1 - ZOOM_SLACK)} />
+          <ZoomButtons
+            zoom={zoom}
+            onZoom={(next) => {
+              onGesture?.()
+              zoomTo(next)
+            }}
+            min={farZoom * (1 + ZOOM_SLACK)}
+            max={closestAt(center) * (1 - ZOOM_SLACK)}
+          />
           {earthDeg !== null && (
             <p className="sl-to-earth" role="img" aria-label="The way to Earth across the ground, at the moment on the time bar" title="Points along the ground toward Earth, at the hour on the time bar.">
               <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">

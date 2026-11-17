@@ -504,3 +504,13 @@ Rodrigo asked for the Google Cloud bill to come down while the site stays good f
 - [ ] `web/scripts/follow-check.mjs` fails four checks on the Atlas page's time controls. It looks older than that page; not fixed here.
 - [x] `CLAUDE.md` no longer carries the event's rules (Rodrigo, 2026-11-17: treat this as an ordinary project from now on). The event's integrity rules became "Publishing and credit"; `AI_USAGE.md` is a short statement kept true, not a line per task; section 2 gives the site's address and the settings it runs now; section 5 (the one-time GitHub setup) and section 10 (the friction report) were cut down to what still applies. Section numbers are unchanged, because other documents point at them.
 - [ ] Scout's question ceilings are still the loose ones of 2026-11-16. They spend Anthropic credits, not Google Cloud.
+
+## The front page says how the Moon is moved (2026-11-17)
+
+Rodrigo, after the event: a first-time visitor is not told that the Moon can be dragged, zoomed and clicked.
+
+- [x] One quiet line under the Moon on the opening screen, over the play control: "Drag to turn · Scroll to zoom · Click the Moon to check any point" ("Pinch" and "Tap" where the pointer is a finger). It takes no press and is over nothing. The visitor's first drag, zoom (wheel, pinch, the zoom buttons, the keys) or press on the Moon or a dot removes it for good in that browser (`sightline.gesturesKnown`; `Stage.tsx` tells `Sightline.tsx` through `onGesture`, never for a flight the page makes)
+- [x] Scout's tour has a twentieth step, the second, "Turn, zoom, press" (`tour5.json`, id `gestures`): the line is ringed (shown even to a visitor who has learned it), the Moon is lit, and "Show it" has the real Moon turn aside, go closer and come back to where it was (`demo` on `Stage`). The Moon can be dragged by hand on that step. Its spoken line is rendered (`public/tour/voice5/gestures.mp3`, 18.4 s); the tour played through is now 7:53. The README's written tour has the step
+- [x] Checks: `tsc -b`, `vitest run`, lint, and four scenes in `web/scripts/sightline-shots.mjs` at laptop, small laptop and phone: `gestures` (the line, a drag, a reload), `gestures-zoom` (the wheel), `gestures-press` (a press opens the plan at that point), `gestures-tour` (the step moves the Moon and brings it back). The tour's own scenes walk the new step
+- [ ] The new voice line was checked by a transcript (whisper, base model), not by ear: it heard "And if press on any point, check the landing there" for "And a press on any point checks a landing there". A person should play it once
+- [ ] The walkthrough video and its captions (`tour.json`, recorded before) do not have the step

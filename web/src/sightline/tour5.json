@@ -5,7 +5,7 @@
     "disclosure": "AI-generated voice",
     "files": "/tour/voice5/<id>.mp3",
     "from": "Google Cloud Text-to-Speech, the voice Scout speaks with on the site (en-US-Chirp3-HD-Leda), rendered once from each step's \"say\"",
-    "seconds": 453
+    "seconds": 473
   },
   "steps": [
     {
@@ -25,6 +25,30 @@
       "lit": [
         "moon"
       ]
+    },
+    {
+      "id": "gestures",
+      "chapter": "The problem",
+      "title": "Turn, zoom, press",
+      "line": "Drag the Moon to turn it, scroll or pinch to zoom, press any point to check a landing. Show it does the first two.",
+      "say": "This Moon is not a picture: it is a globe, and yours to move. Drag it, and it turns. Scroll, or pinch on a phone, and it zooms. Watch: a turn, a zoom, and back. And a press on any point checks a landing there, as you will soon see.",
+      "state": {
+        "view": "watch",
+        "show": "gestures"
+      },
+      "targets": [
+        ".sl-gestures"
+      ],
+      "lit": [
+        "moon"
+      ],
+      "then": {
+        "demo": "gestures"
+      },
+      "after": [
+        ".sl-gestures"
+      ],
+      "pressOn": "Watch:"
     },
     {
       "id": "plan",
