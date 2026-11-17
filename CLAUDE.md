@@ -1,9 +1,14 @@
-# CLAUDE.md — Shackleton Station: Sightline (NASA Space Apps 2026)
+# CLAUDE.md — Sightline
 
-You are Claude Code working for a member of team **Shackleton Station** (captain: **Rodrigo Pimenta**) on
-**Sightline**, the team's entry for the NASA Space Apps Challenge (Nov 14–15, 2026). Read this file fully,
-then read `docs/HANDOFF.md` for context, team and the stack audit. If the two ever disagree, **this file
-wins**; tell your human about the conflict.
+You are Claude Code working for a member of team **Shackleton Station** (led by **Rodrigo Pimenta**) on
+**Sightline**, a web app that shows when a lunar landing site has sunlight for power and Earth in view
+for radio. It is live at `https://lunarsightline.com`. Read this file fully, then read `docs/HANDOFF.md`
+for context, team and the stack audit. If the two ever disagree, **this file wins**; tell your human
+about the conflict.
+
+**This is an ordinary project.** It began at an event in November 2026, and some documents still speak
+of it (`docs/HANDOFF.md`, older parts of `docs/PROGRESS.md`, `FRICTION_LOG.md`). Those are history. No
+event's rules, dates or deadlines apply to work done now (Rodrigo, 2026-11-17).
 
 **Starting or resuming a session:** if `docs/PROGRESS.md` exists, read it first and continue from the first
 unchecked item. Keep it current after every meaningful step so any fresh session (yours or a teammate's)
@@ -41,11 +46,10 @@ give Rodrigo a 3–6 line summary. **Do not start the next step if the current o
 - making any repo public;
 - downloading any single file over 5 GB (tell him the size first).
 
-**Hackathon integrity:**
-- This repo is the team's **Space Apps 2026 submission**, created on Nov 14, 2026, and it is **public**:
-  everything committed here is published.
-- Space Apps allows AI tools **with disclosure**: append one line per meaningful task to `AI_USAGE.md`
-  (date, tool = "Claude Code", what you did).
+**Publishing and credit:**
+- This repo is **public**: everything committed here is published.
+- `AI_USAGE.md` is a short statement of how AI is used in the project. Keep it true: change it when the
+  way AI is used changes (a new model in the app, a new kind of AI-made media), not for every task.
 - Cite every dataset, kernel, library and image in `REFERENCES.md` as you use it (name, URL, license/terms).
 - No NASA logos/insignia in anything you generate. Any AI-generated image needs a visible "AI-generated" mark.
 
@@ -78,7 +82,7 @@ combination (Phase 3.2), document it, move on.
 | Web | React + TypeScript + Vite; **SVG + D3** for panorama & timeline; **Three.js** (lazy-loaded, only in `web/src/three/`) for the whole-Moon globe and the 3D terrain, lit only by the pipeline's Sun direction and our own LOLA-derived maps. CesiumJS was measured and dropped (`docs/VALIDATION.md` §8, `docs/LESSONS.md`) |
 | Tests | pytest (pipeline), vitest + `tsc -b` (web) |
 | CI | GitHub Actions |
-| Hosting | Google Cloud, declared in Terraform (`infra/`). Four Cloud Run services, each with its own image, identity and deploy workflow: `web` (`web/server/`, Node + Hono) serves the built app and site data (tiles and video come straight from a Cloud Storage bucket through the CDN), Scout's voice, follow-the-presenter, `/api/stats` and `/api/status`, and has no code for plans or the co-pilot; `plans` (`web/plans/`) answers `/api/plans` and is the only identity that can read or write the Firestore database `plans`; `copilot` (`web/copilot/`) answers `/api/chat` and `/api/ask` through Claude on the Anthropic API (`claude-opus-5-5`, fast speed, low effort, server-side fallbacks; settings in `infra/settings.auto.tfvars`), signed in by Anthropic workload identity federation as its own Google service account, so no key is stored (decision 0009), with a circuit breaker, retries and `Retry-After`, and is the only identity that can call the model or publish question events; `events-worker` (`web/events-worker/`, private) counts co-pilot questions from Pub/Sub into the Firestore database `stats`. Code they share is in `web/shared/`. A load balancer with CDN and an edge firewall (Cloud Armor) in front on `shackletonstation.dev` sends each path to its service and is the only way in from the internet for web, plans and co-pilot (on one machine `web` passes the plans and co-pilot paths on instead); `web` asks the others for their status with a Google identity token each checks itself; keyless deploys from GitHub Actions. Redis (Memorystore) holds rate limits, cached answers, the event outbox, the co-pilot's circuit breaker and presenters' rooms; the services fall back or switch the feature off without it. Also live: each co-pilot question goes through Pub/Sub into a BigQuery table, each API request is traced in Cloud Trace, Scout's voice is Cloud Text-to-Speech, and sign-in with Google is optional (`docs/SYSTEM_DESIGN.md`). Redis's tier, size and read replicas, and an optional Redis Cluster for the co-pilot's cache, are Terraform variables whose defaults are the Basic 1 GB instance (`docs/ARCHITECTURE_PHASE_4.md`); since 2026-11-13 the live instance is Standard, 5 GB, with a read replica, and the three visitor-facing services run the hackathon settings (two warm copies each, CPU always on: `docs/DEPLOY.md`, "Hackathon settings"). Split under the architecture plan (approved by Rodrigo on 2026-11-12; `docs/decisions/`) |
+| Hosting | Google Cloud, declared in Terraform (`infra/`). Four Cloud Run services, each with its own image, identity and deploy workflow: `web` (`web/server/`, Node + Hono) serves the built app and site data (tiles and video come straight from a Cloud Storage bucket through the CDN), Scout's voice, follow-the-presenter, `/api/stats` and `/api/status`, and has no code for plans or the co-pilot; `plans` (`web/plans/`) answers `/api/plans` and is the only identity that can read or write the Firestore database `plans`; `copilot` (`web/copilot/`) answers `/api/chat` and `/api/ask` through Claude on the Anthropic API (`claude-opus-5-5`, fast speed, low effort, server-side fallbacks; settings in `infra/settings.auto.tfvars`), signed in by Anthropic workload identity federation as its own Google service account, so no key is stored (decision 0009), with a circuit breaker, retries and `Retry-After`, and is the only identity that can call the model or publish question events; `events-worker` (`web/events-worker/`, private) counts co-pilot questions from Pub/Sub into the Firestore database `stats`. Code they share is in `web/shared/`. A load balancer with CDN and an edge firewall (Cloud Armor) in front on `lunarsightline.com` (`shackletonstation.dev` forwards to it) sends each path to its service and is the only way in from the internet for web, plans and co-pilot (on one machine `web` passes the plans and co-pilot paths on instead); `web` asks the others for their status with a Google identity token each checks itself; keyless deploys from GitHub Actions. Redis (Memorystore) holds rate limits, cached answers, the event outbox, the co-pilot's circuit breaker and presenters' rooms; the services fall back or switch the feature off without it. Also live: each co-pilot question goes through Pub/Sub into a BigQuery table, each API request is traced in Cloud Trace, Scout's voice is Cloud Text-to-Speech, and sign-in with Google is optional (`docs/SYSTEM_DESIGN.md`). Redis's tier, size and read replicas, and an optional Redis Cluster for the co-pilot's cache, are Terraform variables whose defaults are the Basic 1 GB instance (`docs/ARCHITECTURE_PHASE_4.md`); since 2026-11-17 the live instance is that Basic 1 GB one, and the three visitor-facing services run one warm copy each, three at most, with CPU only while a request is open (`docs/DEPLOY.md`, "Settings after the event"). Split under the architecture plan (approved by Rodrigo on 2026-11-12; `docs/decisions/`) |
 | **Not used** | MapLibre/Mapbox (no polar/lunar support), CesiumJS, FastAPI, AWS, API keys or other stored secrets. The pipeline's results stay static JSON: the database holds only what visitors save. Allowed in addition, under the architecture plan: a second Firestore database, `stats`, holding counters written by `events-worker`; and in the `plans` database a second collection, `idempotency`, holding one record per keyed save for a day |
 
 ---
@@ -95,7 +99,7 @@ sightline/
 │   ├── HANDOFF.md            # context + spec (copy of the handoff file)
 │   ├── PROGRESS.md           # phase checklist, updated every phase
 │   ├── OPEN_QUESTIONS.md     # anything unverified
-│   └── pitch/                # Jessica's story + storyboard (she owns it)
+│   └── pitch/                # the project's story and storyboard (Jessica owns it)
 ├── pipeline/
 │   ├── pyproject.toml        # uv project
 │   ├── src/clps/
@@ -153,33 +157,15 @@ Check and report versions/status; install only what's missing **after telling Ro
 
 ## 5. Phase 1 — GitHub setup
 
-1. From the folder containing this file: `gh repo create shackleton-station/<repo> --private --clone
-   --add-readme --license mit` (clones into `./<repo>`). Do all further work inside `<repo>/`.
-2. Add the files in §3 (top level + `docs/`), `.gitignore` covering Python, Node, `cache/`, `*.tif *.img
-   *.lbl *.jp2 *.bsp *.bpc *.tls *.tf`, `.env*` (but **not** `.env.example`), `.netrc`.
-3. Copy this `CLAUDE.md` and `HANDOFF.md` (→ `docs/HANDOFF.md`) into the repo.
-4. Try branch protection on `main` (require PR + 1 approval). Free orgs usually can't protect private
-   repos — if the API refuses, **don't upgrade**; note "PR-only convention" in README and PROGRESS.
-5. Labels (use `gh label create <name> --force` — `question` already exists by default): `pipeline`, `web`,
-   `3d`, `infra`, `pitch`, `friction`, `blocked`, `question`.
-6. Project board: `gh project create --owner shackleton-station --title "CLPS Demo #1"` (note the project
-   number it returns; add issues with `gh project item-add <number> --owner shackleton-station --url <issue-url>`).
-7. Create issues (no assignees yet), each with a **Definition of Done**, and add them to the board:
-   - Pipeline: kernels loader · DEM download/window · horizon mask · ephemeris · visibility & windows ·
-     validation · JSON export · `run_all.py`
-   - Web: app shell + data loaders · horizon panorama · time slider · timeline · summary card ·
-     Cesium 3D view (lazy) · mobile layout
-   - Infra: CI workflow · Cloudflare Pages deploy
-   - Pitch: user + problem paragraph · 30-second storyboard
-8. **STOP.** Ask Rodrigo for teammates' GitHub usernames and explicit OK before inviting:
-   `gh api orgs/shackleton-station/invitations -F invitee_id=$(gh api users/<u> --jq .id) -f role=direct_member`
-   New org members usually get only **Read** (the org's base permission), so also grant write on the repo:
-   `gh api -X PUT repos/shackleton-station/<repo>/collaborators/<u> -f permission=push`.
-   If Rodrigo doesn't have the usernames yet, **don't block**: mark "invites pending" in PROGRESS.md and continue.
-9. **Tell Rodrigo to restart Claude Code inside `<repo>/`** for all later phases, and to rename the parent
-   folder's copies (e.g. `CLAUDE.bootstrap.md`) so two CLAUDE.md files can't drift apart.
+Done once, when the repository was made. Kept as a record of what exists, not as steps to repeat:
 
-✅ Done when the repo, labels, board and issues exist and `main` has the bootstrap commit.
+- The repo lives in the GitHub organization `shackleton-station`, with an MIT license, `main` protected
+  (pull requests only, CI green, no approval required: §3), and the labels `pipeline`, `web`, `3d`,
+  `infra`, `pitch`, `friction`, `blocked`, `question`.
+- `.gitignore` covers Python, Node, `cache/`, `*.tif *.img *.lbl *.jp2 *.bsp *.bpc *.tls *.tf`, `.env*`
+  (but **not** `.env.example`) and `.netrc`.
+- Inviting anyone to the organization or giving them access to the repo is Rodrigo's step (§1): ask him,
+  with the GitHub username, and wait for his OK.
 
 ---
 
@@ -214,7 +200,7 @@ Work test-first where possible. Keep every function pure and small; IO only in `
 - Time range: one calendar month (e.g. 2027-01-01 to 2027-02-01 UTC), hourly. All times UTC in data and UI
   (label the UI "UTC").
 - **Observer height is a parameter** (`obs_height_m`, default 2 m). At the pole, a few meters change
-  illumination a lot (solar panels on a mast see more Sun) — Demo #2 can compare 2 m vs 10 m.
+  illumination a lot (solar panels on a mast see more Sun): the app compares 2 m with other heights.
 
 ### 3.2 SPICE kernels (`kernels.py`)
 - Download from NAIF generic kernels (https://naif.jpl.nasa.gov/pub/naif/generic_kernels/) into
@@ -362,7 +348,7 @@ Tests: vitest for data transforms (window merging for display, scales); `npx tsc
   `cd web && npm run upload-tiles` copies them (needs access to the Google Cloud project). Never upload them
   with a `Content-Encoding`.
 - **The services' `run.app` addresses are closed** (Phase 6): web, plans and co-pilot take internet requests
-  only through the load balancer. To reach a version that is not live, use `https://shackletonstation.dev`
+  only through the load balancer. To reach a version that is not live, use `https://lunarsightline.com`
   with the header `x-clps-canary: web|plans|copilot` (`--canary <service>` on the check scripts). The header
   is documented, not a secret. The events worker keeps its identity-only door.
 - **No stored keys.** The co-pilot and the typed-question box call Claude on the Anthropic API as the
@@ -383,18 +369,17 @@ Tests: vitest for data transforms (window merging for display, scales); `npx tsc
 
 ---
 
-## 10. Phase 6 — Friction report
+## 10. Phase 6 — Friction and lessons
 
-Keep `FRICTION_LOG.md` updated **during** every phase, not just at the end
-(`| Date | Who | Area | What slowed us | Time lost | Decision for Nov 14 |`), then answer in
-`docs/LESSONS.md`:
-- DEM product, size, download time, horizon compute time per site.
-- Which kernels; how the frame was verified; Horizons/PGDA agreement.
-- Precompute vs on-demand for N sites × 1 year?
-- Cesium: setup time, bundle size, phone performance, token hassles. Keep or drop for Nov 14?
-- Agent/Git friction (conflicts, agents straying out of folders).
-- **What we'd cut with only 36 hours.**
-- A 10-line "Saturday 9 AM plan" for the real event.
+Keep `FRICTION_LOG.md` updated **as you work**, not afterwards: one row for anything that cost real time
+(`| Date | Who | Area | What slowed us | Time lost | What we decided |`). Older rows carry a last column
+named for a date in November 2026; leave them as they are.
+
+When a lesson would change how the next piece of work is done, write it in `docs/LESSONS.md`:
+- data and compute: which product, how large, how long it took, what would be precomputed next time;
+- correctness: how a result was checked, and against what;
+- tools that were measured and dropped, with the measurement;
+- agent and Git friction (conflicts, agents straying out of folders).
 
 ---
 
@@ -405,7 +390,7 @@ Keep `FRICTION_LOG.md` updated **during** every phase, not just at the end
   git-ignored outputs).
 - TypeScript: strict mode, no `any`, components < ~200 lines, data types imported from the generated contract.
 - Units in names when ambiguous (`elev_deg`, `dist_km`, `h_m`).
-- Prefer boring and readable over clever; teammates and judges will read it.
+- Prefer boring and readable over clever; other people will read it.
 
 ## 12. When unsure
 
