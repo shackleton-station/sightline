@@ -411,6 +411,16 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
   useEffect(() => {
     if (greeting && (plan || how)) endGreeting()
   }, [greeting, plan, how, endGreeting])
+  // How the Moon is moved, said in one quiet line on the front page until the visitor has turned, zoomed
+  // or pressed it once: after that it is gone for good in this browser. The tour's step about it shows
+  // the line whatever was learned, and has the Moon show a turn and a zoom itself (`gestureDemo`).
+  const [gesturesKnown, setGesturesKnown] = useStored('gesturesKnown', false)
+  const learnGestures = useCallback(() => {
+    if (!gesturesKnown) setGesturesKnown(true)
+  }, [gesturesKnown, setGesturesKnown])
+  const [gestureDemo, setGestureDemo] = useState(0)
+  /** A finger on glass, not a mouse: the line says "pinch" and "tap". */
+  const touch = useMemo(() => window.matchMedia('(pointer: coarse)').matches, [])
   const guideVideos = useGuideVideos(TOUR, tourAt !== null || how)
   /** How it works opens at its video when the tour's last step asks for it. */
   const [howAtVideo, setHowAtVideo] = useState(false)
@@ -1005,6 +1015,8 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
     // Standing at the site, the skyline strip is shut unless the step shows it.
     if (stage === 'surface') setSkyInSurface(show === 'skyline')
     setPlaying(Boolean(play))
+    // "Show it" on the step about moving the Moon: the Moon turns aside, goes closer, and comes back.
+    if (tourState.demo === 'gestures') setGestureDemo((n) => n + 1)
     if (view === 'watch') {
       setPlan(false)
       setPillMin(false)
@@ -1484,7 +1496,13 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
           turnTo={turnTo}
           recentreWords={scoutTurned ? 'Back to the south pole' : null}
           focus={shown && !planner && mode === 'site' ? site : null}
-          onChoose={openPlan}
+          onChoose={(chosen) => {
+            // A press on a site's dot is a press on the Moon.
+            learnGestures()
+            openPlan(chosen)
+          }}
+          onGesture={learnGestures}
+          demo={gestureDemo}
           onPoint={setPointed}
           onRecentre={() => {
             setMode('orbit')
@@ -1603,6 +1621,10 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <i className="is-none" aria-hidden="true" /> Neither
             </li>
           </ul>
+        )}
+        {/* How the Moon is moved, in one quiet line under it, until the visitor has moved it once. */}
+        {!bare && !plan && (!gesturesKnown || tourState?.show === 'gestures') && !(scoutOpen && room === 'phone') && (
+          <p className="sl-gestures">{touch ? 'Drag to turn · Pinch to zoom · Tap the Moon to check any point' : 'Drag to turn · Scroll to zoom · Click the Moon to check any point'}</p>
         )}
         {/* The tour, one press away on every visit: a chip under Scout's mark, level with the play control (under the page's name on a narrow window). */}
         {!bare && !plan && tourAt === null && !welcome && !(scoutOpen && room === 'phone') && (

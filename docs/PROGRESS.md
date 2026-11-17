@@ -493,3 +493,13 @@ Anyone can save a plan without signing in, and the Library is open to everyone, 
 - [x] A plan opened by its link shows its title and note as before, as text (`PlanNote.tsx`; nothing in the app renders HTML from a string). The service refuses a title over 80 characters or a note over 400, and a body over 4,000 (`web/plans/handler.ts`, tested in `plans.test.ts`).
 - [x] Checks: `tsc -b`, `vitest run`, and a scene, `library-no-visitor-text` (`web/scripts/sightline-shots.mjs`), at laptop and phone, with a stand-in service that still sends ids, titles and a note: none of it is on the page.
 - [ ] A page loaded before the change needs `plan` and `title` in each entry, so it shows an empty Library until it is reloaded.
+
+## The front page says how the Moon is moved (2026-11-17)
+
+Rodrigo, after the event: a first-time visitor is not told that the Moon can be dragged, zoomed and clicked.
+
+- [x] One quiet line under the Moon on the opening screen, over the play control: "Drag to turn · Scroll to zoom · Click the Moon to check any point" ("Pinch" and "Tap" where the pointer is a finger). It takes no press and is over nothing. The visitor's first drag, zoom (wheel, pinch, the zoom buttons, the keys) or press on the Moon or a dot removes it for good in that browser (`sightline.gesturesKnown`; `Stage.tsx` tells `Sightline.tsx` through `onGesture`, never for a flight the page makes)
+- [x] Scout's tour has a twentieth step, the second, "Turn, zoom, press" (`tour5.json`, id `gestures`): the line is ringed (shown even to a visitor who has learned it), the Moon is lit, and "Show it" has the real Moon turn aside, go closer and come back to where it was (`demo` on `Stage`). The Moon can be dragged by hand on that step. Its spoken line is rendered (`public/tour/voice5/gestures.mp3`, 18.4 s); the tour played through is now 7:53. The README's written tour has the step
+- [x] Checks: `tsc -b`, `vitest run`, lint, and four scenes in `web/scripts/sightline-shots.mjs` at laptop, small laptop and phone: `gestures` (the line, a drag, a reload), `gestures-zoom` (the wheel), `gestures-press` (a press opens the plan at that point), `gestures-tour` (the step moves the Moon and brings it back). The tour's own scenes walk the new step
+- [ ] The new voice line was checked by a transcript (whisper, base model), not by ear: it heard "And if press on any point, check the landing there" for "And a press on any point checks a landing there". A person should play it once
+- [ ] The walkthrough video and its captions (`tour.json`, recorded before) do not have the step

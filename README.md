@@ -45,9 +45,9 @@ The Guide shows the same six, worked out from the data files as the page reads t
 
 ## Using the site
 
-Scout's tour follows one landing plan across the whole screen, step by step, in nineteen steps and
+Scout's tour follows one landing plan across the whole screen, step by step, in twenty steps and
 four chapters: a landing that does not fit, why, what to do when the date slips, why to trust the
-answer and how to hand it on. It takes about two and a half minutes to read and about seven and a half to hear. Each time
+answer and how to hand it on. It takes about two and a half minutes to read and about eight to hear. Each time
 the front page is opened it is the first thing a visitor sees: one card centered over the Moon, on a
 page dimmed a little, with what Sightline answers, what the tour takes to read, "Take the tour" and
 "Skip". Skip, Escape or a press outside the card closes it until the page is opened again; "Don't
@@ -73,33 +73,34 @@ words on each card:
 *The problem*
 
 1. **A hard place to land.** A lander needs the Sun for power and Earth for a direct radio link. At the Moon's south pole both only skim the horizon, so the hills decide when each is in view.
-2. **Plan a landing.** Press Plan a landing: the front page is the Moon to watch, and this button starts a plan. Choose where, a listed site or any coordinates, and when, in UTC.
-3. **Or any point at all.** A landing need not be at a listed site. Choose Custom point in the site list, type a latitude and a longitude, and press Go: Sightline works out that point's own skyline and answers for it.
-4. **Or press the Moon.** Or just press the Moon: wherever you press becomes the plan's site, with its own skyline and its own answer. This point, close to Connecting Ridge, is sunlit 35% of the mission.
-5. **What it must survive.** Press the mission to see what it must survive: 14 days, at most 24 h dark or 24 h of radio silence. Advanced can ask that Earth's center clear the skyline by 2° or 5°.
+2. **Turn, zoom, press.** Drag the Moon to turn it, scroll or pinch to zoom, press any point to check a landing. Show it does the first two.
+3. **Plan a landing.** Press Plan a landing: the front page is the Moon to watch, and this button starts a plan. Choose where, a listed site or any coordinates, and when, in UTC.
+4. **Or any point at all.** A landing need not be at a listed site. Choose Custom point in the site list, type a latitude and a longitude, and press Go: Sightline works out that point's own skyline and answers for it.
+5. **Or press the Moon.** Or just press the Moon: wherever you press becomes the plan's site, with its own skyline and its own answer. This point, close to Connecting Ridge, is sunlit 35% of the mission.
+6. **What it must survive.** Press the mission to see what it must survive: 14 days, at most 24 h dark or 24 h of radio silence. Advanced can ask that Earth's center clear the skyline by 2° or 5°.
 
 *One landing, answered*
 
-6. **Does it fit?** Does it fit those limits? The answer comes first, fits, fits with little margin or does not fit, and why. Under it: the Sun's elevation, each body's share of the mission, the slope.
-7. **What the lander sees.** So why does it not fit? Press Surface to stand at the site: the Sun and Earth are low over the real skyline, each with the time until it sets.
-8. **Hour by hour.** Now run the 14 days forward. Gold is the Sun, blue is Earth, green is both: the gaps are why this landing fails. Play it, or step out to a year.
+7. **Does it fit?** Does it fit those limits? The answer comes first, fits, fits with little margin or does not fit, and why. Under it: the Sun's elevation, each body's share of the mission, the slope.
+8. **What the lander sees.** So why does it not fit? Press Surface to stand at the site: the Sun and Earth are low over the real skyline, each with the time until it sets.
+9. **Hour by hour.** Now run the 14 days forward. Gold is the Sun, blue is Earth, green is both: the gaps are why this landing fails. Play it, or step out to a year.
 
 *The plan changes*
 
-9. **The date slips.** Launch dates slip, and this one has to. One press adds the next landing that fits beside the first: the same site, on 22 June.
-10. **Another option.** Now the plan holds two scenarios, A and B: each letter is a site and a landing hour. Press + for another, up to four; − on a letter drops it.
-11. **Another site, same date?** Would another site save 6 May? Press Compare: C and D, two more sites near the pole on that date, do not fit either. A star marks each row's best.
-12. **Every site, every month.** Press Planner to see every listed site against every month. In May 2027 no site at the pole has a landing that fits; in June, Connecting Ridge has three days.
-13. **Compare in depth.** Press the Planner's Compare tab to weigh A to D in full: At a glance colors each figure by your limits, and only B fits. Export saves the table, or every hour, as a file.
-14. **What if it misses?** Press Landing accuracy: B fits on its aim point, but no lander comes down exactly there. Of the landings within reach, 38% fit; aim 44 m away, and 60% do.
+10. **The date slips.** Launch dates slip, and this one has to. One press adds the next landing that fits beside the first: the same site, on 22 June.
+11. **Another option.** Now the plan holds two scenarios, A and B: each letter is a site and a landing hour. Press + for another, up to four; − on a letter drops it.
+12. **Another site, same date?** Would another site save 6 May? Press Compare: C and D, two more sites near the pole on that date, do not fit either. A star marks each row's best.
+13. **Every site, every month.** Press Planner to see every listed site against every month. In May 2027 no site at the pole has a landing that fits; in June, Connecting Ridge has three days.
+14. **Compare in depth.** Press the Planner's Compare tab to weigh A to D in full: At a glance colors each figure by your limits, and only B fits. Export saves the table, or every hour, as a file.
+15. **What if it misses?** Press Landing accuracy: B fits on its aim point, but no lander comes down exactly there. Of the landings within reach, 38% fit; aim 44 m away, and 60% do.
 
 *Trust it, and use it*
 
-15. **NASA's maps and tools.** Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan opens in Quickmap, Moon Trek and JPL Horizons.
-16. **Can it be trusted?** Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It says what Sightline cannot tell you.
-17. **Ask Scout.** Or just ask: press Scout. He answers in plain words from the same data, and never writes a number himself: the server fills in every figure.
-18. **Share the plan.** Press Share: its link holds every scenario, landing hour and limit, so it opens as this same plan. Copy link copies it.
-19. **Hand it on.** Last, the Brief writes the scenario on show out in full, to read or print. That was the story: every feature, Canada's rover too, has its own short guide, listed in the Guide.
+16. **NASA's maps and tools.** Press Site and Layers to look at the ground itself, under NASA's own maps. Every plan opens in Quickmap, Moon Trek and JPL Horizons.
+17. **Can it be trusted?** Press Guide for the proof: every number is checked against NASA three ways, with JPL Horizons, NASA's sunlight map and dated photos. It says what Sightline cannot tell you.
+18. **Ask Scout.** Or just ask: press Scout. He answers in plain words from the same data, and never writes a number himself: the server fills in every figure.
+19. **Share the plan.** Press Share: its link holds every scenario, landing hour and limit, so it opens as this same plan. Copy link copies it.
+20. **Hand it on.** Last, the Brief writes the scenario on show out in full, to read or print. That was the story: every feature, Canada's rover too, has its own short guide, listed in the Guide.
 
 The tour is the story; every control it does not stop at has a feature guide of its own, two to four
 cards in the tour's look, with no voice. There are eighteen, all listed in the Guide: Read the answer, The mission's limits, Compare scenarios, The Planner, Find a landing, Compare in full, Landing accuracy, Views and layers, On the surface, The time bar, A custom point, Share a plan, The written brief, The Library, Check it in NASA's tools, Ask Scout, A real mission: Canada's rover, The front page. Layers,

@@ -506,6 +506,32 @@
   box-shadow: 0 10px 26px rgb(0 0 0 / 50%);
 }
 
+/* How the Moon is moved, in one quiet line under its disc, over the play control: there until the
+   visitor has turned, zoomed or pressed the Moon once. It takes no press itself. */
+.sl-gestures {
+  position: absolute;
+  bottom: calc(var(--sl-edge-bottom) + 3.1rem);
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  color: var(--soft);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  translate: -50% 0;
+}
+
+/* On a phone Scout's line stands over the play control: the line is over both, under the Moon. */
+@media (max-width: 760px) {
+  .sl-gestures {
+    bottom: calc(var(--sl-edge-bottom) + 8.2rem);
+    width: calc(100% - 2rem);
+    white-space: normal;
+  }
+}
+
 /* The tour's chip in Watch: under Scout's mark, in the corner, level with the play control. */
 .sl-tour-chip {
   position: absolute;
