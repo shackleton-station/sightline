@@ -165,13 +165,18 @@ function presentingNow(): Presenting | null {
 }
 
 function present(mine: Presenting) {
+  // False once this room is stopped. A change still waiting its turn then (changes go at most once a
+  // second) is not sent, and an answer that arrives late is not acted on: it is about a room this
+  // page no longer presents, and "not found" for it must not end a room started since.
+  let live = true
   const show = (change: { followers?: number; trouble?: boolean }) => {
-    if (state.role !== 'presenter') return
+    if (!live || state.role !== 'presenter') return
     const next = { ...state, ...change }
     if (next.followers !== state.followers || next.trouble !== state.trouble) set(next)
   }
   // The room ran out (a laptop closed for ten minutes, or three hours in all) or was ended from elsewhere.
   const over = () => {
+    if (!live) return
     stop()
     keep(PRESENTING, null)
     set({ role: 'over', why: 'expired' })
@@ -180,11 +185,13 @@ function present(mine: Presenting) {
 
   const publish = latestOnly<Address>(
     async (at) => {
+      if (!live) return true
       const response = await fetch(`/api/rooms/${mine.room}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-presenter-key': mine.key },
         body: JSON.stringify({ at }),
       }).catch(() => null)
+      if (!live) return true
       // The room is gone (it ran out, or was stopped from another page): say so, and stop sending.
       if (response?.status === 404 || response?.status === 403) over()
       // Any other refusal of this address won't change by asking again; a busy or unreachable server will.
@@ -219,6 +226,7 @@ function present(mine: Presenting) {
     () => {},
   )
   stop = () => {
+    live = false
     for (const event of heard) window.removeEventListener(event, look)
     window.clearInterval(looking)
     window.clearInterval(stillHere)
