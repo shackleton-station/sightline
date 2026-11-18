@@ -348,6 +348,15 @@ try {
     // The welcome is answered, as a presenter would: "Skip".
     await presenter.until("document.querySelector('.sl-tour-skip') !== null", (ok) => ok, 4000)
     await presenter.run("document.querySelector('.sl-tour-skip')?.click()")
+    // "Present" is on the opening screen too, in its top row: it starts a room from there, and Stop ends it.
+    await presenter.run(click('.sl-top [data-present]'))
+    const early = await presenter.until("document.querySelector('.follow-link')?.textContent ?? ''", (text) => text.includes('?follow='), 5000)
+    check('the opening screen offers "Present" in its top row, which opens the panel with the code and a link to the front page', Boolean(early) && /^https?:\/\/[^/]+\/\?follow=[a-z0-9]{6}$/.test(early ?? ''), early ?? (await presenter.run("document.querySelector('.sl-top')?.textContent")))
+    await presenter.run(click('.follow-panel button', 'Hide the code'))
+    const pressed = await presenter.until("document.querySelector('.sl-top [data-present]')?.getAttribute('aria-pressed') + ' ' + document.querySelector('.sl-top [data-present]')?.textContent.trim()", (words) => words === 'true Presenting', 3000)
+    check('while presenting from there the button reads "Presenting", and the line across the top is over nothing', pressed !== undefined && (await presenter.until(CLEAR, (clear) => clear === true, 3000)) === true, `${await presenter.run("document.querySelector('.sl-top [data-present]')?.textContent")}; ${await presenter.run(CLEAR)}`)
+    await presenter.run(click('.follow-bar button', 'Stop'))
+    check('Stop ends it, and the button reads "Present" again', (await presenter.until("document.querySelector('.follow-bar') === null && document.querySelector('.sl-top [data-present]')?.textContent.trim() === 'Present'", (ok) => ok, 4000)) === true)
     await presenter.run(click("[data-tour='plan']"))
     await presenter.until("document.querySelector('.sightline.is-plan') !== null", (ok) => ok, 5000)
     await presenter.run(click(".sl-icon[aria-label='Share']"))

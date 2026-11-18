@@ -69,6 +69,7 @@ import { planHash } from '../lib/plans'
 import { NewPlanner } from './NewPlanner'
 import { type PlannerTab, plannerTabIn, withPlannerTab } from './plannerFit'
 import { HeaderTools } from './HeaderTools'
+import { TopMore } from './TopMore'
 import { SavedBrief, SavedPlanCard } from './PlanNote'
 import { planTabTitle } from '../lib/planLink'
 import { usePlanLink } from './usePlanLink'
@@ -1696,6 +1697,15 @@ export function Sightline({ sites, flagged, range, onNeed, openHow = false }: Pr
               <button type="button" title="Hides everything but the Moon (H)." onClick={() => setBare(true)}>
                 Hide all
               </button>
+              {/* Presenting and the visitor's own plans start here too, not only inside Share on the plan. */}
+              <TopMore
+                present={follow.role === 'follower' ? null : { on: presenting, onPress: () => void present() }}
+                onPlans={() => {
+                  // The Library is part of the plan: the plan opens under it, as "Plan a landing" opens it.
+                  openPlan(null)
+                  openLibrary()
+                }}
+              />
             </div>
             {/* While the tour is on, Scout speaks from its bubble instead. */}
             {tourAt === null && <ScoutLine
