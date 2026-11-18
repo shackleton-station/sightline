@@ -439,6 +439,96 @@
   font-weight: 600;
 }
 
+/* "Present" and "Your plans" (TopMore): two more buttons in the row on a laptop. */
+.sl-top-more,
+.sl-top-more-list {
+  display: contents;
+}
+
+.sl-top .sl-top-more-toggle {
+  display: none;
+}
+
+.sl-top button[aria-pressed='true'] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* "Sign in": a small panel under the row's right end, with Google's own button and what signing in is for. */
+.sl-top-account {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  width: min(19rem, calc(100vw - 2 * var(--sl-edge)));
+  padding: 0.7rem 0.8rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  /* Solid, as Share's sheet is: it lies over the Moon, the key and the tour's chip. */
+  background: #1d1826;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 50%);
+}
+
+/* While the panel or the phone's list is open, the row is over the key, the tour's chip and the zoom buttons. */
+.sl-top:has(.sl-top-account),
+.sl-top:has(.sl-top-more[data-open]) {
+  z-index: 30;
+}
+
+.sl-top-account p {
+  margin: 0 0 0.6rem;
+  color: var(--soft);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.sl-top-account strong {
+  color: var(--ink);
+}
+
+.sl-top-account a {
+  color: inherit;
+}
+
+/* A phone's top has no room for four buttons: the two fold under "More", as a short list below it. */
+@media (max-width: 760px) {
+  .sl-top-more {
+    position: relative;
+    display: block;
+  }
+
+  .sl-top .sl-top-more-toggle {
+    display: block;
+    height: 100%;
+    padding-inline: 0.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .sl-top-more-list {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    display: none;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.4rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #1d1826;
+    box-shadow: 0 10px 28px rgb(0 0 0 / 50%);
+  }
+
+  .sl-top-more[data-open] .sl-top-more-list {
+    display: flex;
+  }
+
+  .sl-top-more-list button {
+    min-height: 2.5rem;
+    text-align: left;
+    white-space: nowrap;
+  }
+}
+
 .sl-small {
   padding: 0.1rem 0.5rem;
   font-size: 0.75rem;

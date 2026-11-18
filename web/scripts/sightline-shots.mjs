@@ -607,6 +607,32 @@ const OPEN_SHARE = `(document.querySelector('.sl-share-sheet') !== null || (docu
 const MY_PLANS = `[...document.querySelectorAll('.lib-mine li')].map((line) => line.textContent.replace(/\\s+/g, ' ').trim()).join(' | ')`
 /** Types a name into the Share sheet's form and saves it. */
 const SAVE_AS = (name) => `(() => { const input = document.querySelector('.sl-share-save input[name="plan-name"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(name)}); input.dispatchEvent(new Event('input', { bubbles: true })); document.querySelector('.sl-share-save button[type="submit"]').click(); return true })()`
+/**
+ * The opening screen's top row: "Plan a landing", "Hide all", then "Present" and the way to the
+ * visitor's plans (`plans`: "Sign in" or "Your plans"). On a laptop the four are one row; on a phone
+ * the last two are under "More" until it is pressed. Every button on show is inside the window.
+ * It leaves "More" open on a phone. Says what it found otherwise.
+ */
+const TOP_ROW = (plans) => `(async () => {
+  const wait = (ms) => new Promise((done) => setTimeout(done, ms))
+  await wait(1500)
+  const top = document.querySelector('.sl-top')
+  if (!top) return 'no top row'
+  const phone = window.innerWidth < 761
+  const onShow = () => [...top.querySelectorAll('button')].filter((button) => button.getBoundingClientRect().width > 0)
+  const words = () => onShow().map((button) => (button.getAttribute('aria-label') ?? button.textContent).trim()).join(' | ')
+  const closed = words()
+  if (phone) {
+    if (closed !== 'Plan a landing | Hide all | More') return 'closed: ' + closed
+    top.querySelector('.sl-top-more-toggle').click()
+    await wait(300)
+  }
+  const open = words()
+  const want = (phone ? 'Plan a landing | Hide all | More | Present | ' : 'Plan a landing | Hide all | Present | ') + ${JSON.stringify(plans)}
+  const outside = onShow().filter((button) => { const box = button.getBoundingClientRect(); return box.left < 0 || box.top < 0 || box.right > window.innerWidth || box.bottom > window.innerHeight })
+  const rows = new Set(onShow().map((button) => Math.round(button.getBoundingClientRect().top)))
+  return (open === want && outside.length === 0 && (phone || rows.size === 1)) || open + ', outside the window ' + outside.length + ', rows ' + rows.size
+})()`
 /** The scenes about optional sign-in with Google on the Sightline screen: signed out, and signed in (list, open, delete, sign out). */
 function accountScenes() {
   const plan = '#a=connecting-ridge@2027-05&t=133&limits=14_24_24_1_1&mode=plan'
@@ -653,7 +679,30 @@ function accountScenes() {
         ['"Delete for good" deletes it with the proof, and the line goes', `(async () => { const wait = (ms) => new Promise((done) => setTimeout(done, ms)); const line = () => [...document.querySelectorAll('.lib-mine li')].find((one) => /Ridge, short stay/.test(one.textContent)); line().querySelector('button[aria-label="Delete the plan Ridge, short stay"]').click(); await wait(300); [...line().querySelectorAll('button')].find((button) => button.textContent.trim() === 'Delete for good').click(); await wait(800); const deletes = ${calls('DELETE', 'true')}; return (line() === undefined && deletes.length === 1 && deletes[0].path === '/api/plans/uvwx6789' && deletes[0].proof === true && document.querySelectorAll('.lib-mine li').length === 3) || JSON.stringify(deletes) })()`],
         ['on a phone and a laptop alike the list is no wider than the window, and its buttons are big enough to press', `(() => { const page = document.querySelector('.lib-page'); const small = [...document.querySelectorAll('.lib-mine li button')].filter((button) => button.getBoundingClientRect().height < 22); return (page.scrollWidth <= page.clientWidth + 1 && small.length === 0) || page.scrollWidth + ' in ' + page.clientWidth + ', ' + small.length + ' small buttons' })()`],
         ['Resume opens one of them: the plan it holds is on the screen, Shackleton Rim on 1 June 2027', `([...document.querySelectorAll('.lib-mine li')].find((one) => /Shackleton Rim in June/.test(one.textContent)).querySelector('.lib-resume').click(), true) && ${after(3500, `(document.querySelector('.sl-full') === null && document.querySelector('#sl-site').value === 'shackleton-rim' && ${LANDING} === '1 June 2027 · 22:00 UTC') || document.querySelector('#sl-site')?.value + ' ' + ${LANDING}`)}`],
-        ['"Sign out", in the Library, takes the service\'s list away, leaves what this browser saved (with Resume, without Delete) and offers sign-in again; the tab keeps no token', `Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(2000, `(document.querySelector('.lib-mine-who button').click(), true)`)}).then(() => ${after(800, `(() => { const mine = ${MY_PLANS}; return (mine === 'Signed-in planSaved 17 Nov 2026Resume | My own ridge planSaved 14 Nov 2026Resume' && document.querySelector('.lib-account') !== null && document.querySelector('.lib-mine-who') === null && sessionStorage.getItem('clps.account') === null) || mine + ' // ' + sessionStorage.getItem('clps.account') })()`)})`],
+        ['"Sign out", in the Library, takes the service\'s list away, leaves what this browser saved (with Resume, without Delete) and offers sign-in again; the tab keeps no token', `Promise.resolve(${OPEN_LIBRARY}).then(() => ${after(2000, `(document.querySelector('.lib-mine-who button').click(), true)`)}).then(() => ${after(800, `(() => { const mine = ${MY_PLANS}; return (/^Signed-in planSaved \\d{1,2} \\w{3} \\d{4}Resume \\| My own ridge planSaved 14 Nov 2026Resume$/.test(mine) && document.querySelector('.lib-account') !== null && document.querySelector('.lib-mine-who') === null && sessionStorage.getItem('clps.account') === null) || mine + ' // ' + sessionStorage.getItem('clps.account') })()`)})`],
+      ],
+    },
+    {
+      // The opening screen, for a visitor with no plans yet: "Present" and "Sign in" are in its top row, not only inside Share on the plan. Google's script is unreachable, as in the other account scenes.
+      name: 'front-sign-in',
+      hash: '',
+      beforeLoad: `(() => { try { localStorage.setItem('sightline.myPlans', '[]') } catch {} return ${STAND_IN_ACCOUNT(false)} })()`,
+      block: 'accounts.google.com',
+      checks: [
+        ['the top row offers "Present" and "Sign in" after "Plan a landing" and "Hide all": in the one row on a laptop, under "More" on a phone, and all inside the window', TOP_ROW('Sign in')],
+        ['no Google script is asked for until "Sign in" is pressed; then a small panel under the row says what signing in is for, as optional, with Privacy and Terms, and where Google cannot be reached one line says so; the panel is inside the window', `(document.querySelector('script[src*="accounts.google.com"]') === null || 'Google was asked before the press') === true && (document.querySelector('.sl-top [data-plans="sign-in"]').click(), true) && ${after(2500, `(() => { const panel = document.querySelector('.sl-top-account'); if (!panel) return 'no panel'; const box = panel.getBoundingClientRect(); const words = panel.textContent; const links = [...panel.querySelectorAll('a')].map((a) => a.getAttribute('href')).join(); return (words.includes('Optional.') && words.includes('list the plans you save on any device') && links === '/privacy/,/terms/' && panel.querySelector('.sl-google') !== null && panel.querySelector('.sl-google-blocked') !== null && box.left >= 0 && box.right <= window.innerWidth && box.bottom <= window.innerHeight && document.querySelector('.sightline.is-watch') !== null) || words.slice(0, 160) + ' | links ' + links + ' | box ' + Math.round(box.left) + ' to ' + Math.round(box.right) + ' in ' + window.innerWidth })()`)}`],
+        ['Escape closes the panel, and the opening screen is as it was', `(window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })), true) && ${after(500, `(document.querySelector('.sl-top-account') === null && document.querySelector('.sightline.is-watch') !== null && document.querySelector('.sl-top [data-plans="sign-in"]') !== null) || 'panel ' + (document.querySelector('.sl-top-account') !== null)`)}`],
+      ],
+    },
+    {
+      // The opening screen, for a signed-in visitor: the same button reads "Your plans" and opens them.
+      name: 'front-your-plans',
+      hash: '',
+      beforeLoad: STAND_IN_ACCOUNT(true),
+      block: 'accounts.google.com',
+      checks: [
+        ['the top row offers "Present" and "Your plans" after "Plan a landing" and "Hide all": in the one row on a laptop, under "More" on a phone, and all inside the window', TOP_ROW('Your plans')],
+        ['"Your plans" opens the plan with the Library over it, at the visitor\'s own plans from the plans service', `(document.querySelector('.sl-top [data-plans="mine"]').click(), true) && ${after(2500, `(() => { const lines = ${MY_PLANS}; return (document.querySelector('.sl-full') !== null && lines.includes('Shackleton Rim in June') && lines.includes('My own ridge plan')) || 'library ' + (document.querySelector('.sl-full') !== null) + ': ' + lines })()`)}`],
       ],
     },
   ]
