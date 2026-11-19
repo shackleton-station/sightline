@@ -12,5 +12,3 @@
 # Some resources also carry `prevent_destroy` in their .tf file (the Firestore databases, the DNS
 # zone, the identity pools and providers). For those Terraform itself refuses to plan a removal, so
 # the pull request must take that block out as well as naming the address here.
-
-google_redis_instance.store[0]   # 2026-11-18: shared_store = false, Redis off to save credits (settings.auto.tfvars)

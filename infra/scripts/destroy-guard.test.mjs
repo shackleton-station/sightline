@@ -179,9 +179,7 @@ test('list files: comments, blank lines and trailing comments are ignored', () =
 test('the tracked list of expected removals is empty unless a pull request is using it', () => {
   // Not a rule for ever: a pull request that removes a protected resource adds a line and changes
   // this test's expectation in the same commit, which is one more deliberate step.
-  // 2026-11-18: Redis is switched off to save credits (shared_store = false in settings.auto.tfvars),
-  // which deletes the instance. The pull request after the apply empties the list and this again.
-  assert.deepEqual(parseList(readFileSync(EXPECTED_FILE, 'utf8')), ['google_redis_instance.store[0]']);
+  assert.deepEqual(parseList(readFileSync(EXPECTED_FILE, 'utf8')), []);
 });
 
 test('the guard prints addresses, never values from the plan', () => {
