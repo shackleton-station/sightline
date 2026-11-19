@@ -505,6 +505,18 @@ Rodrigo asked for the Google Cloud bill to come down while the site stays good f
 - [x] `CLAUDE.md` no longer carries the event's rules (Rodrigo, 2026-11-17: treat this as an ordinary project from now on). The event's integrity rules became "Publishing and credit"; `AI_USAGE.md` is a short statement kept true, not a line per task; section 2 gives the site's address and the settings it runs now; section 5 (the one-time GitHub setup) and section 10 (the friction report) were cut down to what still applies. Section numbers are unchanged, because other documents point at them.
 - [ ] Scout's question ceilings are still the loose ones of 2026-11-16. They spend Anthropic credits, not Google Cloud.
 
+## The site runs smaller still (2026-11-18)
+
+Rodrigo: the site has few visitors, it was not selected for global judging, and the credits are wanted for other projects. Target: about $43 a month at list price, from about $105, with settings only.
+
+- [x] Redis off (`shared_store = false`), plans and the co-pilot sleep when idle (0 warm copies), the web server keeps its one warm copy and may run only that one, the co-pilot may run only one. `infra/settings.auto.tfvars`; the table, what is given up and the way back are in `docs/DEPLOY.md`, "Settings after the event".
+- [x] Read before choosing the copy counts: without Redis the web server's rooms, limits and voice clips are in one copy's memory (`web/server/rooms/store.ts`, `web/server/index.ts`), so one copy. The co-pilot's ceilings, kept answers, breaker and outbox are too (`web/copilot/index.ts`, `limits.ts`, `breaker.ts`, `outbox.ts`), and the ceilings are what limits spending, so one copy. Plans keeps plans and idempotency keys in Firestore and only per-visitor limits in the store (`web/plans/handler.ts`), so it may still run three.
+- [x] A plan saved on the Mac and read line by line before the pull request: the Redis instance destroyed, three services changed in place, nothing else. No network range or connection of Terraform's goes with Redis; plans and the co-pilot lose the path into the project's network that only Redis needed, and the web server keeps its own subnet.
+- [x] The deploy checks of the plans and co-pilot services required `"limits":"redis"` and would have failed every later deploy of either. They now expect what `infra/settings.auto.tfvars` says (`web/scripts/shared-store.mjs`, tested; `--store redis|memory` says it outright). No service's code changed, and neither service deploys from this change.
+- [ ] After the apply: the smoke test, every status in memory mode, a plan saved and opened, two co-pilot questions with the first one's cold start timed, `web/scripts/follow-check.mjs`, and no instance in `gcloud redis instances list`. The results and the line to delete from `infra/expected-removals.txt` go in the next pull request.
+- [ ] `CLAUDE.md`, section 2, still says Redis is live and the services run one warm copy each, three at most. That section is not edited without Rodrigo's OK.
+- [ ] Scout's question ceilings are still the loose ones of 2026-11-16, and the comment beside them still speaks of judging. Without Redis the daily ones count from the copy's start. Lowering them is a separate decision.
+
 ## The front page says how the Moon is moved (2026-11-17)
 
 Rodrigo, after the event: a first-time visitor is not told that the Moon can be dragged, zoomed and clicked.

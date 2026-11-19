@@ -293,6 +293,10 @@ every line carries `"service":"copilot"`). If a drill was left on, `"model"` in 
 
 ## Redis
 
+**Since 2026-11-18 there is no instance** (`shared_store = false`; "Settings after the event" below). Every
+status then reports `"limits":"memory"` and a `redis` state of `memory`, and that is correct, not a fault.
+The rest of this section describes the site with `shared_store = true`.
+
 One Memorystore instance, `clps-web-store`, holds the rate limits, kept answers and audio, the outbox, the
 circuit breaker, the single-flight locks, the hit counters and presenters' rooms. No deploy changes it: it is
 Terraform's (`infra/data.tf`). The deploy workflows did not change for Phase 4.
@@ -633,17 +637,54 @@ The way back to open addresses is one line (`service_ingress` in `infra/settings
 
 ## Settings after the event
 
-Since 2026-11-17 the site runs smaller (Rodrigo: keep it good for visitors, stop paying for a venue's
-worth of headroom). All in `infra/settings.auto.tfvars`.
+Since 2026-11-18 the site runs as small as it can without changing code (Rodrigo: few visitors, it was not
+selected for global judging so no judging is left to stay warm for, and the credits are wanted for other
+projects). All in `infra/settings.auto.tfvars`. The day before, 2026-11-17, it had already come down from
+the event's settings; that step is the middle column.
 
-| Setting | Now | During the event | What changes for a visitor |
-| --- | --- | --- | --- |
-| `min_instances`, `plans_min_instances`, `copilot_min_instances` | 1 | 2 | Still no cold start. Losing the one copy means a cold start for the next visitor |
-| `max_instances`, `plans_max_instances`, `copilot_max_instances` | 3 | 10 | Nothing at ordinary traffic; a crowd of hundreds at once would queue |
-| `service_cpu_always_on` | false | true | CPU only while a request is open. A follower's stream is an open request, so following still works |
-| `service_memory`, `service_cpu` | 1Gi, 1 | 1Gi, 1 | Unchanged |
-| `redis_tier`, `redis_memory_gb`, `redis_read_replicas` | BASIC, 1, false | STANDARD_HA, 5, true | A zone failure or maintenance loses limits, kept answers and rooms until the instance is back; the services use memory meanwhile |
-| `copilot_limits` | unchanged | unchanged | Scout's ceilings are still the loose ones set on 2026-11-16 |
+| Setting | Now (2026-11-18) | 2026-11-17 | During the event | What changes for a visitor now |
+| --- | --- | --- | --- | --- |
+| `shared_store` | false | true | true | No Redis. Each service counts rate limits and keeps answers, voice clips, the outbox, the circuit breaker and presenters' rooms in its own memory. A copy that stops forgets them, and a daily ceiling counts from the copy's start |
+| `min_instances` (web) | 1 | 1 | 2 | Still no cold start for the first screen |
+| `max_instances` (web) | 1 | 3 | 10 | One copy only, because rooms live in its memory. A copy takes 80 requests at once and 60 followers' streams; past that requests wait. A deploy of the web server ends the rooms that are open |
+| `plans_min_instances`, `copilot_min_instances` | 0 | 1 | 2 | Both sleep when idle. The first plan saved or opened, and the first question, after a quiet spell wait for a copy to start |
+| `plans_max_instances` | 3 | 3 | 10 | Nothing. More than one copy is safe without Redis: plans and idempotency keys are in Firestore, and only the per-visitor rate limits are counted per copy (up to three times looser) |
+| `copilot_max_instances` | 1 | 3 | 10 | One copy, 10 questions at once. Its ceilings are what limits spending on the model and its breaker is what stops calls to a failing model; in three memories each would be three times looser and the copies would disagree |
+| `service_cpu_always_on` | false | false | true | CPU only while a request is open. A follower's stream is an open request, so following still works |
+| `service_memory`, `service_cpu` | 1Gi, 1 | 1Gi, 1 | 1Gi, 1 | Unchanged |
+| `redis_tier`, `redis_memory_gb`, `redis_read_replicas` | not read (BASIC, 1, false) | BASIC, 1, false | STANDARD_HA, 5, true | What `shared_store = true` would make |
+| `copilot_limits` | unchanged | unchanged | unchanged | Scout's ceilings are still the loose ones set on 2026-11-16 |
+
+**What it costs now, at list price (estimates; no billing data read):** about $43 a month. One warm copy
+of the web server about $13; the load balancer about $18; the edge firewall about $9; storage, DNS, logs
+and the rest about $3; plans and the co-pilot only while they answer. Before this change about $105: three
+warm copies about $39 and Redis Basic 1 GB about $36, with the same $30 for the rest.
+
+**What is given up, 2026-11-18:**
+
+- A cold start on the first plan and the first question after a quiet spell (the measured times are in
+  `docs/PROGRESS.md`, "The site runs smaller still").
+- Limits and kept answers do not outlive a copy. The co-pilot's daily ceilings (`chat_all_day`,
+  `ask_all_day`) count from when its copy started, and Cloud Run stops an idle copy within about 15 minutes, so on a quiet
+  day they reset often. The hard stop on spending is, as before, the monthly limit in the model provider's
+  console.
+- A question event still waiting in the outbox is lost if the co-pilot's copy is killed before it sends it
+  (it sends what is waiting when it is told to stop).
+- Rooms end with a deploy of the web server, and during a deploy's tenth-of-visitors minute a follower can
+  land on the version that does not hold the room.
+- The deploy checks of the plans and co-pilot services expect what the settings say: `memory` while
+  `shared_store = false`, `redis` otherwise (`web/scripts/shared-store.mjs`).
+
+**To go back** to 2026-11-17: `shared_store = true` first (Terraform makes a new, empty Basic 1 GB instance
+in about five minutes and gives every service its address in the same apply), and only then the second
+column's copies, in the same pull request or a later one. No line in `infra/expected-removals.txt` is
+needed to add an instance.
+
+**How the switch went, 2026-11-18:** one pull request through the pipeline. A plan saved on the Mac first
+and read line by line: the Redis instance destroyed, the three services changed in place (their two Redis
+settings gone, the copy counts, and for plans and the co-pilot the path into the project's network that
+only Redis needed; the web server keeps its own subnet), nothing else, no access changes. The pull request
+names the instance in `infra/expected-removals.txt`, which the destroy guard requires.
 
 **How the switch went, 2026-11-17:** applied from the Mac first (a saved plan, read line by line: three
 services changed in place, one Redis instance replaced, no access changes), then put on `main` by the pull
@@ -654,13 +695,13 @@ and two co-pilot answers (39 checks passed), every status on the new Redis, page
 with 54 checks passed and 4 failed, all on the Atlas page's time controls (the script looks older than that
 page; it was not run before the change, so that is not proven).
 
-**What it costs, at list price (not re-checked, no billing data read):** three warm copies with CPU only
-during requests, about $1.30 a day; Redis Basic 1 GB, about $1.18 a day. About $2.50 a day for these two,
-against about $17 during the event. The load balancer, the edge firewall, the CDN, storage and DNS are as
-they were.
+**What it cost on 2026-11-17, at list price (not re-checked, no billing data read):** three warm copies
+with CPU only during requests, about $1.30 a day; Redis Basic 1 GB, about $1.18 a day. About $2.50 a day
+for these two, against about $17 during the event. The load balancer, the edge firewall, the CDN, storage
+and DNS are as they were.
 
-**To go back** to the event's settings: the values in the table's third column, in a pull request. Redis to
-Standard replaces the instance again.
+**To go back** to the event's settings: the values in the table's fourth column, in a pull request, with
+`shared_store = true`. Redis on the Standard tier is a new instance.
 
 ## Hackathon settings
 
