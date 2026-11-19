@@ -92,8 +92,9 @@ Each item names the phase of the redesign plan that picks it up. "Done" means it
 
 - **His stack** (Next.js, Vercel, Tailwind, Firebase). Ours is React and Vite on Cloud Run, by choice.
 - **"Ship to production without asking."** Our rule stays: a PR, green checks, then Rodrigo's OK.
-- **His footer credit and share image rules.** The credit is ours, and until we have a mark the share image
-  is a frame of the real app.
+- **His footer credit and share image rules.** The credit is ours, and the share image is our own card:
+  the name and one line beside the Moon from a frame of the real app (since 2026-11-19; before that, the
+  frame alone).
 - **Body text at weight 600 and a 120% root size as a blanket rule.** We take the point behind it: no small
   or faint text.
 - **A second AI provider for decisions.** Decisions the app branches on are made in our own tested code.
