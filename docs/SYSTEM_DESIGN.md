@@ -25,6 +25,8 @@ load balancer + CDN + HTTPS ── cached files answered at the edge; each path 
                                                             └───► Firestore "stats"   today's counts, read-only
 
 Redis (Memorystore): rate limits, kept answers, the co-pilot's outbox and circuit breaker, presenters' rooms.
+  Switched off since 2026-11-18 to save credits (shared_store = false): each service keeps these in its own
+  memory, and the web server and the co-pilot run one copy at most. docs/DEPLOY.md, "Settings after the event".
 Every service sends its traces to Cloud Trace.
 ```
 

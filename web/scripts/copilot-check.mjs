@@ -14,8 +14,10 @@
 //      the code version this deploy built (--version, --data-version, --code-version).
 //   2. With --cloud: Claude answers (not a stand-in, no faults injected), with its model, speed,
 //      effort and fallbacks named and signed in by workload identity federation (no stored key);
-//      rate limits and the circuit breaker are on Redis (shared by every copy), questions are logged
-//      and traces sent.
+//      rate limits and the circuit breaker are where the project's settings say (Redis, shared by
+//      every copy, or the copy's own memory when infra/settings.auto.tfvars has shared_store = false;
+//      --store redis|memory says it outright: scripts/shared-store.mjs), questions are logged and
+//      traces sent.
 //   3. The API's refusals, which call no model: another site, a malformed question, another method.
 //      None of them counts against a limit: a malformed question is read and refused before it is
 //      counted. --stream does count, as one question.
@@ -24,6 +26,7 @@
 // Exits non-zero if anything is wrong, so a deploy can stop on it.
 import { sendToCanary } from './canary-header.mjs'
 import { checkCopilotReadOnly, checkCopilotStream, whoAnswersCopilot } from './copilot-checks.mjs'
+import { expectedStore } from './shared-store.mjs'
 
 const base = (process.argv[2] ?? '').replace(/\/$/, '')
 const flag = (name) => {
@@ -32,7 +35,7 @@ const flag = (name) => {
 }
 const has = (name) => process.argv.includes(name)
 if (!base || base.startsWith('--')) {
-  console.error('Usage: node scripts/copilot-check.mjs <site or co-pilot service URL> [--canary copilot] [--version <commit>] [--data-version <hash>] [--code-version <hash>] [--cloud] [--stream]')
+  console.error('Usage: node scripts/copilot-check.mjs <site or co-pilot service URL> [--canary copilot] [--version <commit>] [--data-version <hash>] [--code-version <hash>] [--cloud] [--store redis|memory] [--stream]')
   process.exit(2)
 }
 sendToCanary(process.argv, base)
@@ -64,8 +67,10 @@ if (who.by === 'copilot') {
     const settings = status.modelSettings ?? {}
     check('names the Claude model, its speed and effort, with fallbacks on', typeof settings.model === 'string' && settings.model.startsWith('claude-') && typeof settings.effort === 'string' && settings.fallbacks === 'default' && 'speed' in settings, JSON.stringify(status.modelSettings ?? null))
     check('signs in by workload identity federation, with no stored key', settings.auth === 'federation', `${settings.auth ?? 'none'}`)
-    check('counts rate limits and keeps answers in Redis, shared by every copy', status.limits === 'redis', `${status.limits}`)
-    check('keeps the circuit breaker in Redis, so every copy agrees', status.breakerStore === 'redis', `${status.breakerStore}`)
+    const store = expectedStore(process.argv)
+    const inMemory = "in its own memory, as the project's settings say (no Redis)"
+    check(store === 'redis' ? 'counts rate limits and keeps answers in Redis, shared by every copy' : `counts rate limits and keeps answers ${inMemory}`, status.limits === store, `${status.limits}`)
+    check(store === 'redis' ? 'keeps the circuit breaker in Redis, so every copy agrees' : `keeps the circuit breaker ${inMemory}`, status.breakerStore === store, `${status.breakerStore}`)
     check('logs each question', status.questionLog === true, `${status.questionLog}`)
     check('sends traces', status.tracing === true, `${status.tracing}`)
   }

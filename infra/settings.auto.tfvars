@@ -38,17 +38,30 @@ github_repositories = [
   { name = "shackleton-station/sightline", id = "1457831519" },
 ]
 
-# After the event (Rodrigo, 2026-11-17): one warm copy of each visitor-facing service, so no visitor
-# waits for a cold start; at most three each; one vCPU and 1 GiB each, with CPU only while a request is
-# being answered. At list price about $1.30 a day for the three warm copies (request-based billing).
-# During the event (2026-11-13 to 2026-11-17) these were 2, 2, 2, 10, 10, 10 and CPU always on, about
-# $10.40 a day: docs/DEPLOY.md, "Settings after the event". 0, 3, "512Mi" and false are the defaults.
+# Scaled down again (Rodrigo, 2026-11-18): the site has few visitors, it was not selected for global
+# judging, so no judging is left to keep it warm for, and the credits are wanted for other projects.
+#   - The web server keeps one warm copy, so the first screen never waits for a cold start, and may
+#     run only that one: with Redis off (shared_store, below) presenters' rooms, rate limits and
+#     kept voice clips live in that copy's memory, and a second copy would not see them.
+#   - The plans service and the co-pilot sleep when idle (0 warm copies). The first plan opened or
+#     question asked after a quiet spell waits for a copy to start: docs/DEPLOY.md, "Settings after
+#     the event".
+#   - The co-pilot may run one copy only: its question ceilings, kept answers and circuit breaker are
+#     now counted in each copy's memory, and those ceilings are what limits spending on the model.
+#     Plans may still run three: only its per-visitor rate limits are per copy; plans and
+#     idempotency keys are in Firestore.
+# One vCPU and 1 GiB each, with CPU only while a request is being answered. At list price about
+# $0.43 a day for the one warm copy (request-based billing).
+# To undo: 1, 1, 1 and 3, 3, 3 are the settings of 2026-11-17 (about $1.30 a day), and they want
+# shared_store = true again (below) before any service runs more than one copy. During the event
+# (2026-11-13 to 2026-11-17) these were 2, 2, 2, 10, 10, 10 and CPU always on, about $10.40 a day:
+# docs/DEPLOY.md, "Hackathon settings". 0, 3, "512Mi" and false are the defaults.
 min_instances         = 1
-plans_min_instances   = 1
-copilot_min_instances = 1
-max_instances         = 3
+plans_min_instances   = 0
+copilot_min_instances = 0
+max_instances         = 1
 plans_max_instances   = 3
-copilot_max_instances = 3
+copilot_max_instances = 1
 service_cpu           = "1"
 service_memory        = "1Gi"
 service_cpu_always_on = false
@@ -122,12 +135,21 @@ trek_route = true
 # copilot_fault_delay_seconds = 8
 # copilot_model_faults        = "503@100"
 
-# Redis back on the Basic tier, 1 GB, no read replica (Rodrigo, 2026-11-17: after the event). These are
-# the defaults, written out so the next change is one line. A zone failure or maintenance now loses the
-# limits, kept answers and rooms until the instance is back, and the services fall back to memory
-# meanwhile. During the event it was STANDARD_HA, 5 GB, with a read replica: about $0.27 an hour at list
-# price, $5.30 a day more than this. Changing the tier replaces the instance (name the old one in
-# infra/expected-removals.txt): docs/ARCHITECTURE_PHASE_4.md.
+# Redis is off (Rodrigo, 2026-11-18: few visitors, no judging left, credits saved for other projects;
+# the Basic 1 GB instance was about $36 a month at list price). Every service now counts rate limits
+# and keeps answers, voice clips, the event outbox, the circuit breaker and presenters' rooms in its
+# own memory, so a copy that stops forgets them, and a daily ceiling counts from the copy's start.
+# That is why the web server and the co-pilot run one copy at most (above).
+# To undo: shared_store = true (or delete the line: true is the default). Terraform makes a new, empty
+# Basic 1 GB instance from the three lines below (about five minutes) and gives the services its
+# address in the same apply. Only then raise max_instances or copilot_max_instances above 1.
+shared_store = false
+
+# The instance shared_store = true would make: Basic tier, 1 GB, no read replica (the defaults, written
+# out so the next change is one line; nothing reads them while shared_store is false). During the
+# event it was STANDARD_HA, 5 GB, with a read replica: about $0.27 an hour at list price. Changing the
+# tier replaces the instance (name the old one in infra/expected-removals.txt):
+# docs/ARCHITECTURE_PHASE_4.md.
 redis_tier          = "BASIC"
 redis_memory_gb     = 1
 redis_read_replicas = false

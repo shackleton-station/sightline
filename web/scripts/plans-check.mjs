@@ -11,8 +11,10 @@
 // This is what "test the new version before it takes visitors" means for the plans service:
 //   1. Its status address answers, as the plans service, with the commit and the data version this
 //      deploy built (--version, --data-version).
-//   2. With --cloud: it keeps plans in Firestore, counts rate limits in Redis, checks sign-in and
-//      sends traces. A copy that started without one of these would still answer, and be wrong.
+//   2. With --cloud: it keeps plans in Firestore, counts rate limits where the project's settings say
+//      (Redis, or its own memory when infra/settings.auto.tfvars has shared_store = false; --store
+//      redis|memory says it outright: scripts/shared-store.mjs), checks sign-in and sends traces. A
+//      copy that started without one of these would still answer, and be wrong.
 //      With --site <the site's URL>, sign-in must be on exactly when the site offers it.
 //   3. The API answers as the written contract says, without changing anything: an impossible plan
 //      is 404 (one real read of the database), the list needs sign-in, another site is refused.
@@ -22,6 +24,7 @@
 // Exits non-zero if anything is wrong, so a deploy can stop on it.
 import { sendToCanary } from './canary-header.mjs'
 import { checkPlansReadOnly, checkPlansSave, whoAnswersPlans } from './plans-checks.mjs'
+import { expectedStore } from './shared-store.mjs'
 
 const base = (process.argv[2] ?? '').replace(/\/$/, '')
 const flag = (name) => {
@@ -30,7 +33,7 @@ const flag = (name) => {
 }
 const has = (name) => process.argv.includes(name)
 if (!base || base.startsWith('--')) {
-  console.error('Usage: node scripts/plans-check.mjs <site or plans service URL> [--canary plans] [--version <commit>] [--data-version <hash>] [--cloud] [--site <site URL>] [--save]')
+  console.error('Usage: node scripts/plans-check.mjs <site or plans service URL> [--canary plans] [--version <commit>] [--data-version <hash>] [--cloud] [--store redis|memory] [--site <site URL>] [--save]')
   process.exit(2)
 }
 // Only /api/plans paths go to the canary with this header; the site's own /api/status (--site) is
@@ -61,7 +64,8 @@ if (who.by === 'plans') {
   // 2. Everything a copy in the cloud must have switched on.
   if (has('--cloud')) {
     check('keeps plans in Firestore', status.store === 'firestore', `${status.store}`)
-    check('counts rate limits in Redis, shared by every copy', status.limits === 'redis', `${status.limits}`)
+    const store = expectedStore(process.argv)
+    check(store === 'redis' ? 'counts rate limits in Redis, shared by every copy' : "counts rate limits in its own memory, as the project's settings say (no Redis)", status.limits === store, `${status.limits}`)
     // Sign-in is optional for the site as a whole. What must never happen is the two disagreeing: the
     // page would offer sign-in and the service would refuse every token, or the other way round.
     const site = flag('--site')
