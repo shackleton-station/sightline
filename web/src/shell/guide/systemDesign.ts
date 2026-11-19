@@ -66,7 +66,7 @@ export function systemAreas({ siteCount, span, model }: SystemFacts): SystemArea
         { id: 'anthropic', kind: 'outside', name: 'Anthropic API · Claude', says: `${model ?? 'Claude'}. Signed in by workload identity federation, so no key is stored.` },
         { id: 'storage', kind: 'store', name: 'Cloud Storage', says: 'Terrain tiles, the light grid and video. Scout reads the light grid for ground a visitor taps.' },
         { id: 'horizons', kind: 'outside', name: 'NASA JPL Horizons API', says: 'Sun and Earth angles for one point and hour, when a visitor asks. Kept 30 days.' },
-        { id: 'redis', kind: 'store', name: 'Redis · Memorystore', says: 'Shared by web, plans and co-pilot: rate limits, cached answers, the event outbox, the circuit breaker and presenters’ rooms. Without it the services fall back or switch the feature off.' },
+        { id: 'redis', kind: 'store', name: 'Redis · Memorystore', says: 'Shared by web, plans and co-pilot: rate limits, cached answers, the event outbox, the circuit breaker and presenters’ rooms. Without it the services fall back or switch the feature off. Switched off since November 2026 to cut cost: each service now keeps these in its own memory. One setting turns it back on.' },
       ],
     },
     {

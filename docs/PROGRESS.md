@@ -523,6 +523,11 @@ Rodrigo: the site has few visitors, it was not selected for global judging, and 
 - [ ] `CLAUDE.md`, section 2, still says Redis is live and the services run one warm copy each, three at most. That section is not edited without Rodrigo's OK.
 - [ ] Scout's question ceilings are still the loose ones of 2026-11-16, and the comment beside them still speaks of judging. Without Redis the daily ones count from the copy's start. Lowering them is a separate decision.
 
+## Two texts caught up with the site (2026-11-19)
+
+- [x] `infra/README.md`: the sign-in client's authorized JavaScript origin is `https://lunarsightline.com`, not the old address, and adding it is a numbered step of "Moving to another domain", done by hand in the Google console. It was missed in the move: sign-in on the new address failed with Google's "Error 400: origin_mismatch" on 2026-11-19 until Rodrigo added the address to the client. No setting in this repository changed.
+- [x] The Guide still drew Redis as running. Its design is kept as built; the Redis box of "How the system is built" and the three places "What it runs on" names Redis now say it has been switched off since November 2026 to cut cost, that each service keeps these in its own memory, and that one setting turns it back on (`web/src/shell/guide/systemDesign.ts`, `GuideStack.tsx`, one test).
+
 ## The front page says how the Moon is moved (2026-11-17)
 
 Rodrigo, after the event: a first-time visitor is not told that the Moon can be dragged, zoomed and clicked.

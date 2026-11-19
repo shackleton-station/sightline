@@ -206,7 +206,8 @@ off, the site itself; on, a 301 to the same path and query on `https://<domain>`
 forwards to `domain`.
 
 The move to `lunarsightline.com` (bought 2026-11-14) takes two pull requests, because a redirect to a domain
-whose certificate is still provisioning lands every visitor on a certificate error:
+whose certificate is still provisioning lands every visitor on a certificate error, and one step by hand in
+the Google console between them:
 
 1. Add the new domain to `other_domains` and apply. The new domain serves the site; nothing changes for
    `shackletonstation.dev`. Wait until its certificate is `ACTIVE`:
@@ -216,8 +217,12 @@ whose certificate is still provisioning lands every visitor on a certificate err
      --project clps-compute-6z1nc --format 'value(managed.status, managed.domainStatus)'
    ```
 
-   Also add `https://lunarsightline.com` to the sign-in client's authorized JavaScript origins (below).
-2. Swap them: `domain = "lunarsightline.com"`, `other_domains = ["shackletonstation.dev"]`,
+2. **Add the new address to the sign-in client. Required, and no pull request does it.** In the Google
+   console, add `https://lunarsightline.com` to the client's authorized JavaScript origins ("Switching on
+   sign-in with Google", below). Nothing checks this step: when it is missed the site itself works and only
+   sign-in fails, with Google's "Error 400: origin_mismatch". It was missed in this move, and sign-in on
+   `lunarsightline.com` failed that way on 2026-11-19 until the address was added.
+3. Swap them: `domain = "lunarsightline.com"`, `other_domains = ["shackletonstation.dev"]`,
    `other_domains_redirect = true`. In the same pull request, every hard-coded `https://shackletonstation.dev`
    (the deploy workflows' `SITE`, `web/scripts/*`, the pages' canonical and share tags) becomes the new
    domain: the deploys' checks do not follow redirects.
@@ -270,7 +275,12 @@ client id, which Google only lets a person create in the console:
 1. Console → **Google Auth Platform** → **Branding**: app name "Shackleton Station", a support email, audience
    **External**. No scopes beyond the defaults (the site only needs to know it is the same person).
 2. **Clients** → **Create client** → **Web application**. Authorized JavaScript origins:
-   `https://shackletonstation.dev` and, for local work, `http://localhost:5179`. No redirect URIs.
+   `https://lunarsightline.com` (the site's address: `domain` in `settings.auto.tfvars`) and, for local work,
+   `http://localhost:5179`. No redirect URIs.
+
+   The origin must match the address the site is served on. If the site moves, add the new address here, or
+   Google refuses sign-in with "Error 400: origin_mismatch" (this happened on 2026-11-19, after the move to
+   `lunarsightline.com`). The old address may stay listed.
 3. Put the id in `settings.auto.tfvars` as `sign_in_client_id = "….apps.googleusercontent.com"`, in a pull
    request. The id is not a secret: every visitor's browser sees it.
 
