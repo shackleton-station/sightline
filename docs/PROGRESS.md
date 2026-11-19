@@ -528,6 +528,16 @@ Rodrigo: the site has few visitors, it was not selected for global judging, and 
 - [x] `infra/README.md`: the sign-in client's authorized JavaScript origin is `https://lunarsightline.com`, not the old address, and adding it is a numbered step of "Moving to another domain", done by hand in the Google console. It was missed in the move: sign-in on the new address failed with Google's "Error 400: origin_mismatch" on 2026-11-19 until Rodrigo added the address to the client. No setting in this repository changed.
 - [x] The Guide still drew Redis as running. Its design is kept as built; the Redis box of "How the system is built" and the three places "What it runs on" names Redis now say it has been switched off since November 2026 to cut cost, that each service keeps these in its own memory, and that one setting turns it back on (`web/src/shell/guide/systemDesign.ts`, `GuideStack.tsx`, one test).
 
+## A share image that can be read (2026-11-19)
+
+The picture LinkedIn, Slack and iMessage show for the link was a frame of the practice build's landing page: it said "practice demo", showed two buttons the site no longer has, and its small text could not be read at the size a card is shown. Rodrigo saw it in LinkedIn's Post Inspector on 2026-11-19.
+
+- [x] `web/public/og.jpg` is a new card of the same size (1200 by 630): "NASA Space Apps 2026", the name "Sightline" large, "Where to land on the Moon, and when.", `lunarsightline.com`, and the same sunlit Moon with its landing sites on the right. Rodrigo approved the picture
+- [x] `og:image:alt` on the three pages that name the image (`web/index.html`, `web/classic/index.html`, `web/sightline/index.html`) describes the new picture. No other tag changed
+- [x] `REFERENCES.md` and `docs/POLISH.md` say what the image now is and name the fonts in it
+- [x] Checks: `tsc -b`, `vitest run`, lint, `npm run build`. The share-tags check in `web/scripts/sightline-shots.mjs` does not read the alt text and needed no change
+- [ ] A service that has already fetched the link keeps its own copy of the old picture for a while. LinkedIn's Post Inspector fetches it again when asked; that is a person's step
+
 ## The front page says how the Moon is moved (2026-11-17)
 
 Rodrigo, after the event: a first-time visitor is not told that the Moon can be dragged, zoomed and clicked.
