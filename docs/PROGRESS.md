@@ -536,7 +536,9 @@ The picture LinkedIn, Slack and iMessage show for the link was a frame of the pr
 - [x] `og:image:alt` on the three pages that name the image (`web/index.html`, `web/classic/index.html`, `web/sightline/index.html`) describes the new picture. No other tag changed
 - [x] `REFERENCES.md` and `docs/POLISH.md` say what the image now is and name the fonts in it
 - [x] Checks: `tsc -b`, `vitest run`, lint, `npm run build`. The share-tags check in `web/scripts/sightline-shots.mjs` does not read the alt text and needed no change
-- [ ] A service that has already fetched the link keeps its own copy of the old picture for a while. LinkedIn's Post Inspector fetches it again when asked; that is a person's step
+- [x] The picture got a new address the same day (the pull request after 260). LinkedIn keeps its copy of a share image by the image's address: Post Inspector, run again on the site after the new `og.jpg` was live, read the page again and still showed the old picture, because the address had not changed. So a replaced image needs a new address, and the next picture will need a new file name again. The same picture is now also `web/public/og-sightline.jpg`, and `og:image` on the three pages names `https://lunarsightline.com/og-sightline.jpg`. `og.jpg` stays, with the new picture, so the earlier address still answers. The share-tags check in `web/scripts/sightline-shots.mjs` expects the new address
+- [x] Nothing else needed changing for the new file to be served: the web server serves any built file by its extension (`web/server/static.ts`: `.jpg` is `image/jpeg`, checked with the server each time), the load balancer sends every path it has no rule for to the web server, and there is no service worker and no list of public files
+- [ ] Not checked by an agent: the card in LinkedIn's Post Inspector after the address changed. That is a person's step
 
 ## The front page says how the Moon is moved (2026-11-17)
 
