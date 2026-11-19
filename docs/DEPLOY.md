@@ -684,7 +684,43 @@ needed to add an instance.
 and read line by line: the Redis instance destroyed, the three services changed in place (their two Redis
 settings gone, the copy counts, and for plans and the co-pilot the path into the project's network that
 only Redis needed; the web server keeps its own subnet), nothing else, no access changes. The pull request
-names the instance in `infra/expected-removals.txt`, which the destroy guard requires.
+names the instance in `infra/expected-removals.txt`, which the destroy guard requires. Merged at 00:17 UTC on
+2026-11-19 (evening of the 18th in New York); the apply took four minutes, and the web server's own deploy
+followed it and passed.
+
+**Checked on the live site afterwards:** `gcloud redis instances list` shows no instance; every status
+reports `"limits":"memory"` (rooms in memory too); `web/scripts/smoke.mjs` with a saved plan, 35 checks
+passed; `plans-check.mjs --cloud` and `copilot-check.mjs --cloud`, all passed, as a visitor and through the
+canary header; the first load in headless Chrome, 77 requests as before the change; `web/scripts/follow-check.mjs`,
+118 checks passed and 3 failed, the same three as on the run made an hour before the change (the presenter's
+line says twice as many are following as there are; not looked into).
+
+**The cold starts, measured from zero copies** (three times: 00:58, 06:21 and 13:54 UTC):
+
+| | From zero copies | With a copy up |
+| --- | --- | --- |
+| Opening a saved plan | 1.5 to 1.7 s | 0.25 to 0.3 s |
+| A co-pilot question, to its first lookup on the screen | 3.9 s | about 1 s |
+| A co-pilot question, to the whole answer | 6.5 s and 7.3 s; 20.9 s once | 2.7 to 4.8 s |
+
+The container itself starts in 0.6 to 1.0 s; the rest of the co-pilot's wait is its first sign-in and a
+model call with nothing kept. The 20.9 s was one first model call that got no answer within its 10 s and
+was tried again. A page load softens this: the front page asks `/api/status/services`, which makes the web
+server ask both services how they are, so both start while the visitor is still looking at the first
+screen. The web server waits one second for each answer, so a service that was at zero can read "down, no
+answer within 1 s" in that one reply (seen for plans); the next one is right.
+
+**One thing the settings did not do by themselves.** Each service's revision from before the change still
+had the tag `canary` and its own "one warm copy", and Cloud Run keeps the warm copies of a revision that
+has a tag: 26 minutes after the apply, plans and the co-pilot were each still billed for one. Moving the tag
+to the live revision, which is what every deploy does, let them go
+(`gcloud run services update-traffic clps-plans --region us-east4 --update-tags canary=<live revision>`,
+and the same for `clps-copilot`). The web server's deploy had already moved its own. After a change to
+`*_min_instances`, check for it:
+
+```sh
+gcloud run services describe clps-plans --region us-east4 --format 'value(status.traffic)'   # the tag should be on the live revision
+```
 
 **How the switch went, 2026-11-17:** applied from the Mac first (a saved plan, read line by line: three
 services changed in place, one Redis instance replaced, no access changes), then put on `main` by the pull
