@@ -24,6 +24,14 @@ describe('the system design the Guide draws', () => {
     expect(words).toContain('Claude Opus 5.5. Signed in by workload identity federation')
   })
 
+  it('keeps Redis in the design as built, and says it is switched off now', () => {
+    const redis = areas.flatMap((area) => area.boxes).find((box) => box.id === 'redis')
+    expect(redis?.name).toBe('Redis · Memorystore')
+    expect(redis?.says).toContain('Shared by web, plans and co-pilot')
+    expect(redis?.says).toContain('Switched off since November 2026 to cut cost')
+    expect(redis?.says).toContain('One setting turns it back on')
+  })
+
   it('says only "Claude" when Scout’s service reports no model', () => {
     const anthropic = systemAreas({ siteCount: 13, span: '2026 to 2049', model: null }).flatMap((area) => area.boxes).find((box) => box.id === 'anthropic')
     expect(anthropic?.says.startsWith('Claude. Signed in')).toBe(true)

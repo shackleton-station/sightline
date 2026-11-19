@@ -5,7 +5,7 @@ const VISIT: FlowStep[] = [
   { name: 'You', does: 'open lunarsightline.com', tech: 'Cloud DNS · Cloud Domains' },
   { name: 'Load balancer', does: 'ends HTTPS and serves cached files from near you', tech: 'Global Application Load Balancer · Cloud CDN · managed certificate' },
   { name: 'Web server', does: 'sends the app, streams terrain and answers questions', tech: 'Cloud Run · Node 22 · Hono · Docker' },
-  { name: 'Storage, memory and AI', does: 'hold the terrain, the shared counts and saved plans, and run the language model', tech: 'Cloud Storage · Redis (Memorystore) · Firestore · Claude (Anthropic API)' },
+  { name: 'Storage, memory and AI', does: 'hold the terrain, the shared counts and saved plans, and run the language model', tech: 'Cloud Storage · Redis (Memorystore), switched off since November 2026 to cut cost: each service uses its own memory, one setting turns it back on · Firestore · Claude (Anthropic API)' },
 ]
 
 const SHIP: FlowStep[] = [
@@ -16,7 +16,7 @@ const SHIP: FlowStep[] = [
 ]
 
 const COUNT: FlowStep[] = [
-  { name: 'A question is answered', does: 'and a small note about it is kept before the answer leaves', tech: 'an outbox in Redis · the event has its own id' },
+  { name: 'A question is answered', does: 'and a small note about it is kept before the answer leaves', tech: 'an outbox in Redis (switched off since November 2026 to cut cost: now in the service’s own memory, one setting turns Redis back on) · the event has its own id' },
   { name: 'A queue', does: 'holds the note until every reader has it, and sends it again if one fails', tech: 'Pub/Sub · at-least-once delivery · retries, then a dead-letter topic' },
   { name: 'A worker', does: 'that no visitor can reach counts it, once, however often it arrives', tech: 'Cloud Run, private · its own identity · one atomic write' },
   { name: 'The day’s counts', does: 'are kept in several pieces, and this page adds them up', tech: 'Firestore · sharded counters · read-only for the web server' },
@@ -32,7 +32,7 @@ const REBUILD: FlowStep[] = [
 const STACK: { layer: string; items: string[] }[] = [
   { layer: 'In your browser', items: ['React 19', 'TypeScript', 'Vite', 'Three.js (WebGL2)', 'our own terrain-lighting shader', 'D3'] },
   { layer: 'Server', items: ['Node 22', 'Hono', 'Docker', 'Cloud Run'] },
-  { layer: 'Google Cloud', items: ['Cloud Storage', 'Memorystore (Redis)', 'Firestore', 'Load Balancing', 'Cloud CDN', 'Cloud DNS', 'Cloud Armor', 'Pub/Sub', 'BigQuery', 'Cloud Trace', 'Artifact Registry', 'Cloud Monitoring'] },
+  { layer: 'Google Cloud', items: ['Cloud Storage', 'Memorystore (Redis), switched off since November 2026', 'Firestore', 'Load Balancing', 'Cloud CDN', 'Cloud DNS', 'Cloud Armor', 'Pub/Sub', 'BigQuery', 'Cloud Trace', 'Artifact Registry', 'Cloud Monitoring'] },
   { layer: 'Language model', items: ['Claude on the Anthropic API', 'signed in by workload identity federation, no stored key'] },
   { layer: 'Built and shipped with', items: ['Terraform', 'GitHub Actions', 'Workload Identity Federation'] },
   { layer: 'Data pipeline', items: ['Python 3.12', 'SpiceyPy (NAIF SPICE)', 'NumPy', 'Numba', 'Rasterio', 'PyProj', 'uv'] },
