@@ -24,6 +24,12 @@ describe('the system design the Guide draws', () => {
     expect(words).toContain('Claude Opus 5.5. Signed in by workload identity federation')
   })
 
+  it('writes every box in plain sentences, with no semicolon and no budget line', () => {
+    const words = areas.flatMap((area) => area.boxes.map((box) => box.says)).join(' ')
+    expect(words).not.toContain(';')
+    expect(words).not.toMatch(/budget/i)
+  })
+
   it('keeps Redis in the design as built, and says it is switched off now', () => {
     const redis = areas.flatMap((area) => area.boxes).find((box) => box.id === 'redis')
     expect(redis?.name).toBe('Redis · Memorystore')
