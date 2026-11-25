@@ -58,7 +58,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
     { name: 'The same calculation', does: 'The skyline and the hourly check a listed site gets.', tech: `the same ${directions} directions, out to the same 200 km, ${height} above the ground` },
     { name: 'At every pixel', does: light ? `Each ${light.pixelM} m of a ${light.widthKm} km square on the south pole${light.wide ? `, and each ${light.wide.pixelM} m of a ${light.wide.widthKm} km one around it` : ''}.` : 'Every pixel of a square on the south pole.', tech: `${light ? `${light.millionsOfPixels.toFixed(1)} million` : 'millions of'} pixels · Python compiled with Numba` },
     { name: 'Kept as changes', does: 'A pixel’s month is the hours its Sun and Earth come and go.', tech: 'one file of a few megabytes a month · Cloud Storage' },
-    { name: 'Drawn by your graphics card', does: 'Moving time changes one number; nothing is sent again.', tech: 'integer textures · a WebGL2 shader in Three.js' },
+    { name: 'Drawn by your graphics card', does: 'Moving time changes one number, and nothing is sent again.', tech: 'integer textures · a WebGL2 shader in Three.js' },
   ]
 
   const tools: Tool[] = [
@@ -196,7 +196,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
             <kbd>Space</kbd> plays time, and holds it.
           </li>
           <li>
-            <kbd>←</kbd> and <kbd>→</kbd> move the time bar one hour; with <kbd>Shift</kbd>, one day.
+            <kbd>←</kbd> and <kbd>→</kbd> move the time bar one hour, or one day with <kbd>Shift</kbd>.
           </li>
           <li>
             <kbd>H</kbd> hides everything but the Moon, and shows it again.
@@ -255,7 +255,7 @@ export function GuideSolution({ data, siteCount, span, range, light, verdict, st
         </p>
         <p>
           <b>{MEANING_LABELS.limits}.</b> The mission is a set of limits, and a landing fits when it keeps every one. The first six are on the screen as soon as the mission is
-          opened; the last three are behind “Advanced”.
+          opened, and the last three are behind “Advanced”.
         </p>
         <dl className="how-limit-means">
           {[...limitMeanings(data?.slope ? { overM: data.slope.baseline_m, siteName: data.site.name } : null), ...advancedMeanings()].map((meaning) => (

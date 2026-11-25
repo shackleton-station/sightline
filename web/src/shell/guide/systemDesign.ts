@@ -51,7 +51,7 @@ export function systemAreas({ siteCount, span, model }: SystemFacts): SystemArea
         { id: 'lb', kind: 'outside', name: 'Load balancer + Cloud CDN', says: 'lunarsightline.com, with a managed certificate. Sends each path to its service, to the bucket or to Moon Trek. The header x-clps-canary reaches a new version.' },
         { id: 'armor', kind: 'outside', name: 'Cloud Armor', says: 'The firewall on the paths to the services and Moon Trek: 120 API calls a minute per address, a 5-minute ban past 3,000 a minute, and an XSS rule that only watches.' },
         { id: 'trek', kind: 'outside', name: 'NASA Moon Trek', says: '/trek/ passes trek.nasa.gov map tiles through the CDN, kept 30 days.' },
-        { id: 'buckets', kind: 'outside', name: 'Backend buckets', says: 'Terrain tiles and the light grid, kept a day; video, kept an hour. No server in the path.' },
+        { id: 'buckets', kind: 'outside', name: 'Backend buckets', says: 'Terrain tiles and the light grid, kept a day. Video is kept an hour. No server in the path.' },
       ],
     },
     {
@@ -74,11 +74,11 @@ export function systemAreas({ siteCount, span, model }: SystemFacts): SystemArea
       title: 'Build and deploy',
       boxes: [
         { id: 'github', kind: 'outside', name: 'GitHub', says: 'shackleton-station/sightline. Every change is a pull request to main.' },
-        { id: 'pipeline', kind: 'ours', name: 'Data pipeline · Python', says: `NASA SPICE kernels and LOLA terrain in, hourly Sun and Earth visibility out: ${siteCount} sites, ${span}. Results are built into the images; tiles go to the bucket.` },
+        { id: 'pipeline', kind: 'ours', name: 'Data pipeline · Python', says: `NASA SPICE kernels and LOLA terrain in, hourly Sun and Earth visibility out: ${siteCount} sites, ${span}. Results are built into the images, and tiles go to the bucket.` },
         { id: 'actions', kind: 'outside', name: 'GitHub Actions', says: 'Checks on every pull request, and a deploy workflow for each service. Signs in to Google Cloud with no stored key (Workload Identity Federation).' },
         { id: 'terraform', kind: 'ours', name: 'Terraform pipeline', says: 'The resources in infra/. A plan is posted on each pull request and applied on merge, after a destroy guard. A nightly check looks for drift.' },
         { id: 'registry', kind: 'outside', name: 'Artifact Registry', says: 'One image for each service.' },
-        { id: 'canary', kind: 'outside', name: 'Canary deploy · web, plans, co-pilot', says: 'A new version gets no visitors and is tested through the load balancer with x-clps-canary; then a tenth of visitors for a minute, then all. It goes back on failure. The events worker goes from no messages to all.' },
+        { id: 'canary', kind: 'outside', name: 'Canary deploy · web, plans, co-pilot', says: 'A new version gets no visitors and is tested through the load balancer with x-clps-canary, then a tenth of visitors for a minute, then all. It goes back on failure. The events worker goes from no messages to all.' },
       ],
     },
     {
@@ -98,7 +98,7 @@ export function systemAreas({ siteCount, span, model }: SystemFacts): SystemArea
       boxes: [
         { id: 'trace', kind: 'outside', name: 'Cloud Trace', says: 'One trace for each request, even across the queue.' },
         { id: 'slo', kind: 'outside', name: 'Objectives over 28 days', says: 'web: 99.5% succeed, 90% within 2 s · plans: 99.5%, 95% within 1 s · co-pilot: 99%, 90% within 10 s.' },
-        { id: 'alerts', kind: 'outside', name: 'Alerts by email', says: 'An objective burning down, the site down, the breaker open, the worker behind, a dead letter. A monthly budget emails the billing admins.' },
+        { id: 'alerts', kind: 'outside', name: 'Alerts by email', says: 'An objective burning down, the site down, the breaker open, the worker behind, a dead letter.' },
       ],
     },
   ]

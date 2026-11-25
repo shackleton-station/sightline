@@ -12,7 +12,7 @@ const SHIP: FlowStep[] = [
   { name: 'A change', does: 'is proposed and reviewed', tech: 'GitHub pull request' },
   { name: 'Checks', does: 'type-check, test and build everything', tech: 'GitHub Actions · vitest · pytest · ruff' },
   { name: 'Sign-in with no key', does: 'GitHub proves which repository and branch it is', tech: 'Workload Identity Federation' },
-  { name: 'Deploy in steps', does: 'test the new version with no visitors, give it a tenth of them, then all; go back if anything fails', tech: 'Artifact Registry · Cloud Run canary · automatic rollback' },
+  { name: 'Deploy in steps', does: 'test the new version with no visitors, give it a tenth of them, then all, and go back if anything fails', tech: 'Artifact Registry · Cloud Run canary · automatic rollback' },
 ]
 
 const COUNT: FlowStep[] = [
@@ -39,9 +39,9 @@ const STACK: { layer: string; items: string[] }[] = [
 ]
 
 const IN_SHORT = [
-  { title: 'When you open it', says: 'A global load balancer serves cached files from near you. A small web server sends the app; terrain comes straight from storage, and questions go to Scout’s own service.' },
+  { title: 'When you open it', says: 'A global load balancer serves cached files from near you. A small web server sends the app. Terrain comes straight from storage, and questions go to Scout’s own service.' },
   { title: 'When we change it', says: 'Every change is a pull request, tested and built by itself, then released to a tenth of visitors first. If anything fails, it goes back on its own.' },
-  { title: 'When the data is rebuilt', says: 'A Python pipeline downloads NASA’s files once, works out every site and hour, then checks itself. Small results live with the code; terrain tiles go to cloud storage.' },
+  { title: 'When the data is rebuilt', says: 'A Python pipeline downloads NASA’s files once, works out every site and hour, then checks itself. Small results live with the code, and terrain tiles go to cloud storage.' },
 ]
 
 /**

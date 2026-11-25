@@ -94,7 +94,7 @@ export function GuideProof({ data, span, light }: Props) {
           <h3>We also try to break it</h3>
           <p className="how-caption">
             A good test fails when the model is wrong. So the map and the photos are checked again against a deliberately wrong sky. Turn the sky half way round and the match with NASA’s map falls
-            from {light.r.toFixed(2)} to {light.rTurned.toFixed(2)}; take the terrain away and it falls to {light.rNoTerrain.toFixed(2)}.
+            from {light.r.toFixed(2)} to {light.rTurned.toFixed(2)}. Take the terrain away and it falls to {light.rNoTerrain.toFixed(2)}.
             {lit?.wrong_sun_agreement_pct != null && ` With the Sun half a month out of step, the photo test scores ${Math.round(lit.wrong_sun_agreement_pct)}%.`} At {light.sites}{' '}
             listed sites the map’s code gives {light.worstAgreePct === 100 ? 'the site’s own answer in every one' : `the site’s own answer in at least ${light.worstAgreePct}%`} of{' '}
             {light.hours.toLocaleString('en-US')} hours.
